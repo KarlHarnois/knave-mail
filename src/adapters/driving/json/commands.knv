@@ -1,38 +1,58 @@
-(use adapters/driving/json/arguments account-argument draft-argument
-                                     flag-argument text-argument
-                                     thread-ids-argument thread-query-argument)
-(use adapters/driving/json/mail-json accounts-json draft-json labels-json
-                                     summaries-json thread-json)
-(use adapters/driving/json/envelope failure-reply null-id request-arguments
-                                    request-id success-reply)
-(use adapters/driving/json/value json-value parse-json string-field)
-(use domain/labels archive-change label-change read-change star-change
-                   trash-change unread-change unstar-change)
+(use adapters/driving/json/arguments account-argument
+                                     draft-argument
+                                     flag-argument
+                                     text-argument
+                                     thread-query-argument)
+
+(use adapters/driving/json/mail-json accounts-json
+                                     draft-json labels-json
+                                     summaries-json
+                                     thread-json)
+
+(use adapters/driving/json/envelope failure-reply null-id
+                                    request-arguments
+                                    request-id
+                                    success-reply)
+
+(use adapters/driving/json/relabel-command relabel-command!)
+
+(use adapters/driving/json/value json-value parse-json
+                                 string-field)
+
 (use domain/mail-error mail-error)
-(use ports/driving/mail-client draft-forward! draft-reply! draft-reply-all!
-                               list-accounts! list-labels! list-threads!
-                               mail-client open-thread! relabel-threads!
-                               send-draft! sync-account!)
+
+(use ports/driving/mail-client draft-forward! draft-reply!
+                               draft-reply-all!
+                               list-accounts! list-labels!
+                               list-threads! mail-client
+                               open-thread! send-draft!
+                               sync-account!)
 
 (export answer! run-command!)
 
-(type answer! (where ((client mail-client)) (fn ((mut client) (ref str)) string)))
+(type answer!
+  (where ((client mail-client))
+    (fn ((mut client) (ref str)) string)))
 
 (defn answer! (client request-text)
   (match (parse-json request-text)
     ((ok request) (answer-parsed! client (ref request)))
-    ((err problem) (failure-reply (ref (null-id))
-                                  (ref (mail-error/usage problem))))))
+    ((err problem)
+     (failure-reply (ref (null-id))
+                    (ref (mail-error/usage problem))))))
 
 (type answer-parsed!
-  (where ((client mail-client)) (fn ((mut client) (ref json-value)) string)))
+  (where ((client mail-client))
+    (fn ((mut client) (ref json-value))
+      string)))
 
 (defn answer-parsed! (client request)
   (let (id (request-id request)
         outcome (match (string-field request "command")
-                  ((ok command) (run-command! client
-                                              (ref command)
-                                              (ref (request-arguments request))))
+                  ((ok command)
+                   (run-command! client
+                                 (ref command)
+                                 (ref (request-arguments request))))
                   ((err problem) (err (mail-error/usage problem)))))
     (match outcome
       ((ok value) (success-reply (ref id) (ref value)))
@@ -40,65 +60,64 @@
 
 (type run-command!
   (where ((client mail-client))
-    (fn ((mut client) (ref str) (ref json-value)) (result json-value mail-error))))
+    (fn ((mut client)
+         (ref str)
+         (ref json-value))
+      (result json-value mail-error))))
 
 (defn run-command! (client command arguments)
   (match command
-    ("accounts" (ok (accounts-json (ref (try (list-accounts! client))))))
-    ("labels" (ok (labels-json (ref (try (list-labels! client (ref (try (account-argument arguments)))))))))
-    ("threads" (ok (summaries-json (ref (try (list-threads! client
-                                                            (ref (try (account-argument arguments)))
-                                                            (ref (try (thread-query-argument arguments)))))))))
-    ("thread" (ok (thread-json (ref (try (open-thread! client
-                                                       (ref (try (account-argument arguments)))
-                                                       (ref (try (text-argument arguments "threadId")))))))))
-    ("reply-draft" (reply-draft! client arguments))
-    ("forward-draft" (ok (draft-json (ref (try (draft-forward! client
-                                                               (ref (try (account-argument arguments)))
-                                                               (ref (try (text-argument arguments "messageId")))))))))
-    ("send" (do (try (send-draft! client
+    ("accounts"
+     (ok (accounts-json (ref (try (list-accounts! client))))))
+    ("labels"
+     (ok (labels-json (ref (try (list-labels! client
+                                              (ref (try (account-argument
+                                                          arguments)))))))))
+    ("threads"
+     (ok (summaries-json (ref (try (list-threads! client
+                                                  (ref (try (account-argument
+                                                              arguments)))
+                                                  (ref (try (thread-query-argument
+                                                              arguments)))))))))
+    ("thread"
+     (ok (thread-json (ref (try (open-thread!
+                                  client
                                   (ref (try (account-argument arguments)))
-                                  (ref (try (draft-argument arguments)))))
-                (ok (empty-object))))
-    ("sync" (do (try (sync-account! client (ref (try (account-argument arguments)))))
-                (ok (empty-object))))
+                                  (ref (try (text-argument arguments
+                                                           "threadId")))))))))
+    ("reply-draft" (reply-draft! client arguments))
+    ("forward-draft"
+     (ok (draft-json (ref (try (draft-forward!
+                                 client
+                                 (ref (try (account-argument arguments)))
+                                 (ref (try (text-argument arguments
+                                                          "messageId")))))))))
+    ("send"
+     (do
+       (try (send-draft! client
+                         (ref (try (account-argument arguments)))
+                         (ref (try (draft-argument arguments)))))
+       (ok (empty-object))))
+    ("sync"
+     (do
+       (try (sync-account! client
+                           (ref (try (account-argument arguments)))))
+       (ok (empty-object))))
     (_ (relabel-command! client command arguments))))
 
 (type reply-draft!
   (where ((client mail-client))
-    (fn ((mut client) (ref json-value)) (result json-value mail-error))))
+    (fn ((mut client) (ref json-value))
+      (result json-value mail-error))))
 
 (defn reply-draft! (client arguments)
   (let (account (try (account-argument arguments))
         message-id (try (text-argument arguments "messageId")))
-    (ok (draft-json (ref (try (if (try (flag-argument arguments "all"))
-                                (draft-reply-all! client (ref account) (ref message-id))
-                                (draft-reply! client (ref account) (ref message-id)))))))))
-
-(type relabel-command!
-  (where ((client mail-client))
-    (fn ((mut client) (ref str) (ref json-value)) (result json-value mail-error))))
-
-(defn relabel-command! (client command arguments)
-  (let (change (try (change-named command)))
-    (try (relabel-threads! client
-                           (ref (try (account-argument arguments)))
-                           (ref (try (thread-ids-argument arguments)))
-                           (ref change)))
-    (ok (empty-object))))
-
-(type change-named (fn ((ref str)) (result label-change mail-error)))
-
-(defn change-named (command)
-  (match command
-    ("archive" (ok (archive-change)))
-    ("trash" (ok (trash-change)))
-    ("star" (ok (star-change)))
-    ("unstar" (ok (unstar-change)))
-    ("mark-read" (ok (read-change)))
-    ("mark-unread" (ok (unread-change)))
-    (_ (err (mail-error/usage (str "unknown command `" command "`"))))))
+    (ok (draft-json
+          (ref (try
+                 (if (try (flag-argument arguments "all"))
+                   (draft-reply-all! client (ref account) (ref message-id))
+                   (draft-reply! client (ref account) (ref message-id)))))))))
 
 (def empty-object
-  (rust "serde_json::json!({{}})"
-    (fn () json-value)))
+  (rust "serde_json::json!({{}})" (fn () json-value)))

@@ -1,16 +1,19 @@
-(export ->parsed-arguments parse-arguments parsed-arguments positional
-        switch? value-of values-of)
+(export ->parsed-arguments parse-arguments parsed-arguments
+        positional switch? value-of values-of)
 
 (def valued-options
-  (vec "--account" "--backend" "--latency" "--fail" "--e2e-script" "--label"
-       "--query" "--limit" "--format" "--to" "--cc" "--subject"))
+  (vec "--account" "--backend" "--latency" "--fail"
+       "--e2e-script" "--label" "--query" "--limit"
+       "--format" "--to" "--cc" "--subject"))
 
 (defstruct parsed-arguments
   :positionals (vec string)
   :options (vec (pair string string))
   :switches (vec string))
 
-(type parse-arguments (fn ((ref (vec string))) parsed-arguments))
+(type parse-arguments
+  (fn ((ref (vec string)))
+    parsed-arguments))
 
 (defn parse-arguments (tokens)
   (loop (index 0
@@ -20,50 +23,64 @@
       (let (token (at tokens index))
         (cond
           ((valued-option? token valued-options)
-           (recur (+ index 2) (with-option parsed token (value-after tokens index))))
+           (recur (+ index 2)
+                  (with-option parsed token (value-after tokens index))))
           ((flag? token)
            (recur (+ index 1) (with-switch parsed token)))
           (else (recur (+ index 1) (with-positional parsed token))))))))
 
-(type positional (fn ((ref parsed-arguments) usize) (option string)))
+(type positional
+  (fn ((ref parsed-arguments) usize)
+    (option string)))
 
 (defn positional (parsed index)
   (if (< index (len (:positionals parsed)))
     (some (clone (at (:positionals parsed) index)))
     none))
 
-(type value-of (fn ((ref parsed-arguments) (ref str)) (option string)))
+(type value-of
+  (fn ((ref parsed-arguments) (ref str))
+    (option string)))
 
 (defn value-of (parsed name)
   (last-value (ref (values-of parsed name))))
 
-(type values-of (fn ((ref parsed-arguments) (ref str)) (vec string)))
+(type values-of
+  (fn ((ref parsed-arguments) (ref str))
+    (vec string)))
 
 (defn values-of (parsed name)
   (collect (map (filter (iter (:options parsed))
-                        (fn (option) (= (first-of option) name)))
+                  (fn (option) (= (first-of option) name)))
                 (fn (option) (clone (second-of option))))))
 
-(type switch? (fn ((ref parsed-arguments) (ref str)) bool))
+(type switch?
+  (fn ((ref parsed-arguments) (ref str))
+    bool))
 
 (defn switch? (parsed name)
-  (any? (iter (:switches parsed)) (fn (held) (= held name))))
+  (any? (iter (:switches parsed))
+    (fn (held) (= held name))))
 
-(type with-option (fn (parsed-arguments (ref string) string) parsed-arguments))
+(type with-option
+  (fn (parsed-arguments (ref string) string) parsed-arguments))
 
 (defn with-option (parsed name value)
   (let (options (clone (:options parsed)))
-    (push! (mut options) (pair (clone name) value))
+    (push! (mut options)
+           (pair (clone name) value))
     (assoc parsed :options options)))
 
-(type with-switch (fn (parsed-arguments (ref string)) parsed-arguments))
+(type with-switch
+  (fn (parsed-arguments (ref string)) parsed-arguments))
 
 (defn with-switch (parsed name)
   (let (switches (clone (:switches parsed)))
     (push! (mut switches) (clone name))
     (assoc parsed :switches switches)))
 
-(type with-positional (fn (parsed-arguments (ref string)) parsed-arguments))
+(type with-positional
+  (fn (parsed-arguments (ref string)) parsed-arguments))
 
 (defn with-positional (parsed token)
   (let (positionals (clone (:positionals parsed)))
@@ -72,7 +89,8 @@
 
 (def valued-option?
   (rust "{1}.contains(&{0}.as_str())"
-    (fn ((ref string) (ref (vec (ref str)))) bool)))
+    (fn ((ref string) (ref (vec (ref str))))
+      bool)))
 
 (def flag?
   (rust "{0}.starts_with(\"--\")"
@@ -84,12 +102,15 @@
 
 (def first-of
   (rust "&{0}.0"
-    (fn ((ref (pair string string))) (ref string))))
+    (fn ((ref (pair string string)))
+      (ref string))))
 
 (def second-of
   (rust "&{0}.1"
-    (fn ((ref (pair string string))) (ref string))))
+    (fn ((ref (pair string string)))
+      (ref string))))
 
 (def last-value
   (rust "{0}.last().cloned()"
-    (fn ((ref (vec string))) (option string))))
+    (fn ((ref (vec string)))
+      (option string))))

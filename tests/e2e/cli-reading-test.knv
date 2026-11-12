@@ -1,0 +1,74 @@
+(use support/binary binary-path output-code output-stderr
+                    output-stdout run-binary)
+
+(use support/cli-world gmail-cli last-request
+                       signed-in-tokens)
+
+(use support/fake-gmail start-fake-gmail)
+(use support/gmail-requests contains?)
+(use support/gmail-world fixture-routes)
+(use support/sample-mail addresses)
+(use support/temporary temporary-path)
+
+(deftest syncs-then-lists-the-inbox-from-the-cache
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        cache (temporary-path "cache.sqlite3")
+        tokens (signed-in-tokens))
+    (gmail-cli (ref server)
+               (ref cache)
+               (ref tokens)
+               (vec "sync")
+               "")
+    (assert (= (output-stdout (ref (gmail-cli (ref server)
+                                              (ref cache)
+                                              (ref tokens)
+                                              (vec "threads" "list")
+                                              "")))
+               "t1                  2023-11-14 22:23  N  Grace Hopper, ada@example.c Compiler meeting\nt2                  2023-11-03 08:26     Billing                     Invoice 42\n"))))
+
+(deftest prints-a-synced-thread-as-versioned-json
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        cache (temporary-path "cache.sqlite3")
+        tokens (signed-in-tokens))
+    (gmail-cli (ref server)
+               (ref cache)
+               (ref tokens)
+               (vec "sync")
+               "")
+    (assert (contains? (ref (output-stdout (ref (gmail-cli (ref server)
+                                                           (ref cache)
+                                                           (ref tokens)
+                                                           (vec "--json"
+                                                                "labels")
+                                                           ""))))
+                       "{\"result\":[{\"id\":\"INBOX\",\"name\":\"INBOX\",\"unread\":2}"))))
+
+(deftest a-missing-sign-in-exits-with-auth-required
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        cache (temporary-path "cache.sqlite3")
+        output (gmail-cli (ref server)
+                          (ref cache)
+                          (ref (temporary-path "none.json"))
+                          (vec "sync")
+                          ""))
+    (assert (= (output-code (ref output)) 3))
+    (assert (contains? (ref (output-stderr (ref output)))
+                       "run `knave-mail accounts add`"))))
+
+(deftest an-unknown-thread-exits-with-not-found
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        cache (temporary-path "cache.sqlite3")
+        tokens (signed-in-tokens))
+    (assert (= (output-code (ref (gmail-cli (ref server)
+                                            (ref cache)
+                                            (ref tokens)
+                                            (vec "threads" "show" "t9")
+                                            "")))
+               2))))
+
+(deftest a-missing-oauth-client-is-a-usage-error
+  (let (output (run-binary binary-path
+                           (ref (addresses (vec "labels")))
+                           (ref (the (vec (pair string string)) (vec)))
+                           ""))
+    (assert (= (output-code (ref output)) 1))))

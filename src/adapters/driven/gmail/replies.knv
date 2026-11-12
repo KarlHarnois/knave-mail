@@ -1,0 +1,59 @@
+(use adapters/driven/gmail/http http-reply reply-body
+                                reply-status)
+
+(use adapters/driving/json/value json-value parse-json)
+(use domain/mail-error mail-error)
+
+(export as-internal checked collect-results into-replies
+        sent)
+
+(type checked
+  (fn (http-reply) (result json-value mail-error)))
+
+(defn checked (reply)
+  (let (status (reply-status (ref reply))
+        body (reply-body (ref reply)))
+    (cond
+      ((and (>= status 200) (< status 300))
+       (as-internal (parse-json (ref (non-empty-json body)))))
+      ((= status 404)
+       (err (mail-error/not-found (str "Gmail has no such item: " body))))
+      ((or (= status 401) (= status 403))
+       (err (mail-error/auth-required (str "Gmail refused access: " body))))
+      ((or (= status 429) (>= status 500))
+       (err (mail-error/network (str "Gmail is unavailable (" status ")"))))
+      (else (err (mail-error/internal
+                   (str "Gmail answered " status ": " body)))))))
+
+(type sent
+  (fn ((result http-reply string))
+    (result http-reply mail-error)))
+
+(defn sent (outcome)
+  (map-err outcome
+    (fn (problem)
+      (mail-error/network (str "cannot reach Google: " problem)))))
+
+(type as-internal
+  (where (value)
+    (fn ((result value string))
+      (result value mail-error))))
+
+(defn as-internal (outcome)
+  (map-err outcome
+    (fn (problem)
+      (mail-error/internal (str "unexpected Gmail answer: " problem)))))
+
+(def non-empty-json
+  (rust "if {0}.trim().is_empty() {{ String::from(\"{{}}\") }} else {{ {0} }}"
+    (fn (string) string)))
+
+(def into-replies
+  (rust "{0}.into_iter()"
+    (fn ((vec (result http-reply string)))
+      (iterator (result http-reply string)))))
+
+(def collect-results
+  (rust "{0}.into_iter().collect::<Result<Vec<_>, _>>()"
+    (fn ((vec (result json-value mail-error)))
+      (result (vec json-value) mail-error))))

@@ -1,9 +1,12 @@
 (use app/client)
 (use domain/mail ->thread-query)
 (use ports/driving/mail-client list-threads! open-thread!)
-(use support/app-steps fail-remote! failing-kind inbox-query listed-ids!
-                       remote-thread synced!)
-(use support/memory-world app-over remote-with sample-thread world-account)
+
+(use support/app-steps fail-remote! failing-kind inbox-query
+                       listed-ids! remote-thread synced!)
+
+(use support/memory-world app-over remote-with sample-thread
+                          world-account)
 
 (defn remote ()
   (remote-with (vec (sample-thread "t-1" (vec "INBOX" "UNREAD") 100)
@@ -11,71 +14,99 @@
                     (sample-thread "t-3" (vec "Receipts") 300))))
 
 (deftest opening-a-thread-returns-its-messages
-  (let (world (remote) app (app-over (ref world)))
+  (let (world (remote)
+        app (app-over (ref world)))
     (synced! (mut app))
-    (assert (= (:text (at (:messages (unwrap-ok (open-thread! (mut app) world-account "t-2"))) 0))
+    (assert (= (:text (at (:messages (unwrap-ok (open-thread! (mut app)
+                                                              world-account
+                                                              "t-2")))
+                          0))
                "Body of t-2"))))
 
 (deftest opening-a-thread-that-was-never-synced-fetches-it
-  (let (world (remote) app (app-over (ref world)))
-    (assert (= (:subject (unwrap-ok (open-thread! (mut app) world-account "t-3")))
+  (let (world (remote)
+        app (app-over (ref world)))
+    (assert (= (:subject (unwrap-ok
+                           (open-thread! (mut app) world-account "t-3")))
                "Subject of t-3"))))
 
 (deftest opening-a-synced-thread-needs-no-network
-  (let (world (remote) app (app-over (ref world)))
+  (let (world (remote)
+        app (app-over (ref world)))
     (synced! (mut app))
     (fail-remote! (ref world) "fetch-thread")
     (assert (ok? (open-thread! (mut app) world-account "t-2")))))
 
 (deftest opening-an-unknown-thread-is-not-found
-  (let (world (remote) app (app-over (ref world)))
+  (let (world (remote)
+        app (app-over (ref world)))
     (assert (= (failing-kind (open-thread! (mut app) world-account "t-9"))
                "not-found"))))
 
 (deftest opening-an-unread-thread-marks-it-read
-  (let (world (remote) app (app-over (ref world)))
+  (let (world (remote)
+        app (app-over (ref world)))
     (synced! (mut app))
-    (assert (= (:labels (unwrap-ok (open-thread! (mut app) world-account "t-1")))
+    (assert (= (:labels (unwrap-ok
+                          (open-thread! (mut app) world-account "t-1")))
                (vec (str "INBOX"))))))
 
 (deftest opening-an-unread-thread-marks-it-read-remotely
-  (let (world (remote) app (app-over (ref world)))
+  (let (world (remote)
+        app (app-over (ref world)))
     (synced! (mut app))
     (unwrap-ok (open-thread! (mut app) world-account "t-1"))
-    (assert (= (:labels (remote-thread (ref world) "t-1")) (vec (str "INBOX"))))))
+    (assert (= (:labels (remote-thread (ref world) "t-1"))
+               (vec (str "INBOX"))))))
 
 (deftest opening-an-unread-thread-marks-its-summary-read
-  (let (world (remote) app (app-over (ref world)))
+  (let (world (remote)
+        app (app-over (ref world)))
     (synced! (mut app))
     (unwrap-ok (open-thread! (mut app) world-account "t-1"))
-    (assert (= (:labels (at (unwrap-ok (list-threads! (mut app) world-account (ref (inbox-query)))) 1))
+    (assert (= (:labels (at (unwrap-ok (list-threads! (mut app)
+                                                      world-account
+                                                      (ref (inbox-query))))
+                            1))
                (vec (str "INBOX"))))))
 
 (deftest a-search-asks-the-remote-mailbox
-  (let (world (remote) app (app-over (ref world)))
-    (assert (= (listed-ids! (mut app) (ref (->thread-query (str "ALL") (str "t-3") 50)))
+  (let (world (remote)
+        app (app-over (ref world)))
+    (assert (= (listed-ids! (mut app)
+                            (ref (->thread-query (str "ALL") (str "t-3") 50)))
                (vec (str "t-3"))))))
 
 (deftest a-failed-search-reports-a-network-error
-  (let (world (remote) app (app-over (ref world)))
+  (let (world (remote)
+        app (app-over (ref world)))
     (fail-remote! (ref world) "fetch-threads")
-    (assert (= (failing-kind (list-threads! (mut app) world-account (ref (->thread-query (str "ALL") (str "t") 50))))
+    (assert (= (failing-kind (list-threads!
+                               (mut app)
+                               world-account
+                               (ref (->thread-query (str "ALL") (str "t") 50))))
                "network"))))
 
 (deftest a-label-lists-only-its-threads
-  (let (world (remote) app (app-over (ref world)))
+  (let (world (remote)
+        app (app-over (ref world)))
     (synced! (mut app))
-    (assert (= (listed-ids! (mut app) (ref (->thread-query (str "STARRED") (str "") 50)))
+    (assert (= (listed-ids! (mut app)
+                            (ref (->thread-query (str "STARRED") (str "") 50)))
                (the (vec string) (vec))))))
 
 (deftest all-mail-lists-every-synced-thread
-  (let (world (remote) app (app-over (ref world)))
+  (let (world (remote)
+        app (app-over (ref world)))
     (synced! (mut app))
-    (assert (= (listed-ids! (mut app) (ref (->thread-query (str "ALL") (str "") 50)))
+    (assert (= (listed-ids! (mut app)
+                            (ref (->thread-query (str "ALL") (str "") 50)))
                (vec (str "t-2") (str "t-1"))))))
 
 (deftest a-listing-stops-at-its-limit
-  (let (world (remote) app (app-over (ref world)))
+  (let (world (remote)
+        app (app-over (ref world)))
     (synced! (mut app))
-    (assert (= (listed-ids! (mut app) (ref (->thread-query (str "INBOX") (str "") 1)))
+    (assert (= (listed-ids! (mut app)
+                            (ref (->thread-query (str "INBOX") (str "") 1)))
                (vec (str "t-2"))))))

@@ -1,41 +1,57 @@
-(use adapters/driving/json/value bool-field json-value number-field
-                                 object-field optional-string-field
-                                 string-field string-list-field)
+(use adapters/driving/json/value bool-field json-value
+                                 number-field object-field
+                                 optional-string-field
+                                 string-field
+                                 string-list-field)
+
 (use domain/mail ->draft ->thread-query draft thread-query)
 (use domain/mail-error mail-error)
 
-(export account-argument draft-argument flag-argument text-argument
-        thread-ids-argument thread-query-argument)
+(export account-argument draft-argument flag-argument
+        text-argument thread-ids-argument
+        thread-query-argument)
 
-(type text-argument (fn ((ref json-value) (ref str)) (result string mail-error)))
+(type text-argument
+  (fn ((ref json-value) (ref str))
+    (result string mail-error)))
 
 (defn text-argument (arguments name)
   (as-usage (string-field arguments name)))
 
-(type flag-argument (fn ((ref json-value) (ref str)) (result bool mail-error)))
+(type flag-argument
+  (fn ((ref json-value) (ref str))
+    (result bool mail-error)))
 
 (defn flag-argument (arguments name)
   (as-usage (bool-field arguments name)))
 
-(type account-argument (fn ((ref json-value)) (result string mail-error)))
+(type account-argument
+  (fn ((ref json-value))
+    (result string mail-error)))
 
 (defn account-argument (arguments)
   (text-argument arguments "account"))
 
-(type thread-ids-argument (fn ((ref json-value)) (result (vec string) mail-error)))
+(type thread-ids-argument
+  (fn ((ref json-value))
+    (result (vec string) mail-error)))
 
 (defn thread-ids-argument (arguments)
   (as-usage (string-list-field arguments "threadIds")))
 
 (type thread-query-argument
-  (fn ((ref json-value)) (result thread-query mail-error)))
+  (fn ((ref json-value))
+    (result thread-query mail-error)))
 
 (defn thread-query-argument (arguments)
   (ok (->thread-query :label (try (text-argument arguments "label"))
                       :query (try (text-argument arguments "query"))
-                      :limit (try (as-usage (number-field arguments "limit"))))))
+                      :limit (try (as-usage (number-field arguments
+                                                          "limit"))))))
 
-(type draft-argument (fn ((ref json-value)) (result draft mail-error)))
+(type draft-argument
+  (fn ((ref json-value))
+    (result draft mail-error)))
 
 (defn draft-argument (arguments)
   (let (written (try (as-usage (object-field arguments "draft"))))
@@ -45,7 +61,11 @@
                  :body (try (text-argument (ref written) "body"))
                  :reply-to (optional-string-field (ref written) "replyTo")))))
 
-(type as-usage (where (value) (fn ((result value string)) (result value mail-error))))
+(type as-usage
+  (where (value)
+    (fn ((result value string))
+      (result value mail-error))))
 
 (defn as-usage (outcome)
-  (map-err outcome (fn (problem) (mail-error/usage problem))))
+  (map-err outcome
+    (fn (problem) (mail-error/usage problem))))

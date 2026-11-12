@@ -2,8 +2,8 @@
 (use domain/summary in-label?)
 
 (export ->stored-summary ->stored-thread message-in
-        replace-summaries! replace-thread! stored-summary stored-thread
-        summaries-of thread-in)
+        replace-summaries! replace-thread! stored-summary
+        stored-thread summaries-of thread-in)
 
 (defstruct stored-summary
   :account string
@@ -14,44 +14,67 @@
   :thread thread)
 
 (type summaries-of
-  (fn ((ref (vec stored-summary)) (ref str) (ref thread-query))
+  (fn ((ref (vec stored-summary))
+       (ref str)
+       (ref thread-query))
     (vec thread-summary)))
 
 (defn summaries-of (stored email query)
   (collect (map (filter (iter stored)
-                        (fn (entry)
-                          (and (= (:account entry) email)
-                               (in-label? (ref (:summary entry))
-                                          (:label query)))))
+                  (fn (entry)
+                    (and (= (:account entry) email)
+                         (in-label? (ref (:summary entry))
+                                    (:label query)))))
                 (fn (entry) (clone (:summary entry))))))
 
 (type replace-summaries!
-  (fn ((mut (vec stored-summary)) (ref str) (ref (vec thread-summary))) unit))
+  (fn ((mut (vec stored-summary))
+       (ref str)
+       (ref (vec thread-summary)))
+    unit))
 
 (defn replace-summaries! (stored email summaries)
   (for-each (iter summaries)
     (fn (summary)
       (retain-other-summaries! stored email (ref (:id summary)))
-      (push! stored (->stored-summary (str email) (clone summary))))))
+      (push! stored
+             (->stored-summary (str email) (clone summary))))))
 
-(type replace-thread! (fn ((mut (vec stored-thread)) (ref str) (ref thread)) unit))
+(type replace-thread!
+  (fn ((mut (vec stored-thread))
+       (ref str)
+       (ref thread))
+    unit))
 
 (defn replace-thread! (stored email saved)
   (retain-other-threads! stored email (ref (:id saved)))
-  (push! stored (->stored-thread (str email) (clone saved))))
+  (push! stored
+         (->stored-thread (str email) (clone saved))))
 
 (def retain-other-summaries!
   (rust "{0}.retain(|{!entry}| !({!entry}.account == *{1} && {!entry}.summary.id == *{2}))"
-    (fn ((mut (vec stored-summary)) (ref str) (ref str)) unit)))
+    (fn ((mut (vec stored-summary))
+         (ref str)
+         (ref str))
+      unit)))
 
 (def retain-other-threads!
   (rust "{0}.retain(|{!entry}| !({!entry}.account == *{1} && {!entry}.thread.id == *{2}))"
-    (fn ((mut (vec stored-thread)) (ref str) (ref str)) unit)))
+    (fn ((mut (vec stored-thread))
+         (ref str)
+         (ref str))
+      unit)))
 
 (def thread-in
   (rust "{0}.iter().find(|{!entry}| {!entry}.account == *{1} && {!entry}.thread.id == *{2}).map(|{!entry}| {!entry}.thread.clone())"
-    (fn ((ref (vec stored-thread)) (ref str) (ref str)) (option thread))))
+    (fn ((ref (vec stored-thread))
+         (ref str)
+         (ref str))
+      (option thread))))
 
 (def message-in
   (rust "{0}.iter().filter(|{!entry}| {!entry}.account == *{1}).flat_map(|{!entry}| {!entry}.thread.messages.iter()).find(|{!message}| {!message}.id == *{2}).cloned()"
-    (fn ((ref (vec stored-thread)) (ref str) (ref str)) (option message))))
+    (fn ((ref (vec stored-thread))
+         (ref str)
+         (ref str))
+      (option message))))

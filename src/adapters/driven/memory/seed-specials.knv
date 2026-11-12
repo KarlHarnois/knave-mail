@@ -2,52 +2,56 @@
 
 (export html-newsletter long-thread unicode-thread)
 
-(type html-newsletter (fn ((ref str) i64) thread))
+(type html-newsletter
+  (fn ((ref str) i64) thread))
 
 (defn html-newsletter (account date)
-  (single-message-thread
-    account
-    (->message :id (str "m-newsletter")
-               :thread-id (str "newsletter")
-               :from (str "The Weekly Byte <news@example.com>")
-               :to (vec (str account))
-               :cc (vec)
-               :subject (str "This week in compilers")
-               :date (- date 60000)
-               :text (str "This week in compilers\n\nRead about tail calls, register allocation and more.\nhttps://example.com/issue/42")
-               :html (some (str "<html><head><style>body{font-family:Georgia,serif;background:#fdf6e3;color:#333}h1{color:#b58900}.card{border:1px solid #ddd;padding:12px;margin:8px 0}</style></head><body><h1>This week in compilers</h1><img src=\"https://example.com/banner.png\" alt=\"banner\" width=\"600\"><div class=\"card\"><h2>Tail calls</h2><p>Why your Lisp needs them.</p><a href=\"https://example.com/tail-calls\">Read more</a></div><div class=\"card\"><h2>Register allocation</h2><p>Graph colouring, explained.</p></div><table><tr><td>Left</td><td>Right</td></tr></table></body></html>"))
-               :header-id (str "<newsletter@example.com>")
-               :references (str ""))
-    (vec (str "INBOX") (str "UNREAD"))))
+  (single-message-thread account
+                         (->message :id (str "m-newsletter")
+                                    :thread-id (str "newsletter")
+                                    :from (str "The Weekly Byte <news@example.com>")
+                                    :to (vec (str account))
+                                    :cc (vec)
+                                    :subject (str "This week in compilers")
+                                    :date (- date 60000)
+                                    :text (str "This week in compilers\n\nRead about tail calls, register allocation and more.\nhttps://example.com/issue/42")
+                                    :html (some (str "<html><head><style>body{font-family:Georgia,serif;background:#fdf6e3;color:#333}h1{color:#b58900}.card{border:1px solid #ddd;padding:12px;margin:8px 0}</style></head><body><h1>This week in compilers</h1><img src=\"https://example.com/banner.png\" alt=\"banner\" width=\"600\"><div class=\"card\"><h2>Tail calls</h2><p>Why your Lisp needs them.</p><a href=\"https://example.com/tail-calls\">Read more</a></div><div class=\"card\"><h2>Register allocation</h2><p>Graph colouring, explained.</p></div><table><tr><td>Left</td><td>Right</td></tr></table></body></html>"))
+                                    :header-id (str "<newsletter@example.com>")
+                                    :references (str ""))
+                         (vec (str "INBOX") (str "UNREAD"))))
 
-(type unicode-thread (fn ((ref str) i64) thread))
+(type unicode-thread
+  (fn ((ref str) i64) thread))
 
 (defn unicode-thread (account date)
-  (single-message-thread
-    account
-    (->message :id (str "m-unicode")
-               :thread-id (str "unicode")
-               :from (str "Yūki Matsumoto <yuki@example.jp>")
-               :to (vec (str account))
-               :cc (vec)
-               :subject (str "Unicode: 日本語, العربية, émojis 🎉")
-               :date (- date 120000)
-               :text (str "こんにちは！\nمرحبا بالعالم — this line is right to left.\nCafé, naïve, Ångström, 🎉🚀\n")
-               :html none
-               :header-id (str "<unicode@example.jp>")
-               :references (str ""))
-    (vec (str "INBOX") (str "STARRED"))))
+  (single-message-thread account
+                         (->message :id (str "m-unicode")
+                                    :thread-id (str "unicode")
+                                    :from (str
+                                            "Yūki Matsumoto <yuki@example.jp>")
+                                    :to (vec (str account))
+                                    :cc (vec)
+                                    :subject (str "Unicode: 日本語, العربية, émojis 🎉")
+                                    :date (- date 120000)
+                                    :text (str "こんにちは！\nمرحبا بالعالم — this line is right to left.\nCafé, naïve, Ångström, 🎉🚀\n")
+                                    :html none
+                                    :header-id (str "<unicode@example.jp>")
+                                    :references (str ""))
+                         (vec (str "INBOX") (str "STARRED"))))
 
-(type long-thread (fn ((ref str) i64) thread))
+(type long-thread
+  (fn ((ref str) i64) thread))
 
 (defn long-thread (account date)
   (->thread :id (str "long")
             :subject (str "Re: The never-ending design thread")
             :labels (vec (str "INBOX"))
             :messages (collect (map (range 0 12)
-                                    (fn (index) (long-thread-message account date index))))))
+                                 (fn (index)
+                                   (long-thread-message account date index))))))
 
-(type long-thread-message (fn ((ref str) i64 i64) message))
+(type long-thread-message
+  (fn ((ref str) i64 i64) message))
 
 (defn long-thread-message (account date index)
   (->message :id (str "m-long-" index)
@@ -59,12 +63,15 @@
              :cc (vec)
              :subject (str "Re: The never-ending design thread")
              :date (+ (- date 86400000) (* index 600000))
-             :text (str "Reply number " index ".\n\nI still think we should use a tree.")
+             :text (str "Reply number " index
+                        ".\n\nI still think we should use a tree.")
              :html none
              :header-id (str "<long-" index "@example.com>")
              :references (str "")))
 
-(type single-message-thread (fn ((ref str) message (vec string)) thread))
+(type single-message-thread
+  (fn ((ref str) message (vec string))
+    thread))
 
 (defn single-message-thread (account only labels)
   (->thread :id (clone (:thread-id only))

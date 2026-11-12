@@ -4,4 +4,5 @@
 (export authorizer)
 
 (deftrait authorizer
-  (authorize! (fn ((mut self)) (result account mail-error))))
+  (authorize! (fn ((mut self))
+                (result account mail-error))))

@@ -1,6 +1,10 @@
 (use adapters/driving/cli/cli-result cli-result)
-(use adapters/driving/json/mail-json accounts-json draft-json labels-json
-                                     summaries-json thread-json)
+
+(use adapters/driving/json/mail-json accounts-json
+                                     draft-json labels-json
+                                     summaries-json
+                                     thread-json)
+
 (use adapters/driving/json/value json-value)
 (use domain/mail-error error-kind error-message mail-error)
 
@@ -8,12 +12,14 @@
 
 (def schema-version 1)
 
-(type result-json-text (fn ((ref cli-result)) string))
+(type result-json-text
+  (fn ((ref cli-result)) string))
 
 (defn result-json-text (outcome)
   (document-text schema-version (ref (result-json outcome))))
 
-(type result-json (fn ((ref cli-result)) json-value))
+(type result-json
+  (fn ((ref cli-result)) json-value))
 
 (defn result-json (outcome)
   (match outcome
@@ -22,14 +28,18 @@
     ((threads-listed summaries) (summaries-json summaries))
     ((thread-shown shown _) (thread-json shown))
     ((draft-shown written) (draft-json written))
-    ((account-added account) (accounts-json (ref (vec (clone account)))))
+    ((account-added account)
+     (accounts-json (ref (vec (clone account)))))
     (done (empty-object))
     ((help-shown text) (text-json text))))
 
-(type error-json-text (fn ((ref mail-error)) string))
+(type error-json-text
+  (fn ((ref mail-error)) string))
 
 (defn error-json-text (failure)
-  (error-document-text schema-version (error-kind failure) (error-message failure)))
+  (error-document-text schema-version
+                       (error-kind failure)
+                       (error-message failure)))
 
 (def document-text
   (rust "serde_json::json!({{\"schema\": {0}, \"result\": {1}}}).to_string()"
@@ -40,8 +50,7 @@
     (fn (i64 (ref str) (ref str)) string)))
 
 (def empty-object
-  (rust "serde_json::json!({{}})"
-    (fn () json-value)))
+  (rust "serde_json::json!({{}})" (fn () json-value)))
 
 (def text-json
   (rust "serde_json::Value::String({0}.clone())"

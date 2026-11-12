@@ -7,7 +7,8 @@
 
 (def forward-prefix "Fwd: ")
 
-(type reply-draft (fn ((ref message)) draft))
+(type reply-draft
+  (fn ((ref message)) draft))
 
 (defn reply-draft (original)
   (->draft :to (vec (clone (:from original)))
@@ -16,7 +17,8 @@
            :body (quoted-reply original)
            :reply-to (some (clone (:id original)))))
 
-(type reply-all-draft (fn ((ref message) (ref str)) draft))
+(type reply-all-draft
+  (fn ((ref message) (ref str)) draft))
 
 (defn reply-all-draft (original own-address)
   (->draft :to (others (ref (everyone-written-to original)) own-address)
@@ -25,7 +27,8 @@
            :body (quoted-reply original)
            :reply-to (some (clone (:id original)))))
 
-(type forward-draft (fn ((ref message)) draft))
+(type forward-draft
+  (fn ((ref message)) draft))
 
 (defn forward-draft (original)
   (->draft :to (vec)
@@ -34,39 +37,54 @@
            :body (forwarded-body original)
            :reply-to none))
 
-(type prefixed-subject (fn ((ref str) (ref str)) string))
+(type prefixed-subject
+  (fn ((ref str) (ref str)) string))
 
 (defn prefixed-subject (subject prefix)
   (if (prefixed-ignoring-case? subject (trim prefix))
     (str subject)
     (str prefix subject)))
 
-(type quoted-reply (fn ((ref message)) string))
+(type quoted-reply
+  (fn ((ref message)) string))
 
 (defn quoted-reply (original)
-  (str "\n\n" (:from original) " wrote:\n" (quoted (:text original))))
+  (str "\n\n"
+       (:from original)
+       " wrote:\n"
+       (quoted (:text original))))
 
-(type forwarded-body (fn ((ref message)) string))
+(type forwarded-body
+  (fn ((ref message)) string))
 
 (defn forwarded-body (original)
   (str "\n\n---------- Forwarded message ----------\n"
-       "From: " (:from original) "\n"
-       "Subject: " (:subject original) "\n"
-       "To: " (join-with (:to original) ", ") "\n\n"
+       "From: "
+       (:from original)
+       "\n" "Subject: "
+       (:subject original)
+       "\n" "To: "
+       (join-with (:to original) ", ")
+       "\n\n"
        (:text original)))
 
-(type everyone-written-to (fn ((ref message)) (vec string)))
+(type everyone-written-to
+  (fn ((ref message)) (vec string)))
 
 (defn everyone-written-to (original)
   (let (everyone (clone (:to original)))
-    (insert-first! (mut everyone) (clone (:from original)))
+    (insert-first! (mut everyone)
+                   (clone (:from original)))
     everyone))
 
-(type others (fn ((ref (vec string)) (ref str)) (vec string)))
+(type others
+  (fn ((ref (vec string)) (ref str))
+    (vec string)))
 
 (defn others (addresses own-address)
   (collect (map (filter (iter addresses)
-                        (fn (address) (not (address-of? address own-address))))
+                  (fn (address)
+                    (not (address-of? address own-address))))
                 (fn (address) (clone address)))))
 
 (def address-of?

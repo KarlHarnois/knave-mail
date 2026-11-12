@@ -1,0 +1,29 @@
+(use domain/mail ->thread-query thread-query)
+(use support/fake-gmail fake-gmail requests-seen)
+
+(export contains? inbox requests-matching)
+
+(type inbox (fn () thread-query))
+
+(defn inbox ()
+  (->thread-query (str "INBOX") (str "") 20))
+
+(type requests-matching
+  (fn ((ref fake-gmail) (ref str))
+    (vec string)))
+
+(defn requests-matching (server prefix)
+  (collect (filter (into-iter (requests-seen server))
+             (fn (request) (starts-with? request prefix)))))
+
+(def into-iter
+  (rust "{0}.into_iter()"
+    (fn ((vec string)) (iterator string))))
+
+(def starts-with?
+  (rust "{0}.starts_with({1})"
+    (fn ((ref string) (ref str)) bool)))
+
+(def contains?
+  (rust "{0}.contains({1})"
+    (fn ((ref str) (ref str)) bool)))

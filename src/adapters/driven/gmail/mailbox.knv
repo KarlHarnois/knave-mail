@@ -1,12 +1,21 @@
-(use adapters/driven/gmail/codec label-from label-ids message-from-raw
-                                 message-ids summary-from thread-labels)
+(use adapters/driven/gmail/codec label-from label-ids
+                                 message-from-raw
+                                 message-ids summary-from
+                                 thread-labels)
+
 (use adapters/driven/gmail/codec thread-ids)
-(use adapters/driven/gmail/requests label-path labels-path message-path
-                                    modify-body modify-path send-body
-                                    send-path thread-list-path
-                                    thread-metadata-path thread-path)
-(use adapters/driven/gmail/session api-get! api-get-all! api-post!
-                                   gmail-session)
+
+(use adapters/driven/gmail/requests label-path labels-path
+                                    message-path modify-body
+                                    modify-path send-body
+                                    send-path
+                                    thread-list-path
+                                    thread-metadata-path
+                                    thread-path)
+
+(use adapters/driven/gmail/session api-get! api-get-all!
+                                   api-post! gmail-session)
+
 (use domain/mail ->thread message thread)
 (use domain/mail-error mail-error)
 (use ports/driven/mailbox mailbox)
@@ -18,31 +27,49 @@
 
 (impl mailbox gmail-mailbox
   (fetch-labels! (box)
-    (let (listed (try (api-get! (mut (:session box)) (ref (labels-path))))
-          paths (collect (map (iter (label-ids (ref listed))) (fn (id) (label-path id))))
-          details (try (api-get-all! (mut (:session box)) (ref paths))))
-      (ok (collect (map (iter details) (fn (detail) (label-from detail)))))))
+                 (let (listed (try (api-get! (mut (:session box))
+                                             (ref (labels-path))))
+                       paths (collect (map (iter (label-ids (ref listed)))
+                                        (fn (id) (label-path id))))
+                       details (try (api-get-all! (mut (:session box))
+                                                  (ref paths))))
+                   (ok (collect (map (iter details)
+                                  (fn (detail) (label-from detail)))))))
   (fetch-threads! (box query)
-    (let (listed (try (api-get! (mut (:session box)) (ref (thread-list-path query))))
-          paths (collect (map (iter (thread-ids (ref listed)))
-                              (fn (id) (thread-metadata-path id))))
-          threads (try (api-get-all! (mut (:session box)) (ref paths))))
-      (ok (collect (map (iter threads) (fn (found) (summary-from found)))))))
-  (fetch-thread! (box thread-id) (fetched-thread! (mut (:session box)) thread-id))
+                  (let (listed (try (api-get! (mut (:session box))
+                                              (ref (thread-list-path query))))
+                        paths (collect (map (iter (thread-ids (ref listed)))
+                                         (fn (id) (thread-metadata-path id))))
+                        threads (try (api-get-all! (mut (:session box))
+                                                   (ref paths))))
+                    (ok (collect (map (iter threads)
+                                   (fn (found) (summary-from found)))))))
+  (fetch-thread! (box thread-id)
+                 (fetched-thread! (mut (:session box)) thread-id))
   (deliver! (box sent)
-    (do (try (api-post! (mut (:session box)) (ref (send-path)) (ref (send-body sent))))
-        (ok (do))))
+            (do
+              (try (api-post! (mut (:session box))
+                              (ref (send-path))
+                              (ref (send-body sent))))
+              (ok (do))))
   (relabel! (box thread-id change)
-    (do (try (api-post! (mut (:session box)) (ref (modify-path thread-id)) (ref (modify-body change))))
-        (ok (do)))))
+            (do
+              (try (api-post! (mut (:session box))
+                              (ref (modify-path thread-id))
+                              (ref (modify-body change))))
+              (ok (do)))))
 
-(type fetched-thread! (fn ((mut gmail-session) (ref str)) (result thread mail-error)))
+(type fetched-thread!
+  (fn ((mut gmail-session) (ref str))
+    (result thread mail-error)))
 
 (defn fetched-thread! (session thread-id)
   (let (minimal (try (api-get! session (ref (thread-path thread-id))))
-        paths (collect (map (iter (message-ids (ref minimal))) (fn (id) (message-path id))))
+        paths (collect (map (iter (message-ids (ref minimal)))
+                         (fn (id) (message-path id))))
         raws (try (api-get-all! session (ref paths)))
-        messages (collect (map (iter raws) (fn (raw) (message-from-raw raw thread-id)))))
+        messages (collect (map (iter raws)
+                            (fn (raw) (message-from-raw raw thread-id)))))
     (ok (->thread :id (str thread-id)
                   :subject (first-subject (ref messages))
                   :labels (thread-labels (ref minimal))

@@ -1,41 +1,59 @@
 (use adapters/driven/file-credentials/credentials ->file-credentials)
 (use adapters/driven/gmail/http new-agent)
-(use adapters/driven/google-oauth/authorizer ->google-authorizer ->oauth-settings google-authorizer)
+
+(use adapters/driven/google-oauth/authorizer ->google-authorizer
+                                             google-authorizer)
+
+(use adapters/driven/google-oauth/oauth-settings ->oauth-settings)
 (use adapters/driven/google-oauth/pkce challenge-of)
 (use domain/mail-error error-kind)
 (use ports/driven/authorizer authorize!)
 (use ports/driven/credentials load-token)
 (use support/fake-browser ->fake-browser)
-(use support/fake-gmail fake-gmail fake-gmail-base requests-seen start-fake-gmail)
+
+(use support/fake-gmail fake-gmail fake-gmail-base
+                        requests-seen start-fake-gmail)
+
 (use support/gmail-world route)
 (use support/temporary temporary-path)
 
 (defn consent-server ()
-  (start-fake-gmail (ref (vec (route "POST /token" "200 tests/fixtures/gmail/consent-token.json")
-                              (route "GET /gmail/v1/users/me/profile" "200 tests/fixtures/gmail/profile.json")))))
+  (start-fake-gmail (ref (vec
+                           (route "POST /token"
+                                  "200 tests/fixtures/gmail/consent-token.json")
+                           (route "GET /gmail/v1/users/me/profile"
+                                  "200 tests/fixtures/gmail/profile.json")))))
 
-(type authorizer-over (fn ((ref fake-gmail) (ref str) (ref str)) google-authorizer))
+(type authorizer-over
+  (fn ((ref fake-gmail) (ref str) (ref str))
+    google-authorizer))
 
 (defn authorizer-over (server credentials-path answer)
   (let (base (fake-gmail-base server))
     (->google-authorizer :agent (new-agent)
-                         :settings (->oauth-settings :auth-url (str base "/auth")
-                                                     :token-url (str base "/token")
-                                                     :api-base (clone base)
-                                                     :client-id (str "fake-client")
-                                                     :client-secret (str "fake-secret"))
+                         :settings (->oauth-settings
+                                     :auth-url (str base "/auth")
+                                     :token-url (str base "/token")
+                                     :api-base (clone base)
+                                     :client-id (str "fake-client")
+                                     :client-secret (str "fake-secret"))
                          :credentials (box (->file-credentials (str credentials-path)))
                          :browser (box (->fake-browser (str answer))))))
 
-(def contains? (rust "{0}.contains({1})" (fn ((ref str) (ref str)) bool)))
+(def contains?
+  (rust "{0}.contains({1})"
+    (fn ((ref str) (ref str)) bool)))
 
 (deftest consent-names-the-account-from-the-gmail-profile
-  (let (server (consent-server) path (temporary-path "tokens.json")
+  (let (server (consent-server)
+        path (temporary-path "tokens.json")
         granting (authorizer-over (ref server) (ref path) "code=fake-code"))
-    (assert (= (:email (unwrap-ok (authorize! (mut granting)))) "ada@example.com"))))
+    (assert (= (:email (unwrap-ok (authorize! (mut granting))))
+               "ada@example.com"))))
 
 (deftest consent-keeps-the-refresh-token
-  (let (server (consent-server) path (temporary-path "tokens.json")
+  (let (server (consent-server)
+        path (temporary-path "tokens.json")
         granting (authorizer-over (ref server) (ref path) "code=fake-code")
         credentials (->file-credentials (clone path)))
     (unwrap-ok (authorize! (mut granting)))
@@ -43,21 +61,32 @@
                (some (str "fake-refresh-token"))))))
 
 (deftest the-code-exchange-proves-the-pkce-verifier
-  (let (server (consent-server) path (temporary-path "tokens.json")
+  (let (server (consent-server)
+        path (temporary-path "tokens.json")
         granting (authorizer-over (ref server) (ref path) "code=fake-code"))
     (unwrap-ok (authorize! (mut granting)))
-    (assert (contains? (at (requests-seen (ref server)) 0) "code=fake-code"))
-    (assert (contains? (at (requests-seen (ref server)) 0) "code_verifier="))))
+    (assert (contains? (at (requests-seen (ref server)) 0)
+                       "code=fake-code"))
+    (assert (contains? (at (requests-seen (ref server)) 0)
+                       "code_verifier="))))
 
 (deftest a-refused-consent-needs-authorization
-  (let (server (consent-server) path (temporary-path "tokens.json")
-        granting (authorizer-over (ref server) (ref path) "error=access_denied"))
-    (assert (= (error-kind (ref (unwrap-err (authorize! (mut granting))))) "auth-required"))))
+  (let (server (consent-server)
+        path (temporary-path "tokens.json")
+        granting (authorizer-over (ref server)
+                                  (ref path)
+                                  "error=access_denied"))
+    (assert (= (error-kind (ref (unwrap-err (authorize! (mut granting)))))
+               "auth-required"))))
 
 (deftest a-forged-state-is-rejected
-  (let (server (consent-server) path (temporary-path "tokens.json")
-        granting (authorizer-over (ref server) (ref path) "code=fake-code&wrong-state"))
-    (assert (= (error-kind (ref (unwrap-err (authorize! (mut granting))))) "auth-required"))))
+  (let (server (consent-server)
+        path (temporary-path "tokens.json")
+        granting (authorizer-over (ref server)
+                                  (ref path)
+                                  "code=fake-code&wrong-state"))
+    (assert (= (error-kind (ref (unwrap-err (authorize! (mut granting)))))
+               "auth-required"))))
 
 (deftest a-pkce-challenge-is-the-hashed-verifier
   (assert (= (challenge-of "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk")

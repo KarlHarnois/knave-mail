@@ -1,22 +1,36 @@
 (use adapters/driving/cli/cli-result cli-result)
 (use adapters/driving/cli/command cli-command)
-(use adapters/driving/cli/json-presenter error-json-text result-json-text)
-(use adapters/driving/cli/runner ->cli-request run-cli-command!)
+
+(use adapters/driving/cli/json-presenter error-json-text
+                                         result-json-text)
+
+(use adapters/driving/cli/runner ->cli-request
+                                 run-cli-command!)
+
 (use adapters/driving/cli/text-presenter result-text)
 (use adapters/driving/cli/exit-codes exit-code)
 (use app/client)
 (use domain/mail-error mail-error)
 (use support/app-steps remote-sent synced!)
-(use support/memory-world app-over remote-with sample-thread world-account)
+
+(use support/memory-world app-over remote-with sample-thread
+                          world-account)
+
 (use support/sample-mail addresses)
 
 (defn remote ()
-  (remote-with (vec (sample-thread "t-1" (vec "INBOX" "UNREAD") 1700000000000))))
+  (remote-with (vec
+                 (sample-thread "t-1" (vec "INBOX" "UNREAD") 1700000000000))))
 
 (defn ran (command body dry-run)
-  (let (world (remote) app (app-over (ref world)))
+  (let (world (remote)
+        app (app-over (ref world)))
     (synced! (mut app))
-    (run-cli-command! (mut app) (ref (->cli-request command (str world-account) (str body) dry-run)))))
+    (run-cli-command! (mut app)
+                      (ref (->cli-request command
+                                          (str world-account)
+                                          (str body)
+                                          dry-run)))))
 
 (defn text-of (command)
   (result-text (ref (unwrap-ok (ran command "" false)))))
@@ -34,31 +48,52 @@
              "INBOX                   1 unread\nUNREAD                  1 unread")))
 
 (deftest a-dry-run-reply-shows-the-draft-without-sending
-  (assert (= (result-text (ref (unwrap-ok (ran (cli-command/reply (str "m-t-1") false) "Sounds good." true))))
+  (assert (= (result-text
+               (ref (unwrap-ok (ran (cli-command/reply (str "m-t-1") false)
+                                    "Sounds good." true))))
              "To: Grace <grace@example.com>\nCc: \nSubject: Re: Subject of t-1\n\nSounds good.\n\nGrace <grace@example.com> wrote:\n> Body of t-1")))
 
 (deftest sending-delivers-the-body
-  (let (world (remote) app (app-over (ref world)))
+  (let (world (remote)
+        app (app-over (ref world)))
     (unwrap-ok (run-cli-command! (mut app)
-                                 (ref (->cli-request (cli-command/send (addresses (vec "a@example.com")) (vec) (str "Hi"))
-                                                     (str world-account) (str "Hello there") false))))
-    (assert (= (:body (at (remote-sent (ref world)) 0)) "Hello there"))))
+                                 (ref (->cli-request (cli-command/send
+                                                       (addresses (vec "a@example.com"))
+                                                       (vec)
+                                                       (str "Hi"))
+                                                     (str world-account)
+                                                     (str "Hello there")
+                                                     false))))
+    (assert (= (:body (at (remote-sent (ref world)) 0))
+               "Hello there"))))
 
 (deftest prints-results-as-versioned-json
-  (assert (= (result-json-text (ref (unwrap-ok (ran (cli-command/relabel (str "archive") (addresses (vec "t-1"))) "" false))))
+  (assert (= (result-json-text (ref (unwrap-ok
+                                      (ran (cli-command/relabel (str "archive")
+                                                                (addresses (vec "t-1")))
+                                           "" false))))
              "{\"result\":{},\"schema\":1}")))
 
 (deftest prints-errors-as-versioned-json
-  (assert (= (error-json-text (ref (unwrap-err (ran (cli-command/show-thread (str "t-9") (str "text")) "" false))))
+  (assert (= (error-json-text (ref (unwrap-err
+                                     (ran (cli-command/show-thread (str "t-9")
+                                                                   (str "text"))
+                                          "" false))))
              "{\"error\":{\"kind\":\"not-found\",\"message\":\"no thread t-9\"},\"schema\":1}")))
 
 (deftest an-unknown-relabel-is-a-usage-error
-  (assert (= (exit-code (ref (unwrap-err (ran (cli-command/relabel (str "explode") (vec)) "" false))))
+  (assert (= (exit-code (ref (unwrap-err
+                               (ran (cli-command/relabel (str "explode") (vec))
+                                    "" false))))
              1)))
 
 (deftest a-missing-thread-exits-with-not-found
-  (assert (= (exit-code (ref (unwrap-err (ran (cli-command/show-thread (str "t-9") (str "text")) "" false))))
+  (assert (= (exit-code (ref (unwrap-err (ran (cli-command/show-thread (str
+                                                                         "t-9")
+                                                                       (str "text"))
+                                              "" false))))
              2)))
 
 (deftest a-network-failure-exits-with-four
-  (assert (= (exit-code (ref (mail-error/network (str "offline")))) 4)))
+  (assert (= (exit-code (ref (mail-error/network (str "offline"))))
+             4)))

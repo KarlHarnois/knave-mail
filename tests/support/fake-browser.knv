@@ -8,7 +8,7 @@
 
 (impl consent-browser fake-browser
   (open-url! (browser url)
-    (ok (answer-in-background url (ref (:answer browser))))))
+             (ok (answer-in-background url (ref (:answer browser))))))
 
 (def answer-in-background
   (rust "{{ let {!url} = {0}.to_string(); let {!answer} = {1}.to_string(); std::thread::spawn(move || {{ let {!field} = |{!name}: &str| {!url}.split_once('?').map(|(_, {!q})| {!q}).unwrap_or(\"\").split('&').filter_map(|{!pair}| {!pair}.split_once('=')).find(|({!key}, _)| *{!key} == {!name}).map(|(_, {!value})| {!value}.to_string()).unwrap_or_default(); let {!redirect} = {!field}(\"redirect_uri\").replace(\"%3A\", \":\").replace(\"%2F\", \"/\"); let {!state} = if {!answer}.contains(\"wrong-state\") {{ String::from(\"forged\") }} else {{ {!field}(\"state\") }}; let {!target} = format!(\"{{}}/?{{}}&state={{}}\", {!redirect}, {!answer}, {!state}); let _ = ureq::get(&{!target}).call(); }}); }}"

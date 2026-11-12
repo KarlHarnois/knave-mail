@@ -2,7 +2,12 @@
 
 (export as-internal)
 
-(type as-internal (where (value) (fn ((result value string)) (result value mail-error))))
+(type as-internal
+  (where (value)
+    (fn ((result value string))
+      (result value mail-error))))
 
 (defn as-internal (outcome)
-  (map-err outcome (fn (problem) (mail-error/internal (str "cache: " problem)))))
+  (map-err outcome
+    (fn (problem)
+      (mail-error/internal (str "cache: " problem)))))

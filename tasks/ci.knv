@@ -1,0 +1,43 @@
+(def memory-cap "MemoryMax=3G")
+
+(deftask ci ()
+  "Runs every check in order: formatting, file lengths, the frontend, the build, the knave tests and the GUI scenarios."
+  (try (step "knave fmt --check" "." "knave"
+             (vec (str "fmt") (str "--check"))))
+  (try (step "file lengths" "." "knave"
+             (vec (str "task") (str "check-file-lengths"))))
+  (try (step "frontend typecheck" "frontend" "bun"
+             (vec (str "run") (str "typecheck"))))
+  (try (step "frontend tests" "frontend" "systemd-run"
+             (vec (str "--user")
+                  (str "--scope")
+                  (str "--quiet")
+                  (str "-p")
+                  (str memory-cap)
+                  (str "bun")
+                  (str "test"))))
+  (try (step "frontend build" "frontend" "bun"
+             (vec (str "run") (str "build"))))
+  (try (step "knave build" "." "knave" (vec (str "build"))))
+  (try (step "knave tests" "." "knave" (vec (str "test"))))
+  (try (step "GUI scenarios" "." "knave"
+             (vec (str "task") (str "e2e"))))
+  (ok (println "All checks passed.")))
+
+(type step
+  (fn ((ref str)
+       (ref str)
+       (ref str)
+       (vec string))
+    (result unit string)))
+
+(defn step (description directory program arguments)
+  (println "== " description)
+  (if (ran? directory program arguments)
+    (ok (do))
+    (err (str description " failed"))))
+
+(def ran?
+  (rust "std::process::Command::new({1}).args({2}).current_dir({0}).status().map(|{!status}| {!status}.success()).unwrap_or(false)"
+    (fn ((ref str) (ref str) (vec string))
+      bool)))

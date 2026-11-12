@@ -1,22 +1,33 @@
 (use adapters/driven/sqlite/connection sqlite-connection)
 (use adapters/driven/sqlite/rows as-internal)
 (use domain/labels label-change)
-(use domain/mail ->thread-summary thread-query thread-summary)
+
+(use domain/mail ->thread-summary thread-query
+                 thread-summary)
+
 (use domain/mail-error mail-error)
 
 (export load-summaries relabel-summary save-summaries)
 
-(deftype summary-row (rust "(String, String, String, String, i64, Vec<String>, i64)"))
+(deftype summary-row
+  (rust "(String, String, String, String, i64, Vec<String>, i64)"))
 
 (type load-summaries
-  (fn ((ref sqlite-connection) (ref str) (ref thread-query))
+  (fn ((ref sqlite-connection)
+       (ref str)
+       (ref thread-query))
     (result (vec thread-summary) mail-error)))
 
 (defn load-summaries (connection account query)
-  (let (rows (try (as-internal (summary-rows connection account (:label query) (:limit query)))))
-    (ok (collect (map (iter rows) (fn (row) (summary-from row)))))))
+  (let (rows (try (as-internal (summary-rows connection
+                                             account
+                                             (:label query)
+                                             (:limit query)))))
+    (ok (collect (map (iter rows)
+                   (fn (row) (summary-from row)))))))
 
-(type summary-from (fn ((ref summary-row)) thread-summary))
+(type summary-from
+  (fn ((ref summary-row)) thread-summary))
 
 (defn summary-from (row)
   (->thread-summary :id (row-text row 0)
@@ -28,14 +39,19 @@
                     :message-count (row-count row)))
 
 (type save-summaries
-  (fn ((ref sqlite-connection) (ref str) (ref (vec thread-summary)))
+  (fn ((ref sqlite-connection)
+       (ref str)
+       (ref (vec thread-summary)))
     (result unit mail-error)))
 
 (defn save-summaries (connection account summaries)
   (as-internal (upsert-summaries connection account summaries)))
 
 (type relabel-summary
-  (fn ((ref sqlite-connection) (ref str) (ref str) (vec string))
+  (fn ((ref sqlite-connection)
+       (ref str)
+       (ref str)
+       (vec string))
     (result unit mail-error)))
 
 (defn relabel-summary (connection account thread-id labels)
@@ -43,22 +59,39 @@
 
 (def summary-rows
   (rust "{0}.prepare_cached(\"SELECT id, subject, participants, snippet, date, labels, message_count FROM summaries WHERE account = ?1 AND (?2 = 'ALL' OR EXISTS (SELECT 1 FROM json_each(summaries.labels) WHERE value = ?2)) ORDER BY date DESC LIMIT ?3\").and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{1}, {2}, {3}], |{!row}| Ok(({!row}.get(0)?, {!row}.get(1)?, {!row}.get(2)?, {!row}.get(3)?, {!row}.get(4)?, serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(5)?).unwrap_or_default(), {!row}.get(6)?))).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
-    (fn ((ref sqlite-connection) (ref str) (ref str) i64) (result (vec summary-row) string))))
+    (fn ((ref sqlite-connection)
+         (ref str)
+         (ref str)
+         i64)
+      (result (vec summary-row) string))))
 
 (def upsert-summaries
   (rust "{0}.prepare_cached(\"INSERT OR REPLACE INTO summaries (account, id, subject, participants, snippet, date, labels, message_count) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)\").and_then(|mut {!statement}| {2}.iter().try_for_each(|{!summary}| {!statement}.execute(rusqlite::params![{1}, {!summary}.id, {!summary}.subject, {!summary}.participants, {!summary}.snippet, {!summary}.date, serde_json::to_string(&{!summary}.labels).unwrap_or_default(), {!summary}.message_count]).map(|_| ()))).map_err(|{!error}| {!error}.to_string())"
-    (fn ((ref sqlite-connection) (ref str) (ref (vec thread-summary))) (result unit string))))
+    (fn ((ref sqlite-connection)
+         (ref str)
+         (ref (vec thread-summary)))
+      (result unit string))))
 
 (def update-summary-labels
   (rust "{0}.execute(\"UPDATE summaries SET labels = ?3 WHERE account = ?1 AND id = ?2\", rusqlite::params![{1}, {2}, serde_json::to_string(&{3}).unwrap_or_default()]).map(|_| ()).map_err(|{!error}| {!error}.to_string())"
-    (fn ((ref sqlite-connection) (ref str) (ref str) (vec string)) (result unit string))))
+    (fn ((ref sqlite-connection)
+         (ref str)
+         (ref str)
+         (vec string))
+      (result unit string))))
 
 (def row-text
   (rust "{{ let {!row} = {0}; match {1} {{ 0 => &{!row}.0, 1 => &{!row}.1, 2 => &{!row}.2, _ => &{!row}.3 }}.clone() }}"
     (fn ((ref summary-row) usize) string)))
 
-(def row-date (rust "{0}.4" (fn ((ref summary-row)) i64)))
+(def row-date
+  (rust "{0}.4"
+    (fn ((ref summary-row)) i64)))
 
-(def row-labels (rust "{0}.5.clone()" (fn ((ref summary-row)) (vec string))))
+(def row-labels
+  (rust "{0}.5.clone()"
+    (fn ((ref summary-row)) (vec string))))
 
-(def row-count (rust "{0}.6" (fn ((ref summary-row)) i64)))
+(def row-count
+  (rust "{0}.6"
+    (fn ((ref summary-row)) i64)))

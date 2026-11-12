@@ -1,6 +1,7 @@
-(export ->account ->draft ->label ->message ->outgoing ->thread
-        ->thread-query ->thread-summary account draft label message
-        outgoing thread thread-query thread-summary)
+(export ->account ->draft ->label ->message ->outgoing
+        ->thread ->thread-query ->thread-summary account
+        draft label message outgoing thread thread-query
+        thread-summary)
 
 (defstruct account
   :email string)

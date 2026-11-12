@@ -1,0 +1,37 @@
+(use adapters/driven/google-oauth/pkce pkce-pair)
+
+(export ->oauth-settings consent-url oauth-settings)
+
+(def gmail-scope
+  "https://www.googleapis.com/auth/gmail.modify")
+
+(defstruct oauth-settings
+  :auth-url string
+  :token-url string
+  :api-base string
+  :client-id string
+  :client-secret string)
+
+(type consent-url
+  (fn ((ref oauth-settings)
+       (ref str)
+       (ref pkce-pair)
+       (ref str))
+    string))
+
+(defn consent-url (settings redirect-uri pkce state)
+  (str (:auth-url settings)
+       "?client_id="
+       (url-encoded (:client-id settings))
+       "&redirect_uri="
+       (url-encoded redirect-uri)
+       "&response_type=code&access_type=offline&prompt=consent"
+       "&scope="
+       (url-encoded gmail-scope)
+       "&code_challenge="
+       (:challenge pkce)
+       "&code_challenge_method=S256" "&state=" state))
+
+(def url-encoded
+  (rust "{0}.bytes().map(|{!byte}| if {!byte}.is_ascii_alphanumeric() || b\"-_.~\".contains(&{!byte}) {{ ({!byte} as char).to_string() }} else {{ format!(\"%{{:02X}}\", {!byte}) }}).collect::<String>()"
+    (fn ((ref str)) string)))

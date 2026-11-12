@@ -1,9 +1,17 @@
 (use adapters/driven/memory/authorizer ->memory-authorizer)
 (use adapters/driven/memory/provider ->memory-provider)
-(use adapters/driven/memory/remote-mail ->remote-mail remote-mail)
-(use adapters/driven/memory/seed seed-accounts seeded-threads)
+
+(use adapters/driven/memory/remote-mail ->remote-mail
+                                        remote-mail)
+
+(use adapters/driven/memory/seed seed-accounts
+                                 seeded-threads)
+
 (use adapters/driven/memory/shared share shared)
-(use adapters/driven/memory/store empty-memory-store memory-store)
+
+(use adapters/driven/memory/store empty-memory-store
+                                  memory-store)
+
 (use app/client)
 (use app/mail-app mail-app new-mail-app)
 (use composition/settings settings)
@@ -19,7 +27,8 @@
 
 (def sync-limit 500)
 
-(type memory-app (fn ((ref settings)) mail-app))
+(type memory-app
+  (fn ((ref settings)) mail-app))
 
 (defn memory-app (chosen)
   (let (app (new-mail-app (box (store-with-accounts))
@@ -30,13 +39,15 @@
     (sync-every-account! (mut app) 0)
     app))
 
-(type sync-every-account! (fn ((mut mail-app) usize) unit))
+(type sync-every-account!
+  (fn ((mut mail-app) usize) unit))
 
 (defn sync-every-account! (app index)
   (when (< index (len seed-accounts))
     (match (sync-account! app (at seed-accounts index))
       ((ok _) (do))
-      ((err _) (eprintln (str "could not sync " (at seed-accounts index)))))
+      ((err _)
+       (eprintln (str "could not sync " (at seed-accounts index)))))
     (recur app (+ index 1))))
 
 (type store-with-accounts (fn () memory-store))
@@ -45,24 +56,31 @@
   (let (store (empty-memory-store))
     (for-each (iter seed-accounts)
       (fn (email)
-        (expect-ok (save-account! (mut store) (ref (->account (str email))))
+        (expect-ok (save-account! (mut store)
+                                  (ref (->account (str email))))
                    "the memory store keeps every account")))
     store))
 
-(type account-emails (fn () (vec string)))
+(type account-emails
+  (fn () (vec string)))
 
 (defn account-emails ()
-  (collect (map (iter seed-accounts) (fn (email) (str email)))))
+  (collect (map (iter seed-accounts)
+             (fn (email) (str email)))))
 
-(type seeded-remotes (fn ((ref settings)) (vec (shared remote-mail))))
+(type seeded-remotes
+  (fn ((ref settings))
+    (vec (shared remote-mail))))
 
 (defn seeded-remotes (chosen)
   (collect (map (enumerate (iter seed-accounts))
-                (fn (numbered)
-                  (let-match ((pair position email) numbered)
-                    (seeded-remote chosen email position))))))
+             (fn (numbered)
+               (let-match ((pair position email) numbered)
+                 (seeded-remote chosen email position))))))
 
-(type seeded-remote (fn ((ref settings) (ref str) usize) (shared remote-mail)))
+(type seeded-remote
+  (fn ((ref settings) (ref str) usize)
+    (shared remote-mail)))
 
 (defn seeded-remote (chosen email position)
   (share (->remote-mail :threads (seeded-threads email (thread-count position))
@@ -74,4 +92,5 @@
 (type thread-count (fn (usize) i64))
 
 (defn thread-count (position)
-  (if (= position 0) first-account-thread-count other-account-thread-count))
+  (if (= position 0)
+    first-account-thread-count other-account-thread-count))

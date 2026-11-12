@@ -1,0 +1,67 @@
+(use adapters/driven/gmail/mailbox gmail-mailbox)
+(use domain/labels archive-change)
+(use domain/mail ->outgoing ->thread-query)
+(use domain/mail-error error-kind)
+
+(use ports/driven/mailbox deliver! fetch-labels!
+                          fetch-thread! fetch-threads!
+                          relabel!)
+
+(use support/fake-gmail requests-seen start-fake-gmail)
+(use support/gmail-world fixture-routes gmail-over route)
+(use support/sample-mail addresses)
+
+(use support/gmail-requests contains? inbox
+                            requests-matching)
+
+(deftest sends-a-reply-as-raw-mime-in-its-thread
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (unwrap-ok (deliver! (mut gmail)
+                         (ref (->outgoing :from (str "ada@example.com")
+                                          :to (addresses (vec "Grace Hopper <grace@example.com>"))
+                                          :cc (vec)
+                                          :subject (str "Re: Compiler meeting")
+                                          :body (str "Tuesday works.")
+                                          :thread-id (some (str "t1"))
+                                          :in-reply-to (some (str "<m1@example.com>"))
+                                          :references (str "<m0@example.com> <m1@example.com>")))))
+    (assert (contains? (at (requests-matching
+                             (ref server)
+                             "POST /gmail/v1/users/me/messages/send")
+                           0)
+                       "\"threadId\":\"t1\""))))
+
+(deftest relabels-a-thread-with-added-and-removed-labels
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (unwrap-ok (relabel! (mut gmail)
+                         "t1"
+                         (ref (archive-change))))
+    (assert (contains? (at (requests-matching
+                             (ref server)
+                             "POST /gmail/v1/users/me/threads/t1/modify")
+                           0)
+                       "{\"addLabelIds\":[],\"removeLabelIds\":[\"INBOX\"]}"))))
+
+(deftest a-missing-thread-is-not-found
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (assert (= (error-kind (ref (unwrap-err (fetch-thread! (mut gmail) "t9"))))
+               "not-found"))))
+
+(deftest a-refused-refresh-token-needs-authorization
+  (let (server (start-fake-gmail (ref (vec (route "POST /token"
+                                                  "400 tests/fixtures/gmail/empty.json"))))
+        gmail (gmail-over (ref server)))
+    (assert (= (error-kind (ref (unwrap-err (fetch-labels! (mut gmail)))))
+               "auth-required"))))
+
+(deftest an-unavailable-gmail-is-a-network-error
+  (let (server (start-fake-gmail (ref (vec (route "POST /token"
+                                                  "200 tests/fixtures/gmail/token.json")
+                                           (route "GET /gmail"
+                                                  "503 tests/fixtures/gmail/empty.json"))))
+        gmail (gmail-over (ref server)))
+    (assert (= (error-kind (ref (unwrap-err (fetch-labels! (mut gmail)))))
+               "network"))))

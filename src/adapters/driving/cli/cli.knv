@@ -1,9 +1,16 @@
-(use adapters/driving/cli/arguments parsed-arguments switch? value-of)
+(use adapters/driving/cli/arguments parsed-arguments switch?
+                                    value-of)
+
 (use adapters/driving/cli/cli-result cli-result)
 (use adapters/driving/cli/command cli-command command-from)
 (use adapters/driving/cli/exit-codes exit-code success-code)
-(use adapters/driving/cli/json-presenter error-json-text result-json-text)
-(use adapters/driving/cli/runner ->cli-request run-cli-command!)
+
+(use adapters/driving/cli/json-presenter error-json-text
+                                         result-json-text)
+
+(use adapters/driving/cli/runner ->cli-request
+                                 run-cli-command!)
+
 (use adapters/driving/cli/text-presenter result-text)
 (use domain/mail-error error-message mail-error)
 (use ports/driving/mail-client list-accounts! mail-client)
@@ -11,16 +18,23 @@
 (export run-cli!)
 
 (type run-cli!
-  (where ((client mail-client)) (fn ((mut client) (ref parsed-arguments)) i32)))
+  (where ((client mail-client))
+    (fn ((mut client) (ref parsed-arguments))
+      i32)))
 
 (defn run-cli! (client parsed)
   (match (cli-outcome! client parsed)
-    ((ok outcome) (do (print-result parsed (ref outcome)) success-code))
-    ((err failure) (do (print-failure parsed (ref failure)) (exit-code (ref failure))))))
+    ((ok outcome)
+     (do (print-result parsed (ref outcome)) success-code))
+    ((err failure)
+     (do
+       (print-failure parsed (ref failure))
+       (exit-code (ref failure))))))
 
 (type cli-outcome!
   (where ((client mail-client))
-    (fn ((mut client) (ref parsed-arguments)) (result cli-result mail-error))))
+    (fn ((mut client) (ref parsed-arguments))
+      (result cli-result mail-error))))
 
 (defn cli-outcome! (client parsed)
   (let (command (try (command-from parsed))
@@ -30,11 +44,14 @@
                       (ref (->cli-request :command command
                                           :account account
                                           :body body
-                                          :dry-run (switch? parsed "--dry-run"))))))
+                                          :dry-run (switch? parsed
+                                                            "--dry-run"))))))
 
 (type chosen-account!
   (where ((client mail-client))
-    (fn ((mut client) (ref parsed-arguments) (ref cli-command))
+    (fn ((mut client)
+         (ref parsed-arguments)
+         (ref cli-command))
       (result string mail-error))))
 
 (defn chosen-account! (client parsed command)
@@ -45,15 +62,17 @@
             (ok (str ""))))))
 
 (type first-account!
-  (where ((client mail-client)) (fn ((mut client)) (result string mail-error))))
+  (where ((client mail-client))
+    (fn ((mut client))
+      (result string mail-error))))
 
 (defn first-account! (client)
   (match (first (try (list-accounts! client)))
     ((some account) (ok (clone (:email account))))
-    (none (err (mail-error/auth-required
-                 (str "no account yet; run `knave-mail accounts add`"))))))
+    (none (err (mail-error/auth-required (str "no account yet; run `knave-mail accounts add`"))))))
 
-(type needs-account? (fn ((ref cli-command)) bool))
+(type needs-account?
+  (fn ((ref cli-command)) bool))
 
 (defn needs-account? (command)
   (match command
@@ -63,7 +82,8 @@
     (help false)
     (_ true)))
 
-(type body-for (fn ((ref cli-command)) string))
+(type body-for
+  (fn ((ref cli-command)) string))
 
 (defn body-for (command)
   (match command
@@ -72,14 +92,18 @@
     ((forward _ _) (standard-input))
     (_ (str ""))))
 
-(type print-result (fn ((ref parsed-arguments) (ref cli-result)) unit))
+(type print-result
+  (fn ((ref parsed-arguments) (ref cli-result))
+    unit))
 
 (defn print-result (parsed outcome)
   (if (switch? parsed "--json")
     (println (result-json-text outcome))
     (print-unless-empty (result-text outcome))))
 
-(type print-failure (fn ((ref parsed-arguments) (ref mail-error)) unit))
+(type print-failure
+  (fn ((ref parsed-arguments) (ref mail-error))
+    unit))
 
 (defn print-failure (parsed failure)
   (if (switch? parsed "--json")

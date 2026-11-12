@@ -1,7 +1,11 @@
 (use app/client)
 (use domain/mail ->thread-query)
-(use ports/driving/mail-client list-labels! list-threads! sync-account!)
-(use support/memory-world app-over remote-with sample-thread world-account)
+
+(use ports/driving/mail-client list-labels! list-threads!
+                               sync-account!)
+
+(use support/memory-world app-over remote-with sample-thread
+                          world-account)
 
 (defn inbox-query ()
   (->thread-query (str "INBOX") (str "") 50))
@@ -13,11 +17,15 @@
 
 (deftest nothing-is-listed-before-the-first-sync
   (let (app (app-over (ref (remote))))
-    (assert (empty? (unwrap-ok (list-threads! (mut app) world-account (ref (inbox-query))))))))
+    (assert (empty? (unwrap-ok (list-threads! (mut app)
+                                              world-account
+                                              (ref (inbox-query))))))))
 
 (deftest a-sync-lists-inbox-threads-newest-first
   (let (app (app-over (ref (remote))))
     (unwrap-ok (sync-account! (mut app) world-account))
-    (assert (= (collect (map (iter (unwrap-ok (list-threads! (mut app) world-account (ref (inbox-query)))))
+    (assert (= (collect (map (iter (unwrap-ok (list-threads! (mut app)
+                                                             world-account
+                                                             (ref (inbox-query)))))
                              (fn (summary) (clone (:id summary)))))
                (vec (str "t-2") (str "t-1"))))))

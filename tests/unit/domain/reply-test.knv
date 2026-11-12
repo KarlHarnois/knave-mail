@@ -12,8 +12,10 @@
              "Re: Compiler meeting")))
 
 (deftest a-reply-keeps-an-existing-prefix-whatever-its-case
-  (let (original (assoc (sample-message) :subject (str "RE: Compiler meeting")))
-    (assert (= (:subject (reply-draft (ref original))) "RE: Compiler meeting"))))
+  (let (original (assoc (sample-message)
+                        :subject (str "RE: Compiler meeting")))
+    (assert (= (:subject (reply-draft (ref original)))
+               "RE: Compiler meeting"))))
 
 (deftest a-reply-quotes-the-original-text
   (assert (= (:body (reply-draft (ref (sample-message))))
@@ -44,4 +46,5 @@
              "\n\n---------- Forwarded message ----------\nFrom: Grace Hopper <grace@example.com>\nSubject: Compiler meeting\nTo: ada@example.com, alan@example.com\n\nCan we meet Tuesday?\n\nGrace")))
 
 (deftest a-forward-answers-no-message
-  (assert (= (:reply-to (forward-draft (ref (sample-message)))) none)))
+  (assert (= (:reply-to (forward-draft (ref (sample-message))))
+             none)))

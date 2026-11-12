@@ -12,7 +12,11 @@
   :sync-limit i64)
 
 (type new-mail-app
-  (fn ((box store) (box mailbox-provider) (box authorizer) i64) mail-app))
+  (fn ((box store)
+       (box mailbox-provider)
+       (box authorizer)
+       i64)
+    mail-app))
 
 (defn new-mail-app (store provider authorizer sync-limit)
   (->mail-app :store store

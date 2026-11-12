@@ -1,0 +1,67 @@
+(use adapters/driven/file-credentials/credentials ->file-credentials)
+(use ports/driven/credentials save-token!)
+
+(use support/binary binary-output binary-path output-code
+                    output-stderr output-stdout run-binary)
+
+(use support/fake-gmail fake-gmail fake-gmail-base
+                        requests-seen start-fake-gmail)
+
+(use support/sample-mail addresses)
+(use support/temporary temporary-path)
+
+(export gmail-cli last-request signed-in-tokens)
+
+(def account "ada@example.com")
+
+(type environment-for
+  (fn ((ref fake-gmail) (ref str) (ref str))
+    (vec (pair string string))))
+
+(defn environment-for (server cache tokens)
+  (let (base (fake-gmail-base server))
+    (vec (pair (str "KNAVE_MAIL_GMAIL_BASE_URL") (clone base))
+         (pair (str "KNAVE_MAIL_TOKEN_URL") (str base "/token"))
+         (pair (str "KNAVE_MAIL_CLIENT_ID") (str "fake-client"))
+         (pair (str "KNAVE_MAIL_CLIENT_SECRET") (str "fake-secret"))
+         (pair (str "KNAVE_MAIL_CACHE") (str cache))
+         (pair (str "KNAVE_MAIL_CREDENTIALS_FILE") (str tokens)))))
+
+(type signed-in-tokens (fn () string))
+
+(defn signed-in-tokens ()
+  (let (path (temporary-path "tokens.json")
+        credentials (->file-credentials (clone path)))
+    (local saving credentials)
+    (unwrap-ok (save-token! (mut saving) account "fake-refresh"))
+    path))
+
+(type gmail-cli
+  (fn ((ref fake-gmail)
+       (ref str)
+       (ref str)
+       (vec (ref str))
+       (ref str))
+    binary-output))
+
+(defn gmail-cli (server cache tokens arguments input)
+  (let (written (addresses arguments))
+    (insert-account-flag! (mut written))
+    (run-binary binary-path
+                (ref written)
+                (ref (environment-for server cache tokens))
+                input)))
+
+(def insert-account-flag!
+  (rust "{{ {0}.insert(0, String::from(\"ada@example.com\")); {0}.insert(0, String::from(\"--account\")); }}"
+    (fn ((mut (vec string))) unit)))
+
+(type last-request
+  (fn ((ref fake-gmail)) string))
+
+(defn last-request (server)
+  (last-or-empty (requests-seen server)))
+
+(def last-or-empty
+  (rust "{0}.pop().unwrap_or_default()"
+    (fn ((vec string)) string)))

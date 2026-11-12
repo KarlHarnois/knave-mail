@@ -1,19 +1,23 @@
-(use domain/labels apply-label-change archive-change read-change
-                   star-change starred? trash-change unread-change
-                   unread? unstar-change)
+(use domain/labels apply-label-change archive-change
+                   read-change star-change starred?
+                   trash-change unread-change unread?
+                   unstar-change)
 
 (defn labels (names)
-  (collect (map (iter names) (fn (name) (str name)))))
+  (collect (map (iter names)
+             (fn (name) (str name)))))
 
 (defn changed (names change)
-  (apply-label-change (ref (labels names)) (ref change)))
+  (apply-label-change (ref (labels names))
+                      (ref change)))
 
 (deftest archiving-removes-the-inbox-label
   (assert (= (changed (vec "INBOX" "UNREAD") (archive-change))
              (labels (vec "UNREAD")))))
 
 (deftest trashing-moves-a-thread-from-the-inbox-to-the-trash
-  (assert (= (changed (vec "INBOX") (trash-change)) (labels (vec "TRASH")))))
+  (assert (= (changed (vec "INBOX") (trash-change))
+             (labels (vec "TRASH")))))
 
 (deftest starring-adds-the-starred-label-once
   (assert (= (changed (vec "INBOX" "STARRED") (star-change))
@@ -24,7 +28,8 @@
              (labels (vec "INBOX")))))
 
 (deftest reading-removes-the-unread-label
-  (assert (= (changed (vec "UNREAD") (read-change)) (the (vec string) (vec)))))
+  (assert (= (changed (vec "UNREAD") (read-change))
+             (the (vec string) (vec)))))
 
 (deftest marking-unread-adds-the-unread-label
   (assert (= (changed (vec "INBOX") (unread-change))

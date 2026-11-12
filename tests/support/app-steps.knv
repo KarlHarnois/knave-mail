@@ -1,48 +1,68 @@
-(use adapters/driven/memory/remote-mail fail-when! remote-mail)
+(use adapters/driven/memory/remote-mail fail-when!
+                                        remote-mail)
+
 (use adapters/driven/memory/shared shared with-shared!)
 (use app/client)
 (use app/mail-app mail-app)
-(use domain/mail ->thread-query thread-query thread-summary outgoing thread)
+
+(use domain/mail ->thread-query outgoing thread thread-query
+                 thread-summary)
+
 (use domain/mail-error error-kind mail-error)
 (use ports/driving/mail-client list-threads! sync-account!)
 (use support/memory-world world-account)
 
-(export failing-kind fail-remote! inbox-query listed-ids! remote-sent
-        remote-thread synced!)
+(export fail-remote! failing-kind inbox-query listed-ids!
+        remote-sent remote-thread synced!)
 
 (defn inbox-query ()
   (->thread-query (str "INBOX") (str "") 50))
 
-(type synced! (fn ((mut mail-app)) unit))
+(type synced!
+  (fn ((mut mail-app)) unit))
 
 (defn synced! (app)
   (unwrap-ok (sync-account! app world-account)))
 
-(type listed-ids! (fn ((mut mail-app) (ref thread-query)) (vec string)))
+(type listed-ids!
+  (fn ((mut mail-app) (ref thread-query))
+    (vec string)))
 
 (defn listed-ids! (app query)
   (collect (map (iter (unwrap-ok (list-threads! app world-account query)))
-                (fn (summary) (clone (:id summary))))))
+             (fn (summary) (clone (:id summary))))))
 
-(type fail-remote! (fn ((ref (shared remote-mail)) (ref str)) unit))
+(type fail-remote!
+  (fn ((ref (shared remote-mail)) (ref str))
+    unit))
 
 (defn fail-remote! (remote operation)
-  (with-shared! remote (fn (state) (fail-when! state (some (str operation))))))
+  (with-shared! remote
+    (fn (state)
+      (fail-when! state (some (str operation))))))
 
-(type remote-sent (fn ((ref (shared remote-mail))) (vec outgoing)))
+(type remote-sent
+  (fn ((ref (shared remote-mail)))
+    (vec outgoing)))
 
 (defn remote-sent (remote)
-  (with-shared! remote (fn (state) (clone (:sent state)))))
+  (with-shared! remote
+    (fn (state) (clone (:sent state)))))
 
-(type remote-thread (fn ((ref (shared remote-mail)) (ref str)) thread))
+(type remote-thread
+  (fn ((ref (shared remote-mail)) (ref str))
+    thread))
 
 (defn remote-thread (remote thread-id)
   (with-shared! remote
     (fn (state)
       (clone (unwrap (find (iter (:threads state))
-                           (fn (candidate) (= (:id candidate) thread-id))))))))
+                       (fn (candidate)
+                         (= (:id candidate) thread-id))))))))
 
-(type failing-kind (where ((value show)) (fn ((result value mail-error)) string)))
+(type failing-kind
+  (where ((value show))
+    (fn ((result value mail-error)) string)))
 
 (defn failing-kind (outcome)
   (str (error-kind (ref (unwrap-err outcome)))))

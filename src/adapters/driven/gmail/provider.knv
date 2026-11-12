@@ -1,6 +1,9 @@
 (use adapters/driven/gmail/http new-agent)
 (use adapters/driven/gmail/mailbox ->gmail-mailbox)
-(use adapters/driven/gmail/session ->gmail-session gmail-endpoints)
+
+(use adapters/driven/gmail/session ->gmail-session
+                                   gmail-endpoints)
+
 (use domain/mail-error mail-error)
 (use ports/driven/credentials credentials load-token)
 (use ports/driven/mailbox mailbox)
@@ -14,12 +17,15 @@
 
 (impl mailbox-provider gmail-provider
   (open-mailbox! (provider email)
-    (match (try (load-token (ref (:credentials provider)) email))
-      ((some refresh-token)
-       (ok (the (box mailbox)
-             (box (->gmail-mailbox (->gmail-session :agent (new-agent)
-                                                    :endpoints (clone (:endpoints provider))
-                                                    :refresh-token refresh-token
-                                                    :access-token none))))))
-      (none (err (mail-error/auth-required
-                   (str "no saved sign-in for " email "; run `knave-mail accounts add`")))))))
+                 (match (try (load-token (ref (:credentials provider)) email))
+                   ((some refresh-token)
+                    (ok (the (box mailbox)
+                             (box (->gmail-mailbox
+                                    (->gmail-session
+                                      :agent (new-agent)
+                                      :endpoints (clone (:endpoints provider))
+                                      :refresh-token refresh-token
+                                      :access-token none))))))
+                   (none (err (mail-error/auth-required (str "no saved sign-in for "
+                                                             email
+                                                             "; run `knave-mail accounts add`")))))))

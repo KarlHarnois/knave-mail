@@ -1,26 +1,31 @@
-(use adapters/driven/gmail/http http-agent http-get http-post-form reply-body
+(use adapters/driven/gmail/http http-agent http-get
+                                http-post-form reply-body
                                 reply-status)
-(use adapters/driven/google-oauth/consent-browser consent-browser open-url!)
-(use adapters/driven/google-oauth/loopback bind-loopback loopback-port
-                                           redirect-code redirect-error
-                                           redirect-state wait-for-redirect)
-(use adapters/driven/google-oauth/pkce new-pkce-pair new-state pkce-pair)
+
+(use adapters/driven/google-oauth/consent-browser consent-browser
+                                                  open-url!)
+
+(use adapters/driven/google-oauth/loopback bind-loopback
+                                           loopback-port
+                                           redirect-code
+                                           redirect-error
+                                           redirect-state
+                                           wait-for-redirect)
+
+(use adapters/driven/google-oauth/pkce new-pkce-pair
+                                       new-state pkce-pair)
+
 (use adapters/driving/json/value parse-json string-field)
+
+(use adapters/driven/google-oauth/oauth-settings consent-url
+                                                 oauth-settings)
+
 (use domain/mail ->account account)
 (use domain/mail-error mail-error)
 (use ports/driven/authorizer authorizer)
 (use ports/driven/credentials credentials save-token!)
 
-(export ->google-authorizer ->oauth-settings google-authorizer oauth-settings)
-
-(def gmail-scope "https://www.googleapis.com/auth/gmail.modify")
-
-(defstruct oauth-settings
-  :auth-url string
-  :token-url string
-  :api-base string
-  :client-id string
-  :client-secret string)
+(export ->google-authorizer google-authorizer)
 
 (defstruct google-authorizer
   :agent http-agent
@@ -31,7 +36,9 @@
 (impl authorizer google-authorizer
   (authorize! (granting) (consented-account! granting)))
 
-(type consented-account! (fn ((mut google-authorizer)) (result account mail-error)))
+(type consented-account!
+  (fn ((mut google-authorizer))
+    (result account mail-error)))
 
 (defn consented-account! (granting)
   (let (listener (try (as-auth (bind-loopback)))
@@ -39,64 +46,82 @@
         pkce (new-pkce-pair)
         state (new-state))
     (try (open-url! (mut (:browser granting))
-                    (ref (consent-url (ref (:settings granting)) (ref redirect-uri) (ref pkce) (ref state)))))
+                    (ref (consent-url (ref (:settings granting))
+                                      (ref redirect-uri)
+                                      (ref pkce)
+                                      (ref state)))))
     (let (answer (try (as-auth (wait-for-redirect (ref listener)))))
       (cond
         ((not (empty? (redirect-error (ref answer))))
-         (err (mail-error/auth-required (str "Google refused consent: " (redirect-error (ref answer))))))
+         (err (mail-error/auth-required (str "Google refused consent: "
+                                             (redirect-error (ref answer))))))
         ((not (= (redirect-state (ref answer)) state))
          (err (mail-error/auth-required (str "the sign-in answer did not match this request"))))
-        (else (exchange-code! granting (ref (redirect-code (ref answer))) (ref redirect-uri) (ref pkce)))))))
+        (else (exchange-code! granting
+                              (ref (redirect-code (ref answer)))
+                              (ref redirect-uri)
+                              (ref pkce)))))))
 
 (type exchange-code!
-  (fn ((mut google-authorizer) (ref str) (ref str) (ref pkce-pair)) (result account mail-error)))
+  (fn ((mut google-authorizer)
+       (ref str)
+       (ref str)
+       (ref pkce-pair))
+    (result account mail-error)))
 
 (defn exchange-code! (granting code redirect-uri pkce)
   (let (settings (ref (:settings granting))
         form (vec (pair (str "grant_type") (str "authorization_code"))
                   (pair (str "code") (str code))
-                  (pair (str "client_id") (clone (:client-id settings)))
-                  (pair (str "client_secret") (clone (:client-secret settings)))
+                  (pair (str "client_id")
+                        (clone (:client-id settings)))
+                  (pair (str "client_secret")
+                        (clone (:client-secret settings)))
                   (pair (str "redirect_uri") (str redirect-uri))
-                  (pair (str "code_verifier") (clone (:verifier pkce))))
-        reply (try (as-network (http-post-form (ref (:agent granting)) (ref (:token-url settings)) (ref form))))
+                  (pair (str "code_verifier")
+                        (clone (:verifier pkce))))
+        reply (try (as-network (http-post-form (ref (:agent granting))
+                                               (ref (:token-url settings))
+                                               (ref form))))
         tokens (try (as-auth (parse-json (ref (reply-body (ref reply))))))
-        refresh-token (try (as-auth (string-field (ref tokens) "refresh_token")))
+        refresh-token (try (as-auth (string-field (ref tokens)
+                                                  "refresh_token")))
         access-token (try (as-auth (string-field (ref tokens) "access_token")))
         email (try (profile-email granting (ref access-token))))
-    (try (save-token! (mut (:credentials granting)) (ref email) (ref refresh-token)))
+    (try (save-token! (mut (:credentials granting))
+                      (ref email)
+                      (ref refresh-token)))
     (ok (->account email))))
 
-(type profile-email (fn ((ref google-authorizer) (ref str)) (result string mail-error)))
+(type profile-email
+  (fn ((ref google-authorizer) (ref str))
+    (result string mail-error)))
 
 (defn profile-email (granting access-token)
-  (let (url (str (:api-base (:settings granting)) "/gmail/v1/users/me/profile")
-        reply (try (as-network (http-get (ref (:agent granting)) (ref url) access-token)))
+  (let (url (str (:api-base (:settings granting))
+                 "/gmail/v1/users/me/profile")
+        reply (try (as-network (http-get (ref (:agent granting))
+                                         (ref url)
+                                         access-token)))
         profile (try (as-auth (parse-json (ref (reply-body (ref reply)))))))
     (as-auth (string-field (ref profile) "emailAddress"))))
 
-(type consent-url (fn ((ref oauth-settings) (ref str) (ref pkce-pair) (ref str)) string))
-
-(defn consent-url (settings redirect-uri pkce state)
-  (str (:auth-url settings)
-       "?client_id=" (url-encoded (:client-id settings))
-       "&redirect_uri=" (url-encoded redirect-uri)
-       "&response_type=code&access_type=offline&prompt=consent"
-       "&scope=" (url-encoded gmail-scope)
-       "&code_challenge=" (:challenge pkce)
-       "&code_challenge_method=S256"
-       "&state=" state))
-
-(type as-auth (where (value) (fn ((result value string)) (result value mail-error))))
+(type as-auth
+  (where (value)
+    (fn ((result value string))
+      (result value mail-error))))
 
 (defn as-auth (outcome)
-  (map-err outcome (fn (problem) (mail-error/auth-required (str "sign-in failed: " problem)))))
+  (map-err outcome
+    (fn (problem)
+      (mail-error/auth-required (str "sign-in failed: " problem)))))
 
-(type as-network (where (value) (fn ((result value string)) (result value mail-error))))
+(type as-network
+  (where (value)
+    (fn ((result value string))
+      (result value mail-error))))
 
 (defn as-network (outcome)
-  (map-err outcome (fn (problem) (mail-error/network (str "cannot reach Google: " problem)))))
-
-(def url-encoded
-  (rust "{0}.bytes().map(|{!byte}| if {!byte}.is_ascii_alphanumeric() || b\"-_.~\".contains(&{!byte}) {{ ({!byte} as char).to_string() }} else {{ format!(\"%{{:02X}}\", {!byte}) }}).collect::<String>()"
-    (fn ((ref str)) string)))
+  (map-err outcome
+    (fn (problem)
+      (mail-error/network (str "cannot reach Google: " problem)))))

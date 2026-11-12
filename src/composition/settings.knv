@@ -14,25 +14,53 @@
   :auth-url string
   :browser string)
 
-(type settings-from (fn ((ref (vec string))) settings))
+(type settings-from
+  (fn ((ref (vec string))) settings))
 
 (defn settings-from (arguments)
-  (->settings :backend (option-value arguments "--backend" "KNAVE_MAIL_BACKEND" "gmail")
-              :latency-milliseconds (parse-or-zero (ref (option-value arguments "--latency" "KNAVE_MAIL_LATENCY" "0")))
-              :failing (non-empty (option-value arguments "--fail" "KNAVE_MAIL_FAIL" ""))
-              :e2e-script (script-text (ref (option-value arguments "--e2e-script" "KNAVE_MAIL_E2E_SCRIPT" "")))
-              :cache-path (option-value arguments "--cache" "KNAVE_MAIL_CACHE" (ref (default-cache-path)))
-              :credentials-file (option-value arguments "--credentials-file" "KNAVE_MAIL_CREDENTIALS_FILE" "")
-              :client-id (option-value arguments "--client-id" "KNAVE_MAIL_CLIENT_ID" "")
-              :client-secret (option-value arguments "--client-secret" "KNAVE_MAIL_CLIENT_SECRET" "")
-              :api-base (option-value arguments "--gmail-base-url" "KNAVE_MAIL_GMAIL_BASE_URL" "https://gmail.googleapis.com")
-              :token-url (option-value arguments "--token-url" "KNAVE_MAIL_TOKEN_URL" "https://oauth2.googleapis.com/token")
-              :auth-url (option-value arguments "--auth-url" "KNAVE_MAIL_AUTH_URL" "https://accounts.google.com/o/oauth2/v2/auth")
-              :browser (option-value arguments "--browser" "KNAVE_MAIL_BROWSER" "xdg-open")))
+  (->settings
+    :backend (option-value arguments "--backend"
+                           "KNAVE_MAIL_BACKEND" "gmail")
+    :latency-milliseconds (parse-or-zero (ref (option-value arguments
+                                                            "--latency"
+                                                            "KNAVE_MAIL_LATENCY"
+                                                            "0")))
+    :failing (non-empty (option-value arguments "--fail" "KNAVE_MAIL_FAIL" ""))
+    :e2e-script (script-text (ref (option-value arguments
+                                                "--e2e-script"
+                                                "KNAVE_MAIL_E2E_SCRIPT"
+                                                "")))
+    :cache-path (option-value arguments "--cache"
+                              "KNAVE_MAIL_CACHE"
+                              (ref (default-cache-path)))
+    :credentials-file (option-value
+                        arguments "--credentials-file"
+                        "KNAVE_MAIL_CREDENTIALS_FILE" "")
+    :client-id (option-value arguments "--client-id"
+                             "KNAVE_MAIL_CLIENT_ID" "")
+    :client-secret (option-value arguments "--client-secret"
+                                 "KNAVE_MAIL_CLIENT_SECRET"
+                                 "")
+    :api-base (option-value arguments "--gmail-base-url"
+                            "KNAVE_MAIL_GMAIL_BASE_URL"
+                            "https://gmail.googleapis.com")
+    :token-url (option-value arguments "--token-url"
+                             "KNAVE_MAIL_TOKEN_URL"
+                             "https://oauth2.googleapis.com/token")
+    :auth-url (option-value arguments "--auth-url"
+                            "KNAVE_MAIL_AUTH_URL"
+                            "https://accounts.google.com/o/oauth2/v2/auth")
+    :browser (option-value arguments "--browser"
+                           "KNAVE_MAIL_BROWSER"
+                           "xdg-open")))
 
 (def option-value
   (rust "{0}.iter().position(|{!argument}| *{!argument} == *{1}).and_then(|{!index}| {0}.get({!index} + 1).cloned()).or_else(|| std::env::var({2}).ok()).unwrap_or_else(|| {3}.to_string())"
-    (fn ((ref (vec string)) (ref str) (ref str) (ref str)) string)))
+    (fn ((ref (vec string))
+         (ref str)
+         (ref str)
+         (ref str))
+      string)))
 
 (def default-cache-path
   (rust "std::env::var(\"XDG_DATA_HOME\").map(std::path::PathBuf::from).or_else(|_| std::env::var(\"HOME\").map(|{!home}| std::path::Path::new(&{!home}).join(\".local/share\"))).unwrap_or_else(|_| std::path::PathBuf::from(\".\")).join(\"knave-mail/cache.sqlite3\").to_string_lossy().into_owned()"

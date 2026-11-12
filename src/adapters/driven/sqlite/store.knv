@@ -1,10 +1,20 @@
-(use adapters/driven/sqlite/accounts erase-account read-accounts
-                                     read-labels write-account write-labels)
-(use adapters/driven/sqlite/connection open-database sqlite-connection)
-(use adapters/driven/sqlite/summaries load-summaries relabel-summary
+(use adapters/driven/sqlite/accounts erase-account
+                                     read-accounts
+                                     read-labels
+                                     write-account
+                                     write-labels)
+
+(use adapters/driven/sqlite/connection open-database
+                                       sqlite-connection)
+
+(use adapters/driven/sqlite/summaries load-summaries
+                                      relabel-summary
                                       save-summaries)
-(use adapters/driven/sqlite/threads read-message read-thread relabel-thread
+
+(use adapters/driven/sqlite/threads read-message read-thread
+                                    relabel-thread
                                     write-thread)
+
 (use domain/labels apply-label-change label-change)
 (use domain/mail-error mail-error)
 (use ports/driven/store store)
@@ -14,29 +24,44 @@
 (defstruct sqlite-store
   :connection sqlite-connection)
 
-(type open-sqlite-store (fn ((ref str)) (result sqlite-store mail-error)))
+(type open-sqlite-store
+  (fn ((ref str))
+    (result sqlite-store mail-error)))
 
 (defn open-sqlite-store (path)
   (ok (->sqlite-store (try (open-database path)))))
 
 (impl store sqlite-store
-  (load-accounts (kept) (read-accounts (ref (:connection kept))))
-  (save-account! (kept added) (write-account (ref (:connection kept)) added))
-  (forget-account! (kept email) (erase-account (ref (:connection kept)) email))
-  (load-labels (kept email) (read-labels (ref (:connection kept)) email))
-  (save-labels! (kept email labels) (write-labels (ref (:connection kept)) email labels))
-  (load-threads (kept email query) (load-summaries (ref (:connection kept)) email query))
+  (load-accounts (kept)
+                 (read-accounts (ref (:connection kept))))
+  (save-account! (kept added)
+                 (write-account (ref (:connection kept)) added))
+  (forget-account! (kept email)
+                   (erase-account (ref (:connection kept)) email))
+  (load-labels (kept email)
+               (read-labels (ref (:connection kept)) email))
+  (save-labels! (kept email labels)
+                (write-labels (ref (:connection kept)) email labels))
+  (load-threads (kept email query)
+                (load-summaries (ref (:connection kept)) email query))
   (save-threads! (kept email summaries)
-    (save-summaries (ref (:connection kept)) email summaries))
-  (load-thread (kept email thread-id) (read-thread (ref (:connection kept)) email thread-id))
+                 (save-summaries (ref (:connection kept)) email summaries))
+  (load-thread (kept email thread-id)
+               (read-thread (ref (:connection kept)) email thread-id))
   (load-message (kept email message-id)
-    (read-message (ref (:connection kept)) email message-id))
-  (save-thread! (kept email saved) (write-thread (ref (:connection kept)) email saved))
+                (read-message (ref (:connection kept)) email message-id))
+  (save-thread! (kept email saved)
+                (write-thread (ref (:connection kept)) email saved))
   (relabel-stored! (kept email thread-id change)
-    (relabel-everywhere (ref (:connection kept)) email thread-id change)))
+                   (relabel-everywhere (ref (:connection kept))
+                                       email thread-id
+                                       change)))
 
 (type relabel-everywhere
-  (fn ((ref sqlite-connection) (ref str) (ref str) (ref label-change))
+  (fn ((ref sqlite-connection)
+       (ref str)
+       (ref str)
+       (ref label-change))
     (result unit mail-error)))
 
 (defn relabel-everywhere (connection email thread-id change)

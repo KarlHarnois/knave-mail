@@ -2,7 +2,8 @@
 
 (export new-outgoing reply-outgoing)
 
-(type new-outgoing (fn ((ref draft) (ref str)) outgoing))
+(type new-outgoing
+  (fn ((ref draft) (ref str)) outgoing))
 
 (defn new-outgoing (written from)
   (->outgoing :from (str from)
@@ -14,15 +15,18 @@
               :in-reply-to none
               :references (str "")))
 
-(type reply-outgoing (fn ((ref draft) (ref str) (ref message)) outgoing))
+(type reply-outgoing
+  (fn ((ref draft) (ref str) (ref message))
+    outgoing))
 
 (defn reply-outgoing (written from original)
   (assoc (new-outgoing written from)
-    :thread-id (some (clone (:thread-id original)))
-    :in-reply-to (some (clone (:header-id original)))
-    :references (references-after original)))
+         :thread-id (some (clone (:thread-id original)))
+         :in-reply-to (some (clone (:header-id original)))
+         :references (references-after original)))
 
-(type references-after (fn ((ref message)) string))
+(type references-after
+  (fn ((ref message)) string))
 
 (defn references-after (original)
   (if (empty? (:references original))

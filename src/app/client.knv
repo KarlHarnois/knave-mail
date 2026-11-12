@@ -1,37 +1,49 @@
 (use app/mail-app mail-app)
 (use app/reading find-threads! read-thread!)
 (use app/syncing sync!)
-(use app/writing compose-forward compose-reply compose-reply-all
-                 relabel-each! send!)
+
+(use app/writing compose-forward compose-reply
+                 compose-reply-all relabel-each! send!)
+
 (use domain/mail account)
 (use domain/mail-error mail-error)
 (use ports/driven/authorizer authorize!)
-(use ports/driven/store forget-account! load-accounts load-labels
-                        save-account!)
+
+(use ports/driven/store forget-account! load-accounts
+                        load-labels save-account!)
+
 (use ports/driving/mail-client mail-client)
 
 (impl mail-client mail-app
-  (list-accounts! (app) (load-accounts (ref (:store app))))
-  (list-labels! (app account) (load-labels (ref (:store app)) account))
-  (list-threads! (app account query) (find-threads! app account query))
-  (open-thread! (app account thread-id) (read-thread! app account thread-id))
+  (list-accounts! (app)
+                  (load-accounts (ref (:store app))))
+  (list-labels! (app account)
+                (load-labels (ref (:store app)) account))
+  (list-threads! (app account query)
+                 (find-threads! app account query))
+  (open-thread! (app account thread-id)
+                (read-thread! app account thread-id))
   (draft-reply! (app account message-id)
-    (compose-reply app account message-id))
+                (compose-reply app account message-id))
   (draft-reply-all! (app account message-id)
-    (compose-reply-all app account message-id))
+                    (compose-reply-all app account message-id))
   (draft-forward! (app account message-id)
-    (compose-forward app account message-id))
-  (send-draft! (app account written) (send! app account written))
+                  (compose-forward app account message-id))
+  (send-draft! (app account written)
+               (send! app account written))
   (relabel-threads! (app account thread-ids change)
-    (relabel-each! app account thread-ids change))
+                    (relabel-each! app account thread-ids change))
   (sync-account! (app account) (sync! app account))
   (add-account! (app) (add-authorized-account! app))
-  (remove-account! (app account) (forget-account! (mut (:store app)) account)))
+  (remove-account! (app account)
+                   (forget-account! (mut (:store app)) account)))
 
 (type add-authorized-account!
-  (fn ((mut mail-app)) (result account mail-error)))
+  (fn ((mut mail-app))
+    (result account mail-error)))
 
 (defn add-authorized-account! (app)
   (let (authorized (try (authorize! (mut (:authorizer app)))))
-    (try (save-account! (mut (:store app)) (ref authorized)))
+    (try (save-account! (mut (:store app))
+                        (ref authorized)))
     (ok authorized)))

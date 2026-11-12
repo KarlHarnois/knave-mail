@@ -2,22 +2,26 @@
 (use domain/mail outgoing thread-query)
 (use domain/summary all-mail-label)
 
-(export label-path labels-path message-path modify-body modify-path
-        send-body send-path thread-list-path thread-metadata-path
-        thread-path)
+(export label-path labels-path message-path modify-body
+        modify-path send-body send-path thread-list-path
+        thread-metadata-path thread-path)
 
 (def users-me "/gmail/v1/users/me")
 
 (defn labels-path () (str users-me "/labels"))
 
-(type label-path (fn ((ref str)) string))
+(type label-path
+  (fn ((ref str)) string))
 
-(defn label-path (label-id) (str users-me "/labels/" (url-encoded label-id)))
+(defn label-path (label-id)
+  (str users-me "/labels/" (url-encoded label-id)))
 
-(type thread-list-path (fn ((ref thread-query)) string))
+(type thread-list-path
+  (fn ((ref thread-query)) string))
 
 (defn thread-list-path (query)
-  (str users-me "/threads?maxResults=" (:limit query)
+  (str users-me "/threads?maxResults="
+       (:limit query)
        (if (= (:label query) all-mail-label)
          (str "")
          (str "&labelIds=" (url-encoded (:label query))))
@@ -25,23 +29,32 @@
          (str "")
          (str "&q=" (url-encoded (:query query))))))
 
-(type thread-metadata-path (fn ((ref str)) string))
+(type thread-metadata-path
+  (fn ((ref str)) string))
 
 (defn thread-metadata-path (thread-id)
-  (str users-me "/threads/" (url-encoded thread-id)
+  (str users-me "/threads/"
+       (url-encoded thread-id)
        "?format=metadata&metadataHeaders=From&metadataHeaders=Subject"))
 
-(type thread-path (fn ((ref str)) string))
+(type thread-path
+  (fn ((ref str)) string))
 
 (defn thread-path (thread-id)
-  (str users-me "/threads/" (url-encoded thread-id) "?format=minimal"))
+  (str users-me "/threads/"
+       (url-encoded thread-id)
+       "?format=minimal"))
 
-(type message-path (fn ((ref str)) string))
+(type message-path
+  (fn ((ref str)) string))
 
 (defn message-path (message-id)
-  (str users-me "/messages/" (url-encoded message-id) "?format=raw"))
+  (str users-me "/messages/"
+       (url-encoded message-id)
+       "?format=raw"))
 
-(type modify-path (fn ((ref str)) string))
+(type modify-path
+  (fn ((ref str)) string))
 
 (defn modify-path (thread-id)
   (str users-me "/threads/" (url-encoded thread-id) "/modify"))

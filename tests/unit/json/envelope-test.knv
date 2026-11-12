@@ -1,16 +1,22 @@
 (use adapters/driving/json/commands answer!)
-(use adapters/driving/json/envelope failure-event request-command
+
+(use adapters/driving/json/envelope failure-event
+                                    request-command
                                     synced-event)
+
 (use app/client)
 (use domain/mail-error mail-error)
 (use support/app-steps synced!)
-(use support/memory-world app-over remote-with sample-thread)
+
+(use support/memory-world app-over remote-with
+                          sample-thread)
 
 (defn remote ()
   (remote-with (vec (sample-thread "t-1" (vec "INBOX" "UNREAD") 100))))
 
 (defn answered (request)
-  (let (world (remote) app (app-over (ref world)))
+  (let (world (remote)
+        app (app-over (ref world)))
     (synced! (mut app))
     (answer! (mut app) request)))
 
@@ -55,12 +61,14 @@
              "{\"error\":{\"kind\":\"usage\",\"message\":\"key must be a string at line 1 column 2\"},\"id\":null}")))
 
 (deftest reads-the-command-of-a-request
-  (assert (= (request-command "{\"command\":\"sync\"}") (some (str "sync")))))
+  (assert (= (request-command "{\"command\":\"sync\"}")
+             (some (str "sync")))))
 
 (deftest describes-a-finished-sync
   (assert (= (synced-event "ada@example.com")
              "{\"account\":\"ada@example.com\",\"event\":\"synced\"}")))
 
 (deftest describes-a-failed-sync
-  (assert (= (failure-event "ada@example.com" (ref (mail-error/network (str "offline"))))
+  (assert (= (failure-event "ada@example.com"
+                            (ref (mail-error/network (str "offline"))))
              "{\"account\":\"ada@example.com\",\"error\":{\"kind\":\"network\",\"message\":\"offline\"},\"event\":\"sync-failed\"}")))

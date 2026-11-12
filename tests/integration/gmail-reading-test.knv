@@ -1,0 +1,143 @@
+(use adapters/driven/gmail/mailbox gmail-mailbox)
+(use domain/labels archive-change)
+(use domain/mail ->outgoing ->thread-query)
+(use domain/mail-error error-kind)
+
+(use ports/driven/mailbox deliver! fetch-labels!
+                          fetch-thread! fetch-threads!
+                          relabel!)
+
+(use support/fake-gmail requests-seen start-fake-gmail)
+(use support/gmail-world fixture-routes gmail-over route)
+(use support/sample-mail addresses)
+
+(use support/gmail-requests contains? inbox
+                            requests-matching)
+
+(deftest fetches-labels-with-unread-counts
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (assert (= (collect (map (iter (unwrap-ok (fetch-labels! (mut gmail))))
+                          (fn (label)
+                            (str (:name label) " " (:unread label)))))
+               (addresses (vec "INBOX 2" "Receipts 0"))))))
+
+(deftest asks-google-for-an-access-token-first
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (unwrap-ok (fetch-labels! (mut gmail)))
+    (assert (contains? (at (requests-seen (ref server)) 0)
+                       "refresh_token=fake-refresh"))))
+
+(deftest sends-the-access-token-with-each-request
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (unwrap-ok (fetch-labels! (mut gmail)))
+    (assert (contains? (at (requests-seen (ref server)) 1)
+                       "Bearer fake-access-token"))))
+
+(deftest lists-a-label-with-its-query-and-limit
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (unwrap-ok (fetch-threads! (mut gmail)
+                               (ref (->thread-query (str "INBOX")
+                                                    (str "from:grace is:unread")
+                                                    20))))
+    (assert (= (len (requests-matching (ref server)
+                                       "GET /gmail/v1/users/me/threads?maxResults=20&labelIds=INBOX&q=from%3Agrace%20is%3Aunread"))
+               1))))
+
+(deftest all-mail-lists-without-a-label
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (unwrap-ok (fetch-threads! (mut gmail)
+                               (ref (->thread-query (str "ALL") (str "") 5))))
+    (assert (= (len (requests-matching
+                      (ref server)
+                      "GET /gmail/v1/users/me/threads?maxResults=5\n"))
+               1))))
+
+(deftest summarizes-threads-from-their-metadata
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server))
+        first-summary (at (unwrap-ok (fetch-threads! (mut gmail)
+                                                     (ref (inbox))))
+                          0))
+    (assert (= (str (:subject first-summary)
+                    "|"
+                    (:participants first-summary)
+                    "|"
+                    (:snippet first-summary)
+                    "|"
+                    (:date first-summary)
+                    "|"
+                    (:message-count first-summary))
+               "Compiler meeting|Grace Hopper, ada@example.com|Sure & see you|1700000600000|2"))))
+
+(deftest merges-the-labels-of-every-message
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (assert (= (:labels (at (unwrap-ok (fetch-threads! (mut gmail)
+                                                       (ref (inbox))))
+                            0))
+               (addresses (vec "INBOX" "UNREAD" "SENT"))))))
+
+(deftest unquotes-a-quoted-sender-name
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (assert (= (:participants (at (unwrap-ok (fetch-threads! (mut gmail)
+                                                             (ref (inbox))))
+                                  1))
+               "Billing"))))
+
+(deftest fetches-every-message-of-a-thread-in-order
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (assert (= (collect (map (iter (:messages (unwrap-ok (fetch-thread! (mut
+                                                                          gmail)
+                                                                        "t1"))))
+                             (fn (message) (clone (:id message)))))
+               (addresses (vec "m1" "m2"))))))
+
+(deftest decodes-encoded-subjects-and-addresses
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server))
+        first-message (at (:messages (unwrap-ok (fetch-thread! (mut gmail)
+                                                               "t1")))
+                          0))
+    (assert (= (str (:subject first-message)
+                    "|"
+                    (:from first-message)
+                    "|"
+                    (at (:to first-message) 1)
+                    "|"
+                    (at (:cc first-message) 0))
+               "Compiler meeting — Tuesday|Grace Hopper <grace@example.com>|Alan Turing <alan@example.com>|edsger@example.com"))))
+
+(deftest keeps-both-parts-of-an-alternative-message
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server))
+        first-message (at (:messages (unwrap-ok (fetch-thread! (mut gmail)
+                                                               "t1")))
+                          0))
+    (assert (= (pair (clone (:text first-message))
+                     (clone (:html first-message)))
+               (pair (str "Can we meet Tuesday?\n\nGrace")
+                     (some (str "<p>Can we meet <b>Tuesday</b>?</p>")))))))
+
+(deftest decodes-a-latin-one-quoted-printable-body
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server))
+        reply (at (:messages (unwrap-ok (fetch-thread! (mut gmail) "t1")))
+                  1))
+    (assert (= (pair (clone (:text reply))
+                     (clone (:html reply)))
+               (pair (str "Sure, café at noon.\n") none)))))
+
+(deftest keeps-the-threading-headers
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server))
+        reply (at (:messages (unwrap-ok (fetch-thread! (mut gmail) "t1")))
+                  1))
+    (assert (= (str (:header-id reply) "|" (:references reply))
+               "<m2@example.com>|<m0@example.com> <m1@example.com>"))))

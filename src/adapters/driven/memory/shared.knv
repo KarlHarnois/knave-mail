@@ -1,6 +1,7 @@
 (export handle share shared with-shared!)
 
-(deftype (shared item) (rust "std::rc::Rc<std::cell::RefCell<{0}>>"))
+(deftype (shared item)
+  (rust "std::rc::Rc<std::cell::RefCell<{0}>>"))
 
 (def share
   (rust "std::rc::Rc::new(std::cell::RefCell::new({0}))"
@@ -8,9 +9,12 @@
 
 (def handle
   (rust "std::rc::Rc::clone({0})"
-    (where (item) (fn ((ref (shared item))) (shared item)))))
+    (where (item)
+      (fn ((ref (shared item))) (shared item)))))
 
 (def with-shared!
   (rust "{1}(&mut {0}.borrow_mut())"
     (where (item outcome)
-      (fn ((ref (shared item)) (fn-once ((mut item)) outcome)) outcome))))
+      (fn ((ref (shared item))
+           (fn-once ((mut item)) outcome))
+        outcome))))

@@ -1,4 +1,5 @@
-(export ->pkce-pair challenge-of new-pkce-pair new-state pkce-pair)
+(export ->pkce-pair challenge-of new-pkce-pair new-state
+        pkce-pair)
 
 (defstruct pkce-pair
   :verifier string
@@ -6,7 +7,8 @@
 
 (defn new-pkce-pair ()
   (let (verifier (random-token 64))
-    (->pkce-pair :challenge (challenge-of (ref verifier)) :verifier verifier)))
+    (->pkce-pair :challenge (challenge-of (ref verifier))
+                 :verifier verifier)))
 
 (defn new-state () (random-token 32))
 

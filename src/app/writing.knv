@@ -8,45 +8,50 @@
 (use ports/driven/mailbox deliver! relabel!)
 (use ports/driven/store load-message relabel-stored!)
 
-(export compose-forward compose-reply compose-reply-all relabel-each!
-        send!)
+(export compose-forward compose-reply compose-reply-all
+        relabel-each! send!)
 
 (type compose-reply
-  (fn ((ref mail-app) (ref str) (ref str)) (result draft mail-error)))
+  (fn ((ref mail-app) (ref str) (ref str))
+    (result draft mail-error)))
 
 (defn compose-reply (app account message-id)
   (ok (reply-draft (ref (try (stored-message app account message-id))))))
 
 (type compose-reply-all
-  (fn ((ref mail-app) (ref str) (ref str)) (result draft mail-error)))
+  (fn ((ref mail-app) (ref str) (ref str))
+    (result draft mail-error)))
 
 (defn compose-reply-all (app account message-id)
   (ok (reply-all-draft (ref (try (stored-message app account message-id)))
                        account)))
 
 (type compose-forward
-  (fn ((ref mail-app) (ref str) (ref str)) (result draft mail-error)))
+  (fn ((ref mail-app) (ref str) (ref str))
+    (result draft mail-error)))
 
 (defn compose-forward (app account message-id)
   (ok (forward-draft (ref (try (stored-message app account message-id))))))
 
 (type send!
-  (fn ((mut mail-app) (ref str) (ref draft)) (result unit mail-error)))
+  (fn ((mut mail-app) (ref str) (ref draft))
+    (result unit mail-error)))
 
 (defn send! (app account written)
   (let (outgoing (match (ref (:reply-to written))
                    ((some message-id)
-                    (reply-outgoing written
-                                    account
-                                    (ref (try (stored-message app
-                                                              account
-                                                              message-id)))))
+                    (reply-outgoing
+                      written account
+                      (ref (try (stored-message app account message-id)))))
                    (none (new-outgoing written account))))
     (deliver! (try (mailbox-for! (mut (:mailboxes app)) account))
               (ref outgoing))))
 
 (type relabel-each!
-  (fn ((mut mail-app) (ref str) (ref (vec string)) (ref label-change))
+  (fn ((mut mail-app)
+       (ref str)
+       (ref (vec string))
+       (ref label-change))
     (result unit mail-error)))
 
 (defn relabel-each! (app account thread-ids change)
@@ -58,17 +63,21 @@
         (recur (+ index 1))))))
 
 (type relabel-one!
-  (fn ((mut mail-app) (ref str) (ref str) (ref label-change))
+  (fn ((mut mail-app)
+       (ref str)
+       (ref str)
+       (ref label-change))
     (result unit mail-error)))
 
 (defn relabel-one! (app account thread-id change)
   (try (relabel! (try (mailbox-for! (mut (:mailboxes app)) account))
-                 thread-id
-                 change))
-  (relabel-stored! (mut (:store app)) account thread-id change))
+                 thread-id change))
+  (relabel-stored! (mut (:store app))
+                   account thread-id change))
 
 (type stored-message
-  (fn ((ref mail-app) (ref str) (ref str)) (result message mail-error)))
+  (fn ((ref mail-app) (ref str) (ref str))
+    (result message mail-error)))
 
 (defn stored-message (app account message-id)
   (ok-or (try (load-message (ref (:store app)) account message-id))

@@ -1,0 +1,45 @@
+(use adapters/driving/json/arguments account-argument
+                                     thread-ids-argument)
+
+(use adapters/driving/json/value json-value)
+
+(use domain/labels archive-change label-change read-change
+                   star-change trash-change unread-change
+                   unstar-change)
+
+(use domain/mail-error mail-error)
+(use ports/driving/mail-client mail-client relabel-threads!)
+
+(export relabel-command!)
+
+(type relabel-command!
+  (where ((client mail-client))
+    (fn ((mut client)
+         (ref str)
+         (ref json-value))
+      (result json-value mail-error))))
+
+(defn relabel-command! (client command arguments)
+  (let (change (try (change-named command)))
+    (try (relabel-threads! client
+                           (ref (try (account-argument arguments)))
+                           (ref (try (thread-ids-argument arguments)))
+                           (ref change)))
+    (ok (empty-object))))
+
+(type change-named
+  (fn ((ref str))
+    (result label-change mail-error)))
+
+(defn change-named (command)
+  (match command
+    ("archive" (ok (archive-change)))
+    ("trash" (ok (trash-change)))
+    ("star" (ok (star-change)))
+    ("unstar" (ok (unstar-change)))
+    ("mark-read" (ok (read-change)))
+    ("mark-unread" (ok (unread-change)))
+    (_ (err (mail-error/usage (str "unknown command `" command "`"))))))
+
+(def empty-object
+  (rust "serde_json::json!({{}})" (fn () json-value)))

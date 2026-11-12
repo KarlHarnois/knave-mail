@@ -1,5 +1,8 @@
 (use adapters/driving/webview/session sync-event)
-(use adapters/driving/webview/sync-runner run-in-background sync-runner)
+
+(use adapters/driving/webview/sync-runner run-in-background
+                                          sync-runner)
+
 (use app/client)
 (use composition/gmail-backend gmail-app)
 (use composition/settings settings-from)
@@ -12,16 +15,23 @@
 
 (impl sync-runner background-sync
   (start-sync! (runner account outbox)
-    (let (owned-account (str account))
-      (set! (:started runner) (+ (:started runner) 1))
-      (run-in-background outbox
-        (fn () (let (moved-account owned-account) (synced-in-own-app (ref moved-account)))))
-      true)))
+               (let (owned-account (str account))
+                 (set! (:started runner)
+                       (+ (:started runner) 1))
+                 (run-in-background outbox
+                   (fn ()
+                     (let (moved-account owned-account)
+                       (synced-in-own-app (ref moved-account)))))
+                 true)))
 
-(type synced-in-own-app (fn ((ref str)) string))
+(type synced-in-own-app
+  (fn ((ref str)) string))
 
 (defn synced-in-own-app (account)
   (sync-event (match (gmail-app (ref (settings-from (ref (command-line-args)))))
-                ((ok app) (do (local syncing app) (sync-account! (mut syncing) account)))
+                ((ok app)
+                 (do
+                   (local syncing app)
+                   (sync-account! (mut syncing) account)))
                 ((err failure) (err failure)))
               account))

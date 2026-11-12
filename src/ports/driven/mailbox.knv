@@ -1,16 +1,22 @@
 (use domain/labels label-change)
-(use domain/mail label outgoing thread thread-query thread-summary)
+
+(use domain/mail label outgoing thread thread-query
+                 thread-summary)
+
 (use domain/mail-error mail-error)
 
 (export mailbox)
 
 (deftrait mailbox
-  (fetch-labels! (fn ((mut self)) (result (vec label) mail-error)))
-  (fetch-threads!
-    (fn ((mut self) (ref thread-query))
-      (result (vec thread-summary) mail-error)))
-  (fetch-thread! (fn ((mut self) (ref str)) (result thread mail-error)))
-  (deliver! (fn ((mut self) (ref outgoing)) (result unit mail-error)))
-  (relabel!
-    (fn ((mut self) (ref str) (ref label-change))
-      (result unit mail-error))))
+  (fetch-labels! (fn ((mut self))
+                   (result (vec label) mail-error)))
+  (fetch-threads! (fn ((mut self) (ref thread-query))
+                    (result (vec thread-summary) mail-error)))
+  (fetch-thread! (fn ((mut self) (ref str))
+                   (result thread mail-error)))
+  (deliver! (fn ((mut self) (ref outgoing))
+              (result unit mail-error)))
+  (relabel! (fn ((mut self)
+                 (ref str)
+                 (ref label-change))
+              (result unit mail-error))))

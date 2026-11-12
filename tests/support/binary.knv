@@ -2,15 +2,25 @@
 
 (def binary-path "target/knave/knave-mail/knave-mail")
 
-(export binary-output binary-path output-code output-stderr output-stdout
-        run-binary)
+(export binary-output binary-path output-code output-stderr
+        output-stdout run-binary)
 
 (def run-binary
   (rust "{{ use std::io::Write; let mut {!child} = std::process::Command::new({0}).args({1}).envs({2}.iter().map(|({!k}, {!v})| ({!k}.as_str(), {!v}.as_str()))).env_remove(\"KNAVE_MAIL_BACKEND\").stdin(std::process::Stdio::piped()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::piped()).spawn().expect(\"run `knave build` before the e2e tests\"); {!child}.stdin.take().expect(\"stdin\").write_all({3}.as_bytes()).expect(\"write stdin\"); let {!output} = {!child}.wait_with_output().expect(\"the binary finishes\"); ({!output}.status.code().unwrap_or(-1), String::from_utf8_lossy(&{!output}.stdout).into_owned(), String::from_utf8_lossy(&{!output}.stderr).into_owned()) }}"
-    (fn ((ref str) (ref (vec string)) (ref (vec (pair string string))) (ref str)) binary-output)))
+    (fn ((ref str)
+         (ref (vec string))
+         (ref (vec (pair string string)))
+         (ref str))
+      binary-output)))
 
-(def output-code (rust "{0}.0" (fn ((ref binary-output)) i32)))
+(def output-code
+  (rust "{0}.0"
+    (fn ((ref binary-output)) i32)))
 
-(def output-stdout (rust "{0}.1.clone()" (fn ((ref binary-output)) string)))
+(def output-stdout
+  (rust "{0}.1.clone()"
+    (fn ((ref binary-output)) string)))
 
-(def output-stderr (rust "{0}.2.clone()" (fn ((ref binary-output)) string)))
+(def output-stderr
+  (rust "{0}.2.clone()"
+    (fn ((ref binary-output)) string)))

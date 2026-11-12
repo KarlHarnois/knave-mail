@@ -1,16 +1,22 @@
 (use adapters/driven/memory/remote-mail remote-mail)
-(use domain/mail ->label label thread thread-query thread-summary)
+
+(use domain/mail ->label label thread thread-query
+                 thread-summary)
+
 (use domain/summary in-label? newest-first summarize)
 
 (export labels-of matching-summaries thread-position)
 
-(type labels-of (fn ((ref remote-mail)) (vec label)))
+(type labels-of
+  (fn ((ref remote-mail)) (vec label)))
 
 (defn labels-of (remote)
   (collect (map (iter (distinct-labels (ref (:threads remote))))
-                (fn (name) (label-named remote name)))))
+             (fn (name) (label-named remote name)))))
 
-(type label-named (fn ((ref remote-mail) (ref string)) label))
+(type label-named
+  (fn ((ref remote-mail) (ref string))
+    label))
 
 (defn label-named (remote name)
   (->label :id (clone name)
@@ -18,26 +24,28 @@
            :unread (unread-count (ref (:threads remote)) name)))
 
 (type matching-summaries
-  (fn ((ref remote-mail) (ref thread-query)) (vec thread-summary)))
+  (fn ((ref remote-mail) (ref thread-query))
+    (vec thread-summary)))
 
 (defn matching-summaries (remote query)
   (let (summaries (collect (map (filter (iter (:threads remote))
-                                        (fn (candidate)
-                                          (mentions? candidate
-                                                     (:query query))))
+                                  (fn (candidate)
+                                    (mentions? candidate (:query query))))
                                 (fn (matched) (summarize matched))))
         labelled (collect (filter (into-iter summaries)
-                                  (fn (summary)
-                                    (in-label? summary (:label query))))))
+                            (fn (summary)
+                              (in-label? summary (:label query))))))
     (newest-first labelled query)))
 
 (def into-iter
   (rust "{0}.into_iter()"
-    (fn ((vec thread-summary)) (iterator thread-summary))))
+    (fn ((vec thread-summary))
+      (iterator thread-summary))))
 
 (def thread-position
   (rust "{0}.threads.iter().position(|{!thread}| {!thread}.id == *{1})"
-    (fn ((ref remote-mail) (ref str)) (option usize))))
+    (fn ((ref remote-mail) (ref str))
+      (option usize))))
 
 (def distinct-labels
   (rust "{0}.iter().flat_map(|{!thread}| {!thread}.labels.iter().cloned()).collect::<std::collections::BTreeSet<String>>().into_iter().collect::<Vec<String>>()"
@@ -45,7 +53,8 @@
 
 (def unread-count
   (rust "{0}.iter().filter(|{!thread}| {!thread}.labels.contains({1}) && {!thread}.labels.iter().any(|{!label}| {!label} == \"UNREAD\")).count() as i64"
-    (fn ((ref (vec thread)) (ref string)) i64)))
+    (fn ((ref (vec thread)) (ref string))
+      i64)))
 
 (def mentions?
   (rust "{{ let {!wanted} = {1}.to_lowercase(); {!wanted}.is_empty() || {0}.subject.to_lowercase().contains(&{!wanted}) || {0}.messages.iter().any(|{!message}| {!message}.from.to_lowercase().contains(&{!wanted}) || {!message}.text.to_lowercase().contains(&{!wanted})) }}"

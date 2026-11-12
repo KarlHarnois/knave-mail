@@ -1,12 +1,16 @@
-(export next-request open-window reply-outbox request-inbox send-reply)
+(export next-request open-window reply-outbox request-inbox
+        send-reply)
 
-(deftype request-inbox (rust "std::sync::mpsc::Receiver<String>"))
+(deftype request-inbox
+  (rust "std::sync::mpsc::Receiver<String>"))
 
-(deftype reply-outbox (rust "tao::event_loop::EventLoopProxy<String>"))
+(deftype reply-outbox
+  (rust "tao::event_loop::EventLoopProxy<String>"))
 
 (def next-request
   (rust "{0}.recv().ok()"
-    (fn ((ref request-inbox)) (option string))))
+    (fn ((ref request-inbox))
+      (option string))))
 
 (def send-reply
   (rust "drop({0}.send_event({1}))"
@@ -54,5 +58,7 @@
       }}
     }})
   }}"
-    (fn ((ref str) (ref str) (fn-once (request-inbox reply-outbox) unit))
+    (fn ((ref str)
+         (ref str)
+         (fn-once (request-inbox reply-outbox) unit))
       unit)))

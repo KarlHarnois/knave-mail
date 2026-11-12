@@ -1,8 +1,11 @@
 (use adapters/driving/json/value json-value)
 (use domain/labels starred? unread?)
-(use domain/mail account draft label message thread thread-summary)
 
-(export accounts-json draft-json labels-json summaries-json thread-json)
+(use domain/mail account draft label message thread
+                 thread-summary)
+
+(export accounts-json draft-json labels-json summaries-json
+        thread-json)
 
 (def accounts-json
   (rust "serde_json::Value::Array({0}.iter().map(|{!account}| serde_json::json!({{\"email\": {!account}.email}})).collect())"
@@ -12,12 +15,16 @@
   (rust "serde_json::Value::Array({0}.iter().map(|{!label}| serde_json::json!({{\"id\": {!label}.id, \"name\": {!label}.name, \"unread\": {!label}.unread}})).collect())"
     (fn ((ref (vec label))) json-value)))
 
-(type summaries-json (fn ((ref (vec thread-summary))) json-value))
+(type summaries-json
+  (fn ((ref (vec thread-summary)))
+    json-value))
 
 (defn summaries-json (summaries)
-  (json-array (collect (map (iter summaries) (fn (summary) (summary-json summary))))))
+  (json-array (collect (map (iter summaries)
+                         (fn (summary) (summary-json summary))))))
 
-(type summary-json (fn ((ref thread-summary)) json-value))
+(type summary-json
+  (fn ((ref thread-summary)) json-value))
 
 (defn summary-json (summary)
   (summary-object summary

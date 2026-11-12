@@ -10,4 +10,5 @@
 
 (def join-with
   (rust "{0}.join({1})"
-    (fn ((ref (vec string)) (ref str)) string)))
+    (fn ((ref (vec string)) (ref str))
+      string)))
