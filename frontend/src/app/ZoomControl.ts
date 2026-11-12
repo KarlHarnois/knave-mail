@@ -12,7 +12,7 @@ export class ZoomControl {
   private zoom = DEFAULT_ZOOM;
 
   constructor(
-    private readonly root: HTMLElement,
+    private readonly applyZoom: (level: number) => void,
     private readonly announce: (notice: string) => void,
   ) {}
 
@@ -54,7 +54,7 @@ export class ZoomControl {
   private apply(requested: number): void {
     const bounded = Math.min(MAXIMUM_ZOOM, Math.max(MINIMUM_ZOOM, requested));
     this.zoom = Math.round(bounded * PERCENT) / PERCENT;
-    this.root.style.setProperty("zoom", String(this.zoom));
+    this.applyZoom(this.zoom);
     this.announce(`zoom ${Math.round(this.zoom * PERCENT)}%`);
   }
 }

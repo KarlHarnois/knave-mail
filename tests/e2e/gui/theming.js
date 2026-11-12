@@ -33,6 +33,12 @@ knaveE2E.scenario(async (driver) => {
   editor?.append(promptPanel);
   e2e.check("the vim command input takes the foreground color", input !== null && getComputedStyle(input).color === e2e.themeColor("--foreground"), input && getComputedStyle(input).color);
   promptPanel.remove();
-  document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "=", ctrlKey: true, bubbles: true, cancelable: true }));
-  e2e.check("ctrl and = zooms the window in", document.documentElement.style.getPropertyValue("zoom") === "1.1", document.documentElement.style.getPropertyValue("zoom"));
+  const widthBefore = window.innerWidth;
+  const statusBefore = document.querySelector('[data-test="status-line"]').getBoundingClientRect().bottom;
+  document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "-", ctrlKey: true, bubbles: true, cancelable: true }));
+  await driver.whenIdle();
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  e2e.check("ctrl and - zooms the whole page out", window.innerWidth > widthBefore, `${widthBefore} -> ${window.innerWidth}`);
+  const statusBottom = document.querySelector('[data-test="status-line"]').getBoundingClientRect().bottom;
+  e2e.check("the status line stays at the bottom when zoomed", Math.abs(statusBottom - window.innerHeight) < 2, `${statusBefore} -> ${statusBottom} of ${window.innerHeight}`);
 });

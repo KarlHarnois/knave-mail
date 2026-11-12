@@ -3,10 +3,13 @@ import { ZoomControl } from "../../src/app/ZoomControl";
 
 class ZoomFixture {
   readonly notices: string[] = [];
-  readonly zoom = new ZoomControl(document.documentElement, (notice) => this.notices.push(notice));
+  readonly levels: number[] = [];
+  readonly zoom = new ZoomControl(
+    (level) => this.levels.push(level),
+    (notice) => this.notices.push(notice),
+  );
 
   constructor() {
-    document.documentElement.style.removeProperty("zoom");
     this.zoom.listen(document);
   }
 
@@ -16,8 +19,8 @@ class ZoomFixture {
     return event;
   }
 
-  appliedZoom(): string {
-    return document.documentElement.style.getPropertyValue("zoom");
+  appliedZoom(): number | undefined {
+    return this.levels.at(-1);
   }
 }
 
@@ -25,7 +28,7 @@ describe("zoom", () => {
   test("ctrl and = zooms in by a tenth", () => {
     const fixture = new ZoomFixture();
     fixture.press("=");
-    expect(fixture.appliedZoom()).toBe("1.1");
+    expect(fixture.appliedZoom()).toBe(1.1);
     expect(fixture.notices.at(-1)).toBe("zoom 110%");
   });
 
@@ -46,7 +49,7 @@ describe("zoom", () => {
     const fixture = new ZoomFixture();
     fixture.press("=");
     fixture.press("0");
-    expect(fixture.appliedZoom()).toBe("1");
+    expect(fixture.appliedZoom()).toBe(1);
   });
 
   test("the zoom stays between half and three times", () => {

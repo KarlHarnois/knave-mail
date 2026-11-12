@@ -15,7 +15,7 @@
                                      next-request
                                      reply-outbox
                                      request-inbox
-                                     send-reply)
+                                     send-reply zoom-window)
 
 (use domain/mail-error mail-error)
 (use ports/driving/mail-client mail-client sync-account!)
@@ -53,6 +53,7 @@
         (start-requested-sync! client runner (ref request) outbox))
        ((ok "e2e-report") (report-e2e-line (ref request)))
        ((ok "e2e-finish") (finish-e2e (ref request) outbox))
+       ((ok "zoom") (zoom-to (ref request) outbox))
        (_ (send-reply outbox (answer! client request-text)))))
     ((err _) (send-reply outbox (answer! client request-text)))))
 
@@ -107,3 +108,18 @@
 
 (def empty-object
   (rust "serde_json::json!({{}})" (fn () json-value)))
+
+(type zoom-to
+  (fn ((ref json-value) (ref reply-outbox))
+    unit))
+
+(defn zoom-to (request outbox)
+  (zoom-window outbox
+               (zoom-level (ref (request-arguments request))))
+  (send-reply outbox
+              (success-reply (ref (request-id request))
+                             (ref (empty-object)))))
+
+(def zoom-level
+  (rust "{0}.get(\"level\").and_then(serde_json::Value::as_f64).unwrap_or(1.0).clamp(0.5, 3.0)"
+    (fn ((ref json-value)) f64)))

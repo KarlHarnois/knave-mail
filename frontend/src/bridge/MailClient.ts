@@ -38,6 +38,10 @@ export class MailClient {
     await this.bridge.request(command, { account, threadIds });
   }
 
+  async zoom(level: number): Promise<void> {
+    await this.bridge.request("zoom", { level });
+  }
+
   async sync(account: string): Promise<void> {
     await this.bridge.request("sync", { account });
   }

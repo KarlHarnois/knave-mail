@@ -1,0 +1,55 @@
+import { HelpScreen } from "../help/HelpScreen";
+import { LabelPickerScreen } from "../labels/LabelPickerScreen";
+import type { LabelRef } from "../mail/LabelDirectory";
+import { TestDriver } from "../testing/TestDriver";
+import type { MailServices } from "./MailServices";
+import type { ScreenHost } from "./ScreenHost";
+import { ZoomControl } from "./ZoomControl";
+
+export class ScreenFactory {
+  constructor(private readonly services: MailServices) {}
+
+  testDriver(pressToken: (token: string) => void, startup: Promise<unknown>): TestDriver {
+    return new TestDriver({
+      document: this.services.document,
+      pressToken,
+      bridge: this.services.bridge,
+      scheduler: this.services.scheduler,
+      startup,
+    });
+  }
+
+  zoomControl(): ZoomControl {
+    return new ZoomControl(
+      (level) => this.services.errors.run(this.services.mail.zoom(level)),
+      (notice) => this.services.status.showNotice(notice),
+    );
+  }
+
+  stage(): HTMLElement {
+    const stage = this.services.document.createElement("main");
+    stage.className = "stage";
+    return stage;
+  }
+
+  labelPicker(host: ScreenHost, goToLabel: (label: LabelRef) => void): LabelPickerScreen {
+    return new LabelPickerScreen({
+      document: this.services.document,
+      host,
+      labels: this.services.labels,
+      session: this.services.session,
+      errors: this.services.errors,
+      askSearch: (submit) => this.services.commandLine.open("/", submit),
+      goToLabel,
+    });
+  }
+
+  helpScreen(host: ScreenHost): HelpScreen {
+    return new HelpScreen({
+      document: this.services.document,
+      host,
+      askSearch: (submit) => this.services.commandLine.open("/", submit),
+      showError: (message) => this.services.status.showError(message),
+    });
+  }
+}

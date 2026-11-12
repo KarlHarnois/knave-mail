@@ -15,9 +15,11 @@ import { AppKeyMaps } from "./AppKeyMaps";
 import { FocusGuard } from "./FocusGuard";
 import { MailServices } from "./MailServices";
 import { Navigator } from "./Navigator";
+import { ScreenFactory } from "./ScreenFactory";
 
 export class KnaveMail {
   private readonly services: MailServices;
+  private readonly factory: ScreenFactory;
   private readonly stage: HTMLElement;
   private readonly navigator: Navigator;
   private readonly shared: SharedActions;
@@ -32,23 +34,24 @@ export class KnaveMail {
     transport: Transport = new IpcTransport(window as never),
   ) {
     this.services = new MailServices(window, transport);
-    this.stage = this.services.stage();
+    this.factory = new ScreenFactory(this.services);
+    this.stage = this.factory.stage();
     this.navigator = new Navigator(this.stage, this.createListScreen());
     this.shared = this.createSharedActions();
     this.app = this.createApp();
     this.threadScreen = this.createThreadScreen();
     this.composeScreen = this.createComposeScreen();
-    this.helpScreen = this.services.helpScreen(this.app);
-    this.labelPicker = this.services.labelPicker(this.app, (label) => this.shared.goToLabel(label));
+    this.helpScreen = this.factory.helpScreen(this.app);
+    this.labelPicker = this.factory.labelPicker(this.app, (label) => this.shared.goToLabel(label));
   }
 
   start(): void {
     this.mount();
     new KeyboardInput((token) => this.app.press(token)).listen(this.services.document);
     new FocusGuard(this.window, () => this.app.focusScreen()).watch();
-    this.services.zoomControl().listen(this.services.document);
+    this.factory.zoomControl().listen(this.services.document);
     const startup = this.services.session.start();
-    this.services.testDriver((token) => this.app.press(token), startup).installOn(this.window);
+    this.factory.testDriver((token) => this.app.press(token), startup).installOn(this.window);
     this.app.refreshStatus();
     this.services.errors.run(startup);
   }

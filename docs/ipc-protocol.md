@@ -65,4 +65,5 @@ type Draft = {
 | `forward-draft` | `{account, messageId}` | `Draft` with `Fwd:` subject and the forwarded body |
 | `send` | `{account, draft}` | `{}` |
 | `archive`, `move-to-inbox`, `trash`, `untrash`, `star`, `unstar`, `mark-read`, `mark-unread` | `{account, threadIds}` | `{}` |
+| `zoom` | `{level}` | `{}`. Zooms the whole window to `level` (0.5 to 3) |
 | `sync` | `{account}` | `{}`, then a `synced` or `sync-failed` event when it finishes |
