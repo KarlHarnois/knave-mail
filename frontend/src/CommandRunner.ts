@@ -26,15 +26,20 @@ export class CommandRunner {
   private execute(command: Command): void {
     switch (command.kind) {
       case "account":
-        return this.changeLocation(this.ports.session.selectAccount(command.email));
+        this.changeLocation(this.ports.session.selectAccount(command.email));
+        return;
       case "label":
-        return this.changeLocation(this.ports.session.goToLabelNamed(command.name));
+        this.changeLocation(this.ports.session.goToLabelNamed(command.name));
+        return;
       case "sync":
-        return this.ports.sync.sync();
+        this.ports.sync.sync();
+        return;
       case "quit":
-        return this.ports.goBack();
+        this.ports.goBack();
+        return;
       case "problem":
-        return this.ports.status.showError(command.message);
+        this.ports.status.showError(command.message);
+        return;
       case "empty":
         return;
     }

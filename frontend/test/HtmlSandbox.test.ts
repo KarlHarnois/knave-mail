@@ -46,7 +46,7 @@ describe("HtmlSandbox.srcdoc", () => {
   });
 
   test("keeps the message HTML in the body", () => {
-    expect(sandbox.srcdoc('<table><tr><td>cell</td></tr></table>', false)).toContain(
+    expect(sandbox.srcdoc("<table><tr><td>cell</td></tr></table>", false)).toContain(
       "<body><table><tr><td>cell</td></tr></table></body>",
     );
   });

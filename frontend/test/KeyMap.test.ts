@@ -99,8 +99,20 @@ describe("KeyMap", () => {
 class ModalFixture {
   static keys(): ModalKeyMap<string, string> {
     const keyMaps = new Map([
-      ["list", new KeyMap<string>([["j", "moveDown"], ["gg", "top"]])],
-      ["thread", new KeyMap<string>([["j", "nextMessage"], ["q", "back"]])],
+      [
+        "list",
+        new KeyMap<string>([
+          ["j", "moveDown"],
+          ["gg", "top"],
+        ]),
+      ],
+      [
+        "thread",
+        new KeyMap<string>([
+          ["j", "nextMessage"],
+          ["q", "back"],
+        ]),
+      ],
     ]);
     return new ModalKeyMap(keyMaps, "list");
   }

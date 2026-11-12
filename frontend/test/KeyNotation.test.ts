@@ -31,7 +31,20 @@ describe("KeyNotation.tokenize", () => {
   });
 
   test("a command line sequence keeps spaces", () => {
-    expect(notation.tokenize(":label Work<CR>")).toEqual([":", "l", "a", "b", "e", "l", " ", "W", "o", "r", "k", "<CR>"]);
+    expect(notation.tokenize(":label Work<CR>")).toEqual([
+      ":",
+      "l",
+      "a",
+      "b",
+      "e",
+      "l",
+      " ",
+      "W",
+      "o",
+      "r",
+      "k",
+      "<CR>",
+    ]);
   });
 });
 

@@ -9,11 +9,16 @@ export class VimEditorFactory {
   constructor(private readonly commands: VimExCommands) {}
 
   createReader(parent: HTMLElement, options: VimEditorOptions): VimEditor {
-    return new VimEditor(parent, this.extensions(EditorState.readOnly.of(true)), this.commands, options);
+    return new VimEditor({
+      parent,
+      extensions: this.extensions(EditorState.readOnly.of(true)),
+      commands: this.commands,
+      options,
+    });
   }
 
   createWriter(parent: HTMLElement, options: VimEditorOptions): VimEditor {
-    return new VimEditor(parent, this.extensions(history()), this.commands, options);
+    return new VimEditor({ parent, extensions: this.extensions(history()), commands: this.commands, options });
   }
 
   private extensions(modeExtension: Extension): Extension[] {

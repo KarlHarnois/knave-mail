@@ -60,7 +60,13 @@ describe("DraftFormat.parse", () => {
   });
 
   test("missing headers default to empty values", () => {
-    expect(format.parse("\nonly body", null)).toEqual({ to: [], cc: [], subject: "", body: "only body", replyTo: null });
+    expect(format.parse("\nonly body", null)).toEqual({
+      to: [],
+      cc: [],
+      subject: "",
+      body: "only body",
+      replyTo: null,
+    });
   });
 
   test("a buffer without a blank line has no body", () => {

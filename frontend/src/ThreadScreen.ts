@@ -1,39 +1,22 @@
-import type { ErrorReporter } from "./ErrorReporter";
 import type { Action, ThreadAction } from "./KeyBindings";
-import type { MailClient } from "./MailClient";
-import type { MailSession } from "./MailSession";
-import { MessageCard, type MessageCardServices } from "./MessageCard";
-import type { Draft, Thread, ThreadSummary } from "./Protocol";
+import { MessageReplies } from "./MessageReplies";
+import { MessageStack } from "./MessageStack";
+import type { ThreadSummary } from "./Protocol";
 import type { Screen } from "./Screen";
-import type { ScreenHost } from "./ScreenHost";
-import type { ThreadActions } from "./ThreadActions";
+import { ThreadHeader } from "./ThreadHeader";
+import type { ThreadScreenPorts } from "./ThreadScreenPorts";
 import { ThreadTextMode } from "./ThreadTextMode";
 
-export type ThreadScreenPorts = {
-  host: ScreenHost;
-  mail: MailClient;
-  session: MailSession;
-  actions: ThreadActions;
-  errors: ErrorReporter;
-  cards: MessageCardServices;
-  openDraft: (draft: Draft) => void;
-  neighbourThread: (offset: number) => ThreadSummary | undefined;
-};
-
 type Handler = (count: number) => void;
-
-const STAR = "★ ";
 
 export class ThreadScreen implements Screen {
   readonly keyMode = "thread" as const;
   readonly element: HTMLElement;
-  private readonly subject: HTMLElement;
-  private readonly messages: HTMLElement;
+  private readonly header: ThreadHeader;
+  private readonly replies: MessageReplies;
+  private readonly messages: MessageStack;
   private readonly handlers: ReadonlyMap<Action, Handler>;
   private readonly textMode: ThreadTextMode;
-  private cards: MessageCard[] = [];
-  private focusIndex = 0;
-  private summary: ThreadSummary | null = null;
   private openGeneration = 0;
 
   constructor(private readonly ports: ThreadScreenPorts) {
@@ -42,20 +25,17 @@ export class ThreadScreen implements Screen {
     this.element.className = "thread-view";
     this.element.dataset.test = "thread-view";
     this.element.tabIndex = -1;
-    this.subject = document.createElement("h1");
-    this.subject.className = "thread-subject";
-    this.subject.dataset.test = "thread-subject";
-    this.messages = document.createElement("div");
-    this.messages.className = "thread-messages";
-    this.element.append(this.subject, this.messages);
+    this.header = new ThreadHeader(document);
+    this.replies = new MessageReplies(ports);
+    this.messages = new MessageStack(ports.cards);
+    this.element.append(this.header.element, this.messages.element);
     this.textMode = new ThreadTextMode(ports.host, () => this.focus());
     this.handlers = this.createHandlers();
   }
 
   open(summary: ThreadSummary): void {
     this.closeCards();
-    this.summary = this.ports.actions.markRead(summary);
-    this.showSubject();
+    this.header.show(this.ports.actions.markRead(summary));
     this.ports.host.push(this);
     this.ports.errors.run(this.load(summary.id));
   }
@@ -83,81 +63,60 @@ export class ThreadScreen implements Screen {
   private async load(threadId: string): Promise<void> {
     const generation = ++this.openGeneration;
     const thread = await this.ports.mail.thread(this.ports.session.account, threadId);
-    if (generation === this.openGeneration) this.showThread(thread);
-  }
-
-  private showThread(thread: Thread): void {
-    this.cards = thread.messages.map((message) => new MessageCard(message, this.ports.cards));
-    this.messages.replaceChildren(...this.cards.map((card) => card.element));
-    this.focusIndex = this.cards.length - 1;
-    this.focusMessage(this.focusIndex);
+    if (generation === this.openGeneration) this.messages.show(thread);
   }
 
   private createHandlers(): ReadonlyMap<ThreadAction, Handler> {
     return new Map<ThreadAction, Handler>([
+      ...this.movementHandlers(),
+      ...this.messageHandlers(),
+      ...this.threadHandlers(),
+    ]);
+  }
+
+  private movementHandlers(): [ThreadAction, Handler][] {
+    return [
       ["back", () => this.close()],
-      ["nextMessage", (count) => this.focusMessage(this.focusIndex + count)],
-      ["previousMessage", (count) => this.focusMessage(this.focusIndex - count)],
+      ["nextMessage", (count) => this.messages.focusBy(count)],
+      ["previousMessage", (count) => this.messages.focusBy(-count)],
       ["nextThread", (count) => this.openNeighbour(count)],
       ["previousThread", (count) => this.openNeighbour(-count)],
-      ["firstMessage", () => this.focusMessage(0)],
-      ["lastMessage", () => this.focusMessage(this.cards.length - 1)],
+      ["firstMessage", () => this.messages.focusFirst()],
+      ["lastMessage", () => this.messages.focusLast()],
       ["scrollDown", () => this.scrollByHalfPage(1)],
       ["scrollUp", () => this.scrollByHalfPage(-1)],
-      ["reply", () => this.withFocused((card) => this.reply(card, false))],
-      ["replyAll", () => this.withFocused((card) => this.reply(card, true))],
-      ["forward", () => this.withFocused((card) => this.forward(card))],
-      ["toggleTextMode", () => this.withFocused((card) => this.textMode.enter(card))],
-      ["loadRemoteImages", () => this.withFocused((card) => card.allowRemoteImages())],
-      ["archive", () => this.withSummary((summary) => this.closeAfter(() => this.ports.actions.archive(summary)))],
-      ["trash", () => this.withSummary((summary) => this.closeAfter(() => this.ports.actions.trash(summary)))],
-      ["toggleStar", () => this.withSummary((summary) => this.showSummary(this.ports.actions.toggleStar(summary)))],
-      ["toggleUnread", () => this.withSummary((summary) => this.showSummary(this.ports.actions.toggleUnread(summary)))],
-      ["moveToInbox", () => this.withSummary((summary) => this.ports.actions.moveToInboxAll([summary]))],
-      ["undo", () => this.closeAfter(() => this.ports.actions.undo())],
-    ]);
+    ];
+  }
+
+  private messageHandlers(): [ThreadAction, Handler][] {
+    return [
+      ["reply", () => this.messages.withFocused((card) => this.replies.reply(card))],
+      ["replyAll", () => this.messages.withFocused((card) => this.replies.replyAll(card))],
+      ["forward", () => this.messages.withFocused((card) => this.replies.forward(card))],
+      ["toggleTextMode", () => this.messages.withFocused((card) => this.textMode.enter(card))],
+      ["loadRemoteImages", () => this.messages.withFocused((card) => card.allowRemoteImages())],
+    ];
+  }
+
+  private threadHandlers(): [ThreadAction, Handler][] {
+    const actions = this.ports.actions;
+    return [
+      ["archive", () => this.header.withSummary((summary) => this.closeAfter(() => actions.archive(summary)))],
+      ["trash", () => this.header.withSummary((summary) => this.closeAfter(() => actions.trash(summary)))],
+      ["toggleStar", () => this.header.withSummary((summary) => this.header.show(actions.toggleStar(summary)))],
+      ["toggleUnread", () => this.header.withSummary((summary) => this.header.show(actions.toggleUnread(summary)))],
+      ["moveToInbox", () => this.header.withSummary((summary) => actions.moveToInboxAll([summary]))],
+      ["undo", () => this.closeAfter(() => actions.undo())],
+    ];
   }
 
   private openNeighbour(offset: number): void {
     const neighbour = this.ports.neighbourThread(offset);
-    if (neighbour && neighbour.id !== this.summary?.id) this.open(neighbour);
-  }
-
-  private focusMessage(index: number): void {
-    const target = Math.min(Math.max(0, index), this.cards.length - 1);
-    this.cards[this.focusIndex]?.showFocus(false);
-    this.focusIndex = target;
-    const card = this.cards[target];
-    if (!card) return;
-    card.expand();
-    card.showFocus(true);
-    card.element.scrollIntoView?.({ block: "nearest" });
+    if (neighbour && neighbour.id !== this.header.threadId) this.open(neighbour);
   }
 
   private scrollByHalfPage(direction: number): void {
     this.element.scrollTop += (direction * this.element.clientHeight) / 2;
-  }
-
-  private reply(card: MessageCard, all: boolean): void {
-    this.draft(this.ports.mail.replyDraft(this.account(), card.message.id, all));
-  }
-
-  private forward(card: MessageCard): void {
-    this.draft(this.ports.mail.forwardDraft(this.account(), card.message.id));
-  }
-
-  private draft(request: Promise<Draft>): void {
-    this.ports.errors.run(request.then((draft) => this.ports.openDraft(draft)));
-  }
-
-  private showSummary(summary: ThreadSummary): void {
-    this.summary = summary;
-    this.showSubject();
-  }
-
-  private showSubject(): void {
-    const prefix = this.summary?.starred ? STAR : "";
-    this.subject.textContent = prefix + (this.summary?.subject ?? "");
   }
 
   private closeAfter(act: () => void): void {
@@ -173,20 +132,6 @@ export class ThreadScreen implements Screen {
   private closeCards(): void {
     this.openGeneration++;
     this.textMode.leave();
-    this.cards = [];
-    this.messages.replaceChildren();
-  }
-
-  private account(): string {
-    return this.ports.session.account;
-  }
-
-  private withFocused(act: (card: MessageCard) => void): void {
-    const card = this.cards[this.focusIndex];
-    if (card) act(card);
-  }
-
-  private withSummary(act: (summary: ThreadSummary) => void): void {
-    if (this.summary) act(this.summary);
+    this.messages.clear();
   }
 }

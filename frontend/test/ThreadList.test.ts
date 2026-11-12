@@ -13,12 +13,12 @@ const MAX_RENDERED_ROWS = FALLBACK_VIEWPORT_ROWS + 1 + 2 * OVERSCAN;
 
 class ListFixture {
   readonly scheduler = new RenderScheduler(() => {});
-  readonly list = new ThreadList(
+  readonly list = new ThreadList({
     document,
-    new ListWindow(ROW_HEIGHT, OVERSCAN),
-    new ThreadRowRenderer(document, new DateLabel()),
-    this.scheduler,
-  );
+    listWindow: new ListWindow(ROW_HEIGHT, OVERSCAN),
+    rows: new ThreadRowRenderer(document, new DateLabel()),
+    scheduler: this.scheduler,
+  });
 
   constructor(count: number) {
     document.body.replaceChildren(this.list.element);

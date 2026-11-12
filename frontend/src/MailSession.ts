@@ -8,6 +8,13 @@ export const THREAD_LIMIT = 1000;
 
 type AccountListener = (account: string) => void;
 
+export type MailSessionPorts = {
+  mail: MailClient;
+  list: ThreadList;
+  labels: LabelDirectory;
+  status: StatusLine;
+};
+
 export class MailSession {
   private accounts: Account[] = [];
   private accountIndex = 0;
@@ -16,12 +23,7 @@ export class MailSession {
   private loadGeneration = 0;
   private readonly accountListeners: AccountListener[] = [];
 
-  constructor(
-    private readonly mail: MailClient,
-    private readonly list: ThreadList,
-    private readonly labels: LabelDirectory,
-    private readonly status: StatusLine,
-  ) {}
+  constructor(private readonly ports: MailSessionPorts) {}
 
   get account(): string {
     const account = this.accounts[this.accountIndex];
@@ -46,7 +48,7 @@ export class MailSession {
   }
 
   async start(): Promise<void> {
-    this.accounts = await this.mail.accounts();
+    this.accounts = await this.ports.mail.accounts();
     await this.enterAccount(0);
   }
 
@@ -61,7 +63,7 @@ export class MailSession {
   }
 
   async goToLabelNamed(name: string): Promise<void> {
-    await this.goTo(await this.labels.find(this.account, name), "");
+    await this.goTo(await this.ports.labels.find(this.account, name), "");
   }
 
   async goToLabel(label: LabelRef): Promise<void> {
@@ -78,7 +80,7 @@ export class MailSession {
 
   async reload(): Promise<void> {
     const summaries = await this.fetchThreads();
-    if (summaries) this.list.refresh(summaries);
+    if (summaries) this.ports.list.refresh(summaries);
   }
 
   private async goTo(label: LabelRef, query: string): Promise<void> {
@@ -86,7 +88,7 @@ export class MailSession {
     this.query = query;
     this.showLocation();
     const summaries = await this.fetchThreads();
-    if (summaries) this.list.show(summaries);
+    if (summaries) this.ports.list.show(summaries);
   }
 
   private async enterAccount(index: number): Promise<void> {
@@ -99,7 +101,7 @@ export class MailSession {
   private async fetchThreads(): Promise<ThreadSummary[] | null> {
     const generation = ++this.loadGeneration;
     const query = { account: this.account, label: this.label.id, query: this.query, limit: THREAD_LIMIT };
-    const summaries = await this.mail.threads(query);
+    const summaries = await this.ports.mail.threads(query);
     return generation === this.loadGeneration ? summaries : null;
   }
 
@@ -112,7 +114,7 @@ export class MailSession {
   }
 
   private showLocation(): void {
-    this.status.showAccount(this.account);
-    this.status.showLabel(this.query ? `${this.label.name} /${this.query}` : this.label.name);
+    this.ports.status.showAccount(this.account);
+    this.ports.status.showLabel(this.query ? `${this.label.name} /${this.query}` : this.label.name);
   }
 }

@@ -15,7 +15,7 @@ export class VimExCommands {
     Vim.defineEx("wq", "wq", (cm) => this.handlerOf(cm)?.writeAndQuit());
     Vim.defineEx("xit", "x", (cm) => this.handlerOf(cm)?.writeAndQuit());
     Vim.defineEx("quit", "q", (cm, parameters) => this.handlerOf(cm)?.quit(this.isForced(parameters)));
-    this.mapZZ();
+    this.mapSaveAndQuitKeys();
   }
 
   register(editor: object, handler: VimExHandler): void {
@@ -34,7 +34,7 @@ export class VimExCommands {
     return parameters.argString?.trim() === FORCE_SUFFIX;
   }
 
-  private mapZZ(): void {
+  private mapSaveAndQuitKeys(): void {
     if (VimExCommands.zzMapped) return;
     VimExCommands.zzMapped = true;
     const mapping = { keys: "ZZ", type: "keyToEx", exArgs: { input: "x" }, context: "normal" };

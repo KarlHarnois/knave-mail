@@ -1,0 +1,83 @@
+{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "files": {
+    "includes": ["src/**", "test/**", "build.ts", "*.json", "!node_modules", "!dist"]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 120
+  },
+  "javascript": {
+    "formatter": { "quoteStyle": "double", "trailingCommas": "all", "semicolons": "always" }
+  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "complexity": {
+        "noStaticOnlyClass": "off",
+        "noExcessiveLinesPerFunction": { "level": "error", "options": { "maxLines": 20, "skipBlankLines": true } },
+        "noExcessiveCognitiveComplexity": { "level": "error", "options": { "maxAllowedComplexity": 6 } },
+        "useMaxParams": { "level": "error", "options": { "max": 3 } }
+      },
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error",
+        "noUnusedFunctionParameters": "error",
+        "noUnusedPrivateClassMembers": "error"
+      },
+      "style": {
+        "noExcessiveLinesPerFile": { "level": "error", "options": { "maxLines": 150, "skipBlankLines": false } },
+        "noNestedTernary": "error",
+        "noMagicNumbers": "error",
+        "noParameterAssign": "error",
+        "noNonNullAssertion": "error",
+        "useReadonlyClassProperties": "error",
+        "useConsistentMemberAccessibility": { "level": "error", "options": { "accessibility": "noPublic" } },
+        "useImportType": "error",
+        "useExportType": "error",
+        "useConst": "error",
+        "useNamingConvention": "error",
+        "useFilenamingConvention": {
+          "level": "error",
+          "options": { "filenameCases": ["PascalCase", "camelCase"], "requireAscii": true }
+        }
+      },
+      "suspicious": {
+        "noExplicitAny": "error",
+        "noShadow": "error",
+        "noConsole": "error"
+      },
+      "nursery": {
+        "noFloatingPromises": "error",
+        "noMisusedPromises": "error"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.css"],
+      "linter": {
+        "rules": {
+          "style": { "noExcessiveLinesPerFile": "off", "noDescendingSpecificity": "off" },
+          "complexity": { "noImportantStyles": "off" }
+        }
+      }
+    },
+    {
+      "includes": ["test/**"],
+      "linter": {
+        "rules": {
+          "complexity": { "noExcessiveLinesPerFunction": "off" },
+          "style": {
+            "noMagicNumbers": "off",
+            "noExcessiveLinesPerFile": { "level": "error", "options": { "maxLines": 300 } }
+          }
+        }
+      }
+    }
+  ]
+}

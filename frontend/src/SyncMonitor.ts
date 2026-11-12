@@ -9,26 +9,28 @@ import type { StatusLine } from "./StatusLine";
 const SYNCING = "syncing";
 const SYNC_FAILED = "sync failed";
 
+export type SyncMonitorPorts = {
+  mail: MailClient;
+  session: MailSession;
+  labels: LabelDirectory;
+  status: StatusLine;
+  errors: ErrorReporter;
+  dates: DateLabel;
+};
+
 export class SyncMonitor {
   private readonly stateByAccount = new Map<string, string>();
 
-  constructor(
-    private readonly mail: MailClient,
-    private readonly session: MailSession,
-    private readonly labels: LabelDirectory,
-    private readonly status: StatusLine,
-    private readonly errors: ErrorReporter,
-    private readonly dates: DateLabel,
-  ) {}
+  constructor(private readonly ports: SyncMonitorPorts) {}
 
   sync(): void {
-    const account = this.session.account;
+    const account = this.ports.session.account;
     this.record(account, SYNCING);
-    this.errors.run(this.mail.sync(account), () => this.record(account, SYNC_FAILED));
+    this.ports.errors.run(this.ports.mail.sync(account), () => this.record(account, SYNC_FAILED));
   }
 
   showStateOf(account: string): void {
-    this.status.showSync(this.stateByAccount.get(account) ?? "");
+    this.ports.status.showSync(this.stateByAccount.get(account) ?? "");
   }
 
   handle(event: CoreEvent): void {
@@ -37,22 +39,22 @@ export class SyncMonitor {
   }
 
   private finishSync(account: string): void {
-    this.labels.forget(account);
-    this.record(account, `synced ${this.dates.short(Date.now())}`);
-    if (this.isCurrent(account)) this.errors.run(this.session.reload());
+    this.ports.labels.forget(account);
+    this.record(account, `synced ${this.ports.dates.short(Date.now())}`);
+    if (this.isCurrent(account)) this.ports.errors.run(this.ports.session.reload());
   }
 
   private failSync(event: SyncFailedEvent): void {
     this.record(event.account, SYNC_FAILED);
-    if (this.isCurrent(event.account)) this.status.showError(`sync: ${event.error.kind}: ${event.error.message}`);
+    if (this.isCurrent(event.account)) this.ports.status.showError(`sync: ${event.error.kind}: ${event.error.message}`);
   }
 
   private record(account: string, state: string): void {
     this.stateByAccount.set(account, state);
-    if (this.isCurrent(account)) this.status.showSync(state);
+    if (this.isCurrent(account)) this.ports.status.showSync(state);
   }
 
   private isCurrent(account: string): boolean {
-    return this.session.hasAccount && this.session.account === account;
+    return this.ports.session.hasAccount && this.ports.session.account === account;
   }
 }

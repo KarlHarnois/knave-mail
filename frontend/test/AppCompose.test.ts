@@ -104,7 +104,9 @@ describe("reply and forward", () => {
     await app.press("l");
     await app.press("r");
     expect(app.core.lastArgsFor("reply-draft")).toEqual({ account: MailFixtures.ADA, messageId: "m-2", all: false });
-    expect(app.composerText()).toBe("To: Sender 2 <sender2@example.net>Cc: Subject: Re: Subject 0> Plain body of message 2");
+    expect(app.composerText()).toBe(
+      "To: Sender 2 <sender2@example.net>Cc: Subject: Re: Subject 0> Plain body of message 2",
+    );
   });
 
   test("a asks for a reply-all draft", async () => {

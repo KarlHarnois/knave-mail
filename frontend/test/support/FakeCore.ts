@@ -19,7 +19,12 @@ export class FakeCore implements Transport {
     this.handlers.set("threads", () => MailFixtures.summaries(50));
     this.handlers.set("thread", () => this.thread);
     this.handlers.set("reply-draft", () => MailFixtures.replyDraft());
-    this.handlers.set("forward-draft", () => ({ ...MailFixtures.replyDraft(), to: [], subject: "Fwd: Subject 0", replyTo: null }));
+    this.handlers.set("forward-draft", () => ({
+      ...MailFixtures.replyDraft(),
+      to: [],
+      subject: "Fwd: Subject 0",
+      replyTo: null,
+    }));
   }
 
   send(json: string): void {
@@ -57,7 +62,10 @@ export class FakeCore implements Transport {
   private answer(request: Request): void {
     const failure = this.failures.get(request.command);
     this.failures.delete(request.command);
-    if (failure) return this.receive({ id: request.id, error: failure });
+    if (failure) {
+      this.receive({ id: request.id, error: failure });
+      return;
+    }
     const handler = this.handlers.get(request.command);
     this.receive({ id: request.id, ok: handler ? handler(request.args) : EMPTY_OK });
   }

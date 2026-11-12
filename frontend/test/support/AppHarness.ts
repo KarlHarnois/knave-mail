@@ -26,7 +26,8 @@ export class AppHarness {
   }
 
   private static destroyEditors(): void {
-    for (const editor of document.querySelectorAll<HTMLElement>(".cm-editor")) EditorView.findFromDOM(editor)?.destroy();
+    for (const editor of document.querySelectorAll<HTMLElement>(".cm-editor"))
+      EditorView.findFromDOM(editor)?.destroy();
   }
 
   async press(keys: string): Promise<void> {

@@ -20,8 +20,9 @@ export class VimClipboard {
 
   private static mirrorUnnamedYanks(controller: RegisterController): void {
     const pushText = controller.pushText.bind(controller);
-    controller.pushText = (registerName, operator, text, linewise, blockwise) => {
-      pushText(registerName, operator, text, linewise, blockwise);
+    controller.pushText = (...pushed: Parameters<RegisterController["pushText"]>) => {
+      pushText(...pushed);
+      const [registerName, operator, text] = pushed;
       if (!registerName && operator === "yank") VimClipboard.activeClipboard?.write(text);
     };
   }

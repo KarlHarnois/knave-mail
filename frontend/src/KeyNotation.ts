@@ -15,17 +15,17 @@ const NAMED_KEYS: Readonly<Record<string, string>> = {
   del: "<Del>",
 };
 
-const EVENT_KEYS: Readonly<Record<string, string>> = {
-  Enter: "<CR>",
-  Escape: "<Esc>",
-  Backspace: "<BS>",
-  Tab: "<Tab>",
-  ArrowUp: "<Up>",
-  ArrowDown: "<Down>",
-  ArrowLeft: "<Left>",
-  ArrowRight: "<Right>",
-  Delete: "<Del>",
-};
+const EVENT_KEYS: ReadonlyMap<string, string> = new Map([
+  ["Enter", "<CR>"],
+  ["Escape", "<Esc>"],
+  ["Backspace", "<BS>"],
+  ["Tab", "<Tab>"],
+  ["ArrowUp", "<Up>"],
+  ["ArrowDown", "<Down>"],
+  ["ArrowLeft", "<Left>"],
+  ["ArrowRight", "<Right>"],
+  ["Delete", "<Del>"],
+]);
 
 const BRACKETED_KEY = /^<([^<>]+)>/;
 const CONTROL_PREFIX = /^c-(.)$/i;
@@ -45,7 +45,8 @@ export class KeyNotation {
   fromEvent(event: KeyboardEvent): string | null {
     if (event.altKey || event.metaKey) return null;
     if (event.ctrlKey) return this.controlToken(event.key);
-    if (event.key in EVENT_KEYS) return EVENT_KEYS[event.key] ?? null;
+    const named = EVENT_KEYS.get(event.key);
+    if (named) return named;
     return event.key.length === 1 ? event.key : null;
   }
 

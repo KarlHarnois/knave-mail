@@ -6,14 +6,17 @@ import type { ThreadCommand, ThreadSummary } from "./Protocol";
 import type { ThreadList } from "./ThreadList";
 import { UndoHistory } from "./UndoHistory";
 
+export type ThreadActionPorts = {
+  mail: MailClient;
+  session: MailSession;
+  list: ThreadList;
+  errors: ErrorReporter;
+};
+
 export class ThreadActions {
-  constructor(
-    private readonly mail: MailClient,
-    private readonly session: MailSession,
-    private readonly list: ThreadList,
-    private readonly errors: ErrorReporter,
-    private readonly history = new UndoHistory(),
-  ) {}
+  private readonly history = new UndoHistory();
+
+  constructor(private readonly ports: ThreadActionPorts) {}
 
   archive(summary: ThreadSummary): void {
     this.archiveAll([summary]);
@@ -31,8 +34,8 @@ export class ThreadActions {
 
   undo(): void {
     const reversal = this.history.takeReversal();
-    const request = this.mail.modify(reversal.command, reversal.account, reversal.threadIds);
-    this.errors.run(request.then(() => this.session.reload()));
+    const request = this.ports.mail.modify(reversal.command, reversal.account, reversal.threadIds);
+    this.ports.errors.run(request.then(() => this.ports.session.reload()));
   }
 
   trash(summary: ThreadSummary): void {
@@ -40,7 +43,7 @@ export class ThreadActions {
   }
 
   trashAll(summaries: ThreadSummary[]): void {
-    for (const summary of summaries) this.list.remove(summary.id);
+    for (const summary of summaries) this.ports.list.remove(summary.id);
     this.send("trash", summaries);
   }
 
@@ -69,31 +72,32 @@ export class ThreadActions {
   markRead(summary: ThreadSummary): ThreadSummary {
     if (!summary.unread) return summary;
     const updated = { ...summary, unread: false };
-    this.list.update(updated);
+    this.ports.list.update(updated);
     this.request("mark-read", [updated.id]);
     return updated;
   }
 
   private removeFromInbox(summary: ThreadSummary): void {
-    if (this.session.labelId === ALL_MAIL.id) this.list.update({ ...summary, labels: this.without(summary, "INBOX") });
-    else this.list.remove(summary.id);
+    if (this.ports.session.labelId === ALL_MAIL.id)
+      this.ports.list.update({ ...summary, labels: this.without(summary, "INBOX") });
+    else this.ports.list.remove(summary.id);
   }
 
   private updateAll(summaries: ThreadSummary[]): ThreadSummary[] {
-    for (const summary of summaries) this.list.update(summary);
+    for (const summary of summaries) this.ports.list.update(summary);
     return summaries;
   }
 
   private send(command: ThreadCommand, summaries: ThreadSummary[]): void {
     if (summaries.length === 0) return;
     const threadIds = summaries.map((summary) => summary.id);
-    this.history.record({ command, account: this.session.account, threadIds });
+    this.history.record({ command, account: this.ports.session.account, threadIds });
     this.request(command, threadIds);
   }
 
   private request(command: ThreadCommand, threadIds: string[]): void {
-    const request = this.mail.modify(command, this.session.account, threadIds);
-    this.errors.run(request, () => this.errors.run(this.session.reload()));
+    const request = this.ports.mail.modify(command, this.ports.session.account, threadIds);
+    this.ports.errors.run(request, () => this.ports.errors.run(this.ports.session.reload()));
   }
 
   private without(summary: ThreadSummary, labelId: string): string[] {

@@ -11,37 +11,46 @@ export type TestDriverApi = {
   whenIdle(): Promise<void>;
 };
 
+type DriverWindow = Window & { knaveTestDriver?: TestDriverApi };
+
+export type TestDriverPorts = {
+  document: Document;
+  pressToken: (token: string) => void;
+  bridge: Bridge;
+  scheduler: RenderScheduler;
+  startup: Promise<unknown>;
+};
+
 export class TestDriver implements TestDriverApi {
-  constructor(
-    private readonly document: Document,
-    private readonly pressToken: (token: string) => void,
-    private readonly bridge: Bridge,
-    private readonly scheduler: RenderScheduler,
-    private readonly startup: Promise<unknown>,
-    private readonly notation = new KeyNotation(),
-  ) {}
+  private readonly notation = new KeyNotation();
+
+  constructor(private readonly ports: TestDriverPorts) {}
 
   press(keys: string): void {
-    for (const token of this.notation.tokenize(keys)) this.pressToken(token);
+    for (const token of this.notation.tokenize(keys)) this.ports.pressToken(token);
   }
 
   text(selector: string): string {
-    return this.document.querySelector(selector)?.textContent ?? "";
+    return this.ports.document.querySelector(selector)?.textContent ?? "";
   }
 
   count(selector: string): number {
-    return this.document.querySelectorAll(selector).length;
+    return this.ports.document.querySelectorAll(selector).length;
   }
 
   async whenIdle(): Promise<void> {
-    await this.startup.catch(() => undefined);
+    await this.ports.startup.catch(() => undefined);
     let quietChecks = 0;
     while (quietChecks < QUIET_CHECKS_FOR_IDLE) {
-      await this.bridge.whenIdle();
-      await this.scheduler.whenSettled();
+      await this.ports.bridge.whenIdle();
+      await this.ports.scheduler.whenSettled();
       await this.nextTask();
       quietChecks = this.isBusy() ? 0 : quietChecks + 1;
     }
+  }
+
+  installOn(window: Window): void {
+    (window as DriverWindow).knaveTestDriver = this.api();
   }
 
   api(): TestDriverApi {
@@ -54,7 +63,7 @@ export class TestDriver implements TestDriverApi {
   }
 
   private isBusy(): boolean {
-    return this.bridge.pendingCount > 0 || this.scheduler.isPending;
+    return this.ports.bridge.pendingCount > 0 || this.ports.scheduler.isPending;
   }
 
   private nextTask(): Promise<void> {

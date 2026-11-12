@@ -149,7 +149,9 @@ describe("thread view", () => {
   });
 
   test("a failed thread load shows the error in the status line", async () => {
-    const app = await ThreadHarness.opened((core) => core.failNext("thread", { kind: "not-found", message: "no thread t-0" }));
+    const app = await ThreadHarness.opened((core) =>
+      core.failNext("thread", { kind: "not-found", message: "no thread t-0" }),
+    );
     expect(app.status("error")).toBe("thread: not-found: no thread t-0");
   });
 
@@ -162,7 +164,10 @@ describe("thread view", () => {
 
 describe("HTML messages", () => {
   const withHtml = (core: { thread: ReturnType<typeof MailFixtures.thread> }) => {
-    core.thread = { ...MailFixtures.thread(1), messages: [MailFixtures.message(0, { html: '<p>Hi <img src="https://example.com/a.png"></p>' })] };
+    core.thread = {
+      ...MailFixtures.thread(1),
+      messages: [MailFixtures.message(0, { html: '<p>Hi <img src="https://example.com/a.png"></p>' })],
+    };
   };
 
   test("render in a sandboxed iframe with remote images blocked", async () => {
@@ -176,6 +181,8 @@ describe("HTML messages", () => {
   test("i reloads the focused message with remote images", async () => {
     const app = await ThreadHarness.opened(withHtml);
     await app.press("i");
-    expect(document.querySelector<HTMLIFrameElement>('[data-test="message-html"]')?.srcdoc).toContain("img-src data: cid: https: http:");
+    expect(document.querySelector<HTMLIFrameElement>('[data-test="message-html"]')?.srcdoc).toContain(
+      "img-src data: cid: https: http:",
+    );
   });
 });

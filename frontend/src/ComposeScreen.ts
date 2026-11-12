@@ -107,7 +107,10 @@ export class ComposeScreen implements Screen, VimExHandler {
   }
 
   private send(draft: Draft): void {
-    if (draft.to.length === 0) return this.ports.status.showError("send: add at least one address on the To: line");
+    if (draft.to.length === 0) {
+      this.ports.status.showError("send: add at least one address on the To: line");
+      return;
+    }
     const sent = this.ports.mail.send(this.ports.session.account, draft).then(() => this.finishSending());
     this.ports.errors.run(sent);
   }

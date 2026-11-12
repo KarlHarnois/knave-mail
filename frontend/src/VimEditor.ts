@@ -15,17 +15,24 @@ export type VimEditorOptions = {
 
 type ModeChange = { mode: string; subMode?: string };
 
+export type VimEditorParts = {
+  parent: HTMLElement;
+  extensions: Extension[];
+  commands: VimExCommands;
+  options: VimEditorOptions;
+};
+
 export class VimEditor {
   readonly view: EditorView;
   private readonly cm: CodeMirror;
   private readonly feeder: VimKeyFeeder;
 
-  constructor(
-    parent: HTMLElement,
-    extensions: Extension[],
-    private readonly commands: VimExCommands,
-    private readonly options: VimEditorOptions,
-  ) {
+  private readonly commands: VimExCommands;
+  private readonly options: VimEditorOptions;
+
+  constructor({ parent, extensions, commands, options }: VimEditorParts) {
+    this.commands = commands;
+    this.options = options;
     this.view = new EditorView({ parent, state: EditorState.create({ doc: options.text, extensions }) });
     this.cm = this.vimAdapter();
     this.feeder = new VimKeyFeeder(this.view, this.cm);
