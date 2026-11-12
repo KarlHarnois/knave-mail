@@ -10,18 +10,45 @@
     "lineWidth": 120
   },
   "javascript": {
-    "formatter": { "quoteStyle": "double", "trailingCommas": "all", "semicolons": "always" }
+    "formatter": {
+      "quoteStyle": "double",
+      "trailingCommas": "all",
+      "semicolons": "always"
+    }
   },
-  "assist": { "actions": { "source": { "organizeImports": "on" } } },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
   "linter": {
     "enabled": true,
     "rules": {
       "recommended": true,
       "complexity": {
         "noStaticOnlyClass": "off",
-        "noExcessiveLinesPerFunction": { "level": "error", "options": { "maxLines": 20, "skipBlankLines": true } },
-        "noExcessiveCognitiveComplexity": { "level": "error", "options": { "maxAllowedComplexity": 6 } },
-        "useMaxParams": { "level": "error", "options": { "max": 3 } }
+        "noExcessiveLinesPerFunction": {
+          "level": "error",
+          "options": {
+            "maxLines": 20,
+            "skipBlankLines": true
+          }
+        },
+        "noExcessiveCognitiveComplexity": {
+          "level": "error",
+          "options": {
+            "maxAllowedComplexity": 6
+          }
+        },
+        "useMaxParams": {
+          "level": "error",
+          "options": {
+            "max": 3
+          }
+        },
+        "useLiteralKeys": "off"
       },
       "correctness": {
         "noUnusedVariables": "error",
@@ -30,20 +57,34 @@
         "noUnusedPrivateClassMembers": "error"
       },
       "style": {
-        "noExcessiveLinesPerFile": { "level": "error", "options": { "maxLines": 150, "skipBlankLines": false } },
+        "noExcessiveLinesPerFile": {
+          "level": "error",
+          "options": {
+            "maxLines": 150,
+            "skipBlankLines": false
+          }
+        },
         "noNestedTernary": "error",
         "noMagicNumbers": "error",
         "noParameterAssign": "error",
         "noNonNullAssertion": "error",
         "useReadonlyClassProperties": "error",
-        "useConsistentMemberAccessibility": { "level": "error", "options": { "accessibility": "noPublic" } },
+        "useConsistentMemberAccessibility": {
+          "level": "error",
+          "options": {
+            "accessibility": "noPublic"
+          }
+        },
         "useImportType": "error",
         "useExportType": "error",
         "useConst": "error",
         "useNamingConvention": "error",
         "useFilenamingConvention": {
           "level": "error",
-          "options": { "filenameCases": ["PascalCase", "camelCase"], "requireAscii": true }
+          "options": {
+            "filenameCases": ["PascalCase", "camelCase"],
+            "requireAscii": true
+          }
         }
       },
       "suspicious": {
@@ -62,8 +103,13 @@
       "includes": ["**/*.css"],
       "linter": {
         "rules": {
-          "style": { "noExcessiveLinesPerFile": "off", "noDescendingSpecificity": "off" },
-          "complexity": { "noImportantStyles": "off" }
+          "style": {
+            "noExcessiveLinesPerFile": "off",
+            "noDescendingSpecificity": "off"
+          },
+          "complexity": {
+            "noImportantStyles": "off"
+          }
         }
       }
     },
@@ -71,10 +117,17 @@
       "includes": ["test/**"],
       "linter": {
         "rules": {
-          "complexity": { "noExcessiveLinesPerFunction": "off" },
+          "complexity": {
+            "noExcessiveLinesPerFunction": "off"
+          },
           "style": {
             "noMagicNumbers": "off",
-            "noExcessiveLinesPerFile": { "level": "error", "options": { "maxLines": 300 } }
+            "noExcessiveLinesPerFile": {
+              "level": "error",
+              "options": {
+                "maxLines": 300
+              }
+            }
           }
         }
       }

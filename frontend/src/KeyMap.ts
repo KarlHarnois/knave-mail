@@ -15,7 +15,7 @@ export class KeyMap<A> {
   private buffer: string[] = [];
   private countDigits = "";
 
-  constructor(bindings: ReadonlyArray<readonly [string, A]>, notation = new KeyNotation()) {
+  constructor(bindings: ReadonlyArray<readonly [string, A]>, notation: KeyNotation = new KeyNotation()) {
     for (const [keys, action] of bindings) this.bind(notation.tokenize(keys), action);
   }
 

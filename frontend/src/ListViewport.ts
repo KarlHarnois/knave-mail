@@ -37,7 +37,7 @@ export class ListViewport {
   private createElement(document: Document): HTMLElement {
     const viewport = document.createElement("div");
     viewport.className = "thread-list";
-    viewport.dataset.test = "thread-list";
+    viewport.dataset["test"] = "thread-list";
     viewport.setAttribute("role", "listbox");
     viewport.tabIndex = -1;
     viewport.style.setProperty("--row-height", `${this.listWindow.rowHeight}px`);

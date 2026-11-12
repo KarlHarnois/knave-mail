@@ -5,7 +5,7 @@ import { MailFixtures } from "./support/MailFixtures";
 
 class ComposeHarness {
   static sentDraft(app: AppHarness): Draft {
-    return app.core.lastArgsFor("send").draft as Draft;
+    return app.core.lastArgsFor("send")["draft"] as Draft;
   }
 }
 
@@ -21,7 +21,7 @@ describe("composer", () => {
   test(":wq parses the headers and sends the draft", async () => {
     const app = await AppHarness.started();
     await app.press("cAbob@example.com, carol@example.com<Esc>3GAHello<Esc>GiBody line<Esc>:wq<CR>");
-    expect(app.core.lastArgsFor("send").account).toBe(MailFixtures.ADA);
+    expect(app.core.lastArgsFor("send")["account"]).toBe(MailFixtures.ADA);
     expect(ComposeHarness.sentDraft(app)).toEqual({
       to: ["bob@example.com", "carol@example.com"],
       cc: [],
@@ -113,7 +113,7 @@ describe("reply and forward", () => {
     const app = await AppHarness.started();
     await app.press("l");
     await app.press("a");
-    expect(app.core.lastArgsFor("reply-draft").all).toBe(true);
+    expect(app.core.lastArgsFor("reply-draft")["all"]).toBe(true);
   });
 
   test("f asks for a forward draft", async () => {

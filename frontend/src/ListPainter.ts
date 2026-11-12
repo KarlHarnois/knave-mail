@@ -24,7 +24,7 @@ export class ListPainter {
     this.spacer = this.appendChild("thread-list-spacer");
     this.emptyNotice = this.appendChild("thread-list-empty");
     this.emptyNotice.textContent = "No threads";
-    this.emptyNotice.dataset.test = "empty-list";
+    this.emptyNotice.dataset["test"] = "empty-list";
   }
 
   markStale(threadId: string): void {
@@ -38,7 +38,7 @@ export class ListPainter {
   paint(summaries: readonly ThreadSummary[], cursor: ListCursor): void {
     const range = this.parts.viewport.visibleRange(summaries.length);
     this.spacer.style.height = `${this.parts.listWindow.contentHeight(summaries.length)}px`;
-    this.parts.viewport.element.dataset.threadCount = String(summaries.length);
+    this.parts.viewport.element.dataset["threadCount"] = String(summaries.length);
     this.emptyNotice.hidden = summaries.length > 0;
     this.recycler.recycleOutside(range);
     for (let index = range.start; index < range.end; index++) this.paintRow(summaries, cursor, index);
@@ -55,7 +55,7 @@ export class ListPainter {
   }
 
   private needsFill(row: HTMLElement, summary: ThreadSummary): boolean {
-    return this.everyRowStale || row.dataset.threadId !== summary.id || this.staleThreadIds.has(summary.id);
+    return this.everyRowStale || row.dataset["threadId"] !== summary.id || this.staleThreadIds.has(summary.id);
   }
 
   private appendChild(className: string): HTMLElement {

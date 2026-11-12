@@ -11,7 +11,7 @@ export class MessageFrame {
   ) {
     this.element = document.createElement("iframe");
     this.element.className = "message-html";
-    this.element.dataset.test = "message-html";
+    this.element.dataset["test"] = "message-html";
     this.element.tabIndex = -1;
     this.element.setAttribute("sandbox", sandbox.sandboxFlags);
     this.element.setAttribute("referrerpolicy", "no-referrer");

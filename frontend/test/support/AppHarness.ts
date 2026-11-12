@@ -6,7 +6,7 @@ import { FakeCore } from "./FakeCore";
 type DriverWindow = Window & { knaveTestDriver?: TestDriverApi };
 
 export class AppHarness {
-  readonly core = new FakeCore();
+  readonly core: FakeCore = new FakeCore();
   readonly driver: TestDriverApi;
 
   private constructor() {
@@ -40,7 +40,7 @@ export class AppHarness {
   }
 
   selectedThreadId(): string | undefined {
-    return document.querySelector<HTMLElement>('[data-test~="selected-row"]')?.dataset.threadId;
+    return document.querySelector<HTMLElement>('[data-test~="selected-row"]')?.dataset["threadId"];
   }
 
   isVisible(selector: string): boolean {

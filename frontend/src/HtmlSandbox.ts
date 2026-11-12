@@ -9,7 +9,7 @@ const BASE_STYLE = [
 ].join("");
 
 export class HtmlSandbox {
-  readonly sandboxFlags = SANDBOX_FLAGS;
+  readonly sandboxFlags: string = SANDBOX_FLAGS;
 
   policy(remoteImages: boolean): string {
     const imageSources = remoteImages ? ALLOWED_IMAGE_SOURCES : BLOCKED_IMAGE_SOURCES;

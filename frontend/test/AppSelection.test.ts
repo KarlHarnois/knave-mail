@@ -52,13 +52,13 @@ describe("visual mode", () => {
     const app = await AppHarness.started();
     await app.press("VjU");
     expect(app.core.requestsFor("mark-read")).toHaveLength(1);
-    expect(app.core.lastArgsFor("mark-read").threadIds).toHaveLength(2);
+    expect(app.core.lastArgsFor("mark-read")["threadIds"]).toHaveLength(2);
   });
 
   test("escape cancels the selection without acting", async () => {
     const app = await AppHarness.started();
     await app.press("Vjj<Esc>e");
-    expect(app.core.lastArgsFor("archive").threadIds).toEqual(["t-2"]);
+    expect(app.core.lastArgsFor("archive")["threadIds"]).toEqual(["t-2"]);
   });
 
   test("V again cancels the selection", async () => {
@@ -71,7 +71,7 @@ describe("visual mode", () => {
   test("enter opens the thread under the cursor and ends the selection", async () => {
     const app = await AppHarness.started();
     await app.press("Vj<CR>");
-    expect(app.core.lastArgsFor("thread").threadId).toBe("t-1");
+    expect(app.core.lastArgsFor("thread")["threadId"]).toBe("t-1");
     await app.press("q");
     expect(app.driver.count(Chosen)).toBe(0);
   });
@@ -97,15 +97,15 @@ describe("undo and inbox", () => {
     await app.press("Vjj#");
     await app.press("u");
     expect(app.core.requestsFor("untrash")).toHaveLength(1);
-    expect(app.core.lastArgsFor("untrash").threadIds).toEqual(["t-0", "t-1", "t-2"]);
+    expect(app.core.lastArgsFor("untrash")["threadIds"]).toEqual(["t-0", "t-1", "t-2"]);
   });
 
   test("u undoes star, unstar and read changes with their opposite", async () => {
     const app = await AppHarness.started();
     await app.press("su");
-    expect(app.core.lastArgsFor("unstar").threadIds).toEqual(["t-0"]);
+    expect(app.core.lastArgsFor("unstar")["threadIds"]).toEqual(["t-0"]);
     await app.press("Uu");
-    expect(app.core.lastArgsFor("mark-unread").threadIds).toEqual(["t-0"]);
+    expect(app.core.lastArgsFor("mark-unread")["threadIds"]).toEqual(["t-0"]);
   });
 
   test("a second u has nothing left to undo", async () => {
@@ -120,6 +120,6 @@ describe("undo and inbox", () => {
     const app = await AppHarness.started();
     await app.press("ga");
     await app.press("VjI");
-    expect(app.core.lastArgsFor("move-to-inbox").threadIds).toEqual(["t-0", "t-1"]);
+    expect(app.core.lastArgsFor("move-to-inbox")["threadIds"]).toEqual(["t-0", "t-1"]);
   });
 });

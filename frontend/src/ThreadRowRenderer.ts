@@ -19,7 +19,7 @@ export class ThreadRowRenderer {
   create(): HTMLElement {
     const row = this.document.createElement("div");
     row.className = "thread-row";
-    row.dataset.test = ROW_TEST_ID;
+    row.dataset["test"] = ROW_TEST_ID;
     row.setAttribute("role", "option");
     this.parts.set(row, {
       star: this.appendPart(row, "row-star"),
@@ -33,7 +33,7 @@ export class ThreadRowRenderer {
 
   fill(row: HTMLElement, summary: ThreadSummary): void {
     const parts = this.partsOf(row);
-    row.dataset.threadId = summary.id;
+    row.dataset["threadId"] = summary.id;
     row.classList.toggle("unread", summary.unread);
     parts.star.textContent = summary.starred ? STAR : "";
     parts.from.textContent = this.participantsWithCount(summary);
@@ -45,7 +45,7 @@ export class ThreadRowRenderer {
   markSelected(row: HTMLElement, selected: boolean, chosen: boolean): void {
     row.classList.toggle("selected", selected);
     row.classList.toggle("chosen", chosen);
-    row.dataset.test = this.testTokens(selected, chosen);
+    row.dataset["test"] = this.testTokens(selected, chosen);
     row.setAttribute("aria-selected", String(selected || chosen));
   }
 

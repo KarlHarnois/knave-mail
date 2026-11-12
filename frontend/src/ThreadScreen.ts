@@ -23,7 +23,7 @@ export class ThreadScreen implements Screen {
     const document = ports.cards.document;
     this.element = document.createElement("section");
     this.element.className = "thread-view";
-    this.element.dataset.test = "thread-view";
+    this.element.dataset["test"] = "thread-view";
     this.element.tabIndex = -1;
     this.header = new ThreadHeader(document);
     this.replies = new MessageReplies(ports);

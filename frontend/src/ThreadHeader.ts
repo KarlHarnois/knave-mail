@@ -9,7 +9,7 @@ export class ThreadHeader {
   constructor(document: Document) {
     this.element = document.createElement("h1");
     this.element.className = "thread-subject";
-    this.element.dataset.test = "thread-subject";
+    this.element.dataset["test"] = "thread-subject";
   }
 
   get threadId(): string | undefined {

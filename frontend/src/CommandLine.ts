@@ -13,11 +13,11 @@ export class CommandLine {
 
   constructor(
     document: Document,
-    private readonly notation = new KeyNotation(),
+    private readonly notation: KeyNotation = new KeyNotation(),
   ) {
     this.element = document.createElement("div");
     this.element.className = "command-line";
-    this.element.dataset.test = "command-line";
+    this.element.dataset["test"] = "command-line";
     this.element.hidden = true;
     this.promptElement = this.appendSpan(document, "command-prompt");
     this.textElement = this.appendSpan(document, "command-text");

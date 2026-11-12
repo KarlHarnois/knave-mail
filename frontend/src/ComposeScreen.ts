@@ -36,11 +36,11 @@ export class ComposeScreen implements Screen, VimExHandler {
 
   constructor(
     private readonly ports: ComposePorts,
-    private readonly format = new DraftFormat(),
+    private readonly format: DraftFormat = new DraftFormat(),
   ) {
     this.element = ports.document.createElement("section");
     this.element.className = "composer";
-    this.element.dataset.test = "composer";
+    this.element.dataset["test"] = "composer";
   }
 
   get keptDraft(): KeptDraft | null {

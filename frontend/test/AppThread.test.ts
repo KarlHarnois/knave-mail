@@ -12,7 +12,7 @@ class ThreadHarness {
   }
 
   static focusedMessageId(): string | undefined {
-    return document.querySelector<HTMLElement>(FOCUSED)?.dataset.messageId;
+    return document.querySelector<HTMLElement>(FOCUSED)?.dataset["messageId"];
   }
 }
 
@@ -28,7 +28,7 @@ describe("thread view", () => {
   test("J opens the next thread in the list", async () => {
     const app = await ThreadHarness.opened();
     await app.press("J");
-    expect(app.core.lastArgsFor("thread").threadId).toBe("t-1");
+    expect(app.core.lastArgsFor("thread")["threadId"]).toBe("t-1");
     expect(app.status("mode")).toBe("THREAD");
   });
 
@@ -36,13 +36,13 @@ describe("thread view", () => {
     const app = await AppHarness.started();
     await app.press("jj<CR>");
     await app.press("K");
-    expect(app.core.lastArgsFor("thread").threadId).toBe("t-1");
+    expect(app.core.lastArgsFor("thread")["threadId"]).toBe("t-1");
   });
 
   test("a count skips threads", async () => {
     const app = await ThreadHarness.opened();
     await app.press("2J");
-    expect(app.core.lastArgsFor("thread").threadId).toBe("t-2");
+    expect(app.core.lastArgsFor("thread")["threadId"]).toBe("t-2");
   });
 
   test("K on the first thread stays on it", async () => {
@@ -61,15 +61,15 @@ describe("thread view", () => {
   test("enter opens the thread too", async () => {
     const app = await AppHarness.started();
     await app.press("j<CR>");
-    expect(app.core.lastArgsFor("thread").threadId).toBe("t-1");
+    expect(app.core.lastArgsFor("thread")["threadId"]).toBe("t-1");
   });
 
   test("shows every message with the newest expanded and focused", async () => {
     const app = await ThreadHarness.opened();
     expect(app.driver.count('[data-test~="message"]')).toBe(3);
     expect(ThreadHarness.focusedMessageId()).toBe("m-2");
-    expect(document.querySelector<HTMLElement>(FOCUSED)?.dataset.expanded).toBe("true");
-    expect(document.querySelector<HTMLElement>('[data-message-id="m-0"]')?.dataset.expanded).toBe("false");
+    expect(document.querySelector<HTMLElement>(FOCUSED)?.dataset["expanded"]).toBe("true");
+    expect(document.querySelector<HTMLElement>('[data-message-id="m-0"]')?.dataset["expanded"]).toBe("false");
   });
 
   test("opening an unread thread marks it read", async () => {
@@ -81,7 +81,7 @@ describe("thread view", () => {
     const app = await ThreadHarness.opened();
     await app.press("2k");
     expect(ThreadHarness.focusedMessageId()).toBe("m-0");
-    expect(document.querySelector<HTMLElement>(FOCUSED)?.dataset.expanded).toBe("true");
+    expect(document.querySelector<HTMLElement>(FOCUSED)?.dataset["expanded"]).toBe("true");
     await app.press("j");
     expect(ThreadHarness.focusedMessageId()).toBe("m-1");
   });
@@ -109,7 +109,7 @@ describe("thread view", () => {
   test("e archives the thread and returns to the list", async () => {
     const app = await ThreadHarness.opened();
     await app.press("e");
-    expect(app.core.lastArgsFor("archive").threadIds).toEqual(["t-0"]);
+    expect(app.core.lastArgsFor("archive")["threadIds"]).toEqual(["t-0"]);
     expect(app.status("mode")).toBe("LIST");
     expect(app.selectedThreadId()).toBe("t-1");
   });
@@ -117,7 +117,7 @@ describe("thread view", () => {
   test("# trashes the thread", async () => {
     const app = await ThreadHarness.opened();
     await app.press("#");
-    expect(app.core.lastArgsFor("trash").threadIds).toEqual(["t-0"]);
+    expect(app.core.lastArgsFor("trash")["threadIds"]).toEqual(["t-0"]);
   });
 
   test("s and U toggle star and unread on the open thread", async () => {
@@ -125,14 +125,14 @@ describe("thread view", () => {
     await app.press("s");
     expect(app.driver.text('[data-test="thread-subject"]')).toBe("★ Subject 0");
     await app.press("U");
-    expect(app.core.lastArgsFor("mark-unread").threadIds).toEqual(["t-0"]);
+    expect(app.core.lastArgsFor("mark-unread")["threadIds"]).toEqual(["t-0"]);
   });
 
   test("u in a thread undoes the last action and goes back to the list", async () => {
     const app = await ThreadHarness.opened();
     await app.press("s");
     await app.press("u");
-    expect(app.core.lastArgsFor("unstar").threadIds).toEqual(["t-0"]);
+    expect(app.core.lastArgsFor("unstar")["threadIds"]).toEqual(["t-0"]);
     expect(app.status("mode")).toBe("LIST");
   });
 
@@ -145,7 +145,7 @@ describe("thread view", () => {
   test("I moves the open thread to the inbox", async () => {
     const app = await ThreadHarness.opened();
     await app.press("I");
-    expect(app.core.lastArgsFor("move-to-inbox").threadIds).toEqual(["t-0"]);
+    expect(app.core.lastArgsFor("move-to-inbox")["threadIds"]).toEqual(["t-0"]);
   });
 
   test("a failed thread load shows the error in the status line", async () => {

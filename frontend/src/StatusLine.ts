@@ -9,7 +9,7 @@ export class StatusLine {
   constructor(document: Document) {
     this.element = document.createElement("footer");
     this.element.className = "status-line";
-    this.element.dataset.test = "status-line";
+    this.element.dataset["test"] = "status-line";
     for (const field of FIELD_ORDER) this.fields.set(field, this.createField(document, field));
   }
 
@@ -58,7 +58,7 @@ export class StatusLine {
   private createField(document: Document, field: StatusField): HTMLElement {
     const element = document.createElement("span");
     element.className = `status-${field}`;
-    element.dataset.test = `status-${field}`;
+    element.dataset["test"] = `status-${field}`;
     this.element.append(element);
     return element;
   }

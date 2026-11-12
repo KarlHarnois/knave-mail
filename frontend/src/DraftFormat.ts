@@ -8,7 +8,7 @@ const CONTINUATION_LINE = /^\s+\S/;
 const HEADER_COUNT = 3;
 
 export class DraftFormat {
-  constructor(private readonly addresses = new AddressList()) {}
+  constructor(private readonly addresses: AddressList = new AddressList()) {}
 
   get separatorLine(): number {
     return HEADER_COUNT + 1;

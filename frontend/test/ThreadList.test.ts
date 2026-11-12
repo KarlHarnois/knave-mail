@@ -58,24 +58,24 @@ describe("ThreadList windowing", () => {
   });
 
   test("publishes the thread count", () => {
-    expect(fixture.list.element.dataset.threadCount).toBe("1000");
+    expect(fixture.list.element.dataset["threadCount"]).toBe("1000");
   });
 
   test("marks the first row selected", () => {
-    expect(fixture.selectedRow()?.dataset.threadId).toBe("t-0");
+    expect(fixture.selectedRow()?.dataset["threadId"]).toBe("t-0");
   });
 
   test("moving the cursor moves the selected row", () => {
     fixture.act((list) => list.moveBy(5));
-    expect(fixture.selectedRow()?.dataset.threadId).toBe("t-5");
+    expect(fixture.selectedRow()?.dataset["threadId"]).toBe("t-5");
     expect(fixture.list.element.querySelectorAll('[data-test~="selected-row"]').length).toBe(1);
   });
 
   test("jumping to the end renders only rows near the end", () => {
     fixture.act((list) => list.moveToLast());
-    expect(fixture.selectedRow()?.dataset.threadId).toBe("t-999");
+    expect(fixture.selectedRow()?.dataset["threadId"]).toBe("t-999");
     expect(fixture.visibleRows().length).toBeLessThanOrEqual(MAX_RENDERED_ROWS);
-    expect(fixture.visibleRows().some((row) => row.dataset.threadId === "t-0")).toBe(false);
+    expect(fixture.visibleRows().some((row) => row.dataset["threadId"] === "t-0")).toBe(false);
   });
 
   test("row elements are reused when the window moves", () => {
@@ -98,7 +98,7 @@ describe("ThreadList windowing", () => {
 
   test("rendering is batched until the scheduler flushes", () => {
     fixture.list.moveBy(3);
-    expect(fixture.selectedRow()?.dataset.threadId).toBe("t-0");
+    expect(fixture.selectedRow()?.dataset["threadId"]).toBe("t-0");
     expect(fixture.scheduler.isPending).toBe(true);
   });
 });
@@ -114,7 +114,7 @@ describe("ThreadList changes", () => {
     const fixture = new ListFixture(10);
     fixture.act((list) => list.moveTo(4));
     fixture.act((list) => list.remove("t-4"));
-    expect(fixture.selectedRow()?.dataset.threadId).toBe("t-5");
+    expect(fixture.selectedRow()?.dataset["threadId"]).toBe("t-5");
     expect(fixture.list.length).toBe(9);
   });
 
@@ -122,7 +122,7 @@ describe("ThreadList changes", () => {
     const fixture = new ListFixture(10);
     fixture.act((list) => list.moveTo(3));
     fixture.act((list) => list.refresh(MailFixtures.summaries(10).slice(2)));
-    expect(fixture.selectedRow()?.dataset.threadId).toBe("t-3");
+    expect(fixture.selectedRow()?.dataset["threadId"]).toBe("t-3");
   });
 
   test("show resets the cursor to the top", () => {

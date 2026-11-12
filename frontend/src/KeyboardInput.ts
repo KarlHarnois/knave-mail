@@ -5,7 +5,7 @@ const EDITOR_SELECTOR = ".cm-editor";
 export class KeyboardInput {
   constructor(
     private readonly press: (token: string) => void,
-    private readonly notation = new KeyNotation(),
+    private readonly notation: KeyNotation = new KeyNotation(),
   ) {}
 
   listen(target: Document): void {

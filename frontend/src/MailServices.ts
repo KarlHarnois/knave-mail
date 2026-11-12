@@ -31,7 +31,7 @@ export class MailServices {
   readonly bridge: Bridge;
   readonly mail: MailClient;
   readonly scheduler: RenderScheduler;
-  readonly dates = new DateLabel();
+  readonly dates: DateLabel = new DateLabel();
   readonly list: ThreadList;
   readonly labels: LabelDirectory;
   readonly session: MailSession;

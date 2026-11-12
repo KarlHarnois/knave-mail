@@ -16,7 +16,7 @@ export type CommandRunnerPorts = {
 export class CommandRunner {
   constructor(
     private readonly ports: CommandRunnerPorts,
-    private readonly parser = new CommandParser(),
+    private readonly parser: CommandParser = new CommandParser(),
   ) {}
 
   run(input: string): void {

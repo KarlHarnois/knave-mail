@@ -62,10 +62,10 @@ describe("list locations", () => {
   test("ctrl-n and ctrl-p switch accounts", async () => {
     const app = await AppHarness.started();
     await app.press("<C-n>");
-    expect(app.core.lastArgsFor("threads").account).toBe(MailFixtures.GRACE);
+    expect(app.core.lastArgsFor("threads")["account"]).toBe(MailFixtures.GRACE);
     expect(app.status("account")).toBe(MailFixtures.GRACE);
     await app.press("<C-p>");
-    expect(app.core.lastArgsFor("threads").account).toBe(MailFixtures.ADA);
+    expect(app.core.lastArgsFor("threads")["account"]).toBe(MailFixtures.ADA);
   });
 
   test("/ searches with a Gmail query", async () => {
@@ -79,7 +79,7 @@ describe("list locations", () => {
     const app = await AppHarness.started();
     await app.press("/is:starred<CR>");
     await app.press(":q<CR>");
-    expect(app.core.lastArgsFor("threads").query).toBe("");
+    expect(app.core.lastArgsFor("threads")["query"]).toBe("");
   });
 
   test("the command line shows its mode while typing", async () => {
@@ -95,7 +95,7 @@ describe("list locations", () => {
     const app = await AppHarness.started();
     await app.press(":label receipts<CR>");
     expect(app.core.lastArgsFor("labels")).toEqual({ account: MailFixtures.ADA });
-    expect(app.core.lastArgsFor("threads").label).toBe("Label_7");
+    expect(app.core.lastArgsFor("threads")["label"]).toBe("Label_7");
     expect(app.status("label")).toBe("Receipts");
   });
 
@@ -120,9 +120,9 @@ describe("list locations", () => {
   test("ga lists all mail and gi the inbox", async () => {
     const app = await AppHarness.started();
     await app.press("ga");
-    expect(app.core.lastArgsFor("threads").label).toBe("ALL");
+    expect(app.core.lastArgsFor("threads")["label"]).toBe("ALL");
     await app.press("gi");
-    expect(app.core.lastArgsFor("threads").label).toBe("INBOX");
+    expect(app.core.lastArgsFor("threads")["label"]).toBe("INBOX");
   });
 
   test("escape clears the last error", async () => {

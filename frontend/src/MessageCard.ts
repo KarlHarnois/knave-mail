@@ -31,9 +31,9 @@ export class MessageCard {
     private readonly services: MessageCardServices,
   ) {
     this.element = this.createElement("article", "message");
-    this.element.dataset.test = MESSAGE_TEST_ID;
-    this.element.dataset.messageId = message.id;
-    this.element.dataset.expanded = "false";
+    this.element.dataset["test"] = MESSAGE_TEST_ID;
+    this.element.dataset["messageId"] = message.id;
+    this.element.dataset["expanded"] = "false";
     this.element.append(this.createHeader());
     this.body = this.createElement("div", "message-body");
     this.element.append(this.body);
@@ -44,19 +44,19 @@ export class MessageCard {
   }
 
   expand(): void {
-    this.element.dataset.expanded = "true";
+    this.element.dataset["expanded"] = "true";
     this.renderedBody ??= this.renderBody();
   }
 
   showFocus(focused: boolean): void {
     this.element.classList.toggle("focused", focused);
-    this.element.dataset.test = focused ? FOCUSED_MESSAGE_TEST_ID : MESSAGE_TEST_ID;
+    this.element.dataset["test"] = focused ? FOCUSED_MESSAGE_TEST_ID : MESSAGE_TEST_ID;
   }
 
   enterTextMode(options: ReaderOptions): void {
     this.expand();
     this.readerHost = this.createElement("div", "text-reader");
-    this.readerHost.dataset.test = "text-reader";
+    this.readerHost.dataset["test"] = "text-reader";
     this.body.append(this.readerHost);
     this.renderedBody?.setAttribute("hidden", "");
     this.reader = this.services.editors.createReader(this.readerHost, { ...options, text: this.message.text });
@@ -92,7 +92,7 @@ export class MessageCard {
 
   private renderText(): HTMLElement {
     const text = this.createElement("pre", "message-text");
-    text.dataset.test = "message-text";
+    text.dataset["test"] = "message-text";
     text.textContent = this.message.text;
     return text;
   }
