@@ -1,0 +1,29 @@
+(export usage-text)
+
+(def overview
+  "Usage: knave-mail [--account EMAIL] [--json] [--backend gmail|memory] COMMAND
+
+Commands:
+  accounts list|add|remove EMAIL   List, add or remove accounts
+  labels                           List labels with unread counts
+  threads list [--label L] [--query Q] [--limit N]
+  threads show THREAD [--format text|html]
+  search QUERY                     Search all mail with a Gmail query
+  send --to A [--cc B] --subject S Send the body read from stdin
+  reply MESSAGE [--all]            Reply with the body read from stdin
+  forward MESSAGE --to A           Forward with a note read from stdin
+  archive|trash|star|unstar|read|unread THREAD...
+  sync                             Fetch new mail into the local cache
+  help                             Show this text
+
+Options:
+  --json      Print one JSON document with a schema version
+  --dry-run   Show the draft of send, reply or forward without sending it
+
+Run knave-mail with no command to open the window.
+Exit codes: 0 ok, 1 usage, 2 not found, 3 auth required, 4 network, 5 internal.")
+
+(type usage-text (fn () string))
+
+(defn usage-text ()
+  (str overview))

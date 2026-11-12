@@ -1,0 +1,118 @@
+(use adapters/driving/cli/arguments parsed-arguments positional value-of
+                                    values-of switch?)
+(use domain/mail-error mail-error)
+
+(export cli-command command-from cli-command-word?)
+
+(def command-words
+  (vec "accounts" "labels" "threads" "search" "send" "reply" "forward"
+       "archive" "trash" "star" "unstar" "read" "unread" "sync" "help"))
+
+(def default-limit 50)
+
+(defenum cli-command
+  list-accounts
+  add-account
+  (remove-account string)
+  list-labels
+  (list-threads :label string :query string :limit i64)
+  (show-thread :thread-id string :format string)
+  (send :to (vec string) :cc (vec string) :subject string)
+  (reply :message-id string :all bool)
+  (forward :message-id string :to (vec string))
+  (relabel :change string :thread-ids (vec string))
+  sync
+  help)
+
+(type cli-command-word? (fn ((ref parsed-arguments)) bool))
+
+(defn cli-command-word? (parsed)
+  (match (positional parsed 0)
+    ((some word) (known-word? (ref command-words) (ref word)))
+    (none false)))
+
+(type command-from (fn ((ref parsed-arguments)) (result cli-command mail-error)))
+
+(defn command-from (parsed)
+  (let (word (unwrap-or (positional parsed 0) (str "help"))
+        topic (unwrap-or (positional parsed 1) (str "")))
+    (match (as-str word)
+      ("accounts" (accounts-command parsed (ref topic)))
+      ("labels" (ok cli-command/list-labels))
+      ("threads" (threads-command parsed (ref topic)))
+      ("search" (ok (thread-listing parsed (str "ALL") topic)))
+      ("send" (ok (cli-command/send :to (values-of parsed "--to")
+                                    :cc (values-of parsed "--cc")
+                                    :subject (unwrap-or (value-of parsed "--subject") (str "")))))
+      ("reply" (ok (cli-command/reply :message-id (try (required topic "a message id"))
+                                      :all (switch? parsed "--all"))))
+      ("forward" (ok (cli-command/forward :message-id (try (required topic "a message id"))
+                                          :to (values-of parsed "--to"))))
+      ("sync" (ok cli-command/sync))
+      ("help" (ok cli-command/help))
+      (_ (relabel-command parsed word)))))
+
+(type accounts-command
+  (fn ((ref parsed-arguments) (ref str)) (result cli-command mail-error)))
+
+(defn accounts-command (parsed action)
+  (match action
+    ("list" (ok cli-command/list-accounts))
+    ("" (ok cli-command/list-accounts))
+    ("add" (ok cli-command/add-account))
+    ("remove" (ok (cli-command/remove-account
+                    (try (required (unwrap-or (positional parsed 2) (str ""))
+                                   "an account email")))))
+    (_ (err (unknown-action "accounts" action)))))
+
+(type threads-command
+  (fn ((ref parsed-arguments) (ref str)) (result cli-command mail-error)))
+
+(defn threads-command (parsed action)
+  (match action
+    ("list" (ok (thread-listing parsed
+                                (unwrap-or (value-of parsed "--label") (str "INBOX"))
+                                (unwrap-or (value-of parsed "--query") (str "")))))
+    ("show" (ok (cli-command/show-thread
+                  :thread-id (try (required (unwrap-or (positional parsed 2) (str ""))
+                                            "a thread id"))
+                  :format (unwrap-or (value-of parsed "--format") (str "text")))))
+    (_ (err (unknown-action "threads" action)))))
+
+(type thread-listing (fn ((ref parsed-arguments) string string) cli-command))
+
+(defn thread-listing (parsed label query)
+  (cli-command/list-threads :label label
+                            :query query
+                            :limit (parsed-limit (value-of parsed "--limit") default-limit)))
+
+(type relabel-command
+  (fn ((ref parsed-arguments) string) (result cli-command mail-error)))
+
+(defn relabel-command (parsed word)
+  (ok (cli-command/relabel :change word
+                           :thread-ids (rest-positionals parsed))))
+
+(type required (fn (string (ref str)) (result string mail-error)))
+
+(defn required (value description)
+  (if (empty? value)
+    (err (mail-error/usage (str "expected " description)))
+    (ok value)))
+
+(type unknown-action (fn ((ref str) (ref str)) mail-error))
+
+(defn unknown-action (command action)
+  (mail-error/usage (str "unknown action `" action "` for `" command "`")))
+
+(def parsed-limit
+  (rust "{0}.and_then(|{!text}| {!text}.parse::<i64>().ok()).unwrap_or({1})"
+    (fn ((option string) i64) i64)))
+
+(def rest-positionals
+  (rust "{0}.positionals.iter().skip(1).cloned().collect::<Vec<String>>()"
+    (fn ((ref parsed-arguments)) (vec string))))
+
+(def known-word?
+  (rust "{0}.contains(&{1}.as_str())"
+    (fn ((ref (vec (ref str))) (ref string)) bool)))

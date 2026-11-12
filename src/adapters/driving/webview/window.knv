@@ -1,4 +1,4 @@
-(export open-window request-inbox reply-outbox next-request send-reply)
+(export next-request open-window reply-outbox request-inbox send-reply)
 
 (deftype request-inbox (rust "std::sync::mpsc::Receiver<String>"))
 
@@ -21,22 +21,34 @@
     let ({!sender}, {!inbox}) = std::sync::mpsc::channel::<String>();
     let {!worker} = {2};
     std::thread::spawn(move || {!worker}({!inbox}, {!outbox}));
-    let {!page} = {1}.to_string();
-    let {!window} = tao::window::WindowBuilder::new().with_title({0}).build(&{!event_loop}).expect(\"window\");
+    let {!startup_script} = {1}.to_string();
+    let {!window} = tao::window::WindowBuilder::new()
+      .with_title({0})
+      .with_inner_size(tao::dpi::LogicalSize::new(1100.0, 760.0))
+      .build(&{!event_loop})
+      .expect(\"the window opens\");
     let {!webview} = wry::WebViewBuilder::new()
-      .with_custom_protocol(\"knave\".into(), move |_, _| wry::http::Response::builder()
-        .header(\"Content-Type\", \"text/html; charset=utf-8\")
-        .body({!page}.clone().into_bytes().into())
-        .expect(\"page response\"))
-      .with_ipc_handler(move |request| drop({!sender}.send(request.into_body())))
+      .with_custom_protocol(\"knave\".into(), move |_, {!request}| {{
+        let ({!body}, {!kind}): (&'static [u8], &str) = match {!request}.uri().path() {{
+          \"/app.js\" => (include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../../../frontend/dist/app.js\")), \"text/javascript; charset=utf-8\"),
+          \"/app.css\" => (include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../../../frontend/dist/app.css\")), \"text/css; charset=utf-8\"),
+          _ => (include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../../../frontend/dist/index.html\")), \"text/html; charset=utf-8\"),
+        }};
+        wry::http::Response::builder()
+          .header(\"Content-Type\", {!kind})
+          .body(std::borrow::Cow::Borrowed({!body}))
+          .expect(\"an asset response\")
+      }})
+      .with_initialization_script(&{!startup_script})
+      .with_ipc_handler(move |{!request}| drop({!sender}.send({!request}.into_body())))
       .with_url(\"knave://localhost/\")
-      .build_gtk({!window}.default_vbox().expect(\"vbox\"))
-      .expect(\"webview\");
-    {!event_loop}.run(move |event, _, control_flow| {{
-      *control_flow = tao::event_loop::ControlFlow::Wait;
-      match event {{
-        tao::event::Event::UserEvent(reply) => drop({!webview}.evaluate_script(&format!(\"window.knaveBridge.receive({{}})\", reply))),
-        tao::event::Event::WindowEvent {{ event: tao::event::WindowEvent::CloseRequested, .. }} => *control_flow = tao::event_loop::ControlFlow::Exit,
+      .build_gtk({!window}.default_vbox().expect(\"the window has a box\"))
+      .expect(\"the webview opens\");
+    {!event_loop}.run(move |{!event}, _, {!control_flow}| {{
+      *{!control_flow} = tao::event_loop::ControlFlow::Wait;
+      match {!event} {{
+        tao::event::Event::UserEvent({!reply}) => drop({!webview}.evaluate_script(&format!(\"window.knaveBridge.receive({{}})\", {!reply}))),
+        tao::event::Event::WindowEvent {{ event: tao::event::WindowEvent::CloseRequested, .. }} => *{!control_flow} = tao::event_loop::ControlFlow::Exit,
         _ => {{}}
       }}
     }})

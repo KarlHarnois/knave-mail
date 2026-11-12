@@ -1,0 +1,85 @@
+(use adapters/driving/cli/cli-result cli-result)
+(use adapters/driving/cli/command cli-command)
+(use adapters/driving/cli/help usage-text)
+(use domain/labels archive-change label-change read-change star-change
+                   trash-change unread-change unstar-change)
+(use domain/mail ->draft ->thread-query draft)
+(use domain/mail-error mail-error)
+(use ports/driving/mail-client add-account! draft-forward! draft-reply!
+                               draft-reply-all! list-accounts! list-labels!
+                               list-threads! mail-client open-thread!
+                               relabel-threads! remove-account! send-draft!
+                               sync-account!)
+
+(export ->cli-request cli-request run-cli-command!)
+
+(defstruct cli-request
+  :command cli-command
+  :account string
+  :body string
+  :dry-run bool)
+
+(type run-cli-command!
+  (where ((client mail-client))
+    (fn ((mut client) (ref cli-request)) (result cli-result mail-error))))
+
+(defn run-cli-command! (client request)
+  (let (account (ref (:account request)))
+    (match (ref (:command request))
+      (list-accounts (ok (cli-result/accounts-listed (try (list-accounts! client)))))
+      (add-account (ok (cli-result/account-added (try (add-account! client)))))
+      ((remove-account email) (do (try (remove-account! client email)) (ok cli-result/done)))
+      (list-labels (ok (cli-result/labels-listed (try (list-labels! client account)))))
+      ((list-threads label query limit)
+       (ok (cli-result/threads-listed
+             (try (list-threads! client account
+                                 (ref (->thread-query (clone label) (clone query) limit)))))))
+      ((show-thread thread-id format)
+       (ok (cli-result/thread-shown (try (open-thread! client account thread-id)) (clone format))))
+      ((send to cc subject)
+       (deliver-or-show! client request
+                         (->draft (clone to) (clone cc) (clone subject)
+                                  (clone (:body request)) none)))
+      ((reply message-id all)
+       (let (drafted (try (if (deref all)
+                            (draft-reply-all! client account message-id)
+                            (draft-reply! client account message-id))))
+         (deliver-or-show! client request (with-written-body drafted (ref (:body request))))))
+      ((forward message-id to)
+       (let (drafted (try (draft-forward! client account message-id)))
+         (deliver-or-show! client request
+                           (assoc (with-written-body drafted (ref (:body request)))
+                             :to (clone to)))))
+      ((relabel change thread-ids)
+       (do (try (relabel-threads! client account thread-ids (ref (try (change-named change)))))
+           (ok cli-result/done)))
+      (sync (do (try (sync-account! client account)) (ok cli-result/done)))
+      (help (ok (cli-result/help-shown (usage-text)))))))
+
+(type deliver-or-show!
+  (where ((client mail-client))
+    (fn ((mut client) (ref cli-request) draft) (result cli-result mail-error))))
+
+(defn deliver-or-show! (client request written)
+  (if (:dry-run request)
+    (ok (cli-result/draft-shown written))
+    (do (try (send-draft! client (ref (:account request)) (ref written)))
+        (ok cli-result/done))))
+
+(type with-written-body (fn (draft (ref str)) draft))
+
+(defn with-written-body (drafted written)
+  (let (body (str written (:body drafted)))
+    (assoc drafted :body body)))
+
+(type change-named (fn ((ref str)) (result label-change mail-error)))
+
+(defn change-named (word)
+  (match word
+    ("archive" (ok (archive-change)))
+    ("trash" (ok (trash-change)))
+    ("star" (ok (star-change)))
+    ("unstar" (ok (unstar-change)))
+    ("read" (ok (read-change)))
+    ("unread" (ok (unread-change)))
+    (_ (err (mail-error/usage (str "unknown command `" word "`; try `knave-mail help`"))))))

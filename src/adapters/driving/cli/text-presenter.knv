@@ -1,0 +1,80 @@
+(use adapters/driving/cli/cli-result cli-result)
+(use domain/labels starred? unread?)
+(use domain/mail draft label message thread thread-summary)
+(use domain/text join-with)
+
+(export result-text)
+
+(type result-text (fn ((ref cli-result)) string))
+
+(defn result-text (outcome)
+  (match outcome
+    ((accounts-listed accounts)
+     (lines-of (collect (map (iter accounts) (fn (account) (clone (:email account)))))))
+    ((labels-listed labels)
+     (lines-of (collect (map (iter labels) (fn (label) (label-line label))))))
+    ((threads-listed summaries)
+     (lines-of (collect (map (iter summaries) (fn (summary) (summary-line summary))))))
+    ((thread-shown shown format) (thread-text shown format))
+    ((draft-shown written) (draft-text written))
+    ((account-added account) (str "Added " (:email account)))
+    (done (str ""))
+    ((help-shown text) (clone text))))
+
+(type label-line (fn ((ref label)) string))
+
+(defn label-line (shown)
+  (str (padded (:name shown) 24) (:unread shown) " unread"))
+
+(type summary-line (fn ((ref thread-summary)) string))
+
+(defn summary-line (summary)
+  (str (padded (:id summary) 20)
+       (date-text (:date summary)) "  "
+       (if (unread? (ref (:labels summary))) "N" " ")
+       (if (starred? (ref (:labels summary))) "*" " ") " "
+       (padded (:participants summary) 28)
+       (:subject summary)))
+
+(type thread-text (fn ((ref thread) (ref str)) string))
+
+(defn thread-text (shown format)
+  (lines-of (collect (map (iter (:messages shown))
+                          (fn (shown-message) (message-text shown-message format))))))
+
+(type message-text (fn ((ref message) (ref str)) string))
+
+(defn message-text (shown format)
+  (str "Message: " (:id shown) "\n"
+       "From: " (:from shown) "\n"
+       "To: " (join-with (:to shown) ", ") "\n"
+       "Date: " (date-text (:date shown)) "\n"
+       "Subject: " (:subject shown) "\n\n"
+       (body-in-format shown format) "\n"))
+
+(type body-in-format (fn ((ref message) (ref str)) string))
+
+(defn body-in-format (shown format)
+  (match (pair format (ref (:html shown)))
+    ((pair "html" (some html)) (clone html))
+    (_ (clone (:text shown)))))
+
+(type draft-text (fn ((ref draft)) string))
+
+(defn draft-text (written)
+  (str "To: " (join-with (:to written) ", ") "\n"
+       "Cc: " (join-with (:cc written) ", ") "\n"
+       "Subject: " (:subject written) "\n\n"
+       (:body written)))
+
+(def lines-of
+  (rust "{0}.join(\"\\n\")"
+    (fn ((vec string)) string)))
+
+(def padded
+  (rust "format!(\"{{:<width$}} \", {0}.chars().take({1} - 1).collect::<String>(), width = {1} - 1)"
+    (fn ((ref str) usize) string)))
+
+(def date-text
+  (rust "{{ let {!minutes} = {0}.div_euclid(60_000); let {!days} = {!minutes}.div_euclid(1440); let {!z} = {!days} + 719_468; let {!era} = {!z}.div_euclid(146_097); let {!doe} = {!z} - {!era} * 146_097; let {!yoe} = ({!doe} - {!doe} / 1460 + {!doe} / 36_524 - {!doe} / 146_096) / 365; let {!doy} = {!doe} - (365 * {!yoe} + {!yoe} / 4 - {!yoe} / 100); let {!mp} = (5 * {!doy} + 2) / 153; let {!day} = {!doy} - (153 * {!mp} + 2) / 5 + 1; let {!month} = if {!mp} < 10 {{ {!mp} + 3 }} else {{ {!mp} - 9 }}; let {!year} = {!yoe} + {!era} * 400 + if {!month} <= 2 {{ 1 }} else {{ 0 }}; let {!of_day} = {!minutes}.rem_euclid(1440); format!(\"{{:04}}-{{:02}}-{{:02}} {{:02}}:{{:02}}\", {!year}, {!month}, {!day}, {!of_day} / 60, {!of_day} % 60) }}"
+    (fn (i64) string)))

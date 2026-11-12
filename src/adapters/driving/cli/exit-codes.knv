@@ -1,0 +1,15 @@
+(use domain/mail-error mail-error)
+
+(export exit-code success-code)
+
+(def success-code 0)
+
+(type exit-code (fn ((ref mail-error)) i32))
+
+(defn exit-code (failure)
+  (match failure
+    ((usage _) 1)
+    ((not-found _) 2)
+    ((auth-required _) 3)
+    ((network _) 4)
+    ((internal _) 5)))

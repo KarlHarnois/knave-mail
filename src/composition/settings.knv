@@ -1,0 +1,31 @@
+(export ->settings settings settings-from)
+
+(defstruct settings
+  :backend string
+  :latency-milliseconds u64
+  :failing (option string)
+  :e2e-script string)
+
+(type settings-from (fn ((ref (vec string))) settings))
+
+(defn settings-from (arguments)
+  (->settings :backend (option-value arguments "--backend" "KNAVE_MAIL_BACKEND" "gmail")
+              :latency-milliseconds (parse-or-zero (ref (option-value arguments "--latency" "KNAVE_MAIL_LATENCY" "0")))
+              :failing (non-empty (option-value arguments "--fail" "KNAVE_MAIL_FAIL" ""))
+              :e2e-script (script-text (ref (option-value arguments "--e2e-script" "KNAVE_MAIL_E2E_SCRIPT" "")))))
+
+(def option-value
+  (rust "{0}.iter().position(|{!argument}| *{!argument} == *{1}).and_then(|{!index}| {0}.get({!index} + 1).cloned()).or_else(|| std::env::var({2}).ok()).unwrap_or_else(|| {3}.to_string())"
+    (fn ((ref (vec string)) (ref str) (ref str) (ref str)) string)))
+
+(def parse-or-zero
+  (rust "{0}.parse::<u64>().unwrap_or(0)"
+    (fn ((ref str)) u64)))
+
+(def non-empty
+  (rust "Some({0}).filter(|{!text}: &String| !{!text}.is_empty())"
+    (fn (string) (option string))))
+
+(def script-text
+  (rust "if {0}.is_empty() {{ String::new() }} else {{ std::fs::read_to_string({0}).unwrap_or_else(|{!error}| panic!(\"cannot read the e2e script {{}}: {{}}\", {0}, {!error})) }}"
+    (fn ((ref str)) string)))

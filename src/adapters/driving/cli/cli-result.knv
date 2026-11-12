@@ -1,0 +1,13 @@
+(use domain/mail account draft label thread thread-summary)
+
+(export cli-result)
+
+(defenum cli-result
+  (accounts-listed (vec account))
+  (labels-listed (vec label))
+  (threads-listed (vec thread-summary))
+  (thread-shown :shown thread :format string)
+  (draft-shown draft)
+  (account-added account)
+  done
+  (help-shown string))

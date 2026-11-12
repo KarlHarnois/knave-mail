@@ -1,0 +1,81 @@
+(use adapters/driven/memory/seed-specials html-newsletter long-thread
+                                          unicode-thread)
+(use domain/mail ->message ->thread message thread)
+
+(export seed-accounts seeded-threads)
+
+(def seed-accounts (vec "ada@example.com" "grace@example.org" "linus@example.net"))
+
+(def senders
+  (vec "Alan Turing <alan@example.com>" "Edsger Dijkstra <edsger@example.com>"
+       "Barbara Liskov <barbara@example.com>" "Donald Knuth <don@example.com>"
+       "Margaret Hamilton <margaret@example.com>" "Ken Thompson <ken@example.com>"))
+
+(def subjects
+  (vec "Quarterly planning" "Lunch on Friday?" "Re: build is red again"
+       "Design review notes" "Your invoice is ready" "Conference travel"
+       "Weekly digest" "Can you review my patch?" "Offsite agenda"
+       "Hiring loop feedback" "Server maintenance tonight" "Book recommendations"))
+
+(def newest-date 1762900000000)
+
+(def hour-milliseconds 3600000)
+
+(type seeded-threads (fn ((ref str) i64) (vec thread)))
+
+(defn seeded-threads (account count)
+  (let (generated (collect (map (range 0 count)
+                                (fn (index) (generated-thread account index)))))
+    (with-specials generated account)))
+
+(type with-specials (fn ((vec thread) (ref str)) (vec thread)))
+
+(defn with-specials (generated account)
+  (let (all generated)
+    (push! (mut all) (html-newsletter account newest-date))
+    (push! (mut all) (long-thread account newest-date))
+    (push! (mut all) (unicode-thread account newest-date))
+    all))
+
+(type generated-thread (fn ((ref str) i64) thread))
+
+(defn generated-thread (account index)
+  (let (id (str "seed-" index)
+        subject (cycled (ref subjects) index)
+        sender (cycled (ref senders) index))
+    (->thread :id (clone id)
+              :subject (str subject)
+              :labels (labels-for index)
+              :messages (vec (->message :id (str "m-" id)
+                                        :thread-id (clone id)
+                                        :from (str sender)
+                                        :to (vec (str account))
+                                        :cc (vec)
+                                        :subject (str subject)
+                                        :date (- newest-date
+                                                 (* (+ index 3) hour-milliseconds))
+                                        :text (body-for sender subject index)
+                                        :html none
+                                        :header-id (str "<m-" id "@seed.example>")
+                                        :references (str ""))))))
+
+(type labels-for (fn (i64) (vec string)))
+
+(defn labels-for (index)
+  (let (labels (vec (str (if (< index 150) "INBOX" "Archive"))))
+    (when (= (rem index 3) 0) (push! (mut labels) (str "UNREAD")))
+    (when (= (rem index 7) 0) (push! (mut labels) (str "STARRED")))
+    (when (= (rem index 5) 0) (push! (mut labels) (str "Receipts")))
+    labels))
+
+(type body-for (fn ((ref str) (ref str) i64) string))
+
+(defn body-for (sender subject index)
+  (str "Hi,\n\nThis is message number " index " about \"" subject "\".\n"
+       "It comes from " sender ", and it has a few lines so the\n"
+       "reader has something to yank.\n\n"
+       "- first point\n- second point\n- third point\n\nThanks!"))
+
+(def cycled
+  (rust "{{ let {!words} = {0}; {!words}[({1} as usize) % {!words}.len()] }}"
+    (fn ((ref (vec (ref str))) i64) (ref str))))

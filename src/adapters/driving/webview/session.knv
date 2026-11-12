@@ -1,0 +1,71 @@
+(use adapters/driving/json/commands answer!)
+(use adapters/driving/json/envelope failure-event null-id request-arguments
+                                    request-id success-reply synced-event)
+(use adapters/driving/json/value bool-field json-value parse-json
+                                 string-field)
+(use adapters/driving/webview/window next-request reply-outbox
+                                     request-inbox send-reply)
+(use ports/driving/mail-client mail-client sync-account!)
+
+(export serve-requests!)
+
+(type serve-requests!
+  (where ((client mail-client))
+    (fn ((mut client) (ref request-inbox) (ref reply-outbox)) unit)))
+
+(defn serve-requests! (client inbox outbox)
+  (match (next-request inbox)
+    ((some request)
+     (handle-request! client (ref request) outbox)
+     (recur client inbox outbox))
+    (none (do))))
+
+(type handle-request!
+  (where ((client mail-client))
+    (fn ((mut client) (ref str) (ref reply-outbox)) unit)))
+
+(defn handle-request! (client request-text outbox)
+  (match (parse-json request-text)
+    ((ok request)
+     (match (string-field (ref request) "command")
+       ((ok "sync") (sync-in-turn! client (ref request) outbox))
+       ((ok "e2e-report") (report-e2e-line (ref request)))
+       ((ok "e2e-finish") (finish-e2e (ref request)))
+       (_ (send-reply outbox (answer! client request-text)))))
+    ((err _) (send-reply outbox (answer! client request-text)))))
+
+(type sync-in-turn!
+  (where ((client mail-client))
+    (fn ((mut client) (ref json-value) (ref reply-outbox)) unit)))
+
+(defn sync-in-turn! (client request outbox)
+  (match (string-field (ref (request-arguments request)) "account")
+    ((ok account)
+     (send-reply outbox (success-reply (ref (request-id request)) (ref (empty-object))))
+     (send-reply outbox
+                 (match (sync-account! client (ref account))
+                   ((ok _) (synced-event (ref account)))
+                   ((err failure) (failure-event (ref account) (ref failure))))))
+    ((err _) (send-reply outbox (answer! client "{\"command\":\"sync\"}")))))
+
+(type report-e2e-line (fn ((ref json-value)) unit))
+
+(defn report-e2e-line (request)
+  (match (string-field (ref (request-arguments request)) "line")
+    ((ok line) (println line))
+    ((err problem) (eprintln problem))))
+
+(type finish-e2e (fn ((ref json-value)) unit))
+
+(defn finish-e2e (request)
+  (exit-with (match (bool-field (ref (request-arguments request)) "passed")
+               ((ok true) 0)
+               (_ 1))))
+
+(def exit-with
+  (rust "std::process::exit({0})"
+    (fn (i32) unit)))
+
+(def empty-object
+  (rust "serde_json::json!({{}})"
+    (fn () json-value)))

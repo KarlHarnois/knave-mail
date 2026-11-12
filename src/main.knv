@@ -1,18 +1,25 @@
-(use adapters/driving/webview/window next-request open-window send-reply)
-
-(def page "<!doctype html><body><p id=out>waiting</p><script>
-window.knaveBridge = { receive(reply) { document.getElementById('out').textContent = reply; window.ipc.postMessage('done'); } };
-window.ipc.postMessage('ping');
-</script></body>")
+(use adapters/driving/cli/arguments parse-arguments)
+(use adapters/driving/cli/cli run-cli!)
+(use adapters/driving/cli/command cli-command-word?)
+(use adapters/driving/webview/session serve-requests!)
+(use adapters/driving/webview/window open-window)
+(use composition/memory-backend memory-app)
+(use composition/settings settings settings-from)
 
 (defn main ()
-  (open-window "knave-mail" page
-    (fn (inbox outbox)
-      (answer-requests (ref inbox) (ref outbox)))))
+  (let (arguments (command-line-args)
+        parsed (parse-arguments (ref arguments))
+        chosen (settings-from (ref arguments)))
+    (if (cli-command-word? (ref parsed))
+      (let (app (memory-app (ref chosen)))
+        (exit-with (run-cli! (mut app) (ref parsed))))
+      (let (script (clone (:e2e-script chosen)))
+        (open-window "knave-mail" (ref script)
+          (fn (inbox outbox)
+            (let (moved-settings chosen
+                  app (memory-app (ref moved-settings)))
+              (serve-requests! (mut app) (ref inbox) (ref outbox)))))))))
 
-(defn answer-requests (inbox outbox)
-  (match (next-request inbox)
-    ((some request) (do (eprintln (str "request: " request))
-                        (send-reply outbox (str "\"pong\""))
-                        (recur inbox outbox)))
-    (none (do))))
+(def exit-with
+  (rust "std::process::exit({0})"
+    (fn (i32) unit)))
