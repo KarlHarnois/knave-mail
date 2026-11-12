@@ -2,6 +2,7 @@ import { Bridge } from "../bridge/Bridge";
 import { MailClient } from "../bridge/MailClient";
 import type { Transport } from "../bridge/Transport";
 import { CommandLine } from "../commands/CommandLine";
+import { HelpScreen } from "../help/HelpScreen";
 import { ListWindow } from "../list/ListWindow";
 import { ThreadList } from "../list/ThreadList";
 import { ThreadRowRenderer } from "../list/ThreadRowRenderer";
@@ -19,6 +20,7 @@ import { SystemClipboard } from "../vim/SystemClipboard";
 import { VimClipboard } from "../vim/VimClipboard";
 import { VimEditorFactory } from "../vim/VimEditorFactory";
 import { VimExCommands } from "../vim/VimExCommands";
+import type { ScreenHost } from "./ScreenHost";
 import { ZoomControl } from "./ZoomControl";
 
 const ROW_HEIGHT = 30;
@@ -108,5 +110,14 @@ export class MailServices {
 
   zoomControl(): ZoomControl {
     return new ZoomControl(this.document.documentElement, (notice) => this.status.showNotice(notice));
+  }
+
+  helpScreen(host: ScreenHost): HelpScreen {
+    return new HelpScreen({
+      document: this.document,
+      host,
+      askSearch: (submit) => this.commandLine.open("/", submit),
+      showError: (message) => this.status.showError(message),
+    });
   }
 }

@@ -21,6 +21,14 @@ const COMPOSER_ROWS: HelpRow[] = [
   { keys: ":q!", description: "Discard the draft" },
 ];
 
+const HELP_PAGE_ROWS: HelpRow[] = [
+  { keys: "j k  gg G", description: "Move the cursor line; j and k take a count" },
+  { keys: "<C-d> <C-u> <C-f> <C-b>", description: "Half a page or a page" },
+  { keys: "/  n N", description: "Search the help, then the next or previous match" },
+  { keys: "<Esc>", description: "Clear the search, or close the help" },
+  { keys: "q ?", description: "Close the help" },
+];
+
 const COMMAND_ROWS: HelpRow[] = [
   { keys: ":account <email>", description: "Switch account" },
   { keys: ":label <name>", description: "Show a label" },
@@ -37,6 +45,7 @@ export class HelpContent {
       { title: "Text reader (v in a thread)", rows: TEXT_READER_ROWS },
       { title: "Composer", rows: COMPOSER_ROWS },
       { title: "Command line (:)", rows: COMMAND_ROWS },
+      { title: "Help page", rows: HELP_PAGE_ROWS },
     ];
   }
 

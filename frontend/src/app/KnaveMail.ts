@@ -3,7 +3,7 @@ import type { ThreadSummary } from "../bridge/Protocol";
 import type { Transport } from "../bridge/Transport";
 import { CommandRunner } from "../commands/CommandRunner";
 import { ComposeScreen } from "../compose/ComposeScreen";
-import { HelpScreen } from "../help/HelpScreen";
+import type { HelpScreen } from "../help/HelpScreen";
 import { KeyboardInput } from "../keys/KeyboardInput";
 import { ListScreen } from "../list/ListScreen";
 import { SharedActions } from "../mail/SharedActions";
@@ -36,7 +36,7 @@ export class KnaveMail {
     this.app = this.createApp();
     this.threadScreen = this.createThreadScreen();
     this.composeScreen = this.createComposeScreen();
-    this.helpScreen = new HelpScreen(this.services.document, this.app);
+    this.helpScreen = this.services.helpScreen(this.app);
   }
 
   start(): void {
