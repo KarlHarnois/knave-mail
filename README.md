@@ -57,7 +57,7 @@ Repeat step 5 for each account. `Ctrl-n` and `Ctrl-p` switch between accounts in
 | Thread | `j` `k` between messages, `J` `K` between threads, `e` `#` `I` `s` `U` `u` as in the list, `r` reply, `a` reply all, `f` forward, `v` vim text reader for yanking, `i` load remote images, `q` back |
 | Composer | vim editing, `:w` keeps the draft, `:x` or `ZZ` sends, `:q!` discards |
 
-A yank in the text reader pastes in the composer, and it also goes to the system clipboard. Press `?` or type `:help` for every key.
+A yank in the text reader pastes in the composer, and it also goes to the system clipboard. Press `?` or type `:help` for every key. `Ctrl +` and `Ctrl -` zoom in and out, and `Ctrl 0` resets the zoom.
 
 ### Theme
 

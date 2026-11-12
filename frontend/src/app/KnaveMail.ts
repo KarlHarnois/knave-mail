@@ -14,6 +14,7 @@ import { AppKeyMaps } from "./AppKeyMaps";
 import { FocusGuard } from "./FocusGuard";
 import { MailServices } from "./MailServices";
 import { Navigator } from "./Navigator";
+import { ZoomControl } from "./ZoomControl";
 
 export class KnaveMail {
   private readonly services: MailServices;
@@ -43,6 +44,9 @@ export class KnaveMail {
     this.mount();
     new KeyboardInput((token) => this.app.press(token)).listen(this.services.document);
     new FocusGuard(this.window, () => this.app.focusScreen()).watch();
+    new ZoomControl(this.services.document.documentElement, (notice) => this.services.status.showNotice(notice)).listen(
+      this.services.document,
+    );
     const startup = this.services.session.start();
     this.services.testDriver((token) => this.app.press(token), startup).installOn(this.window);
     this.app.refreshStatus();
