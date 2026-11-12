@@ -1,0 +1,26 @@
+{
+  "id": "t2",
+  "messages": [
+    {
+      "id": "m3",
+      "threadId": "t2",
+      "labelIds": [
+        "INBOX"
+      ],
+      "snippet": "Your invoice",
+      "internalDate": "1699000000000",
+      "payload": {
+        "headers": [
+          {
+            "name": "From",
+            "value": "\"Billing\" <billing@example.com>"
+          },
+          {
+            "name": "Subject",
+            "value": "Invoice 42"
+          }
+        ]
+      }
+    }
+  ]
+}

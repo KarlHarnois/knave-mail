@@ -1,0 +1,61 @@
+(def binary "target/knave/knave-mail/knave-mail")
+
+(def scenario-directory "tests/e2e/gui")
+
+(def runner-script "tests/e2e/gui/runner.js")
+
+(def script-directory "target/e2e")
+
+(def run-seconds 60)
+
+(deftask e2e ()
+  "Builds knave-mail and runs each GUI scenario under xvfb-run against the memory backend."
+  (try (succeeded "knave build" (run-command "knave" (vec (str "build")))))
+  (let (scenarios (try (scenario-files scenario-directory runner-script))
+        failures (count-failures (ref scenarios) 0 0))
+    (if (= failures 0)
+      (ok (println "All " (len scenarios) " GUI scenarios passed."))
+      (err (str failures " of " (len scenarios) " GUI scenarios failed")))))
+
+(type count-failures (fn ((ref (vec string)) usize i64) i64))
+
+(defn count-failures (scenarios index failures)
+  (if (>= index (len scenarios))
+    failures
+    (let (passed (run-scenario (at scenarios index)))
+      (recur scenarios (+ index 1) (if passed failures (+ failures 1))))))
+
+(type run-scenario (fn ((ref str)) bool))
+
+(defn run-scenario (scenario)
+  (println "== " scenario)
+  (match (scenario-script scenario runner-script script-directory)
+    ((ok script)
+     (succeeded? (run-command "timeout"
+                              (vec (str run-seconds) (str "xvfb-run") (str "-a")
+                                   (str binary) (str "--backend") (str "memory")
+                                   (str "--e2e-script") script))))
+    ((err problem) (do (eprintln problem) false))))
+
+(type succeeded (fn ((ref str) bool) (result unit string)))
+
+(defn succeeded (description outcome)
+  (if (succeeded? outcome)
+    (ok (do))
+    (err (str description " failed"))))
+
+(def run-command
+  (rust "std::process::Command::new({0}).args({1}).status().map(|{!status}| {!status}.success()).unwrap_or(false)"
+    (fn ((ref str) (vec string)) bool)))
+
+(def succeeded?
+  (rust "{0}"
+    (fn (bool) bool)))
+
+(def scenario-files
+  (rust "std::fs::read_dir({0}).map(|{!entries}| {{ let mut {!paths} = {!entries}.filter_map(|{!entry}| {!entry}.ok().map(|{!entry}| {!entry}.path().to_string_lossy().into_owned())).filter(|{!path}| {!path}.ends_with(\".js\") && {!path} != {1}).collect::<Vec<String>>(); {!paths}.sort(); {!paths} }}).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref str) (ref str)) (result (vec string) string))))
+
+(def scenario-script
+  (rust "{{ let {!target} = std::path::Path::new({2}).join(std::path::Path::new({0}).file_name().unwrap_or_default()); std::fs::create_dir_all({2}).and_then(|_| Ok(std::fs::read_to_string({1})? + &std::fs::read_to_string({0})?)).and_then(|{!text}| std::fs::write(&{!target}, {!text})).map(|_| {!target}.to_string_lossy().into_owned()).map_err(|{!error}| {!error}.to_string()) }}"
+    (fn ((ref str) (ref str) (ref str)) (result string string))))

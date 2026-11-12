@@ -1,0 +1,13 @@
+{
+  "threads": [
+    {
+      "id": "t1",
+      "snippet": "x"
+    },
+    {
+      "id": "t2",
+      "snippet": "y"
+    }
+  ],
+  "resultSizeEstimate": 2
+}

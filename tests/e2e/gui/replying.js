@@ -1,0 +1,15 @@
+knaveE2E.scenario(async (driver) => {
+  const e2e = knaveE2E;
+  await e2e.step("jj<CR>");
+  await e2e.step("v");
+  e2e.check("v opens the vim text reader", driver.count('[data-test~="text-reader"]') === 1, "no reader");
+  await e2e.step("jjjyy<Esc>");
+  await e2e.step("r");
+  e2e.check("r opens the composer", driver.count('[data-test~="composer"]:not([hidden])') === 1, "no composer");
+  e2e.check("the reply is addressed to the sender", driver.text('[data-test~="composer"]').includes("To: Alan Turing"), driver.text('[data-test~="composer"]').slice(0, 80));
+  await e2e.step("Gp");
+  e2e.check("a yank from the reader pastes in the composer", driver.text('[data-test~="composer"]').includes("This is message number 0"), driver.text('[data-test~="composer"]').slice(-120));
+  await e2e.step(":wq<CR>");
+  e2e.check("sending leaves the composer", driver.count('[data-test~="composer"]:not([hidden])') === 0, driver.text('[data-test~="status-line"]'));
+  e2e.check("sending reports no error", !driver.text('[data-test~="status-error"]').includes("send"), driver.text('[data-test~="status-error"]'));
+});

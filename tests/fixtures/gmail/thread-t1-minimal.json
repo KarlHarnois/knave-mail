@@ -1,0 +1,19 @@
+{
+  "id": "t1",
+  "messages": [
+    {
+      "id": "m1",
+      "labelIds": [
+        "INBOX",
+        "UNREAD"
+      ]
+    },
+    {
+      "id": "m2",
+      "labelIds": [
+        "INBOX",
+        "SENT"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "id": "t1",
+  "messages": [
+    {
+      "id": "m1",
+      "threadId": "t1",
+      "labelIds": [
+        "INBOX",
+        "UNREAD"
+      ],
+      "snippet": "Can we meet Tuesday? It&#39;s urgent",
+      "internalDate": "1700000000000",
+      "payload": {
+        "headers": [
+          {
+            "name": "From",
+            "value": "Grace Hopper <grace@example.com>"
+          },
+          {
+            "name": "Subject",
+            "value": "Compiler meeting"
+          }
+        ]
+      }
+    },
+    {
+      "id": "m2",
+      "threadId": "t1",
+      "labelIds": [
+        "INBOX",
+        "SENT"
+      ],
+      "snippet": "Sure &amp; see you",
+      "internalDate": "1700000600000",
+      "payload": {
+        "headers": [
+          {
+            "name": "From",
+            "value": "ada@example.com"
+          },
+          {
+            "name": "Subject",
+            "value": "Re: Compiler meeting"
+          }
+        ]
+      }
+    }
+  ]
+}

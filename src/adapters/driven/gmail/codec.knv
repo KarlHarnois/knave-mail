@@ -1,0 +1,99 @@
+(use adapters/driving/json/value json-value)
+(use domain/mail ->label ->message ->thread-summary label message thread-summary)
+
+(export label-from message-from-raw message-ids summary-from thread-ids
+        thread-labels label-ids)
+
+(deftype summary-parts (rust "(String, String, String, String, i64, Vec<String>, i64)"))
+
+(deftype message-parts
+  (rust "(String, Vec<String>, Vec<String>, String, i64, String, Option<String>, String, String)"))
+
+(def label-ids
+  (rust "{0}.get(\"labels\").and_then(|{!labels}| {!labels}.as_array()).map(|{!labels}| {!labels}.iter().filter_map(|{!label}| {!label}.get(\"id\").and_then(|{!id}| {!id}.as_str()).map(str::to_string)).collect::<Vec<_>>()).unwrap_or_default()"
+    (fn ((ref json-value)) (vec string))))
+
+(type label-from (fn ((ref json-value)) label))
+
+(defn label-from (details)
+  (->label :id (text-at details "id")
+           :name (text-at details "name")
+           :unread (number-at details "threadsUnread")))
+
+(def thread-ids
+  (rust "{0}.get(\"threads\").and_then(|{!threads}| {!threads}.as_array()).map(|{!threads}| {!threads}.iter().filter_map(|{!thread}| {!thread}.get(\"id\").and_then(|{!id}| {!id}.as_str()).map(str::to_string)).collect::<Vec<_>>()).unwrap_or_default()"
+    (fn ((ref json-value)) (vec string))))
+
+(type summary-from (fn ((ref json-value)) thread-summary))
+
+(defn summary-from (thread)
+  (let (parts (summary-parts-of thread))
+    (->thread-summary :id (part-text (ref parts) 0)
+                      :subject (part-text (ref parts) 1)
+                      :participants (part-text (ref parts) 2)
+                      :snippet (part-text (ref parts) 3)
+                      :date (part-date (ref parts))
+                      :labels (part-labels (ref parts))
+                      :message-count (part-count (ref parts)))))
+
+(def message-ids
+  (rust "{0}.get(\"messages\").and_then(|{!messages}| {!messages}.as_array()).map(|{!messages}| {!messages}.iter().filter_map(|{!message}| {!message}.get(\"id\").and_then(|{!id}| {!id}.as_str()).map(str::to_string)).collect::<Vec<_>>()).unwrap_or_default()"
+    (fn ((ref json-value)) (vec string))))
+
+(def thread-labels
+  (rust "{0}.get(\"messages\").and_then(|{!messages}| {!messages}.as_array()).map(|{!messages}| {!messages}.iter().flat_map(|{!message}| {!message}.get(\"labelIds\").and_then(|{!ids}| {!ids}.as_array()).cloned().unwrap_or_default()).filter_map(|{!id}| {!id}.as_str().map(str::to_string)).fold(Vec::<String>::new(), |mut {!all}, {!id}| {{ if !{!all}.contains(&{!id}) {{ {!all}.push({!id}); }} {!all} }})).unwrap_or_default()"
+    (fn ((ref json-value)) (vec string))))
+
+(type message-from-raw (fn ((ref json-value) (ref str)) message))
+
+(defn message-from-raw (raw-message thread-id)
+  (let (parts (message-parts-of raw-message))
+    (->message :id (text-at raw-message "id")
+               :thread-id (str thread-id)
+               :from (message-text (ref parts) 0)
+               :to (message-addresses (ref parts) 1)
+               :cc (message-addresses (ref parts) 2)
+               :subject (message-text (ref parts) 3)
+               :date (message-date (ref parts))
+               :text (message-text (ref parts) 5)
+               :html (message-html (ref parts))
+               :header-id (message-text (ref parts) 7)
+               :references (message-text (ref parts) 8))))
+
+(def text-at
+  (rust "{0}.get({1}).and_then(|{!value}| {!value}.as_str()).unwrap_or_default().to_string()"
+    (fn ((ref json-value) (ref str)) string)))
+
+(def number-at
+  (rust "{0}.get({1}).and_then(|{!value}| {!value}.as_i64()).unwrap_or(0)"
+    (fn ((ref json-value) (ref str)) i64)))
+
+(def summary-parts-of
+  (rust "{{ let {!thread} = {0}; let {!messages} = {!thread}.get(\"messages\").and_then(|{!m}| {!m}.as_array()).cloned().unwrap_or_default(); let {!header} = |{!message}: &serde_json::Value, {!name}: &str| {!message}.pointer(\"/payload/headers\").and_then(|{!h}| {!h}.as_array()).and_then(|{!h}| {!h}.iter().find(|{!entry}| {!entry}.get(\"name\").and_then(|{!n}| {!n}.as_str()).map(|{!n}| {!n}.eq_ignore_ascii_case({!name})).unwrap_or(false))).and_then(|{!entry}| {!entry}.get(\"value\")).and_then(|{!v}| {!v}.as_str()).unwrap_or_default().to_string(); let {!senders} = {!messages}.iter().map(|{!message}| {{ let {!from} = {!header}({!message}, \"From\"); let {!name} = {!from}.split('<').next().unwrap_or(\"\").trim().trim_matches('\"').to_string(); if {!name}.is_empty() {{ {!from}.trim_matches(|{!c}| {!c} == '<' || {!c} == '>').to_string() }} else {{ {!name} }} }}).fold(Vec::<String>::new(), |mut {!all}, {!name}| {{ if !{!all}.contains(&{!name}) {{ {!all}.push({!name}); }} {!all} }}).join(\", \"); let {!last} = {!messages}.last().cloned().unwrap_or_default(); let {!snippet} = {!last}.get(\"snippet\").and_then(|{!s}| {!s}.as_str()).unwrap_or_default().replace(\"&#39;\", \"'\").replace(\"&quot;\", \"\\\"\").replace(\"&amp;\", \"&\").replace(\"&lt;\", \"<\").replace(\"&gt;\", \">\"); let {!date} = {!last}.get(\"internalDate\").and_then(|{!d}| {!d}.as_str()).and_then(|{!d}| {!d}.parse::<i64>().ok()).unwrap_or(0); let {!labels} = {!messages}.iter().flat_map(|{!message}| {!message}.get(\"labelIds\").and_then(|{!ids}| {!ids}.as_array()).cloned().unwrap_or_default()).filter_map(|{!id}| {!id}.as_str().map(str::to_string)).fold(Vec::<String>::new(), |mut {!all}, {!id}| {{ if !{!all}.contains(&{!id}) {{ {!all}.push({!id}); }} {!all} }}); ({!thread}.get(\"id\").and_then(|{!i}| {!i}.as_str()).unwrap_or_default().to_string(), {!messages}.first().map(|{!first}| {!header}({!first}, \"Subject\")).unwrap_or_default(), {!senders}, {!snippet}, {!date}, {!labels}, {!messages}.len() as i64) }}"
+    (fn ((ref json-value)) summary-parts)))
+
+(def part-text
+  (rust "{{ let {!parts} = {0}; match {1} {{ 0 => &{!parts}.0, 1 => &{!parts}.1, 2 => &{!parts}.2, _ => &{!parts}.3 }}.clone() }}"
+    (fn ((ref summary-parts) usize) string)))
+
+(def part-date (rust "{0}.4" (fn ((ref summary-parts)) i64)))
+
+(def part-labels (rust "{0}.5.clone()" (fn ((ref summary-parts)) (vec string))))
+
+(def part-count (rust "{0}.6" (fn ((ref summary-parts)) i64)))
+
+(def message-parts-of
+  (rust "{{ use base64::Engine; let {!raw} = {0}.get(\"raw\").and_then(|{!r}| {!r}.as_str()).unwrap_or_default(); let {!bytes} = base64::engine::GeneralPurpose::new(&base64::alphabet::URL_SAFE, base64::engine::GeneralPurposeConfig::new().with_decode_padding_mode(base64::engine::DecodePaddingMode::Indifferent)).decode({!raw}.trim()).unwrap_or_default(); let {!date} = {0}.get(\"internalDate\").and_then(|{!d}| {!d}.as_str()).and_then(|{!d}| {!d}.parse::<i64>().ok()).unwrap_or(0); match mail_parser::MessageParser::default().parse(&{!bytes}) {{ Some({!parsed}) => {{ let {!addresses} = |{!list}: Option<mail_parser::AddressList>| {!list}.map(|{!list}| {!list}.mailboxes().map(|{!mailbox}| match ({!mailbox}.name(), {!mailbox}.address()) {{ (Some({!name}), Some({!address})) => format!(\"{{}} <{{}}>\", {!name}, {!address}), (None, Some({!address})) => {!address}.to_string(), (Some({!name}), None) => {!name}.to_string(), (None, None) => String::new() }}).collect::<Vec<_>>()).unwrap_or_default(); let {!has_html} = {!parsed}.html_body().any(|{!part}| {!part}.is_content_type(\"text\", \"html\")); ({!addresses}({!parsed}.from()).into_iter().next().unwrap_or_default(), {!addresses}({!parsed}.to()), {!addresses}({!parsed}.cc()), {!parsed}.subject().unwrap_or_default().to_string(), {!date}, {!parsed}.body_text(0).map(|{!t}| {!t}.replace(\"\\r\\n\", \"\\n\")).unwrap_or_default(), if {!has_html} {{ {!parsed}.body_html(0).map(|{!h}| {!h}.into_owned()) }} else {{ None }}, {!parsed}.message_id().map(|{!id}| format!(\"<{{}}>\", {!id})).unwrap_or_default(), {!parsed}.references().map(|{!list}| {!list}.iter().map(|{!id}| format!(\"<{{}}>\", {!id})).collect::<Vec<_>>().join(\" \")).unwrap_or_default()) }} None => (String::new(), Vec::new(), Vec::new(), String::new(), {!date}, String::new(), None, String::new(), String::new()) }} }}"
+    (fn ((ref json-value)) message-parts)))
+
+(def message-text
+  (rust "{{ let {!parts} = {0}; match {1} {{ 0 => &{!parts}.0, 3 => &{!parts}.3, 5 => &{!parts}.5, 7 => &{!parts}.7, _ => &{!parts}.8 }}.clone() }}"
+    (fn ((ref message-parts) usize) string)))
+
+(def message-addresses
+  (rust "if {1} == 1 {{ {0}.1.clone() }} else {{ {0}.2.clone() }}"
+    (fn ((ref message-parts) usize) (vec string))))
+
+(def message-date (rust "{0}.4" (fn ((ref message-parts)) i64)))
+
+(def message-html (rust "{0}.6.clone()" (fn ((ref message-parts)) (option string))))

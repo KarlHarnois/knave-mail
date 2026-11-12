@@ -10,12 +10,20 @@ export class SystemClipboard {
 
   ensureAvailable(): void {
     if (this.host.clipboard) return;
-    Object.defineProperty(this.host, "clipboard", { value: new MemoryClipboard(), configurable: true });
+    this.useMemoryClipboard();
   }
 
   write(text: string): void {
-    this.host.clipboard
-      ?.writeText(text)
-      .catch((error: unknown) => this.reportError(`clipboard: ${String(error)}`));
+    this.host.clipboard?.writeText(text).catch((error: unknown) => this.keepInMemory(text, error));
+  }
+
+  private keepInMemory(text: string, error: unknown): void {
+    this.reportError(`system clipboard unavailable, yanks stay inside knave-mail: ${String(error)}`);
+    this.useMemoryClipboard();
+    void this.host.clipboard?.writeText(text);
+  }
+
+  private useMemoryClipboard(): void {
+    Object.defineProperty(this.host, "clipboard", { value: new MemoryClipboard(), configurable: true });
   }
 }

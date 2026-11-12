@@ -1,5 +1,6 @@
-/doc/
-target/
 .direnv/
-node_modules/
+/doc/
 frontend/dist/
+node_modules/
+/target/
+target/

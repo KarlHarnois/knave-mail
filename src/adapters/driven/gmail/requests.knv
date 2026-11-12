@@ -1,0 +1,61 @@
+(use domain/labels label-change)
+(use domain/mail outgoing thread-query)
+(use domain/summary all-mail-label)
+
+(export label-path labels-path message-path modify-body modify-path
+        send-body send-path thread-list-path thread-metadata-path
+        thread-path)
+
+(def users-me "/gmail/v1/users/me")
+
+(defn labels-path () (str users-me "/labels"))
+
+(type label-path (fn ((ref str)) string))
+
+(defn label-path (label-id) (str users-me "/labels/" (url-encoded label-id)))
+
+(type thread-list-path (fn ((ref thread-query)) string))
+
+(defn thread-list-path (query)
+  (str users-me "/threads?maxResults=" (:limit query)
+       (if (= (:label query) all-mail-label)
+         (str "")
+         (str "&labelIds=" (url-encoded (:label query))))
+       (if (empty? (:query query))
+         (str "")
+         (str "&q=" (url-encoded (:query query))))))
+
+(type thread-metadata-path (fn ((ref str)) string))
+
+(defn thread-metadata-path (thread-id)
+  (str users-me "/threads/" (url-encoded thread-id)
+       "?format=metadata&metadataHeaders=From&metadataHeaders=Subject"))
+
+(type thread-path (fn ((ref str)) string))
+
+(defn thread-path (thread-id)
+  (str users-me "/threads/" (url-encoded thread-id) "?format=minimal"))
+
+(type message-path (fn ((ref str)) string))
+
+(defn message-path (message-id)
+  (str users-me "/messages/" (url-encoded message-id) "?format=raw"))
+
+(type modify-path (fn ((ref str)) string))
+
+(defn modify-path (thread-id)
+  (str users-me "/threads/" (url-encoded thread-id) "/modify"))
+
+(defn send-path () (str users-me "/messages/send"))
+
+(def modify-body
+  (rust "serde_json::json!({{\"addLabelIds\": {0}.added, \"removeLabelIds\": {0}.removed}}).to_string()"
+    (fn ((ref label-change)) string)))
+
+(def send-body
+  (rust "{{ use base64::Engine; let {!sent} = {0}; let {!mailbox} = |{!written}: &String| match {!written}.split_once('<') {{ Some(({!name}, {!rest})) => mail_builder::headers::address::Address::new_address(Some({!name}.trim().trim_matches('\"').to_string()), {!rest}.trim_end_matches('>').trim().to_string()), None => mail_builder::headers::address::Address::new_address(None::<String>, {!written}.trim().to_string()) }}; let mut {!builder} = mail_builder::MessageBuilder::new().from({!mailbox}(&{!sent}.from)).to(mail_builder::headers::address::Address::new_list({!sent}.to.iter().map(|{!a}| {!mailbox}({!a})).collect())).subject({!sent}.subject.as_str()).text_body({!sent}.body.as_str()); if !{!sent}.cc.is_empty() {{ {!builder} = {!builder}.cc(mail_builder::headers::address::Address::new_list({!sent}.cc.iter().map(|{!a}| {!mailbox}({!a})).collect())); }} if let Some({!parent}) = &{!sent}.in_reply_to {{ {!builder} = {!builder}.in_reply_to({!parent}.trim_matches(|{!c}| {!c} == '<' || {!c} == '>').to_string()); }} if !{!sent}.references.is_empty() {{ {!builder} = {!builder}.references({!sent}.references.split_whitespace().map(|{!id}| {!id}.trim_matches(|{!c}| {!c} == '<' || {!c} == '>').to_string()).collect::<Vec<_>>()); }} let {!raw} = base64::engine::general_purpose::URL_SAFE.encode({!builder}.write_to_vec().unwrap_or_default()); match &{!sent}.thread_id {{ Some({!thread}) => serde_json::json!({{\"raw\": {!raw}, \"threadId\": {!thread}}}), None => serde_json::json!({{\"raw\": {!raw}}}) }}.to_string() }}"
+    (fn ((ref outgoing)) string)))
+
+(def url-encoded
+  (rust "{0}.bytes().map(|{!byte}| if {!byte}.is_ascii_alphanumeric() || b\"-_.~\".contains(&{!byte}) {{ ({!byte} as char).to_string() }} else {{ format!(\"%{{:02X}}\", {!byte}) }}).collect::<String>()"
+    (fn ((ref str)) string)))

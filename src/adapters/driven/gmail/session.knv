@@ -1,0 +1,120 @@
+(use adapters/driven/gmail/http http-agent http-get http-get-all
+                                http-post-form http-post-json http-reply
+                                reply-body reply-status)
+(use adapters/driving/json/value json-value parse-json string-field)
+(use domain/mail-error mail-error)
+
+(export ->gmail-endpoints ->gmail-session api-get! api-get-all! api-post!
+        gmail-endpoints gmail-session)
+
+(def unauthorized 401)
+
+(defstruct gmail-endpoints
+  :api-base string
+  :token-url string
+  :client-id string
+  :client-secret string)
+
+(defstruct gmail-session
+  :agent http-agent
+  :endpoints gmail-endpoints
+  :refresh-token string
+  :access-token (option string))
+
+(type api-get! (fn ((mut gmail-session) (ref str)) (result json-value mail-error)))
+
+(defn api-get! (session path)
+  (let (url (api-url session path)
+        first-reply (try (sent (http-get (ref (:agent session)) (ref url)
+                                         (ref (try (access-token! session)))))))
+    (if (= (reply-status (ref first-reply)) unauthorized)
+      (do (try (refresh! session))
+          (checked (try (sent (http-get (ref (:agent session)) (ref url)
+                                        (ref (try (access-token! session))))))))
+      (checked first-reply))))
+
+(type api-get-all!
+  (fn ((mut gmail-session) (ref (vec string))) (result (vec json-value) mail-error)))
+
+(defn api-get-all! (session paths)
+  (let (token (try (access-token! session))
+        urls (collect (map (iter paths) (fn (path) (api-url session path))))
+        replies (http-get-all (ref (:agent session)) (ref urls) (ref token)))
+    (collect-results (collect (map (into-replies replies)
+                                   (fn (outcome) (checked (try (sent outcome)))))))))
+
+(type api-post!
+  (fn ((mut gmail-session) (ref str) (ref str)) (result json-value mail-error)))
+
+(defn api-post! (session path body)
+  (let (url (api-url session path)
+        first-reply (try (sent (http-post-json (ref (:agent session)) (ref url)
+                                               (ref (try (access-token! session))) body))))
+    (if (= (reply-status (ref first-reply)) unauthorized)
+      (do (try (refresh! session))
+          (checked (try (sent (http-post-json (ref (:agent session)) (ref url)
+                                              (ref (try (access-token! session))) body)))))
+      (checked first-reply))))
+
+(type access-token! (fn ((mut gmail-session)) (result string mail-error)))
+
+(defn access-token! (session)
+  (match (ref (:access-token session))
+    ((some token) (ok (clone token)))
+    (none (do (try (refresh! session))
+              (access-token! session)))))
+
+(type refresh! (fn ((mut gmail-session)) (result unit mail-error)))
+
+(defn refresh! (session)
+  (let (endpoints (ref (:endpoints session))
+        form (vec (pair (str "grant_type") (str "refresh_token"))
+                  (pair (str "client_id") (clone (:client-id endpoints)))
+                  (pair (str "client_secret") (clone (:client-secret endpoints)))
+                  (pair (str "refresh_token") (clone (:refresh-token session))))
+        reply (try (sent (http-post-form (ref (:agent session)) (ref (:token-url endpoints)) (ref form)))))
+    (if (= (reply-status (ref reply)) 200)
+      (let (body (try (as-internal (parse-json (ref (reply-body (ref reply)))))))
+        (set! (:access-token session) (some (try (as-internal (string-field (ref body) "access_token")))))
+        (ok (do)))
+      (err (mail-error/auth-required
+             (str "Google refused the saved sign-in; run `knave-mail accounts add` again"))))))
+
+(type checked (fn (http-reply) (result json-value mail-error)))
+
+(defn checked (reply)
+  (let (status (reply-status (ref reply))
+        body (reply-body (ref reply)))
+    (cond
+      ((and (>= status 200) (< status 300)) (as-internal (parse-json (ref (non-empty-json body)))))
+      ((= status 404) (err (mail-error/not-found (str "Gmail has no such item: " body))))
+      ((or (= status 401) (= status 403)) (err (mail-error/auth-required (str "Gmail refused access: " body))))
+      ((or (= status 429) (>= status 500)) (err (mail-error/network (str "Gmail is unavailable (" status ")"))))
+      (else (err (mail-error/internal (str "Gmail answered " status ": " body)))))))
+
+(type sent (fn ((result http-reply string)) (result http-reply mail-error)))
+
+(defn sent (outcome)
+  (map-err outcome (fn (problem) (mail-error/network (str "cannot reach Google: " problem)))))
+
+(type as-internal (where (value) (fn ((result value string)) (result value mail-error))))
+
+(defn as-internal (outcome)
+  (map-err outcome (fn (problem) (mail-error/internal (str "unexpected Gmail answer: " problem)))))
+
+(type api-url (fn ((ref gmail-session) (ref str)) string))
+
+(defn api-url (session path)
+  (str (:api-base (:endpoints session)) path))
+
+(def non-empty-json
+  (rust "if {0}.trim().is_empty() {{ String::from(\"{{}}\") }} else {{ {0} }}"
+    (fn (string) string)))
+
+(def into-replies
+  (rust "{0}.into_iter()"
+    (fn ((vec (result http-reply string))) (iterator (result http-reply string)))))
+
+(def collect-results
+  (rust "{0}.into_iter().collect::<Result<Vec<_>, _>>()"
+    (fn ((vec (result json-value mail-error))) (result (vec json-value) mail-error))))

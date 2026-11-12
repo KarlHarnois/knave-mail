@@ -39,6 +39,7 @@
           .body(std::borrow::Cow::Borrowed({!body}))
           .expect(\"an asset response\")
       }})
+      .with_clipboard(true)
       .with_initialization_script(&{!startup_script})
       .with_ipc_handler(move |{!request}| drop({!sender}.send({!request}.into_body())))
       .with_url(\"knave://localhost/\")

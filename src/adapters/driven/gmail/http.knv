@@ -1,0 +1,30 @@
+(export http-agent http-get http-get-all http-post-form http-post-json
+        http-reply new-agent reply-body reply-status)
+
+(deftype http-agent (rust "ureq::Agent"))
+
+(deftype http-reply (rust "(u16, String)"))
+
+(def new-agent
+  (rust "ureq::Agent::from(ureq::Agent::config_builder().http_status_as_error(false).timeout_global(Some(std::time::Duration::from_secs(30))).build())"
+    (fn () http-agent)))
+
+(def http-get
+  (rust "{0}.get({1}).header(\"Authorization\", &format!(\"Bearer {{}}\", {2})).call().map(|mut {!response}| ({!response}.status().as_u16(), {!response}.body_mut().with_config().limit(64 * 1024 * 1024).read_to_string().unwrap_or_default())).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref http-agent) (ref str) (ref str)) (result http-reply string))))
+
+(def http-get-all
+  (rust "{{ let ({!agent}, {!urls}, {!token}) = ({0}, {1}, {2}); let mut {!replies} = Vec::with_capacity({!urls}.len()); for {!chunk} in {!urls}.chunks(8) {{ std::thread::scope(|{!scope}| {{ let {!handles}: Vec<_> = {!chunk}.iter().map(|{!url}| {!scope}.spawn(move || {!agent}.get({!url}).header(\"Authorization\", &format!(\"Bearer {{}}\", {!token})).call().map(|mut {!response}| ({!response}.status().as_u16(), {!response}.body_mut().with_config().limit(64 * 1024 * 1024).read_to_string().unwrap_or_default())).map_err(|{!error}| {!error}.to_string()))).collect(); for {!handle} in {!handles} {{ {!replies}.push({!handle}.join().unwrap_or_else(|_| Err(String::from(\"a request thread panicked\")))); }} }}); }} {!replies} }}"
+    (fn ((ref http-agent) (ref (vec string)) (ref str)) (vec (result http-reply string)))))
+
+(def http-post-json
+  (rust "{0}.post({1}).header(\"Authorization\", &format!(\"Bearer {{}}\", {2})).header(\"Content-Type\", \"application/json\").send({3}).map(|mut {!response}| ({!response}.status().as_u16(), {!response}.body_mut().read_to_string().unwrap_or_default())).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref http-agent) (ref str) (ref str) (ref str)) (result http-reply string))))
+
+(def http-post-form
+  (rust "{0}.post({1}).send_form({2}.iter().map(|({!key}, {!value})| ({!key}.as_str(), {!value}.as_str()))).map(|mut {!response}| ({!response}.status().as_u16(), {!response}.body_mut().read_to_string().unwrap_or_default())).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref http-agent) (ref str) (ref (vec (pair string string)))) (result http-reply string))))
+
+(def reply-status (rust "{0}.0" (fn ((ref http-reply)) u16)))
+
+(def reply-body (rust "{0}.1.clone()" (fn ((ref http-reply)) string)))
