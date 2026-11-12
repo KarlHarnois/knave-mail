@@ -23,15 +23,23 @@ export class MessageStack {
   }
 
   focusBy(offset: number): void {
-    this.focus(this.focusIndex + offset);
+    this.focus(this.focusIndex + offset, "start");
+  }
+
+  stepBy(offset: number): void {
+    this.focus(this.focusIndex + offset, "nearest");
+  }
+
+  focusedElement(): HTMLElement | null {
+    return this.cards[this.focusIndex]?.element ?? null;
   }
 
   focusFirst(): void {
-    this.focus(0);
+    this.focus(0, "start");
   }
 
   focusLast(): void {
-    this.focus(this.cards.length - 1);
+    this.focus(this.cards.length - 1, "start");
   }
 
   focusAt(offset: number): void {
@@ -48,16 +56,16 @@ export class MessageStack {
     if (card) act(card);
   }
 
-  private focus(index: number): void {
+  private focus(index: number, block: ScrollLogicalPosition): void {
     const target = Math.min(Math.max(0, index), this.cards.length - 1);
     this.cards[this.focusIndex]?.showFocus(false);
     this.focusIndex = target;
-    this.withFocused((card) => this.reveal(card));
+    this.withFocused((card) => this.reveal(card, block));
   }
 
-  private reveal(card: MessageCard): void {
+  private reveal(card: MessageCard, block: ScrollLogicalPosition): void {
     card.expand();
     card.showFocus(true);
-    card.element.scrollIntoView?.({ block: "start" });
+    card.element.scrollIntoView?.({ block });
   }
 }

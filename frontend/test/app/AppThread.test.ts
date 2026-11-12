@@ -86,13 +86,19 @@ describe("thread view", () => {
     expect(ThreadHarness.focusedMessageId()).toBe("m-1");
   });
 
-  test("j and k scroll the thread by lines and take a count", async () => {
+  test("k moves to the previous message when the focused one fits on screen", async () => {
     const app = await ThreadHarness.opened();
-    const view = document.querySelector<HTMLElement>('[data-test="thread-view"]');
-    await app.press("3j");
-    expect(view?.scrollTop).toBe(180);
     await app.press("k");
-    expect(view?.scrollTop).toBe(120);
+    expect(ThreadHarness.focusedMessageId()).toBe("m-1");
+    expect(document.querySelector<HTMLElement>(FOCUSED)?.dataset["expanded"]).toBe("true");
+  });
+
+  test("j and k take a count", async () => {
+    const app = await ThreadHarness.opened();
+    await app.press("2k");
+    expect(ThreadHarness.focusedMessageId()).toBe("m-0");
+    await app.press("j");
+    expect(ThreadHarness.focusedMessageId()).toBe("m-1");
   });
 
   test("gg goes back to the top of the thread", async () => {

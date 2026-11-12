@@ -4,12 +4,12 @@ import type { Action, ThreadAction } from "../keys/KeyBindings";
 import { MessageReplies } from "./MessageReplies";
 import { MessageStack } from "./MessageStack";
 import { ThreadHeader } from "./ThreadHeader";
+import { ThreadPager } from "./ThreadPager";
 import type { ThreadScreenPorts } from "./ThreadScreenPorts";
 import { ThreadTextMode } from "./ThreadTextMode";
 
 type Handler = (count: number) => void;
 
-const LINE_SCROLL_PIXELS = 60;
 const FOCUS_LINE_FRACTION = 3;
 
 export class ThreadScreen implements Screen {
@@ -18,6 +18,7 @@ export class ThreadScreen implements Screen {
   private readonly header: ThreadHeader;
   private readonly replies: MessageReplies;
   private readonly messages: MessageStack;
+  private readonly pager: ThreadPager;
   private readonly handlers: ReadonlyMap<Action, Handler>;
   private readonly textMode: ThreadTextMode;
   private openGeneration = 0;
@@ -31,6 +32,7 @@ export class ThreadScreen implements Screen {
     this.header = new ThreadHeader(document);
     this.replies = new MessageReplies(ports);
     this.messages = new MessageStack(ports.cards);
+    this.pager = new ThreadPager(this.element, this.messages);
     this.element.append(this.header.element, this.messages.element);
     this.textMode = new ThreadTextMode(ports.host, () => this.focus());
     this.handlers = this.createHandlers();
@@ -86,8 +88,8 @@ export class ThreadScreen implements Screen {
       ["previousThread", (count) => this.openNeighbour(-count)],
       ["firstMessage", () => this.scrollToTop()],
       ["lastMessage", () => this.messages.focusLast()],
-      ["lineDown", (count) => this.scrollBy(count * LINE_SCROLL_PIXELS)],
-      ["lineUp", (count) => this.scrollBy(-count * LINE_SCROLL_PIXELS)],
+      ["lineDown", (count) => this.pager.down(count)],
+      ["lineUp", (count) => this.pager.up(count)],
       ["scrollDown", () => this.scrollBy(this.element.clientHeight / 2)],
       ["scrollUp", () => this.scrollBy(-this.element.clientHeight / 2)],
     ];

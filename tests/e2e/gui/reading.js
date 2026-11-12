@@ -15,4 +15,12 @@ knaveE2E.scenario(async (driver) => {
   const afterMove = e2e.selected(driver).slice(0, 40);
   await e2e.step("<CR>");
   e2e.check("unicode text renders", driver.text('[data-test~="thread-view"]').includes("こんにちは"), `${beforeMove} -> ${afterMove} | ${driver.text('[data-test~="thread-view"]').slice(0, 60)}`);
+  await e2e.step("q/never-ending<CR>");
+  await e2e.step("<CR>");
+  const focusedId = () => document.querySelector('[data-test~="focused-message"]')?.getAttribute("data-message-id");
+  e2e.check("a long thread opens on its newest message", focusedId() === "m-long-11", focusedId());
+  await e2e.step("kk");
+  e2e.check("k steps back through the messages of a thread", focusedId() === "m-long-9", focusedId());
+  await e2e.step("j");
+  e2e.check("j steps forward through the messages of a thread", focusedId() === "m-long-10", focusedId());
 });
