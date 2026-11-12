@@ -129,11 +129,34 @@ describe("thread view", () => {
     expect(app.status("mode")).toBe("LIST");
   });
 
-  test("e archives the thread and returns to the list", async () => {
+  test("e archives the thread and stays on it marked archived", async () => {
     const app = await ThreadHarness.opened();
     await app.press("e");
     expect(app.core.lastArgsFor("archive")["threadIds"]).toEqual(["t-0"]);
+    expect(app.status("mode")).toBe("THREAD");
+    expect(app.driver.text('[data-test="thread-archived"]')).toBe("archived");
+  });
+
+  test("e again moves the thread back to the inbox", async () => {
+    const app = await ThreadHarness.opened();
+    await app.press("ee");
+    expect(app.core.lastArgsFor("move-to-inbox")["threadIds"]).toEqual(["t-0"]);
+    expect(app.driver.text('[data-test="thread-archived"]')).toBe("");
+  });
+
+  test("leaving an archived inbox thread drops it from the list", async () => {
+    const app = await ThreadHarness.opened();
+    await app.press("eq");
     expect(app.status("mode")).toBe("LIST");
+    expect(app.selectedThreadId()).toBe("t-1");
+    expect(app.driver.text('[data-test~="thread-list"]')).not.toContain("Subject 0");
+  });
+
+  test("J after e opens the next thread and drops the archived one", async () => {
+    const app = await ThreadHarness.opened();
+    await app.press("eJ");
+    expect(app.core.lastArgsFor("thread")["threadId"]).toBe("t-1");
+    await app.press("q");
     expect(app.selectedThreadId()).toBe("t-1");
   });
 
@@ -145,8 +168,10 @@ describe("thread view", () => {
 
   test("s and U toggle star and unread on the open thread", async () => {
     const app = await ThreadHarness.opened();
+    expect(app.driver.text('[data-test="thread-star"]')).toBe("");
     await app.press("s");
-    expect(app.driver.text('[data-test="thread-subject"]')).toBe("★ Subject 0");
+    expect(app.driver.text('[data-test="thread-star"]')).toBe("★");
+    expect(app.status("mode")).toBe("THREAD");
     await app.press("U");
     expect(app.core.lastArgsFor("mark-unread")["threadIds"]).toEqual(["t-0"]);
   });

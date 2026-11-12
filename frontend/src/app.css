@@ -140,7 +140,8 @@ body {
   font-weight: 650;
 }
 
-.row-archived {
+.row-archived,
+.thread-archived {
   margin-right: 0.6em;
   padding: 0 0.4em;
   border: 1px solid var(--border);
@@ -176,9 +177,21 @@ body {
 }
 
 .thread-subject {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
   font-size: 1.25em;
   font-weight: 600;
   margin: 0 0 0.75em;
+}
+
+.thread-star {
+  color: var(--star);
+}
+
+.thread-star:empty,
+.thread-archived:empty {
+  display: none;
 }
 
 .message {

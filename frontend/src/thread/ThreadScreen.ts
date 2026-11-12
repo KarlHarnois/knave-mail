@@ -7,6 +7,7 @@ import { ThreadHeader } from "./ThreadHeader";
 import { ThreadPager } from "./ThreadPager";
 import type { ThreadScreenPorts } from "./ThreadScreenPorts";
 import { ThreadTextMode } from "./ThreadTextMode";
+import { ThreadTriage } from "./ThreadTriage";
 
 type Handler = (count: number) => void;
 
@@ -21,6 +22,7 @@ export class ThreadScreen implements Screen {
   private readonly pager: ThreadPager;
   private readonly handlers: ReadonlyMap<Action, Handler>;
   private readonly textMode: ThreadTextMode;
+  private readonly triage: ThreadTriage;
   private openGeneration = 0;
 
   constructor(private readonly ports: ThreadScreenPorts) {
@@ -35,6 +37,7 @@ export class ThreadScreen implements Screen {
     this.pager = new ThreadPager(this.element, this.messages);
     this.element.append(this.header.element, this.messages.element);
     this.textMode = new ThreadTextMode(ports.host, () => this.focus());
+    this.triage = new ThreadTriage(this.header, ports.actions, () => this.close());
     this.handlers = this.createHandlers();
   }
 
@@ -75,7 +78,7 @@ export class ThreadScreen implements Screen {
     return new Map<ThreadAction, Handler>([
       ...this.movementHandlers(),
       ...this.messageHandlers(),
-      ...this.threadHandlers(),
+      ...this.triage.handlers(),
     ]);
   }
 
@@ -105,21 +108,11 @@ export class ThreadScreen implements Screen {
     ];
   }
 
-  private threadHandlers(): [ThreadAction, Handler][] {
-    const actions = this.ports.actions;
-    return [
-      ["archive", () => this.header.withSummary((summary) => this.closeAfter(() => actions.toggleArchive(summary)))],
-      ["trash", () => this.header.withSummary((summary) => this.closeAfter(() => actions.trash(summary)))],
-      ["toggleStar", () => this.header.withSummary((summary) => this.header.show(actions.toggleStar(summary)))],
-      ["toggleUnread", () => this.header.withSummary((summary) => this.header.show(actions.toggleUnread(summary)))],
-      ["moveToInbox", () => this.header.withSummary((summary) => actions.moveToInboxAll([summary]))],
-      ["undo", () => this.closeAfter(() => actions.undo())],
-    ];
-  }
-
   private openNeighbour(offset: number): void {
     const neighbour = this.ports.neighbourThread(offset);
-    if (neighbour && neighbour.id !== this.header.threadId) this.open(neighbour);
+    if (!neighbour || neighbour.id === this.header.threadId) return;
+    this.triage.putAway();
+    this.open(neighbour);
   }
 
   private scrollToTop(): void {
@@ -132,12 +125,8 @@ export class ThreadScreen implements Screen {
     this.messages.focusAt(this.element.scrollTop + this.element.clientHeight / FOCUS_LINE_FRACTION);
   }
 
-  private closeAfter(act: () => void): void {
-    act();
-    this.close();
-  }
-
   private close(): void {
+    this.triage.putAway();
     this.closeCards();
     this.ports.host.back();
   }

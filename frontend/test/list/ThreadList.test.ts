@@ -118,6 +118,13 @@ describe("ThreadList changes", () => {
     expect(fixture.list.length).toBe(9);
   });
 
+  test("removing another thread keeps the selection", () => {
+    const fixture = new ListFixture(10);
+    fixture.act((list) => list.moveTo(4));
+    fixture.act((list) => list.remove("t-2"));
+    expect(fixture.selectedRow()?.dataset["threadId"]).toBe("t-4");
+  });
+
   test("refresh keeps the selected thread", () => {
     const fixture = new ListFixture(10);
     fixture.act((list) => list.moveTo(3));

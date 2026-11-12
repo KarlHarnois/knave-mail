@@ -80,9 +80,7 @@ export class ThreadList {
   }
 
   remove(threadId: string): void {
-    this.summaries = this.summaries.filter((summary) => summary.id !== threadId);
-    this.cursor.resize(this.summaries.length);
-    this.moveTo(this.cursor.index);
+    this.refresh(this.summaries.filter((summary) => summary.id !== threadId));
   }
 
   moveBy(delta: number): void {

@@ -21,8 +21,14 @@ export class ThreadActions {
 
   constructor(private readonly ports: ThreadActionPorts) {}
 
-  toggleArchive(summary: ThreadSummary): void {
-    this.toggleArchiveAll([summary]);
+  toggleArchive(summary: ThreadSummary): ThreadSummary {
+    const archived = this.archiveRule.isArchived(summary);
+    const updated = archived ? this.moveToInboxAll([summary]) : this.markArchivedAll([summary]);
+    return updated[0] ?? summary;
+  }
+
+  dropArchivedFromInbox(summary: ThreadSummary): void {
+    if (this.archiveRule.isArchived(summary) && this.isInInboxView()) this.ports.list.remove(summary.id);
   }
 
   toggleArchiveAll(summaries: ThreadSummary[]): void {
@@ -36,10 +42,13 @@ export class ThreadActions {
     this.ports.notify(`archived ${this.threadCount(summaries)}`);
   }
 
-  moveToInboxAll(summaries: ThreadSummary[]): void {
-    this.updateAll(summaries.map((summary) => ({ ...summary, labels: [...this.without(summary, "INBOX"), "INBOX"] })));
-    this.send("move-to-inbox", summaries);
-    this.ports.notify(`moved ${this.threadCount(summaries)} to the inbox`);
+  moveToInboxAll(summaries: ThreadSummary[]): ThreadSummary[] {
+    const updated = this.updateAll(
+      summaries.map((summary) => ({ ...summary, labels: [...this.without(summary, INBOX.id), INBOX.id] })),
+    );
+    this.send("move-to-inbox", updated);
+    this.ports.notify(`moved ${this.threadCount(updated)} to the inbox`);
+    return updated;
   }
 
   undo(): void {
@@ -87,9 +96,24 @@ export class ThreadActions {
     return updated;
   }
 
+  private markArchivedAll(summaries: ThreadSummary[]): ThreadSummary[] {
+    const updated = this.updateAll(summaries.map((summary) => this.archivedCopy(summary)));
+    this.send("archive", updated);
+    this.ports.notify(`archived ${this.threadCount(updated)}`);
+    return updated;
+  }
+
   private removeFromInbox(summary: ThreadSummary): void {
-    if (this.ports.session.labelId === INBOX.id) this.ports.list.remove(summary.id);
-    else this.ports.list.update({ ...summary, labels: this.without(summary, "INBOX") });
+    if (this.isInInboxView()) this.ports.list.remove(summary.id);
+    else this.ports.list.update(this.archivedCopy(summary));
+  }
+
+  private isInInboxView(): boolean {
+    return this.ports.session.labelId === INBOX.id;
+  }
+
+  private archivedCopy(summary: ThreadSummary): ThreadSummary {
+    return { ...summary, labels: this.without(summary, INBOX.id) };
   }
 
   private threadCount(summaries: readonly ThreadSummary[]): string {
