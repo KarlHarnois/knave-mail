@@ -17,6 +17,7 @@ export type ThreadScreenPorts = {
   errors: ErrorReporter;
   cards: MessageCardServices;
   openDraft: (draft: Draft) => void;
+  neighbourThread: (offset: number) => ThreadSummary | undefined;
 };
 
 type Handler = (count: number) => void;
@@ -97,6 +98,8 @@ export class ThreadScreen implements Screen {
       ["back", () => this.close()],
       ["nextMessage", (count) => this.focusMessage(this.focusIndex + count)],
       ["previousMessage", (count) => this.focusMessage(this.focusIndex - count)],
+      ["nextThread", (count) => this.openNeighbour(count)],
+      ["previousThread", (count) => this.openNeighbour(-count)],
       ["firstMessage", () => this.focusMessage(0)],
       ["lastMessage", () => this.focusMessage(this.cards.length - 1)],
       ["scrollDown", () => this.scrollByHalfPage(1)],
@@ -111,6 +114,11 @@ export class ThreadScreen implements Screen {
       ["toggleStar", () => this.withSummary((summary) => this.showSummary(this.ports.actions.toggleStar(summary)))],
       ["toggleUnread", () => this.withSummary((summary) => this.showSummary(this.ports.actions.toggleUnread(summary)))],
     ]);
+  }
+
+  private openNeighbour(offset: number): void {
+    const neighbour = this.ports.neighbourThread(offset);
+    if (neighbour && neighbour.id !== this.summary?.id) this.open(neighbour);
   }
 
   private focusMessage(index: number): void {

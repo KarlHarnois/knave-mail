@@ -28,6 +28,8 @@ export type ThreadAction =
   | "back"
   | "nextMessage"
   | "previousMessage"
+  | "nextThread"
+  | "previousThread"
   | "firstMessage"
   | "lastMessage"
   | "scrollDown"
@@ -79,6 +81,8 @@ export const THREAD_BINDINGS: ReadonlyArray<readonly [string, ThreadAction]> = [
   ["j", "nextMessage"],
   ["<Down>", "nextMessage"],
   ["k", "previousMessage"],
+  ["J", "nextThread"],
+  ["K", "previousThread"],
   ["<Up>", "previousMessage"],
   ["gg", "firstMessage"],
   ["G", "lastMessage"],

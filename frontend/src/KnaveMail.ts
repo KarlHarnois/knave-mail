@@ -28,6 +28,7 @@ import { TestDriver, type TestDriverApi } from "./TestDriver";
 import { ThreadActions } from "./ThreadActions";
 import { ThreadList } from "./ThreadList";
 import { ThreadRowRenderer } from "./ThreadRowRenderer";
+import type { ThreadSummary } from "./Protocol";
 import { ThreadScreen } from "./ThreadScreen";
 import type { Transport } from "./Transport";
 import { VimClipboard } from "./VimClipboard";
@@ -192,7 +193,13 @@ export class KnaveMail {
       errors: this.errors,
       cards: { document: this.document, sandbox: new HtmlSandbox(), dates: this.dates, editors: this.editors },
       openDraft: (draft) => this.composeScreen.open(draft),
+      neighbourThread: (offset) => this.selectNeighbour(offset),
     });
+  }
+
+  private selectNeighbour(offset: number): ThreadSummary | undefined {
+    this.list.moveBy(offset);
+    return this.list.selected();
   }
 
   private createComposeScreen(): ComposeScreen {

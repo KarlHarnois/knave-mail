@@ -25,6 +25,39 @@ describe("thread view", () => {
     expect(app.status("mode")).toBe("THREAD");
   });
 
+  test("J opens the next thread in the list", async () => {
+    const app = await ThreadHarness.opened();
+    await app.press("J");
+    expect(app.core.lastArgsFor("thread").threadId).toBe("t-1");
+    expect(app.status("mode")).toBe("THREAD");
+  });
+
+  test("K opens the previous thread in the list", async () => {
+    const app = await AppHarness.started();
+    await app.press("jj<CR>");
+    await app.press("K");
+    expect(app.core.lastArgsFor("thread").threadId).toBe("t-1");
+  });
+
+  test("a count skips threads", async () => {
+    const app = await ThreadHarness.opened();
+    await app.press("2J");
+    expect(app.core.lastArgsFor("thread").threadId).toBe("t-2");
+  });
+
+  test("K on the first thread stays on it", async () => {
+    const app = await ThreadHarness.opened();
+    const requests = app.core.requestsFor("thread").length;
+    await app.press("K");
+    expect(app.core.requestsFor("thread").length).toBe(requests);
+  });
+
+  test("going back after J selects the thread that was read", async () => {
+    const app = await ThreadHarness.opened();
+    await app.press("Jq");
+    expect(app.driver.text('[data-test~="selected-row"]')).toContain("Subject 1");
+  });
+
   test("enter opens the thread too", async () => {
     const app = await AppHarness.started();
     await app.press("j<CR>");
