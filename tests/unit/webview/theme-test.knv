@@ -1,0 +1,71 @@
+(use adapters/driving/webview/theme/theme-css theme-css)
+
+(defn css-of (text)
+  (clone (:css (theme-css text))))
+
+(defn warnings-of (text)
+  (clone (:warnings (theme-css text))))
+
+(deftest an-empty-theme-changes-nothing
+  (assert (= (css-of "(theme)") "")))
+
+(deftest fonts-and-size-become-variables
+  (assert (= (css-of "(theme :font-chrome \"Iosevka Aile\" :font-size 15)")
+             ":root {\n  --font-chrome: \"Iosevka Aile\", system-ui, sans-serif;\n  --font-size: 15px;\n}\n")))
+
+(deftest the-text-font-falls-back-to-monospace
+  (assert (= (css-of "(theme :font-text \"IosevkaTerm\")")
+             ":root {\n  --font-text: \"IosevkaTerm\", monospace;\n}\n")))
+
+(deftest colors-override-their-mode-only
+  (assert (= (css-of "(theme (light :accent \"#0969da\") (dark :background \"#000000\"))")
+             ":root {\n  --light-accent: #0969da;\n  --dark-background: #000000;\n}\n")))
+
+(deftest a-mode-forces-the-color-scheme
+  (assert (= (css-of "(theme :mode \"dark\")")
+             ":root {\n  color-scheme: dark;\n}\n")))
+
+(deftest system-mode-follows-the-desktop
+  (assert (= (css-of "(theme :mode \"system\")")
+             ":root {\n  color-scheme: light dark;\n}\n")))
+
+(deftest comments-are-ignored
+  (assert (= (css-of "; my theme\n(theme :font-size 16) ; bigger\n")
+             ":root {\n  --font-size: 16px;\n}\n")))
+
+(deftest named-and-functional-colors-are-accepted
+  (assert (= (warnings-of
+               "(theme (dark :star \"gold\" :muted \"rgb(120, 120, 120)\"))")
+             (the (vec string) (vec)))))
+
+(deftest an-unknown-key-is-skipped-with-a-warning
+  (assert (= (warnings-of "(theme :font-weight 700 :font-size 15)")
+             (vec (str "theme.knv: unknown key :font-weight; use :font-chrome, :font-text, :font-size or :mode"))))
+  (assert (= (css-of "(theme :font-weight 700 :font-size 15)")
+             ":root {\n  --font-size: 15px;\n}\n")))
+
+(deftest an-unknown-color-is-skipped-with-a-warning
+  (assert (= (warnings-of "(theme (light :link \"#00f\"))")
+             (vec (str "theme.knv: unknown color :link in (light ...)")))))
+
+(deftest a-value-that-could-break-the-stylesheet-is-rejected
+  (assert (= (warnings-of
+               "(theme (dark :background \"red; } body { display: none\"))")
+             (vec (str "theme.knv: `red; } body { display: none` is not a valid :background")))))
+
+(deftest a-font-size-out-of-range-is-rejected
+  (assert (= (warnings-of "(theme :font-size 400)")
+             (vec (str "theme.knv: `400` is not a valid :font-size")))))
+
+(deftest an-unknown-section-is-rejected
+  (assert (= (warnings-of "(theme (sepia :background \"#fff\"))")
+             (vec (str "theme.knv: unknown section (sepia ...); use (light ...) or (dark ...)")))))
+
+(deftest unbalanced-parentheses-keep-the-default-theme
+  (assert (= (warnings-of "(theme :font-size 15")
+             (vec (str "theme.knv: the parentheses do not balance"))))
+  (assert (= (css-of "(theme :font-size 15") "")))
+
+(deftest the-file-must-start-with-theme
+  (assert (= (warnings-of "(colors :font-size 15)")
+             (vec (str "theme.knv: the file must start with (theme ...), not (colors ...)")))))

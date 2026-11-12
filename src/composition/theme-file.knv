@@ -1,0 +1,20 @@
+(use adapters/driving/webview/theme/theme-css theme-css)
+(use composition/settings settings)
+
+(export theme-stylesheet)
+
+(type theme-stylesheet
+  (fn ((ref settings)) string))
+
+(defn theme-stylesheet (chosen)
+  (match (file-text (ref (:theme-path chosen)))
+    ((some text)
+     (let (themed (theme-css (ref text)))
+       (for-each (iter (:warnings themed))
+         (fn (warning) (eprintln warning)))
+       (clone (:css themed))))
+    (none (str ""))))
+
+(def file-text
+  (rust "std::fs::read_to_string({0}).ok()"
+    (fn ((ref str)) (option string))))

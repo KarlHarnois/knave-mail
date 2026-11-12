@@ -23,9 +23,10 @@
     let {!event_loop} = tao::event_loop::EventLoopBuilder::<String>::with_user_event().build();
     let {!outbox} = {!event_loop}.create_proxy();
     let ({!sender}, {!inbox}) = std::sync::mpsc::channel::<String>();
-    let {!worker} = {2};
+    let {!worker} = {3};
     std::thread::spawn(move || {!worker}({!inbox}, {!outbox}));
     let {!startup_script} = {1}.to_string();
+    let {!theme_css} = {2}.to_string();
     let {!window} = tao::window::WindowBuilder::new()
       .with_title({0})
       .with_inner_size(tao::dpi::LogicalSize::new(1100.0, 760.0))
@@ -33,14 +34,15 @@
       .expect(\"the window opens\");
     let {!webview} = wry::WebViewBuilder::new()
       .with_custom_protocol(\"knave\".into(), move |_, {!request}| {{
-        let ({!body}, {!kind}): (&'static [u8], &str) = match {!request}.uri().path() {{
-          \"/app.js\" => (include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../../../frontend/dist/app.js\")), \"text/javascript; charset=utf-8\"),
-          \"/app.css\" => (include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../../../frontend/dist/app.css\")), \"text/css; charset=utf-8\"),
-          _ => (include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../../../frontend/dist/index.html\")), \"text/html; charset=utf-8\"),
+        let ({!body}, {!kind}): (std::borrow::Cow<'static, [u8]>, &str) = match {!request}.uri().path() {{
+          \"/theme.css\" => (std::borrow::Cow::Owned({!theme_css}.clone().into_bytes()), \"text/css; charset=utf-8\"),
+          \"/app.js\" => (std::borrow::Cow::Borrowed(include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../../../frontend/dist/app.js\"))), \"text/javascript; charset=utf-8\"),
+          \"/app.css\" => (std::borrow::Cow::Borrowed(include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../../../frontend/dist/app.css\"))), \"text/css; charset=utf-8\"),
+          _ => (std::borrow::Cow::Borrowed(include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../../../frontend/dist/index.html\"))), \"text/html; charset=utf-8\"),
         }};
         wry::http::Response::builder()
           .header(\"Content-Type\", {!kind})
-          .body(std::borrow::Cow::Borrowed({!body}))
+          .body({!body})
           .expect(\"an asset response\")
       }})
       .with_clipboard(true)
@@ -59,6 +61,7 @@
     }})
   }}"
     (fn ((ref str)
+         (ref str)
          (ref str)
          (fn-once (request-inbox reply-outbox) unit))
       unit)))

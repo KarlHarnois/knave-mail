@@ -8,6 +8,8 @@
 
 (def run-seconds 60)
 
+(def theme-file "tests/fixtures/theme/e2e-theme.sexp")
+
 (deftask e2e ()
   "Builds knave-mail and runs each GUI scenario under xvfb-run against the memory backend."
   (try (succeeded "knave build"
@@ -45,6 +47,8 @@
                                    (str binary)
                                    (str "--backend")
                                    (str "memory")
+                                   (str "--theme")
+                                   (str theme-file)
                                    (str "--e2e-script")
                                    script))))
     ((err problem) (do (eprintln problem) false))))

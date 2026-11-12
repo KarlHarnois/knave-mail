@@ -59,6 +59,19 @@ Repeat step 5 for each account. `Ctrl-n` and `Ctrl-p` switch between accounts in
 
 A yank in the text reader pastes in the composer, and it also goes to the system clipboard.
 
+### Theme
+
+Create `~/.config/knave-mail/theme.knv` to change fonts, font size, light or dark mode and colors. [docs/theme.example.knv](docs/theme.example.knv) lists every key with its default, so copy it and keep only what you change:
+
+```lisp
+(theme
+  :font-size 15
+  :mode "dark"
+  (dark :accent "#ff8800"))
+```
+
+The window reads the file when it opens. It prints a warning for each key or value it skips, and opens with the defaults for those. `--theme <path>` or `KNAVE_MAIL_THEME` reads another file.
+
 ### The CLI
 
 Any command word runs the CLI instead of the window. `knave-mail help` lists the commands:

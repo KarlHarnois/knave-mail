@@ -1,0 +1,128 @@
+(use adapters/driving/webview/theme/theme-entries entry-key
+                                                  entry-section
+                                                  entry-value
+                                                  read-theme-entries
+                                                  theme-entry)
+
+(use adapters/driving/webview/theme/theme-values color?
+                                                 font-family?
+                                                 font-size?
+                                                 mode?)
+
+(export ->themed theme-css themed)
+
+(def color-names
+  (vec "background" "foreground" "muted" "border"
+       "selection" "selection-border" "accent" "error"
+       "star" "status-background"))
+
+(defstruct themed
+  :css string
+  :warnings (vec string))
+
+(type theme-css (fn ((ref str)) themed))
+
+(defn theme-css (text)
+  (match (read-theme-entries text)
+    ((ok entries) (declared-css (ref entries)))
+    ((err problem)
+     (->themed (str "")
+               (vec (str "theme.knv: " problem))))))
+
+(type declared-css
+  (fn ((ref (vec theme-entry))) themed))
+
+(defn declared-css (entries)
+  (loop (index 0
+         declarations (vec)
+         warnings (vec))
+    (if (>= index (len entries))
+      (->themed (root-rule (ref declarations)) warnings)
+      (let (entry (at entries index))
+        (match (declaration entry)
+          ((ok written)
+           (recur (+ index 1) (appended declarations written) warnings))
+          ((err problem)
+           (recur (+ index 1)
+                  declarations
+                  (appended warnings (str "theme.knv: " problem)))))))))
+
+(type declaration
+  (fn ((ref theme-entry))
+    (result string string)))
+
+(defn declaration (entry)
+  (let (section (entry-section entry)
+        key (entry-key entry)
+        value (entry-value entry))
+    (match (as-str section)
+      ("theme" (theme-declaration (ref key) (ref value)))
+      ("light" (color-declaration "light" (ref key) (ref value)))
+      ("dark" (color-declaration "dark" (ref key) (ref value)))
+      (_ (err (str "unknown section (" section
+                   " ...); use (light ...) or (dark ...)"))))))
+
+(type theme-declaration
+  (fn ((ref str) (ref str))
+    (result string string)))
+
+(defn theme-declaration (key value)
+  (match key
+    ("font-chrome"
+     (checked (font-family? value)
+              (str "--font-chrome: \"" value "\", system-ui, sans-serif")
+              key value))
+    ("font-text"
+     (checked (font-family? value)
+              (str "--font-text: \"" value "\", monospace")
+              key value))
+    ("font-size"
+     (checked (font-size? value)
+              (str "--font-size: " value "px")
+              key value))
+    ("mode"
+     (checked (mode? value)
+              (str "color-scheme: " (scheme-for value))
+              key value))
+    (_ (err (str "unknown key :" key
+                 "; use :font-chrome, :font-text, :font-size or :mode")))))
+
+(type color-declaration
+  (fn ((ref str) (ref str) (ref str))
+    (result string string)))
+
+(defn color-declaration (mode key value)
+  (cond
+    ((not (known-color? (ref color-names) key))
+     (err (str "unknown color :" key " in (" mode " ...)")))
+    (else (checked (color? value)
+                   (str "--" mode "-" key ": " value)
+                   key value))))
+
+(type checked
+  (fn (bool string (ref str) (ref str))
+    (result string string)))
+
+(defn checked (valid written key value)
+  (if valid
+    (ok written)
+    (err (str "`" value "` is not a valid :" key))))
+
+(type scheme-for
+  (fn ((ref str)) (ref str)))
+
+(defn scheme-for (mode)
+  (if (= mode "system") "light dark" mode))
+
+(def known-color?
+  (rust "{0}.contains(&{1})"
+    (fn ((ref (vec (ref str))) (ref str))
+      bool)))
+
+(def appended
+  (rust "{{ let mut {!all} = {0}; {!all}.push({1}); {!all} }}"
+    (fn ((vec string) string) (vec string))))
+
+(def root-rule
+  (rust "if {0}.is_empty() {{ String::new() }} else {{ format!(\":root {{{{\\n  {{}};\\n}}}}\\n\", {0}.join(\";\\n  \")) }}"
+    (fn ((ref (vec string))) string)))

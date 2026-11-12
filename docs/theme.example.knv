@@ -1,0 +1,25 @@
+; Copy this file to ~/.config/knave-mail/theme.knv and keep only what you change.
+(theme :font-chrome "Iosevka Aile"
+       :font-text "IosevkaTerm Nerd Font Mono"
+       :font-size 14
+       :mode "system"
+       (light :background "#ffffff"
+              :foreground "#1f2328"
+              :muted "#6e7781"
+              :border "#d8dee4"
+              :selection "#ddf4ff"
+              :selection-border "#0969da"
+              :accent "#0969da"
+              :error "#cf222e"
+              :star "#bf8700"
+              :status-background "#f6f8fa")
+       (dark :background "#0d1117"
+             :foreground "#e6edf3"
+             :muted "#8d96a0"
+             :border "#30363d"
+             :selection "#1f2a3a"
+             :selection-border "#4493f8"
+             :accent "#4493f8"
+             :error "#f85149"
+             :star "#d29922"
+             :status-background "#161b22"))

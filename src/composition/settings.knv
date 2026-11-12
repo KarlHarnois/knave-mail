@@ -12,7 +12,8 @@
   :api-base string
   :token-url string
   :auth-url string
-  :browser string)
+  :browser string
+  :theme-path string)
 
 (type settings-from
   (fn ((ref (vec string))) settings))
@@ -50,6 +51,9 @@
     :auth-url (option-value arguments "--auth-url"
                             "KNAVE_MAIL_AUTH_URL"
                             "https://accounts.google.com/o/oauth2/v2/auth")
+    :theme-path (option-value arguments "--theme"
+                              "KNAVE_MAIL_THEME"
+                              (ref (default-theme-path)))
     :browser (option-value arguments "--browser"
                            "KNAVE_MAIL_BROWSER"
                            "xdg-open")))
@@ -77,3 +81,7 @@
 (def script-text
   (rust "if {0}.is_empty() {{ String::new() }} else {{ std::fs::read_to_string({0}).unwrap_or_else(|{!error}| panic!(\"cannot read the e2e script {{}}: {{}}\", {0}, {!error})) }}"
     (fn ((ref str)) string)))
+
+(def default-theme-path
+  (rust "std::env::var(\"XDG_CONFIG_HOME\").map(std::path::PathBuf::from).or_else(|_| std::env::var(\"HOME\").map(|{!home}| std::path::Path::new(&{!home}).join(\".config\"))).unwrap_or_else(|_| std::path::PathBuf::from(\".\")).join(\"knave-mail/theme.knv\").to_string_lossy().into_owned()"
+    (fn () string)))

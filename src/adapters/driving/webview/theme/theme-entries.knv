@@ -1,0 +1,21 @@
+(export entry-key entry-section entry-value
+        read-theme-entries theme-entry)
+
+(deftype theme-entry (rust "(String, String, String)"))
+
+(def read-theme-entries
+  (rust "{{ let {!text} = {0}; let mut {!tokens} = Vec::<String>::new(); let mut {!chars} = {!text}.chars().peekable(); while let Some({!c}) = {!chars}.next() {{ match {!c} {{ '(' | ')' => {!tokens}.push({!c}.to_string()), ';' => {{ while let Some({!n}) = {!chars}.next() {{ if {!n} == '\\n' {{ break; }} }} }} '\"' => {{ let mut {!s} = String::from(\"\\\"\"); while let Some({!n}) = {!chars}.next() {{ if {!n} == '\"' {{ break; }} {!s}.push({!n}); }} {!tokens}.push({!s}); }} {!w} if {!w}.is_whitespace() => {{}} {!other} => {{ let mut {!atom} = {!other}.to_string(); while let Some(&{!n}) = {!chars}.peek() {{ if {!n}.is_whitespace() || {!n} == '(' || {!n} == ')' {{ break; }} {!atom}.push({!n}); {!chars}.next(); }} {!tokens}.push({!atom}); }} }} }} let mut {!entries} = Vec::<(String, String, String)>::new(); let mut {!section} = String::from(\"theme\"); let mut {!depth} = 0; let mut {!index} = 0; let mut {!problem} = None; while {!index} < {!tokens}.len() {{ let {!token} = &{!tokens}[{!index}]; if {!token} == \"(\" {{ {!depth} += 1; {!index} += 1; if let Some({!head}) = {!tokens}.get({!index}) {{ if {!depth} == 2 {{ {!section} = {!head}.clone(); }} else if {!depth} == 1 && {!head} != \"theme\" {{ {!problem} = Some(format!(\"the file must start with (theme ...), not ({{}} ...)\", {!head})); }} {!index} += 1; }} }} else if {!token} == \")\" {{ {!depth} -= 1; if {!depth} == 1 {{ {!section} = String::from(\"theme\"); }} {!index} += 1; }} else if let Some({!key}) = {!token}.strip_prefix(':') {{ match {!tokens}.get({!index} + 1) {{ Some({!value}) if {!value} != \"(\" && {!value} != \")\" => {{ {!entries}.push(({!section}.clone(), {!key}.to_string(), {!value}.trim_start_matches('\"').to_string())); {!index} += 2; }} _ => {{ {!problem} = Some(format!(\":{{}} has no value\", {!key})); {!index} += 1; }} }} }} else {{ {!problem} = Some(format!(\"unexpected `{{}}`; write :key value pairs\", {!token})); {!index} += 1; }} }} if {!depth} != 0 {{ {!problem} = Some(String::from(\"the parentheses do not balance\")); }} match {!problem} {{ Some({!message}) => Err({!message}), None => Ok({!entries}) }} }}"
+    (fn ((ref str))
+      (result (vec theme-entry) string))))
+
+(def entry-section
+  (rust "{0}.0.clone()"
+    (fn ((ref theme-entry)) string)))
+
+(def entry-key
+  (rust "{0}.1.clone()"
+    (fn ((ref theme-entry)) string)))
+
+(def entry-value
+  (rust "{0}.2.clone()"
+    (fn ((ref theme-entry)) string)))

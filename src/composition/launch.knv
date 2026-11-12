@@ -12,6 +12,7 @@
 (use composition/gmail-backend gmail-app)
 (use composition/memory-backend memory-app)
 (use composition/settings settings)
+(use composition/theme-file theme-stylesheet)
 (use domain/mail-error error-message mail-error)
 
 (export launch-cli launch-window)
@@ -47,8 +48,9 @@
 (type launch-window (fn (settings) unit))
 
 (defn launch-window (chosen)
-  (let (script (clone (:e2e-script chosen)))
-    (open-window "knave-mail" (ref script)
+  (let (script (clone (:e2e-script chosen))
+        stylesheet (theme-stylesheet (ref chosen)))
+    (open-window "knave-mail" (ref script) (ref stylesheet)
       (fn (inbox outbox)
         (let (owned chosen)
           (match (chosen-app (ref owned))

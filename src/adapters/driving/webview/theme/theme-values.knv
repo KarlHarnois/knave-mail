@@ -1,0 +1,17 @@
+(export color? font-family? font-size? mode?)
+
+(def color?
+  (rust "{{ let {!value} = {0}; ({!value}.starts_with('#') && matches!({!value}.len(), 4 | 5 | 7 | 9) && {!value}[1..].chars().all(|{!c}| {!c}.is_ascii_hexdigit())) || (!{!value}.is_empty() && {!value}.chars().all(|{!c}| {!c}.is_ascii_alphanumeric() || \"(),.% -\".contains({!c})) && {!value}.chars().next().is_some_and(|{!c}| {!c}.is_ascii_alphabetic())) }}"
+    (fn ((ref str)) bool)))
+
+(def font-family?
+  (rust "!{0}.is_empty() && {0}.chars().all(|{!c}| {!c}.is_alphanumeric() || \" -_.\".contains({!c}))"
+    (fn ((ref str)) bool)))
+
+(def font-size?
+  (rust "{0}.parse::<u32>().is_ok_and(|{!size}| (8..=40).contains(&{!size}))"
+    (fn ((ref str)) bool)))
+
+(def mode?
+  (rust "matches!({0}, \"light\" | \"dark\" | \"system\")"
+    (fn ((ref str)) bool)))

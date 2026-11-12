@@ -1,32 +1,38 @@
 :root {
   color-scheme: light dark;
-  --background: #ffffff;
-  --foreground: #1f2328;
-  --muted: #6e7781;
-  --border: #d8dee4;
-  --selection: #ddf4ff;
-  --selection-border: #0969da;
-  --accent: #0969da;
-  --error: #cf222e;
-  --star: #bf8700;
-  --status-background: #f6f8fa;
+  --light-background: #ffffff;
+  --light-foreground: #1f2328;
+  --light-muted: #6e7781;
+  --light-border: #d8dee4;
+  --light-selection: #ddf4ff;
+  --light-selection-border: #0969da;
+  --light-accent: #0969da;
+  --light-error: #cf222e;
+  --light-star: #bf8700;
+  --light-status-background: #f6f8fa;
+  --dark-background: #0d1117;
+  --dark-foreground: #e6edf3;
+  --dark-muted: #8d96a0;
+  --dark-border: #30363d;
+  --dark-selection: #1f2a3a;
+  --dark-selection-border: #4493f8;
+  --dark-accent: #4493f8;
+  --dark-error: #f85149;
+  --dark-star: #d29922;
+  --dark-status-background: #161b22;
+  --background: light-dark(var(--light-background), var(--dark-background));
+  --foreground: light-dark(var(--light-foreground), var(--dark-foreground));
+  --muted: light-dark(var(--light-muted), var(--dark-muted));
+  --border: light-dark(var(--light-border), var(--dark-border));
+  --selection: light-dark(var(--light-selection), var(--dark-selection));
+  --selection-border: light-dark(var(--light-selection-border), var(--dark-selection-border));
+  --accent: light-dark(var(--light-accent), var(--dark-accent));
+  --error: light-dark(var(--light-error), var(--dark-error));
+  --star: light-dark(var(--light-star), var(--dark-star));
+  --status-background: light-dark(var(--light-status-background), var(--dark-status-background));
   --font-chrome: system-ui, sans-serif;
   --font-text: monospace;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0d1117;
-    --foreground: #e6edf3;
-    --muted: #8d96a0;
-    --border: #30363d;
-    --selection: #1f2a3a;
-    --selection-border: #4493f8;
-    --accent: #4493f8;
-    --error: #f85149;
-    --star: #d29922;
-    --status-background: #161b22;
-  }
+  --font-size: 14px;
 }
 
 * {
@@ -40,7 +46,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-chrome);
-  font-size: 14px;
+  font-size: var(--font-size);
 }
 
 [hidden] {
