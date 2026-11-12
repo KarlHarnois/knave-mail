@@ -255,10 +255,10 @@ body {
   border-left-color: var(--cursor);
 }
 
-.text-reader .cm-editor .cm-selectionBackground,
-.composer .cm-editor .cm-selectionBackground,
-.text-reader .cm-editor.cm-focused .cm-selectionBackground,
-.composer .cm-editor.cm-focused .cm-selectionBackground {
+.app .text-reader .cm-editor .cm-selectionLayer .cm-selectionBackground,
+.app .composer .cm-editor .cm-selectionLayer .cm-selectionBackground,
+.app .text-reader .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground,
+.app .composer .cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground {
   background: var(--selection);
 }
 

@@ -16,6 +16,18 @@ knaveE2E.scenario(async (driver) => {
   const cursorStyle = fatCursor && getComputedStyle(fatCursor);
   const cursorColor = cursorStyle && (cursorStyle.backgroundColor === "rgba(0, 0, 0, 0)" ? cursorStyle.outlineColor : cursorStyle.backgroundColor);
   e2e.check("the composer cursor takes the theme cursor color", cursorColor === themedCursor, `${cursorColor} vs ${themedCursor}`);
+  const composerEditor = document.querySelector('[data-test~="composer"]:not([hidden]) .cm-editor');
+  const selectionLayer = composerEditor?.querySelector(".cm-selectionLayer");
+  const selectionMarker = document.createElement("div");
+  selectionMarker.className = "cm-selectionBackground";
+  selectionLayer?.append(selectionMarker);
+  composerEditor?.classList.add("cm-focused");
+  const probeSelection = document.createElement("span");
+  probeSelection.style.color = "var(--selection)";
+  document.body.append(probeSelection);
+  e2e.check("a focused composer selection takes the theme selection color", getComputedStyle(selectionMarker).backgroundColor === getComputedStyle(probeSelection).color, `${getComputedStyle(selectionMarker).backgroundColor} vs ${getComputedStyle(probeSelection).color}`);
+  probeSelection.remove();
+  selectionMarker.remove();
   await e2e.step("Gp");
   e2e.check("a yank from the reader pastes in the composer", driver.text('[data-test~="composer"]').includes("This is message number 0"), driver.text('[data-test~="composer"]').slice(-120));
   await e2e.step(":wq<CR>");
