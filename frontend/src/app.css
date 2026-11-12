@@ -112,7 +112,7 @@ body {
   height: var(--row-height);
   display: grid;
   grid-template-columns: 1.5em minmax(8em, 14em) auto 1fr auto;
-  gap: 0.75em;
+  column-gap: 0.75em;
   align-items: center;
   padding: 0 1em 0 0.5em;
   border-left: 3px solid transparent;
@@ -159,12 +159,15 @@ body {
   text-align: center;
 }
 
-.row-snippet,
-.row-date {
+.row-snippet {
   color: var(--muted);
 }
 
 .row-date {
+  min-width: 13ch;
+  padding-left: 2ch;
+  border-left: 1px solid var(--border);
+  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
