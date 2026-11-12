@@ -2,4 +2,5 @@
   (dependencies
     (wry "0.57.2")
     (tao "0.37.2")
-    (serde_json "1.0.154")))
+    (serde_json "1.0.154")
+    (rusqlite "0.42.0" :features ("bundled"))))

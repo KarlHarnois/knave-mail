@@ -1,0 +1,39 @@
+(use domain/mail-error mail-error)
+
+(export open-database sqlite-connection)
+
+(deftype sqlite-connection (rust "rusqlite::Connection"))
+
+(def schema
+  "PRAGMA journal_mode = WAL;
+   PRAGMA busy_timeout = 5000;
+   CREATE TABLE IF NOT EXISTS accounts (email TEXT PRIMARY KEY);
+   CREATE TABLE IF NOT EXISTS labels (
+     account TEXT NOT NULL, id TEXT NOT NULL, name TEXT NOT NULL, unread INTEGER NOT NULL,
+     PRIMARY KEY (account, id));
+   CREATE TABLE IF NOT EXISTS summaries (
+     account TEXT NOT NULL, id TEXT NOT NULL, subject TEXT NOT NULL,
+     participants TEXT NOT NULL, snippet TEXT NOT NULL, date INTEGER NOT NULL,
+     labels TEXT NOT NULL, message_count INTEGER NOT NULL,
+     PRIMARY KEY (account, id));
+   CREATE INDEX IF NOT EXISTS summaries_by_date ON summaries (account, date DESC);
+   CREATE TABLE IF NOT EXISTS threads (
+     account TEXT NOT NULL, id TEXT NOT NULL, subject TEXT NOT NULL, labels TEXT NOT NULL,
+     PRIMARY KEY (account, id));
+   CREATE TABLE IF NOT EXISTS messages (
+     account TEXT NOT NULL, id TEXT NOT NULL, thread_id TEXT NOT NULL,
+     position INTEGER NOT NULL, sender TEXT NOT NULL, recipients TEXT NOT NULL,
+     copied TEXT NOT NULL, subject TEXT NOT NULL, date INTEGER NOT NULL,
+     text TEXT NOT NULL, html TEXT, header_id TEXT NOT NULL, refs TEXT NOT NULL,
+     PRIMARY KEY (account, id));
+   CREATE INDEX IF NOT EXISTS messages_by_thread ON messages (account, thread_id, position);")
+
+(type open-database (fn ((ref str)) (result sqlite-connection mail-error)))
+
+(defn open-database (path)
+  (map-err (opened-with-schema path schema)
+    (fn (problem) (mail-error/internal (str "cannot open the cache at " path ": " problem)))))
+
+(def opened-with-schema
+  (rust "{{ let {!path} = std::path::Path::new({0}); if let Some({!parent}) = {!path}.parent() {{ let _ = std::fs::create_dir_all({!parent}); }} rusqlite::Connection::open({!path}).and_then(|{!connection}| {!connection}.execute_batch({1}).map(|_| {!connection})).map_err(|{!error}| {!error}.to_string()) }}"
+    (fn ((ref str) (ref str)) (result sqlite-connection string))))

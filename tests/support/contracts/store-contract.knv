@@ -1,0 +1,82 @@
+(use domain/labels archive-change)
+(use domain/mail ->account ->label ->thread-query)
+(use domain/summary summarize)
+(use ports/driven/store forget-account! load-accounts load-labels
+                        load-message load-thread load-threads relabel-stored!
+                        save-account! save-labels! save-thread! save-threads!
+                        store)
+(use support/memory-world sample-thread)
+
+(export keeps-accounts-once! forgets-accounts! keeps-labels-per-account!
+        lists-label-newest-first! keeps-whole-threads! finds-messages!
+        relabels-threads-and-summaries! misses-unknown-threads!)
+
+(def account "ada@example.com")
+
+(defn inbox () (->thread-query (str "INBOX") (str "") 10))
+
+(type ids (where ((kept store)) (fn ((ref kept)) (vec string))))
+
+(defn ids (kept)
+  (collect (map (iter (unwrap-ok (load-threads kept account (ref (inbox)))))
+                (fn (summary) (clone (:id summary))))))
+
+(type keeps-accounts-once! (where ((kept store)) (fn ((mut kept)) bool)))
+
+(defn keeps-accounts-once! (kept)
+  (unwrap-ok (save-account! kept (ref (->account (str account)))))
+  (unwrap-ok (save-account! kept (ref (->account (str account)))))
+  (= (len (unwrap-ok (load-accounts kept))) 1))
+
+(type forgets-accounts! (where ((kept store)) (fn ((mut kept)) bool)))
+
+(defn forgets-accounts! (kept)
+  (unwrap-ok (save-account! kept (ref (->account (str account)))))
+  (unwrap-ok (forget-account! kept account))
+  (empty? (unwrap-ok (load-accounts kept))))
+
+(type keeps-labels-per-account! (where ((kept store)) (fn ((mut kept)) bool)))
+
+(defn keeps-labels-per-account! (kept)
+  (unwrap-ok (save-labels! kept account (ref (vec (->label (str "INBOX") (str "Inbox") 3)))))
+  (unwrap-ok (save-labels! kept "other@example.com" (ref (vec (->label (str "SENT") (str "Sent") 0)))))
+  (= (unwrap-ok (load-labels kept account)) (vec (->label (str "INBOX") (str "Inbox") 3))))
+
+(type lists-label-newest-first! (where ((kept store)) (fn ((mut kept)) bool)))
+
+(defn lists-label-newest-first! (kept)
+  (unwrap-ok (save-threads! kept account
+                            (ref (vec (summarize (ref (sample-thread "old" (vec "INBOX") 100)))
+                                      (summarize (ref (sample-thread "new" (vec "INBOX") 300)))
+                                      (summarize (ref (sample-thread "other" (vec "SENT") 200)))))))
+  (= (ids kept) (vec (str "new") (str "old"))))
+
+(type keeps-whole-threads! (where ((kept store)) (fn ((mut kept)) bool)))
+
+(defn keeps-whole-threads! (kept)
+  (let (saved (sample-thread "t-1" (vec "INBOX" "UNREAD") 100))
+    (unwrap-ok (save-thread! kept account (ref saved)))
+    (= (unwrap-ok (load-thread kept account "t-1")) (some saved))))
+
+(type finds-messages! (where ((kept store)) (fn ((mut kept)) bool)))
+
+(defn finds-messages! (kept)
+  (unwrap-ok (save-thread! kept account (ref (sample-thread "t-1" (vec "INBOX") 100))))
+  (= (map-some (unwrap-ok (load-message kept account "m-t-1")) (fn (found) (clone (:text found))))
+     (some (str "Body of t-1"))))
+
+(type misses-unknown-threads! (where ((kept store)) (fn ((mut kept)) bool)))
+
+(defn misses-unknown-threads! (kept)
+  (and (= (unwrap-ok (load-thread kept account "t-9")) none)
+       (= (unwrap-ok (load-message kept account "m-9")) none)))
+
+(type relabels-threads-and-summaries! (where ((kept store)) (fn ((mut kept)) bool)))
+
+(defn relabels-threads-and-summaries! (kept)
+  (let (saved (sample-thread "t-1" (vec "INBOX") 100))
+    (unwrap-ok (save-thread! kept account (ref saved)))
+    (unwrap-ok (save-threads! kept account (ref (vec (summarize (ref saved))))))
+    (unwrap-ok (relabel-stored! kept account "t-1" (ref (archive-change))))
+    (and (empty? (ids kept))
+         (empty? (:labels (unwrap (unwrap-ok (load-thread kept account "t-1"))))))))

@@ -1,0 +1,94 @@
+(use adapters/driven/sqlite/connection sqlite-connection)
+(use adapters/driven/sqlite/rows as-internal)
+(use domain/mail ->message ->thread message thread)
+(use domain/mail-error mail-error)
+
+(export read-message read-thread relabel-thread write-thread)
+
+(deftype thread-row (rust "(String, Vec<String>)"))
+
+(deftype message-row
+  (rust "(String, String, String, Vec<String>, Vec<String>, String, i64, String, Option<String>, String, String)"))
+
+(type read-thread
+  (fn ((ref sqlite-connection) (ref str) (ref str)) (result (option thread) mail-error)))
+
+(defn read-thread (connection account thread-id)
+  (match (try (as-internal (thread-row-of connection account thread-id)))
+    ((some row)
+     (let (messages (try (as-internal (message-rows connection by-thread account thread-id))))
+       (ok (some (->thread :id (str thread-id)
+                           :subject (thread-subject (ref row))
+                           :labels (thread-labels (ref row))
+                           :messages (collect (map (iter messages)
+                                                   (fn (message-row) (message-from message-row)))))))))
+    (none (ok none))))
+
+(type read-message
+  (fn ((ref sqlite-connection) (ref str) (ref str)) (result (option message) mail-error)))
+
+(defn read-message (connection account message-id)
+  (ok (map-some (first (try (as-internal (message-rows connection by-id account message-id))))
+                (fn (row) (message-from row)))))
+
+(type write-thread (fn ((ref sqlite-connection) (ref str) (ref thread)) (result unit mail-error)))
+
+(defn write-thread (connection account saved)
+  (as-internal (replace-thread-rows connection account saved)))
+
+(type relabel-thread
+  (fn ((ref sqlite-connection) (ref str) (ref str) (vec string)) (result unit mail-error)))
+
+(defn relabel-thread (connection account thread-id labels)
+  (as-internal (update-thread-labels connection account thread-id labels)))
+
+(type message-from (fn ((ref message-row)) message))
+
+(defn message-from (row)
+  (->message :id (message-text row 0)
+             :thread-id (message-text row 1)
+             :from (message-text row 2)
+             :to (message-addresses row 3)
+             :cc (message-addresses row 4)
+             :subject (message-text row 5)
+             :date (message-date row)
+             :text (message-text row 7)
+             :html (message-html row)
+             :header-id (message-text row 9)
+             :references (message-text row 10)))
+
+(def by-thread "thread_id = ?2 ORDER BY position")
+
+(def by-id "id = ?2")
+
+(def thread-row-of
+  (rust "{0}.prepare_cached(\"SELECT subject, labels FROM threads WHERE account = ?1 AND id = ?2\").and_then(|mut {!statement}| {!statement}.query_row(rusqlite::params![{1}, {2}], |{!row}| Ok(({!row}.get::<_, String>(0)?, serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(1)?).unwrap_or_default()))).map(Some).or_else(|{!error}| if {!error} == rusqlite::Error::QueryReturnedNoRows {{ Ok(None) }} else {{ Err({!error}) }})).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection) (ref str) (ref str)) (result (option thread-row) string))))
+
+(def message-rows
+  (rust "{0}.prepare_cached(&format!(\"SELECT id, thread_id, sender, recipients, copied, subject, date, text, html, header_id, refs FROM messages WHERE account = ?1 AND {{}}\", {1})).and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{2}, {3}], |{!row}| Ok(({!row}.get(0)?, {!row}.get(1)?, {!row}.get(2)?, serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(3)?).unwrap_or_default(), serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(4)?).unwrap_or_default(), {!row}.get(5)?, {!row}.get(6)?, {!row}.get(7)?, {!row}.get(8)?, {!row}.get(9)?, {!row}.get(10)?))).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection) (ref str) (ref str) (ref str)) (result (vec message-row) string))))
+
+(def replace-thread-rows
+  (rust "{0}.unchecked_transaction().and_then(|{!transaction}| {{ {!transaction}.execute(\"INSERT OR REPLACE INTO threads (account, id, subject, labels) VALUES (?1, ?2, ?3, ?4)\", rusqlite::params![{1}, {2}.id, {2}.subject, serde_json::to_string(&{2}.labels).unwrap_or_default()])?; {!transaction}.execute(\"DELETE FROM messages WHERE account = ?1 AND thread_id = ?2\", rusqlite::params![{1}, {2}.id])?; for ({!position}, {!message}) in {2}.messages.iter().enumerate() {{ {!transaction}.execute(\"INSERT OR REPLACE INTO messages (account, id, thread_id, position, sender, recipients, copied, subject, date, text, html, header_id, refs) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)\", rusqlite::params![{1}, {!message}.id, {!message}.thread_id, {!position} as i64, {!message}.from, serde_json::to_string(&{!message}.to).unwrap_or_default(), serde_json::to_string(&{!message}.cc).unwrap_or_default(), {!message}.subject, {!message}.date, {!message}.text, {!message}.html, {!message}.header_id, {!message}.references])?; }} {!transaction}.commit() }}).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection) (ref str) (ref thread)) (result unit string))))
+
+(def update-thread-labels
+  (rust "{0}.execute(\"UPDATE threads SET labels = ?3 WHERE account = ?1 AND id = ?2\", rusqlite::params![{1}, {2}, serde_json::to_string(&{3}).unwrap_or_default()]).map(|_| ()).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection) (ref str) (ref str) (vec string)) (result unit string))))
+
+(def thread-subject (rust "{0}.0.clone()" (fn ((ref thread-row)) string)))
+
+(def thread-labels (rust "{0}.1.clone()" (fn ((ref thread-row)) (vec string))))
+
+(def message-text
+  (rust "{{ let {!row} = {0}; match {1} {{ 0 => &{!row}.0, 1 => &{!row}.1, 2 => &{!row}.2, 5 => &{!row}.5, 7 => &{!row}.7, 9 => &{!row}.9, _ => &{!row}.10 }}.clone() }}"
+    (fn ((ref message-row) usize) string)))
+
+(def message-addresses
+  (rust "if {1} == 3 {{ {0}.3.clone() }} else {{ {0}.4.clone() }}"
+    (fn ((ref message-row) usize) (vec string))))
+
+(def message-date (rust "{0}.6" (fn ((ref message-row)) i64)))
+
+(def message-html (rust "{0}.8.clone()" (fn ((ref message-row)) (option string))))

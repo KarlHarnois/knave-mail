@@ -1,0 +1,28 @@
+(use adapters/driven/memory/store empty-memory-store)
+(use adapters/driven/sqlite/store open-sqlite-store)
+(use support/contracts/store-contract finds-messages! forgets-accounts!
+                                      keeps-accounts-once! keeps-labels-per-account!
+                                      keeps-whole-threads! lists-label-newest-first!
+                                      misses-unknown-threads!
+                                      relabels-threads-and-summaries!)
+(use support/temporary temporary-path)
+
+(defn sqlite ()
+  (unwrap-ok (open-sqlite-store (ref (temporary-path "cache.sqlite3")))))
+
+(deftest memory-store-keeps-accounts-once (let (kept (empty-memory-store)) (assert (keeps-accounts-once! (mut kept)))))
+(deftest sqlite-store-keeps-accounts-once (let (kept (sqlite)) (assert (keeps-accounts-once! (mut kept)))))
+(deftest memory-store-forgets-accounts (let (kept (empty-memory-store)) (assert (forgets-accounts! (mut kept)))))
+(deftest sqlite-store-forgets-accounts (let (kept (sqlite)) (assert (forgets-accounts! (mut kept)))))
+(deftest memory-store-keeps-labels-per-account (let (kept (empty-memory-store)) (assert (keeps-labels-per-account! (mut kept)))))
+(deftest sqlite-store-keeps-labels-per-account (let (kept (sqlite)) (assert (keeps-labels-per-account! (mut kept)))))
+(deftest memory-store-lists-a-label-newest-first (let (kept (empty-memory-store)) (assert (lists-label-newest-first! (mut kept)))))
+(deftest sqlite-store-lists-a-label-newest-first (let (kept (sqlite)) (assert (lists-label-newest-first! (mut kept)))))
+(deftest memory-store-keeps-whole-threads (let (kept (empty-memory-store)) (assert (keeps-whole-threads! (mut kept)))))
+(deftest sqlite-store-keeps-whole-threads (let (kept (sqlite)) (assert (keeps-whole-threads! (mut kept)))))
+(deftest memory-store-finds-messages (let (kept (empty-memory-store)) (assert (finds-messages! (mut kept)))))
+(deftest sqlite-store-finds-messages (let (kept (sqlite)) (assert (finds-messages! (mut kept)))))
+(deftest memory-store-misses-unknown-threads (let (kept (empty-memory-store)) (assert (misses-unknown-threads! (mut kept)))))
+(deftest sqlite-store-misses-unknown-threads (let (kept (sqlite)) (assert (misses-unknown-threads! (mut kept)))))
+(deftest memory-store-relabels-threads-and-summaries (let (kept (empty-memory-store)) (assert (relabels-threads-and-summaries! (mut kept)))))
+(deftest sqlite-store-relabels-threads-and-summaries (let (kept (sqlite)) (assert (relabels-threads-and-summaries! (mut kept)))))
