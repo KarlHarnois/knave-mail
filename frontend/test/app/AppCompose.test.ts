@@ -119,7 +119,7 @@ describe("reply and forward", () => {
   test("f asks for a forward draft", async () => {
     const app = await AppHarness.started();
     await app.press("l");
-    await app.press("kf");
+    await app.press("[f");
     expect(app.core.lastArgsFor("forward-draft")).toEqual({ account: MailFixtures.ADA, messageId: "m-1" });
   });
 

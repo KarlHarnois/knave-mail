@@ -77,13 +77,30 @@ describe("thread view", () => {
     expect(app.core.lastArgsFor("mark-read")).toEqual({ account: MailFixtures.ADA, threadIds: ["t-0"] });
   });
 
-  test("j and k move between messages and expand them", async () => {
+  test("[ and ] jump between messages and expand them", async () => {
     const app = await ThreadHarness.opened();
-    await app.press("2k");
+    await app.press("2[");
     expect(ThreadHarness.focusedMessageId()).toBe("m-0");
     expect(document.querySelector<HTMLElement>(FOCUSED)?.dataset["expanded"]).toBe("true");
-    await app.press("j");
+    await app.press("]");
     expect(ThreadHarness.focusedMessageId()).toBe("m-1");
+  });
+
+  test("j and k scroll the thread by lines and take a count", async () => {
+    const app = await ThreadHarness.opened();
+    const view = document.querySelector<HTMLElement>('[data-test="thread-view"]');
+    await app.press("3j");
+    expect(view?.scrollTop).toBe(180);
+    await app.press("k");
+    expect(view?.scrollTop).toBe(120);
+  });
+
+  test("gg goes back to the top of the thread", async () => {
+    const app = await ThreadHarness.opened();
+    const view = document.querySelector<HTMLElement>('[data-test="thread-view"]');
+    await app.press("5jgg");
+    expect(view?.scrollTop).toBe(0);
+    expect(ThreadHarness.focusedMessageId()).toBe("m-0");
   });
 
   test("plain text messages render as text", async () => {

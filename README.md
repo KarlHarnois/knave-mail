@@ -54,7 +54,7 @@ Repeat step 5 for each account. `Ctrl-n` and `Ctrl-p` switch between accounts in
 | Where | Keys |
 | --- | --- |
 | Thread list | `j` `k` `gg` `G` and counts, `Enter` to open, `/` to search, `c` to compose, `e` archive, `#` trash, `I` move to inbox, `s` star, `U` read or unread, `u` undo, `V` select several threads, `gi` inbox, `ga` all mail, `R` sync, `:` command line |
-| Thread | `j` `k` between messages, `J` `K` between threads, `e` `#` `I` `s` `U` `u` as in the list, `r` reply, `a` reply all, `f` forward, `v` vim text reader for yanking, `i` load remote images, `q` back |
+| Thread | `j` `k` scroll, `[` `]` between messages, `J` `K` between threads, `e` `#` `I` `s` `U` `u` as in the list, `r` reply, `a` reply all, `f` forward, `v` vim text reader for yanking, `i` load remote images, `q` back |
 | Composer | vim editing, `:w` keeps the draft, `:x` or `ZZ` sends, `:q!` discards |
 
 A yank in the text reader pastes in the composer, and it also goes to the system clipboard. Press `?` or type `:help` for every key. `Ctrl +` and `Ctrl -` zoom in and out, and `Ctrl 0` resets the zoom.

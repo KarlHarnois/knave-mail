@@ -9,6 +9,9 @@ import { ThreadTextMode } from "./ThreadTextMode";
 
 type Handler = (count: number) => void;
 
+const LINE_SCROLL_PIXELS = 60;
+const FOCUS_LINE_FRACTION = 3;
+
 export class ThreadScreen implements Screen {
   readonly keyMode = "thread" as const;
   readonly element: HTMLElement;
@@ -81,10 +84,12 @@ export class ThreadScreen implements Screen {
       ["previousMessage", (count) => this.messages.focusBy(-count)],
       ["nextThread", (count) => this.openNeighbour(count)],
       ["previousThread", (count) => this.openNeighbour(-count)],
-      ["firstMessage", () => this.messages.focusFirst()],
+      ["firstMessage", () => this.scrollToTop()],
       ["lastMessage", () => this.messages.focusLast()],
-      ["scrollDown", () => this.scrollByHalfPage(1)],
-      ["scrollUp", () => this.scrollByHalfPage(-1)],
+      ["lineDown", (count) => this.scrollBy(count * LINE_SCROLL_PIXELS)],
+      ["lineUp", (count) => this.scrollBy(-count * LINE_SCROLL_PIXELS)],
+      ["scrollDown", () => this.scrollBy(this.element.clientHeight / 2)],
+      ["scrollUp", () => this.scrollBy(-this.element.clientHeight / 2)],
     ];
   }
 
@@ -115,8 +120,14 @@ export class ThreadScreen implements Screen {
     if (neighbour && neighbour.id !== this.header.threadId) this.open(neighbour);
   }
 
-  private scrollByHalfPage(direction: number): void {
-    this.element.scrollTop += (direction * this.element.clientHeight) / 2;
+  private scrollToTop(): void {
+    this.messages.focusFirst();
+    this.element.scrollTop = 0;
+  }
+
+  private scrollBy(pixels: number): void {
+    this.element.scrollTop += pixels;
+    this.messages.focusAt(this.element.scrollTop + this.element.clientHeight / FOCUS_LINE_FRACTION);
   }
 
   private closeAfter(act: () => void): void {

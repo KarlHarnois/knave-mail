@@ -34,6 +34,15 @@ export class MessageStack {
     this.focus(this.cards.length - 1);
   }
 
+  focusAt(offset: number): void {
+    const reached = this.cards.filter((card) => card.element.offsetTop <= offset);
+    const index = Math.max(0, reached.length - 1);
+    if (index === this.focusIndex) return;
+    this.cards[this.focusIndex]?.showFocus(false);
+    this.focusIndex = index;
+    this.cards[index]?.showFocus(true);
+  }
+
   withFocused(act: (card: MessageCard) => void): void {
     const card = this.cards[this.focusIndex];
     if (card) act(card);
@@ -49,6 +58,6 @@ export class MessageStack {
   private reveal(card: MessageCard): void {
     card.expand();
     card.showFocus(true);
-    card.element.scrollIntoView?.({ block: "nearest" });
+    card.element.scrollIntoView?.({ block: "start" });
   }
 }
