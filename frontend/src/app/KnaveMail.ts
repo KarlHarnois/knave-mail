@@ -5,6 +5,7 @@ import { CommandRunner } from "../commands/CommandRunner";
 import { ComposeScreen } from "../compose/ComposeScreen";
 import type { HelpScreen } from "../help/HelpScreen";
 import { KeyboardInput } from "../keys/KeyboardInput";
+import type { LabelPickerScreen } from "../labels/LabelPickerScreen";
 import { ListScreen } from "../list/ListScreen";
 import { SharedActions } from "../mail/SharedActions";
 import { HtmlSandbox } from "../thread/HtmlSandbox";
@@ -24,19 +25,21 @@ export class KnaveMail {
   private readonly threadScreen: ThreadScreen;
   private readonly composeScreen: ComposeScreen;
   private readonly helpScreen: HelpScreen;
+  private readonly labelPicker: LabelPickerScreen;
 
   constructor(
     private readonly window: Window,
     transport: Transport = new IpcTransport(window as never),
   ) {
     this.services = new MailServices(window, transport);
-    this.stage = this.createStage();
+    this.stage = this.services.stage();
     this.navigator = new Navigator(this.stage, this.createListScreen());
     this.shared = this.createSharedActions();
     this.app = this.createApp();
     this.threadScreen = this.createThreadScreen();
     this.composeScreen = this.createComposeScreen();
     this.helpScreen = this.services.helpScreen(this.app);
+    this.labelPicker = this.services.labelPicker(this.app, (label) => this.shared.goToLabel(label));
   }
 
   start(): void {
@@ -61,12 +64,6 @@ export class KnaveMail {
   private goBack(): void {
     if (!this.navigator.isAtRoot) this.navigator.current.perform("back", null);
     else if (this.services.session.isSearching) this.services.errors.run(this.services.session.clearSearch());
-  }
-
-  private createStage(): HTMLElement {
-    const stage = this.services.document.createElement("main");
-    stage.className = "stage";
-    return stage;
   }
 
   private createListScreen(): ListScreen {
@@ -97,6 +94,7 @@ export class KnaveMail {
       startCompose: () => this.composeScreen.resume(),
       showList: () => this.app.showList(),
       showHelp: () => this.helpScreen.open(),
+      pickLabel: () => this.labelPicker.open(),
     });
   }
 

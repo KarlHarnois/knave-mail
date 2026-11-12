@@ -3,9 +3,11 @@ import { MailClient } from "../bridge/MailClient";
 import type { Transport } from "../bridge/Transport";
 import { CommandLine } from "../commands/CommandLine";
 import { HelpScreen } from "../help/HelpScreen";
+import { LabelPickerScreen } from "../labels/LabelPickerScreen";
 import { ListWindow } from "../list/ListWindow";
 import { ThreadList } from "../list/ThreadList";
 import { ThreadRowRenderer } from "../list/ThreadRowRenderer";
+import type { LabelRef } from "../mail/LabelDirectory";
 import { LabelDirectory } from "../mail/LabelDirectory";
 import { MailSession } from "../mail/MailSession";
 import { SyncMonitor } from "../mail/SyncMonitor";
@@ -116,6 +118,24 @@ export class MailServices {
 
   zoomControl(): ZoomControl {
     return new ZoomControl(this.document.documentElement, (notice) => this.status.showNotice(notice));
+  }
+
+  stage(): HTMLElement {
+    const stage = this.document.createElement("main");
+    stage.className = "stage";
+    return stage;
+  }
+
+  labelPicker(host: ScreenHost, goToLabel: (label: LabelRef) => void): LabelPickerScreen {
+    return new LabelPickerScreen({
+      document: this.document,
+      host,
+      labels: this.labels,
+      session: this.session,
+      errors: this.errors,
+      askSearch: (submit) => this.commandLine.open("/", submit),
+      goToLabel,
+    });
   }
 
   helpScreen(host: ScreenHost): HelpScreen {

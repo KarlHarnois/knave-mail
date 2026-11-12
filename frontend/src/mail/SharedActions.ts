@@ -3,7 +3,7 @@ import type { CommandRunner } from "../commands/CommandRunner";
 import type { Action, SharedAction } from "../keys/KeyBindings";
 import type { ErrorReporter } from "../status/ErrorReporter";
 import type { StatusLine } from "../status/StatusLine";
-import { ALL_MAIL, INBOX } from "./LabelDirectory";
+import { ALL_MAIL, INBOX, type LabelRef } from "./LabelDirectory";
 import type { MailSession } from "./MailSession";
 import type { SyncMonitor } from "./SyncMonitor";
 
@@ -17,6 +17,7 @@ export type SharedActionPorts = {
   startCompose: () => void;
   showList: () => void;
   showHelp: () => void;
+  pickLabel: () => void;
 };
 
 export class SharedActions {
@@ -34,6 +35,10 @@ export class SharedActions {
     this.handlers.get(action)?.();
   }
 
+  goToLabel(label: LabelRef): void {
+    this.changeLocation(this.ports.session.goToLabel(label));
+  }
+
   startSearch(): void {
     this.ports.commandLine.open("/", (query) => this.changeLocation(this.ports.session.search(query)));
   }
@@ -45,6 +50,7 @@ export class SharedActions {
       ["compose", () => this.ports.startCompose()],
       ["goToInbox", () => this.changeLocation(session.goToLabel(INBOX))],
       ["goToAllMail", () => this.changeLocation(session.goToLabel(ALL_MAIL))],
+      ["pickLabel", () => this.ports.pickLabel()],
       ["nextAccount", () => this.changeLocation(session.cycleAccount(1))],
       ["previousAccount", () => this.changeLocation(session.cycleAccount(-1))],
       ["refresh", () => sync.sync()],

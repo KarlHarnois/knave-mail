@@ -20,6 +20,10 @@ export class LabelDirectory {
     return { id: label.id, name: label.name };
   }
 
+  async all(account: string): Promise<Label[]> {
+    return await this.labelsOf(account);
+  }
+
   forget(account: string): void {
     this.labelsByAccount.delete(account);
   }

@@ -11,6 +11,7 @@ export const ACTION_DESCRIPTIONS: Readonly<Record<Action, string>> = {
   undo: "Undo the last archive, trash, star or read change",
   goToInbox: "Go to the inbox",
   goToAllMail: "Go to all mail",
+  pickLabel: "Pick a label to show",
   nextAccount: "Next account",
   previousAccount: "Previous account",
   refresh: "Sync the current account",

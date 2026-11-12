@@ -42,7 +42,7 @@ describe("help page", () => {
 });
 
 describe("help navigation", () => {
-  const Cursor = ".help-row.help-cursor";
+  const Cursor = ".help-row.row-cursor";
 
   class HelpHarness {
     static cursorText(): string {
@@ -50,7 +50,7 @@ describe("help navigation", () => {
     }
 
     static cursorIndex(): number {
-      return [...document.querySelectorAll(".help-row")].findIndex((row) => row.classList.contains("help-cursor"));
+      return [...document.querySelectorAll(".help-row")].findIndex((row) => row.classList.contains("row-cursor"));
     }
   }
 
@@ -78,7 +78,7 @@ describe("help navigation", () => {
     const app = await AppHarness.started();
     await app.press("?/archive<CR>");
     expect(HelpHarness.cursorText()).toContain("Archive, or move back to the inbox");
-    expect(document.querySelectorAll(".help-row.help-match").length).toBeGreaterThan(1);
+    expect(document.querySelectorAll(".help-row.row-match").length).toBeGreaterThan(1);
   });
 
   test("n and N move between matches", async () => {
@@ -100,7 +100,7 @@ describe("help navigation", () => {
   test("escape clears a search before it closes the page", async () => {
     const app = await AppHarness.started();
     await app.press("?/archive<CR><Esc>");
-    expect(document.querySelectorAll(".help-row.help-match")).toHaveLength(0);
+    expect(document.querySelectorAll(".help-row.row-match")).toHaveLength(0);
     expect(app.isVisible(HELP)).toBe(true);
     await app.press("<Esc>");
     expect(app.isVisible(HELP)).toBe(false);

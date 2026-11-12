@@ -1,4 +1,4 @@
-export type HelpAction =
+export type CursorAction =
   | "down"
   | "up"
   | "top"
@@ -10,10 +10,11 @@ export type HelpAction =
   | "search"
   | "nextMatch"
   | "previousMatch"
+  | "choose"
   | "escape"
   | "close";
 
-export const HELP_BINDINGS: ReadonlyArray<readonly [string, HelpAction]> = [
+export const CURSOR_BINDINGS: ReadonlyArray<readonly [string, CursorAction]> = [
   ["j", "down"],
   ["<Down>", "down"],
   ["k", "up"],
@@ -27,7 +28,8 @@ export const HELP_BINDINGS: ReadonlyArray<readonly [string, HelpAction]> = [
   ["/", "search"],
   ["n", "nextMatch"],
   ["N", "previousMatch"],
+  ["<CR>", "choose"],
+  ["l", "choose"],
   ["<Esc>", "escape"],
   ["q", "close"],
-  ["?", "close"],
 ];
