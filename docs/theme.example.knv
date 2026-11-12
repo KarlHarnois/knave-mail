@@ -1,6 +1,9 @@
 ; Copy this file to ~/.config/knave-mail/theme.knv and keep only what you change.
-(theme :font-chrome "Iosevka Aile"
-       :font-text "IosevkaTerm Nerd Font Mono"
+; :font covers the whole window; :message-font covers message bodies, the text
+; reader and the composer, and falls back to :font, then to a monospace font.
+; Colors are hex: #rgb, #rrggbb or #rrggbbaa.
+(theme :font "Iosevka Aile"
+       :message-font "IosevkaTerm Nerd Font Mono"
        :font-size 14
        :mode "system"
        (light :background "#ffffff"
@@ -8,18 +11,18 @@
               :muted "#6e7781"
               :border "#d8dee4"
               :selection "#ddf4ff"
-              :selection-border "#0969da"
+              :cursor "#0969da"
               :accent "#0969da"
               :error "#cf222e"
               :star "#bf8700"
-              :status-background "#f6f8fa")
+              :status-bar "#f6f8fa")
        (dark :background "#0d1117"
              :foreground "#e6edf3"
              :muted "#8d96a0"
              :border "#30363d"
              :selection "#1f2a3a"
-             :selection-border "#4493f8"
+             :cursor "#4493f8"
              :accent "#4493f8"
              :error "#f85149"
              :star "#d29922"
-             :status-background "#161b22"))
+             :status-bar "#161b22"))

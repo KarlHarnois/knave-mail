@@ -9,13 +9,13 @@
 (deftest an-empty-theme-changes-nothing
   (assert (= (css-of "(theme)") "")))
 
-(deftest fonts-and-size-become-variables
-  (assert (= (css-of "(theme :font-chrome \"Iosevka Aile\" :font-size 15)")
-             ":root {\n  --font-chrome: \"Iosevka Aile\", system-ui, sans-serif;\n  --font-size: 15px;\n}\n")))
+(deftest the-font-and-size-become-variables
+  (assert (= (css-of "(theme :font \"Iosevka Aile\" :font-size 15)")
+             ":root {\n  --theme-font: \"Iosevka Aile\";\n  --font-size: 15px;\n}\n")))
 
-(deftest the-text-font-falls-back-to-monospace
-  (assert (= (css-of "(theme :font-text \"IosevkaTerm\")")
-             ":root {\n  --font-text: \"IosevkaTerm\", monospace;\n}\n")))
+(deftest the-message-font-has-its-own-variable
+  (assert (= (css-of "(theme :message-font \"IosevkaTerm\")")
+             ":root {\n  --theme-message-font: \"IosevkaTerm\";\n}\n")))
 
 (deftest colors-override-their-mode-only
   (assert (= (css-of "(theme (light :accent \"#0969da\") (dark :background \"#000000\"))")
@@ -33,14 +33,22 @@
   (assert (= (css-of "; my theme\n(theme :font-size 16) ; bigger\n")
              ":root {\n  --font-size: 16px;\n}\n")))
 
-(deftest named-and-functional-colors-are-accepted
-  (assert (= (warnings-of
-               "(theme (dark :star \"gold\" :muted \"rgb(120, 120, 120)\"))")
+(deftest every-hex-color-length-is-accepted
+  (assert (= (warnings-of "(theme (dark :star \"#fc0\" :muted \"#787878\" :selection \"#33333380\"))")
              (the (vec string) (vec)))))
+
+(deftest a-color-that-is-not-hex-is-rejected
+  (assert (= (warnings-of "(theme (dark :star \"gold\"))")
+             (vec (str "theme.knv: `gold` is not a valid :star")))))
+
+(deftest the-cursor-and-status-bar-colors-are-themable
+  (assert (= (css-of
+               "(theme (dark :cursor \"#e68e0d\" :status-bar \"#2a2a2a\"))")
+             ":root {\n  --dark-cursor: #e68e0d;\n  --dark-status-bar: #2a2a2a;\n}\n")))
 
 (deftest an-unknown-key-is-skipped-with-a-warning
   (assert (= (warnings-of "(theme :font-weight 700 :font-size 15)")
-             (vec (str "theme.knv: unknown key :font-weight; use :font-chrome, :font-text, :font-size or :mode"))))
+             (vec (str "theme.knv: unknown key :font-weight; use :font, :message-font, :font-size or :mode"))))
   (assert (= (css-of "(theme :font-weight 700 :font-size 15)")
              ":root {\n  --font-size: 15px;\n}\n")))
 

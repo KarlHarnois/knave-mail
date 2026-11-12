@@ -1,7 +1,7 @@
 (export color? font-family? font-size? mode?)
 
 (def color?
-  (rust "{{ let {!value} = {0}; ({!value}.starts_with('#') && matches!({!value}.len(), 4 | 5 | 7 | 9) && {!value}[1..].chars().all(|{!c}| {!c}.is_ascii_hexdigit())) || (!{!value}.is_empty() && {!value}.chars().all(|{!c}| {!c}.is_ascii_alphanumeric() || \"(),.% -\".contains({!c})) && {!value}.chars().next().is_some_and(|{!c}| {!c}.is_ascii_alphabetic())) }}"
+  (rust "{{ let {!value} = {0}; {!value}.starts_with('#') && matches!({!value}.len(), 4 | 7 | 9) && {!value}[1..].chars().all(|{!c}| {!c}.is_ascii_hexdigit()) }}"
     (fn ((ref str)) bool)))
 
 (def font-family?

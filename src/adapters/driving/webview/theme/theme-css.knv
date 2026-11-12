@@ -13,8 +13,8 @@
 
 (def color-names
   (vec "background" "foreground" "muted" "border"
-       "selection" "selection-border" "accent" "error"
-       "star" "status-background"))
+       "selection" "cursor" "accent" "error" "star"
+       "status-bar"))
 
 (defstruct themed
   :css string
@@ -68,13 +68,13 @@
 
 (defn theme-declaration (key value)
   (match key
-    ("font-chrome"
+    ("font"
      (checked (font-family? value)
-              (str "--font-chrome: \"" value "\", system-ui, sans-serif")
+              (str "--theme-font: \"" value "\"")
               key value))
-    ("font-text"
+    ("message-font"
      (checked (font-family? value)
-              (str "--font-text: \"" value "\", monospace")
+              (str "--theme-message-font: \"" value "\"")
               key value))
     ("font-size"
      (checked (font-size? value)
@@ -85,7 +85,7 @@
               (str "color-scheme: " (scheme-for value))
               key value))
     (_ (err (str "unknown key :" key
-                 "; use :font-chrome, :font-text, :font-size or :mode")))))
+                 "; use :font, :message-font, :font-size or :mode")))))
 
 (type color-declaration
   (fn ((ref str) (ref str) (ref str))

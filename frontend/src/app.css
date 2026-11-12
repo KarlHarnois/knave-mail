@@ -5,33 +5,33 @@
   --light-muted: #6e7781;
   --light-border: #d8dee4;
   --light-selection: #ddf4ff;
-  --light-selection-border: #0969da;
+  --light-cursor: #0969da;
   --light-accent: #0969da;
   --light-error: #cf222e;
   --light-star: #bf8700;
-  --light-status-background: #f6f8fa;
+  --light-status-bar: #f6f8fa;
   --dark-background: #0d1117;
   --dark-foreground: #e6edf3;
   --dark-muted: #8d96a0;
   --dark-border: #30363d;
   --dark-selection: #1f2a3a;
-  --dark-selection-border: #4493f8;
+  --dark-cursor: #4493f8;
   --dark-accent: #4493f8;
   --dark-error: #f85149;
   --dark-star: #d29922;
-  --dark-status-background: #161b22;
+  --dark-status-bar: #161b22;
   --background: light-dark(var(--light-background), var(--dark-background));
   --foreground: light-dark(var(--light-foreground), var(--dark-foreground));
   --muted: light-dark(var(--light-muted), var(--dark-muted));
   --border: light-dark(var(--light-border), var(--dark-border));
   --selection: light-dark(var(--light-selection), var(--dark-selection));
-  --selection-border: light-dark(var(--light-selection-border), var(--dark-selection-border));
+  --cursor: light-dark(var(--light-cursor), var(--dark-cursor));
   --accent: light-dark(var(--light-accent), var(--dark-accent));
   --error: light-dark(var(--light-error), var(--dark-error));
   --star: light-dark(var(--light-star), var(--dark-star));
-  --status-background: light-dark(var(--light-status-background), var(--dark-status-background));
-  --font-chrome: system-ui, sans-serif;
-  --font-text: monospace;
+  --status-bar: light-dark(var(--light-status-bar), var(--dark-status-bar));
+  --font: var(--theme-font, system-ui), system-ui, sans-serif;
+  --message-font: var(--theme-message-font, var(--theme-font, monospace)), monospace;
   --font-size: 14px;
 }
 
@@ -45,7 +45,7 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-chrome);
+  font-family: var(--font);
   font-size: var(--font-size);
 }
 
@@ -117,7 +117,7 @@ body {
 
 .thread-row.selected {
   background: var(--selection);
-  border-left-color: var(--selection-border);
+  border-left-color: var(--cursor);
 }
 
 .thread-row.unread .row-from,
@@ -157,7 +157,7 @@ body {
 }
 
 .message.focused {
-  border-left-color: var(--selection-border);
+  border-left-color: var(--cursor);
 }
 
 .message-header {
@@ -207,20 +207,20 @@ body {
 .message-text {
   margin: 0;
   padding: 0.9em;
-  font-family: var(--font-text);
+  font-family: var(--message-font);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
 
 .text-reader .cm-editor,
 .composer .cm-editor {
-  font-family: var(--font-text);
+  font-family: var(--message-font);
   outline: none;
 }
 
 .text-reader .cm-scroller,
 .composer .cm-scroller {
-  font-family: var(--font-text);
+  font-family: var(--message-font);
 }
 
 .composer {
@@ -233,7 +233,7 @@ body {
 
 .command-line {
   padding: 0.2em 0.75em;
-  font-family: var(--font-text);
+  font-family: var(--message-font);
   border-top: 1px solid var(--border);
 }
 
@@ -247,7 +247,7 @@ body {
   display: flex;
   gap: 1em;
   padding: 0.2em 0.75em;
-  background: var(--status-background);
+  background: var(--status-bar);
   border-top: 1px solid var(--border);
   white-space: nowrap;
   overflow: hidden;
@@ -259,7 +259,7 @@ body {
 }
 
 .status-keys {
-  font-family: var(--font-text);
+  font-family: var(--message-font);
 }
 
 .status-notice {
@@ -303,7 +303,7 @@ body {
 }
 
 .help-section dt {
-  font-family: var(--font-text);
+  font-family: var(--message-font);
   white-space: pre;
 }
 

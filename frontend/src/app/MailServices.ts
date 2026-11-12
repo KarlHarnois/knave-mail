@@ -19,6 +19,7 @@ import { SystemClipboard } from "../vim/SystemClipboard";
 import { VimClipboard } from "../vim/VimClipboard";
 import { VimEditorFactory } from "../vim/VimEditorFactory";
 import { VimExCommands } from "../vim/VimExCommands";
+import { ZoomControl } from "./ZoomControl";
 
 const ROW_HEIGHT = 30;
 const OVERSCAN_ROWS = 10;
@@ -103,5 +104,9 @@ export class MailServices {
       scheduler: this.scheduler,
       startup,
     });
+  }
+
+  zoomControl(): ZoomControl {
+    return new ZoomControl(this.document.documentElement, (notice) => this.status.showNotice(notice));
   }
 }
