@@ -15,9 +15,12 @@ knaveE2E.scenario(async (driver) => {
   e2e.check("the message font falls back to the theme font", getComputedStyle(document.body).fontFamily.includes("Iosevka Aile"), getComputedStyle(document.body).fontFamily);
   e2e.check("the theme file overrides a dark color", style.getPropertyValue("--dark-accent").trim() === "#ff8800", style.getPropertyValue("--dark-accent"));
   await e2e.step("<CR>");
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  const frame = document.querySelector('[data-test~="message-html"]');
-  const canvas = frame?.contentDocument && getComputedStyle(frame.contentDocument.documentElement).backgroundColor;
+  const frame = await e2e.waitFor('[data-test~="message-html"]');
+  const canvasOf = () => frame?.contentDocument?.documentElement && getComputedStyle(frame.contentDocument.documentElement).backgroundColor;
+  for (let waited = 0; waited < 2000 && canvasOf() !== e2e.themeColor("--html-mail"); waited += 50) {
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  const canvas = canvasOf();
   e2e.check("HTML mail sits on the themed canvas", canvas === e2e.themeColor("--html-mail"), `${canvas} vs ${e2e.themeColor("--html-mail")}`);
   await e2e.step("qc");
   await e2e.step("Gohellojj");

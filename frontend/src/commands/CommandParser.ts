@@ -4,6 +4,7 @@ export type Command =
   | { kind: "sync" }
   | { kind: "quit" }
   | { kind: "help" }
+  | { kind: "labels" }
   | { kind: "empty" }
   | { kind: "problem"; message: string };
 
@@ -28,6 +29,8 @@ export class CommandParser {
       case "q":
       case "quit":
         return this.withoutArgument(argument, name, { kind: "quit" });
+      case "labels":
+        return this.withoutArgument(argument, name, { kind: "labels" });
       case "h":
       case "help":
         return this.withoutArgument(argument, name, { kind: "help" });

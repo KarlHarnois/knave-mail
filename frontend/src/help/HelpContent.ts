@@ -32,6 +32,7 @@ const HELP_PAGE_ROWS: HelpRow[] = [
 const COMMAND_ROWS: HelpRow[] = [
   { keys: ":account <email>", description: "Switch account" },
   { keys: ":label <name>", description: "Show a label" },
+  { keys: ":labels", description: "Pick a label from a list" },
   { keys: ":sync", description: "Sync the current account" },
   { keys: ":help", description: "Show this help" },
   { keys: ":q", description: "Go back, or clear a search" },

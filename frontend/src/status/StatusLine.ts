@@ -1,12 +1,17 @@
 export type StatusField = "mode" | "account" | "label" | "sync" | "keys" | "notice" | "error";
 
 const FIELD_ORDER: readonly StatusField[] = ["mode", "account", "label", "sync", "keys", "notice", "error"];
+const MESSAGE_LIFETIME_MILLISECONDS = 8000;
 
 export class StatusLine {
   readonly element: HTMLElement;
   private readonly fields = new Map<StatusField, HTMLElement>();
+  private messageTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(document: Document) {
+  constructor(
+    document: Document,
+    private readonly messageLifetime: number = MESSAGE_LIFETIME_MILLISECONDS,
+  ) {
     this.element = document.createElement("footer");
     this.element.className = "status-line";
     this.element.dataset["test"] = "status-line";
@@ -35,15 +40,27 @@ export class StatusLine {
 
   showNotice(notice: string): void {
     this.write("notice", notice);
+    this.expireMessages();
   }
 
   showError(message: string): void {
     this.write("notice", "");
     this.write("error", message);
+    this.expireMessages();
   }
 
   clearError(): void {
     this.write("error", "");
+  }
+
+  clearMessages(): void {
+    this.write("notice", "");
+    this.write("error", "");
+  }
+
+  private expireMessages(): void {
+    if (this.messageTimer) clearTimeout(this.messageTimer);
+    this.messageTimer = setTimeout(() => this.clearMessages(), this.messageLifetime);
   }
 
   read(field: StatusField): string {

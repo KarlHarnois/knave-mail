@@ -52,3 +52,19 @@ describe("StatusLine", () => {
     expect(status.read("keys")).toBe("3g");
   });
 });
+
+describe("status messages", () => {
+  test("an error clears itself after its lifetime", async () => {
+    const status = new StatusLine(document, 20);
+    status.showError("offline");
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(status.read("error")).toBe("");
+  });
+
+  test("a notice clears itself after its lifetime", async () => {
+    const status = new StatusLine(document, 20);
+    status.showNotice("archived 1 thread");
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(status.read("notice")).toBe("");
+  });
+});

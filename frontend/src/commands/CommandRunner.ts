@@ -12,6 +12,7 @@ export type CommandRunnerPorts = {
   goBack: () => void;
   showList: () => void;
   showHelp: () => void;
+  pickLabel: () => void;
 };
 
 type CommandHandlers = { [Kind in Command["kind"]]: (command: Extract<Command, { kind: Kind }>) => void };
@@ -37,6 +38,7 @@ export class CommandRunner {
     sync: () => this.ports.sync.sync(),
     quit: () => this.ports.goBack(),
     help: () => this.ports.showHelp(),
+    labels: () => this.ports.pickLabel(),
     problem: (command) => this.ports.status.showError(command.message),
     empty: () => undefined,
   };

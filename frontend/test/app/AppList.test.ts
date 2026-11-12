@@ -125,6 +125,20 @@ describe("list locations", () => {
     expect(app.core.lastArgsFor("threads")["label"]).toBe("INBOX");
   });
 
+  test("the next key clears a wrong command error", async () => {
+    const app = await AppHarness.started();
+    await app.press(":labelz<CR>");
+    expect(app.status("error")).toBe("not a command: labelz");
+    await app.press("j");
+    expect(app.status("error")).toBe("");
+  });
+
+  test(":labels opens the label picker", async () => {
+    const app = await AppHarness.started();
+    await app.press(":labels<CR>");
+    expect(app.isVisible('[data-test="label-picker"]')).toBe(true);
+  });
+
   test("escape clears the last error", async () => {
     const app = await AppHarness.started();
     await app.press(":nope<CR><Esc>");

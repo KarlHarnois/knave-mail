@@ -86,6 +86,7 @@ export class KnaveMail {
       goBack: () => this.goBack(),
       showList: () => this.app.showList(),
       showHelp: () => this.helpScreen.open(),
+      pickLabel: () => this.labelPicker.open(),
     });
     return new SharedActions({
       commandLine: this.services.commandLine,

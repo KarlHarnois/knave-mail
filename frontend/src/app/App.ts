@@ -23,6 +23,7 @@ export class App implements ScreenHost {
   constructor(private readonly ports: AppPorts) {}
 
   press(token: string): void {
+    this.ports.status.clearMessages();
     try {
       this.route(token);
     } catch (error) {
