@@ -1,0 +1,18 @@
+(use domain/mail-error mail-error)
+
+(export ->system-browser consent-browser system-browser)
+
+(deftrait consent-browser
+  (open-url! (fn ((mut self) (ref str)) (result unit mail-error))))
+
+(defstruct system-browser
+  :opener string)
+
+(impl consent-browser system-browser
+  (open-url! (browser url)
+    (eprintln (str "Open this page to sign in, if your browser does not open it:\n" url))
+    (ok (launch (ref (:opener browser)) url))))
+
+(def launch
+  (rust "drop(std::process::Command::new({0}).arg({1}).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn())"
+    (fn ((ref str) (ref str)) unit)))

@@ -1,0 +1,19 @@
+(export ->pkce-pair challenge-of new-pkce-pair new-state pkce-pair)
+
+(defstruct pkce-pair
+  :verifier string
+  :challenge string)
+
+(defn new-pkce-pair ()
+  (let (verifier (random-token 64))
+    (->pkce-pair :challenge (challenge-of (ref verifier)) :verifier verifier)))
+
+(defn new-state () (random-token 32))
+
+(def challenge-of
+  (rust "{{ use base64::Engine; use sha2::Digest; base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(sha2::Sha256::digest({0}.as_bytes())) }}"
+    (fn ((ref str)) string)))
+
+(def random-token
+  (rust "{{ use rand::RngExt; const {!alphabet}: &[u8] = b\"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~\"; let mut {!random} = rand::rng(); (0..{0}).map(|_| {!alphabet}[{!random}.random_range(0..{!alphabet}.len())] as char).collect::<String>() }}"
+    (fn (usize) string)))
