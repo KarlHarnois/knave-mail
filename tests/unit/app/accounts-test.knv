@@ -1,0 +1,48 @@
+(use app/client)
+(use ports/driving/mail-client add-account! list-accounts! list-labels!
+                               remove-account! sync-account!)
+(use support/app-steps fail-remote! failing-kind synced!)
+(use support/memory-world app-over remote-with sample-thread world-account)
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-1" (vec "INBOX" "UNREAD") 100)
+                    (sample-thread "t-2" (vec "INBOX") 200))))
+
+(defn emails! (app)
+  (collect (map (iter (unwrap-ok (list-accounts! app))) (fn (account) (clone (:email account))))))
+
+(deftest no-account-is-listed-at-first
+  (let (world (remote) app (app-over (ref world)))
+    (assert (empty? (emails! (mut app))))))
+
+(deftest adding-an-account-keeps-the-authorized-address
+  (let (world (remote) app (app-over (ref world)))
+    (unwrap-ok (add-account! (mut app)))
+    (assert (= (emails! (mut app)) (vec (str "new@example.com"))))))
+
+(deftest adding-an-account-without-consent-needs-authorization
+  (let (world (remote) app (app-over (ref world)))
+    (unwrap-ok (add-account! (mut app)))
+    (assert (= (failing-kind (add-account! (mut app))) "auth-required"))))
+
+(deftest removing-an-account-forgets-it
+  (let (world (remote) app (app-over (ref world)))
+    (unwrap-ok (add-account! (mut app)))
+    (unwrap-ok (remove-account! (mut app) "new@example.com"))
+    (assert (empty? (emails! (mut app))))))
+
+(deftest a-sync-keeps-labels-with-their-unread-counts
+  (let (world (remote) app (app-over (ref world)))
+    (synced! (mut app))
+    (assert (= (collect (map (iter (unwrap-ok (list-labels! (mut app) world-account)))
+                             (fn (label) (str (:id label) " " (:unread label)))))
+               (vec (str "INBOX 1") (str "UNREAD 1"))))))
+
+(deftest a-sync-of-an-unknown-account-needs-authorization
+  (let (world (remote) app (app-over (ref world)))
+    (assert (= (failing-kind (sync-account! (mut app) "eve@example.com")) "auth-required"))))
+
+(deftest a-failed-sync-reports-a-network-error
+  (let (world (remote) app (app-over (ref world)))
+    (fail-remote! (ref world) "fetch-labels")
+    (assert (= (failing-kind (sync-account! (mut app) world-account)) "network"))))

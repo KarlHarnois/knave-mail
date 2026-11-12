@@ -1,0 +1,92 @@
+(use app/client)
+(use domain/labels archive-change star-change)
+(use domain/mail ->draft)
+(use ports/driving/mail-client draft-forward! draft-reply! draft-reply-all!
+                               relabel-threads! send-draft!)
+(use support/app-steps fail-remote! failing-kind inbox-query listed-ids!
+                       remote-sent remote-thread synced!)
+(use support/memory-world app-over remote-with sample-thread world-account)
+(use support/sample-mail addresses)
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100)
+                    (sample-thread "t-2" (vec "INBOX") 200))))
+
+(defn new-draft (reply-to)
+  (->draft :to (addresses (vec "alan@example.com"))
+           :cc (vec)
+           :subject (str "Hello")
+           :body (str "Hi Alan")
+           :reply-to reply-to))
+
+(deftest a-reply-draft-answers-the-stored-message
+  (let (world (remote) app (app-over (ref world)))
+    (synced! (mut app))
+    (assert (= (:subject (unwrap-ok (draft-reply! (mut app) world-account "m-t-1")))
+               "Re: Subject of t-1"))))
+
+(deftest a-reply-all-draft-leaves-out-the-account-address
+  (let (world (remote) app (app-over (ref world)))
+    (synced! (mut app))
+    (assert (= (:to (unwrap-ok (draft-reply-all! (mut app) world-account "m-t-1")))
+               (addresses (vec "Grace <grace@example.com>"))))))
+
+(deftest a-forward-draft-prefixes-the-subject
+  (let (world (remote) app (app-over (ref world)))
+    (synced! (mut app))
+    (assert (= (:subject (unwrap-ok (draft-forward! (mut app) world-account "m-t-2")))
+               "Fwd: Subject of t-2"))))
+
+(deftest drafting-a-reply-to-an-unknown-message-is-not-found
+  (let (world (remote) app (app-over (ref world)))
+    (assert (= (failing-kind (draft-reply! (mut app) world-account "m-9"))
+               "not-found"))))
+
+(deftest sending-a-new-draft-delivers-it-from-the-account
+  (let (world (remote) app (app-over (ref world)))
+    (unwrap-ok (send-draft! (mut app) world-account (ref (new-draft none))))
+    (assert (= (:from (at (remote-sent (ref world)) 0)) world-account))))
+
+(deftest a-new-draft-starts-no-thread-of-its-own
+  (let (world (remote) app (app-over (ref world)))
+    (unwrap-ok (send-draft! (mut app) world-account (ref (new-draft none))))
+    (assert (= (:thread-id (at (remote-sent (ref world)) 0)) none))))
+
+(deftest a-reply-joins-the-original-thread
+  (let (world (remote) app (app-over (ref world)))
+    (synced! (mut app))
+    (unwrap-ok (send-draft! (mut app) world-account (ref (new-draft (some (str "m-t-1"))))))
+    (assert (= (len (:messages (remote-thread (ref world) "t-1"))) 2))))
+
+(deftest a-reply-refers-to-the-original-message-header
+  (let (world (remote) app (app-over (ref world)))
+    (synced! (mut app))
+    (unwrap-ok (send-draft! (mut app) world-account (ref (new-draft (some (str "m-t-1"))))))
+    (assert (= (:in-reply-to (at (remote-sent (ref world)) 0))
+               (some (str "<m-t-1@example.com>"))))))
+
+(deftest a-failed-delivery-reports-a-network-error
+  (let (world (remote) app (app-over (ref world)))
+    (fail-remote! (ref world) "deliver")
+    (assert (= (failing-kind (send-draft! (mut app) world-account (ref (new-draft none))))
+               "network"))))
+
+(deftest archiving-threads-removes-them-from-the-inbox
+  (let (world (remote) app (app-over (ref world)))
+    (synced! (mut app))
+    (unwrap-ok (relabel-threads! (mut app) world-account (ref (addresses (vec "t-1" "t-2"))) (ref (archive-change))))
+    (assert (empty? (listed-ids! (mut app) (ref (inbox-query)))))))
+
+(deftest archiving-threads-changes-them-remotely
+  (let (world (remote) app (app-over (ref world)))
+    (synced! (mut app))
+    (unwrap-ok (relabel-threads! (mut app) world-account (ref (addresses (vec "t-1"))) (ref (archive-change))))
+    (assert (empty? (:labels (remote-thread (ref world) "t-1"))))))
+
+(deftest a-failed-relabel-keeps-the-local-labels
+  (let (world (remote) app (app-over (ref world)))
+    (synced! (mut app))
+    (fail-remote! (ref world) "relabel")
+    (relabel-threads! (mut app) world-account (ref (addresses (vec "t-1"))) (ref (star-change)))
+    (assert (= (listed-ids! (mut app) (ref (inbox-query)))
+               (addresses (vec "t-2" "t-1"))))))
