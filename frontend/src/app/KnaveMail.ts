@@ -3,6 +3,7 @@ import type { ThreadSummary } from "../bridge/Protocol";
 import type { Transport } from "../bridge/Transport";
 import { CommandRunner } from "../commands/CommandRunner";
 import { ComposeScreen } from "../compose/ComposeScreen";
+import { HelpScreen } from "../help/HelpScreen";
 import { KeyboardInput } from "../keys/KeyboardInput";
 import { ListScreen } from "../list/ListScreen";
 import { SharedActions } from "../mail/SharedActions";
@@ -22,6 +23,7 @@ export class KnaveMail {
   private readonly app: App;
   private readonly threadScreen: ThreadScreen;
   private readonly composeScreen: ComposeScreen;
+  private readonly helpScreen: HelpScreen;
 
   constructor(
     private readonly window: Window,
@@ -34,6 +36,7 @@ export class KnaveMail {
     this.app = this.createApp();
     this.threadScreen = this.createThreadScreen();
     this.composeScreen = this.createComposeScreen();
+    this.helpScreen = new HelpScreen(this.services.document, this.app);
   }
 
   start(): void {
@@ -81,6 +84,7 @@ export class KnaveMail {
       status: this.services.status,
       goBack: () => this.goBack(),
       showList: () => this.app.showList(),
+      showHelp: () => this.helpScreen.open(),
     });
     return new SharedActions({
       commandLine: this.services.commandLine,
@@ -91,6 +95,7 @@ export class KnaveMail {
       status: this.services.status,
       startCompose: () => this.composeScreen.resume(),
       showList: () => this.app.showList(),
+      showHelp: () => this.helpScreen.open(),
     });
   }
 

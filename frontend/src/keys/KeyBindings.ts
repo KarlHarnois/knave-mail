@@ -12,6 +12,7 @@ export type SharedAction =
   | "nextAccount"
   | "previousAccount"
   | "refresh"
+  | "showHelp"
   | "clearError";
 
 export type ListAction =
@@ -62,6 +63,7 @@ const SHARED_BINDINGS: ReadonlyArray<readonly [string, SharedAction]> = [
   ["<C-n>", "nextAccount"],
   ["<C-p>", "previousAccount"],
   ["R", "refresh"],
+  ["?", "showHelp"],
   ["<Esc>", "clearError"],
 ];
 

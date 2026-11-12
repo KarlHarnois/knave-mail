@@ -11,7 +11,10 @@ export type CommandRunnerPorts = {
   status: StatusLine;
   goBack: () => void;
   showList: () => void;
+  showHelp: () => void;
 };
+
+type CommandHandlers = { [Kind in Command["kind"]]: (command: Extract<Command, { kind: Kind }>) => void };
 
 export class CommandRunner {
   constructor(
@@ -24,26 +27,19 @@ export class CommandRunner {
   }
 
   private execute(command: Command): void {
-    switch (command.kind) {
-      case "account":
-        this.changeLocation(this.ports.session.selectAccount(command.email));
-        return;
-      case "label":
-        this.changeLocation(this.ports.session.goToLabelNamed(command.name));
-        return;
-      case "sync":
-        this.ports.sync.sync();
-        return;
-      case "quit":
-        this.ports.goBack();
-        return;
-      case "problem":
-        this.ports.status.showError(command.message);
-        return;
-      case "empty":
-        return;
-    }
+    const handle = this.handlers[command.kind] as (command: Command) => void;
+    handle(command);
   }
+
+  private readonly handlers: CommandHandlers = {
+    account: (command) => this.changeLocation(this.ports.session.selectAccount(command.email)),
+    label: (command) => this.changeLocation(this.ports.session.goToLabelNamed(command.name)),
+    sync: () => this.ports.sync.sync(),
+    quit: () => this.ports.goBack(),
+    help: () => this.ports.showHelp(),
+    problem: (command) => this.ports.status.showError(command.message),
+    empty: () => undefined,
+  };
 
   private changeLocation(change: Promise<void>): void {
     this.ports.showList();

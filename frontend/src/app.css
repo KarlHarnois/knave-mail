@@ -282,3 +282,32 @@ body {
 .status-error:not(:empty) {
   margin-left: auto;
 }
+
+.help-view {
+  height: 100%;
+  overflow-y: auto;
+  padding: 16px 24px;
+}
+
+.help-section h2 {
+  margin: 16px 0 8px;
+  font-size: 1.1em;
+  color: var(--accent);
+}
+
+.help-section dl {
+  display: grid;
+  grid-template-columns: minmax(12em, max-content) 1fr;
+  gap: 4px 24px;
+  margin: 0;
+}
+
+.help-section dt {
+  font-family: var(--font-text);
+  white-space: pre;
+}
+
+.help-section dd {
+  margin: 0;
+  color: var(--muted);
+}

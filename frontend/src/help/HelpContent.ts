@@ -1,0 +1,51 @@
+import type { Action } from "../keys/KeyBindings";
+import { LIST_BINDINGS, THREAD_BINDINGS } from "../keys/KeyBindings";
+import { ACTION_DESCRIPTIONS } from "./ActionDescriptions";
+
+export type HelpRow = { keys: string; description: string };
+export type HelpSection = { title: string; rows: HelpRow[] };
+
+const KEY_SEPARATOR = "  ";
+
+const TEXT_READER_ROWS: HelpRow[] = [
+  { keys: "vim motions, v V y", description: "Move, select and yank as in vim" },
+  { keys: '"+y', description: "Yank to the system clipboard" },
+  { keys: "<Esc> :q", description: "Leave the text reader" },
+];
+
+const COMPOSER_ROWS: HelpRow[] = [
+  { keys: "To: Cc: Subject:", description: "Edit the header lines; separate addresses with commas" },
+  { keys: ":w", description: "Keep the draft" },
+  { keys: ":x :wq ZZ", description: "Send" },
+  { keys: ":q", description: "Leave, with a warning if the draft changed" },
+  { keys: ":q!", description: "Discard the draft" },
+];
+
+const COMMAND_ROWS: HelpRow[] = [
+  { keys: ":account <email>", description: "Switch account" },
+  { keys: ":label <name>", description: "Show a label" },
+  { keys: ":sync", description: "Sync the current account" },
+  { keys: ":help", description: "Show this help" },
+  { keys: ":q", description: "Go back, or clear a search" },
+];
+
+export class HelpContent {
+  sections(): HelpSection[] {
+    return [
+      { title: "Thread list", rows: this.rowsFor(LIST_BINDINGS) },
+      { title: "Thread", rows: this.rowsFor(THREAD_BINDINGS) },
+      { title: "Text reader (v in a thread)", rows: TEXT_READER_ROWS },
+      { title: "Composer", rows: COMPOSER_ROWS },
+      { title: "Command line (:)", rows: COMMAND_ROWS },
+    ];
+  }
+
+  private rowsFor(bindings: ReadonlyArray<readonly [string, Action]>): HelpRow[] {
+    const keysByAction = new Map<Action, string[]>();
+    for (const [key, action] of bindings) keysByAction.set(action, [...(keysByAction.get(action) ?? []), key]);
+    return [...keysByAction].map(([action, keys]) => ({
+      keys: keys.join(KEY_SEPARATOR),
+      description: ACTION_DESCRIPTIONS[action],
+    }));
+  }
+}

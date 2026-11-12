@@ -16,6 +16,7 @@ export type SharedActionPorts = {
   status: StatusLine;
   startCompose: () => void;
   showList: () => void;
+  showHelp: () => void;
 };
 
 export class SharedActions {
@@ -47,6 +48,7 @@ export class SharedActions {
       ["nextAccount", () => this.changeLocation(session.cycleAccount(1))],
       ["previousAccount", () => this.changeLocation(session.cycleAccount(-1))],
       ["refresh", () => sync.sync()],
+      ["showHelp", () => this.ports.showHelp()],
       ["clearError", () => status.clearError()],
     ]);
   }
