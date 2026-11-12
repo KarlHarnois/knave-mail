@@ -23,11 +23,17 @@ window.knaveE2E = {
   selected(driver) {
     return driver.text('[data-test~="selected-row"]');
   },
+  async whenListed(driver) {
+    for (let waited = 0; waited < 10000 && driver.count('[data-test~="selected-row"]') === 0; waited += 20) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    await driver.whenIdle();
+  },
   async scenario(body) {
     window.addEventListener("load", async () => {
       try {
         const driver = await this.driver();
-        await driver.whenIdle();
+        await this.whenListed(driver);
         await body(driver);
       } catch (error) {
         this.check("scenario ran", false, String(error));

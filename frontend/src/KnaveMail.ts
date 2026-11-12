@@ -91,10 +91,11 @@ export class KnaveMail {
     this.mount();
     new KeyboardInput((token) => this.app.press(token)).listen(this.document);
     new FocusGuard(this.window, () => this.app.focusScreen()).watch();
-    const driver = new TestDriver(this.document, (token) => this.app.press(token), this.bridge, this.scheduler);
+    const startup = this.session.start();
+    const driver = new TestDriver(this.document, (token) => this.app.press(token), this.bridge, this.scheduler, startup);
     (this.window as DriverWindow).knaveTestDriver = driver.api();
     this.app.refreshStatus();
-    this.errors.run(this.session.start());
+    this.errors.run(startup);
   }
 
   private mount(): void {

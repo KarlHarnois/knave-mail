@@ -17,6 +17,7 @@ export class TestDriver implements TestDriverApi {
     private readonly pressToken: (token: string) => void,
     private readonly bridge: Bridge,
     private readonly scheduler: RenderScheduler,
+    private readonly startup: Promise<unknown>,
     private readonly notation = new KeyNotation(),
   ) {}
 
@@ -33,6 +34,7 @@ export class TestDriver implements TestDriverApi {
   }
 
   async whenIdle(): Promise<void> {
+    await this.startup.catch(() => undefined);
     let quietChecks = 0;
     while (quietChecks < QUIET_CHECKS_FOR_IDLE) {
       await this.bridge.whenIdle();

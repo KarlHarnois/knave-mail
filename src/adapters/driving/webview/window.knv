@@ -1,5 +1,5 @@
-(export next-request open-window reply-outbox request-inbox
-        send-reply)
+(export close-window next-request open-window reply-outbox
+        request-inbox send-reply)
 
 (deftype request-inbox
   (rust "std::sync::mpsc::Receiver<String>"))
@@ -52,7 +52,7 @@
     {!event_loop}.run(move |{!event}, _, {!control_flow}| {{
       *{!control_flow} = tao::event_loop::ControlFlow::Wait;
       match {!event} {{
-        tao::event::Event::UserEvent({!reply}) => drop({!webview}.evaluate_script(&format!(\"window.knaveBridge.receive({{}})\", {!reply}))),
+        tao::event::Event::UserEvent({!reply}) => match {!reply}.strip_prefix(\"\\u{{1}}exit \") {{ Some({!code}) => *{!control_flow} = tao::event_loop::ControlFlow::ExitWithCode({!code}.parse().unwrap_or(1)), None => drop({!webview}.evaluate_script(&format!(\"window.knaveBridge.receive({{}})\", {!reply}))) }},
         tao::event::Event::WindowEvent {{ event: tao::event::WindowEvent::CloseRequested, .. }} => *{!control_flow} = tao::event_loop::ControlFlow::Exit,
         _ => {{}}
       }}
@@ -62,3 +62,7 @@
          (ref str)
          (fn-once (request-inbox reply-outbox) unit))
       unit)))
+
+(def close-window
+  (rust "drop({0}.send_event(format!(\"\\u{{1}}exit {{}}\", {1})))"
+    (fn ((ref reply-outbox) i32) unit)))
