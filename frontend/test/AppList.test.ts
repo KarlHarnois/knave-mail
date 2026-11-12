@@ -167,6 +167,81 @@ describe("list actions", () => {
   });
 });
 
+describe("visual mode", () => {
+  const CHOSEN = '[data-test~="chosen-row"]';
+
+  test("V starts a selection and shows VISUAL", async () => {
+    const app = await AppHarness.started();
+    await app.press("V");
+    expect(app.status("mode")).toBe("VISUAL");
+    expect(app.driver.count(CHOSEN)).toBe(1);
+  });
+
+  test("j and k extend the selection from where it started", async () => {
+    const app = await AppHarness.started();
+    await app.press("jV3jk");
+    expect(app.driver.count(CHOSEN)).toBe(3);
+  });
+
+  test("the selection extends upward too", async () => {
+    const app = await AppHarness.started();
+    await app.press("3jvkk");
+    expect(app.driver.count(CHOSEN)).toBe(3);
+  });
+
+  test("e archives every selected thread in one request", async () => {
+    const app = await AppHarness.started();
+    await app.press("jV2je");
+    expect(app.core.requestsFor("archive")).toHaveLength(1);
+    expect(app.core.lastArgsFor("archive")).toEqual({ account: MailFixtures.ADA, threadIds: ["t-1", "t-2", "t-3"] });
+    expect(app.driver.count('[data-thread-id="t-2"]')).toBe(0);
+  });
+
+  test("an action ends the selection", async () => {
+    const app = await AppHarness.started();
+    await app.press("Vj#");
+    expect(app.core.lastArgsFor("trash")).toEqual({ account: MailFixtures.ADA, threadIds: ["t-0", "t-1"] });
+    expect(app.status("mode")).toBe("LIST");
+    expect(app.driver.count(CHOSEN)).toBe(0);
+  });
+
+  test("s stars every selected thread unless all are starred", async () => {
+    const app = await AppHarness.started();
+    await app.press("Vjs");
+    expect(app.core.lastArgsFor("star")).toEqual({ account: MailFixtures.ADA, threadIds: ["t-0", "t-1"] });
+    await app.press("Vks");
+    expect(app.core.lastArgsFor("unstar")).toEqual({ account: MailFixtures.ADA, threadIds: ["t-0", "t-1"] });
+  });
+
+  test("u marks every selected thread read when any of them is unread", async () => {
+    const app = await AppHarness.started();
+    await app.press("Vju");
+    expect(app.core.requestsFor("mark-read")).toHaveLength(1);
+    expect(app.core.lastArgsFor("mark-read").threadIds).toHaveLength(2);
+  });
+
+  test("escape cancels the selection without acting", async () => {
+    const app = await AppHarness.started();
+    await app.press("Vjj<Esc>e");
+    expect(app.core.lastArgsFor("archive").threadIds).toEqual(["t-2"]);
+  });
+
+  test("V again cancels the selection", async () => {
+    const app = await AppHarness.started();
+    await app.press("VjV");
+    expect(app.status("mode")).toBe("LIST");
+    expect(app.driver.count(CHOSEN)).toBe(0);
+  });
+
+  test("enter opens the thread under the cursor and ends the selection", async () => {
+    const app = await AppHarness.started();
+    await app.press("Vj<CR>");
+    expect(app.core.lastArgsFor("thread").threadId).toBe("t-1");
+    await app.press("q");
+    expect(app.driver.count(CHOSEN)).toBe(0);
+  });
+});
+
 describe("sync", () => {
   test("R syncs and the synced event reloads the list", async () => {
     const app = await AppHarness.started();

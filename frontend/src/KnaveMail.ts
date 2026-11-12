@@ -146,6 +146,7 @@ export class KnaveMail {
     return new ListScreen(this.list, this.actions, {
       openThread: (summary) => this.threadScreen.open(summary),
       startSearch: () => this.shared.startSearch(),
+      clearError: () => this.status.clearError(),
     });
   }
 

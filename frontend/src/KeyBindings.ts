@@ -21,7 +21,9 @@ export type ListAction =
   | "halfPageDown"
   | "halfPageUp"
   | "open"
-  | "search";
+  | "search"
+  | "visualMode"
+  | "escape";
 
 export type ThreadAction =
   | SharedAction
@@ -60,7 +62,10 @@ const SHARED_BINDINGS: ReadonlyArray<readonly [string, SharedAction]> = [
 ];
 
 export const LIST_BINDINGS: ReadonlyArray<readonly [string, ListAction]> = [
-  ...SHARED_BINDINGS,
+  ...SHARED_BINDINGS.filter(([key]) => key !== "<Esc>"),
+  ["<Esc>", "escape"],
+  ["V", "visualMode"],
+  ["v", "visualMode"],
   ["j", "moveDown"],
   ["<Down>", "moveDown"],
   ["k", "moveUp"],

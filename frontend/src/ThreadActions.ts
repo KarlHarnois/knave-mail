@@ -14,27 +14,42 @@ export class ThreadActions {
   ) {}
 
   archive(summary: ThreadSummary): void {
-    if (this.session.labelId === ALL_MAIL.id) this.list.update({ ...summary, labels: this.without(summary, "INBOX") });
-    else this.list.remove(summary.id);
-    this.send("archive", summary);
+    this.archiveAll([summary]);
+  }
+
+  archiveAll(summaries: ThreadSummary[]): void {
+    for (const summary of summaries) this.removeFromInbox(summary);
+    this.send("archive", summaries);
   }
 
   trash(summary: ThreadSummary): void {
-    this.list.remove(summary.id);
-    this.send("trash", summary);
+    this.trashAll([summary]);
+  }
+
+  trashAll(summaries: ThreadSummary[]): void {
+    for (const summary of summaries) this.list.remove(summary.id);
+    this.send("trash", summaries);
   }
 
   toggleStar(summary: ThreadSummary): ThreadSummary {
-    const updated = { ...summary, starred: !summary.starred };
-    this.list.update(updated);
-    this.send(updated.starred ? "star" : "unstar", updated);
+    return this.toggleStarAll([summary])[0] ?? summary;
+  }
+
+  toggleStarAll(summaries: ThreadSummary[]): ThreadSummary[] {
+    const starred = !summaries.every((summary) => summary.starred);
+    const updated = this.updateAll(summaries.map((summary) => ({ ...summary, starred })));
+    this.send(starred ? "star" : "unstar", updated);
     return updated;
   }
 
   toggleUnread(summary: ThreadSummary): ThreadSummary {
-    const updated = { ...summary, unread: !summary.unread };
-    this.list.update(updated);
-    this.send(updated.unread ? "mark-unread" : "mark-read", updated);
+    return this.toggleUnreadAll([summary])[0] ?? summary;
+  }
+
+  toggleUnreadAll(summaries: ThreadSummary[]): ThreadSummary[] {
+    const unread = summaries.every((summary) => !summary.unread);
+    const updated = this.updateAll(summaries.map((summary) => ({ ...summary, unread })));
+    this.send(unread ? "mark-unread" : "mark-read", updated);
     return updated;
   }
 
@@ -42,8 +57,20 @@ export class ThreadActions {
     return summary.unread ? this.toggleUnread(summary) : summary;
   }
 
-  private send(command: ThreadCommand, summary: ThreadSummary): void {
-    const request = this.mail.modify(command, this.session.account, [summary.id]);
+  private removeFromInbox(summary: ThreadSummary): void {
+    if (this.session.labelId === ALL_MAIL.id) this.list.update({ ...summary, labels: this.without(summary, "INBOX") });
+    else this.list.remove(summary.id);
+  }
+
+  private updateAll(summaries: ThreadSummary[]): ThreadSummary[] {
+    for (const summary of summaries) this.list.update(summary);
+    return summaries;
+  }
+
+  private send(command: ThreadCommand, summaries: ThreadSummary[]): void {
+    if (summaries.length === 0) return;
+    const ids = summaries.map((summary) => summary.id);
+    const request = this.mail.modify(command, this.session.account, ids);
     this.errors.run(request, () => this.errors.run(this.session.reload()));
   }
 

@@ -7,6 +7,7 @@ import type { ThreadList } from "./ThreadList";
 export type ListScreenPorts = {
   openThread: (summary: ThreadSummary) => void;
   startSearch: () => void;
+  clearError: () => void;
 };
 
 type Handler = (count: number | null) => void;
@@ -28,7 +29,7 @@ export class ListScreen implements Screen {
   }
 
   modeName(): string {
-    return "LIST";
+    return this.list.isSelecting ? "VISUAL" : "LIST";
   }
 
   capturesKeys(): boolean {
@@ -53,13 +54,36 @@ export class ListScreen implements Screen {
       ["moveToBottom", (count) => (count === null ? this.list.moveToLast() : this.list.moveTo(count - 1))],
       ["halfPageDown", () => this.list.halfPageDown()],
       ["halfPageUp", () => this.list.halfPageUp()],
-      ["open", () => this.withSelected((summary) => this.ports.openThread(summary))],
-      ["search", () => this.ports.startSearch()],
-      ["archive", () => this.withSelected((summary) => this.actions.archive(summary))],
-      ["trash", () => this.withSelected((summary) => this.actions.trash(summary))],
-      ["toggleStar", () => this.withSelected((summary) => this.actions.toggleStar(summary))],
-      ["toggleUnread", () => this.withSelected((summary) => this.actions.toggleUnread(summary))],
+      ["open", () => this.afterSelection(() => this.withSelected((summary) => this.ports.openThread(summary)))],
+      ["search", () => this.afterSelection(() => this.ports.startSearch())],
+      ["visualMode", () => this.toggleSelection()],
+      ["escape", () => this.escape()],
+      ["archive", () => this.withChosen((summaries) => this.actions.archiveAll(summaries))],
+      ["trash", () => this.withChosen((summaries) => this.actions.trashAll(summaries))],
+      ["toggleStar", () => this.withChosen((summaries) => this.actions.toggleStarAll(summaries))],
+      ["toggleUnread", () => this.withChosen((summaries) => this.actions.toggleUnreadAll(summaries))],
     ]);
+  }
+
+  private toggleSelection(): void {
+    if (this.list.isSelecting) this.list.endSelection();
+    else this.list.startSelection();
+  }
+
+  private escape(): void {
+    if (this.list.isSelecting) this.list.endSelection();
+    else this.ports.clearError();
+  }
+
+  private afterSelection(act: () => void): void {
+    this.list.endSelection();
+    act();
+  }
+
+  private withChosen(act: (summaries: ThreadSummary[]) => void): void {
+    const chosen = this.list.chosen();
+    this.list.endSelection();
+    if (chosen.length > 0) act(chosen);
   }
 
   private withSelected(act: (summary: ThreadSummary) => void): void {

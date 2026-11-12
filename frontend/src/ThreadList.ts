@@ -47,6 +47,24 @@ export class ThreadList {
     return this.summaries[this.cursor.index];
   }
 
+  get isSelecting(): boolean {
+    return this.cursor.isSelecting;
+  }
+
+  startSelection(): void {
+    this.cursor.startSelection();
+    this.scheduleRender();
+  }
+
+  endSelection(): void {
+    this.cursor.endSelection();
+    this.scheduleRender();
+  }
+
+  chosen(): ThreadSummary[] {
+    return this.summaries.slice(this.cursor.selectionStart, this.cursor.selectionEnd + 1);
+  }
+
   show(summaries: ThreadSummary[]): void {
     this.replaceSummaries(summaries);
     this.moveToFirst();
@@ -115,7 +133,7 @@ export class ThreadList {
     if (!summary) return;
     const row = this.rowsByIndex.get(index) ?? this.attachRow(index);
     if (this.needsFill(row, summary)) this.rows.fill(row, summary);
-    this.rows.markSelected(row, index === this.cursor.index);
+    this.rows.markSelected(row, index === this.cursor.index, this.cursor.isSelecting && this.cursor.isChosen(index));
   }
 
   private replaceSummaries(summaries: ThreadSummary[]): void {

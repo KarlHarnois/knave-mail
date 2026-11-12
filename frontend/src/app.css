@@ -105,6 +105,10 @@ body {
   text-overflow: ellipsis;
 }
 
+.thread-row.chosen {
+  background: var(--selection);
+}
+
 .thread-row.selected {
   background: var(--selection);
   border-left-color: var(--selection-border);
