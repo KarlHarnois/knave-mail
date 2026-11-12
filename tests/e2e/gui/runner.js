@@ -47,6 +47,8 @@ window.knaveE2E = {
       try {
         const driver = await this.driver();
         await this.whenListed(driver);
+        const firstRows = [...document.querySelectorAll('[data-test~="thread-row"]')].slice(0, 3).map((row) => row.getAttribute("data-thread-id"));
+        this.report(`first rows: ${firstRows.join(", ")}; selected: ${document.querySelector('[data-test~="selected-row"]')?.getAttribute("data-thread-id")}`);
         await body(driver);
       } catch (error) {
         this.check("scenario ran", false, String(error));

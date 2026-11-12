@@ -14,6 +14,9 @@ knaveE2E.scenario(async (driver) => {
   e2e.check("the theme file forces the dark mode", style.colorScheme === "dark", style.colorScheme);
   e2e.check("the message font falls back to the theme font", getComputedStyle(document.body).fontFamily.includes("Iosevka Aile"), getComputedStyle(document.body).fontFamily);
   e2e.check("the theme file overrides a dark color", style.getPropertyValue("--dark-accent").trim() === "#ff8800", style.getPropertyValue("--dark-accent"));
+  await e2e.step("<CR>");
+  await e2e.waitFor('[data-test~="message-html"][style*="visible"]');
+  await e2e.step("q");
   const openedAt = performance.now();
   driver.press("<CR>");
   const frame = await e2e.waitFor('[data-test~="message-html"]');

@@ -1,6 +1,7 @@
 knaveE2E.scenario(async (driver) => {
   const e2e = knaveE2E;
-  await e2e.step("jj<CR>");
+  await e2e.step("/Quarterly planning<CR>");
+  await e2e.step("<CR>");
   await e2e.step("v");
   e2e.check("v opens the vim text reader", driver.count('[data-test~="text-reader"]') === 1, "no reader");
   await e2e.step("jjjyy<Esc>");
