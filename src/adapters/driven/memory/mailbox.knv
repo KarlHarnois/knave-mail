@@ -58,7 +58,7 @@
 
 (type record-delivery!
   (fn ((mut remote-mail) (ref outgoing))
-    unit))
+    string))
 
 (defn record-delivery! (remote sent)
   (let (number (:next-id remote)
@@ -66,18 +66,26 @@
         thread-id (match (ref (:thread-id sent))
                     ((some existing) (clone existing))
                     (none (str "thread-" message-id)))
-        message (sent-from sent (ref message-id) (ref thread-id) number))
+        message (sent-from sent
+                           (ref message-id)
+                           (ref thread-id)
+                           (now-milliseconds)))
     (set! (:next-id remote) (+ number 1))
     (push! (mut (:sent remote))
            (clone sent))
     (match (thread-position remote (ref thread-id))
-      ((some index) (append-message! remote index message))
+      ((some index) (append-sent-message! remote index message))
       (none (push! (mut (:threads remote))
-                   (->thread :id thread-id
+                   (->thread :id (clone thread-id)
                              :subject (clone (:subject sent))
                              :labels (vec (str "SENT"))
-                             :messages (vec message)))))))
+                             :messages (vec message)))))
+    thread-id))
 
-(def append-message!
-  (rust "{0}.threads[{1}].messages.push({2})"
+(def append-sent-message!
+  (rust "{{ let {!thread} = &mut {0}.threads[{1}]; {!thread}.messages.push({2}); if !{!thread}.labels.iter().any(|{!label}| {!label} == \"SENT\") {{ {!thread}.labels.push(\"SENT\".to_string()); }} }}"
     (fn ((mut remote-mail) usize message) unit)))
+
+(def now-milliseconds
+  (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as i64).unwrap_or(0)"
+    (fn () i64)))

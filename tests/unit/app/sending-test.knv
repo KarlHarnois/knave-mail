@@ -1,0 +1,64 @@
+(use app/client)
+(use domain/mail ->draft ->thread-query)
+(use ports/driving/mail-client open-thread! send-draft!)
+
+(use support/app-steps fail-remote! listed-ids! remote-sent
+                       remote-thread synced!)
+
+(use support/memory-world app-over remote-with sample-thread
+                          world-account)
+
+(use support/sample-mail addresses)
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100))))
+
+(defn draft-to-alan (reply-to)
+  (->draft :to (addresses (vec "alan@example.com"))
+           :cc (vec)
+           :subject (str "Hello")
+           :body (str "Hi Alan")
+           :reply-to reply-to))
+
+(defn sent-query ()
+  (->thread-query (str "SENT") (str "") 50))
+
+(deftest a-sent-message-is-listed-under-sent-without-a-sync
+  (let (world (remote)
+        app (app-over (ref world)))
+    (unwrap-ok (send-draft! (mut app)
+                            world-account
+                            (ref (draft-to-alan none))))
+    (assert (= (listed-ids! (mut app)
+                            (ref (sent-query)))
+               (vec (str "thread-sent-1"))))))
+
+(deftest a-sent-reply-shows-in-its-cached-thread-without-a-sync
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (unwrap-ok (send-draft! (mut app)
+                            world-account
+                            (ref (draft-to-alan (some (str "m-t-1"))))))
+    (assert (= (len (:messages (unwrap-ok
+                                 (open-thread! (mut app) world-account "t-1"))))
+               2))))
+
+(deftest a-reply-labels-its-thread-sent
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (unwrap-ok (send-draft! (mut app)
+                            world-account
+                            (ref (draft-to-alan (some (str "m-t-1"))))))
+    (assert (any? (iter (:labels (remote-thread (ref world) "t-1")))
+              (fn (label) (= label "SENT"))))))
+
+(deftest a-failed-refresh-after-sending-still-reports-the-send
+  (let (world (remote)
+        app (app-over (ref world)))
+    (fail-remote! (ref world) "fetch-thread")
+    (unwrap-ok (send-draft! (mut app)
+                            world-account
+                            (ref (draft-to-alan none))))
+    (assert (= (len (remote-sent (ref world))) 1))))

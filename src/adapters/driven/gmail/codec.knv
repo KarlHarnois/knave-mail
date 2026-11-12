@@ -4,7 +4,8 @@
                  message thread-summary)
 
 (export label-from label-ids message-from-raw message-ids
-        summary-from thread-ids thread-labels)
+        sent-thread-id summary-from thread-ids
+        thread-labels)
 
 (deftype summary-parts
   (rust "(String, String, String, String, i64, Vec<String>, i64)"))
@@ -66,6 +67,11 @@
                :html (message-html (ref parts))
                :header-id (message-text (ref parts) 7)
                :references (message-text (ref parts) 8))))
+
+(type sent-thread-id
+  (fn ((ref json-value)) string))
+
+(defn sent-thread-id (reply) (text-at reply "threadId"))
 
 (def text-at
   (rust "{0}.get({1}).and_then(|{!value}| {!value}.as_str()).unwrap_or_default().to_string()"

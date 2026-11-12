@@ -1,7 +1,7 @@
 (use adapters/driven/gmail/codec label-from label-ids
                                  message-from-raw
-                                 message-ids summary-from
-                                 thread-labels)
+                                 message-ids sent-thread-id
+                                 summary-from thread-labels)
 
 (use adapters/driven/gmail/codec thread-ids)
 
@@ -47,11 +47,10 @@
   (fetch-thread! (box thread-id)
                  (fetched-thread! (mut (:session box)) thread-id))
   (deliver! (box sent)
-            (do
-              (try (api-post! (mut (:session box))
-                              (ref (send-path))
-                              (ref (send-body sent))))
-              (ok (do))))
+            (ok (sent-thread-id (ref (try (api-post! (mut (:session box))
+                                                     (ref (send-path))
+                                                     (ref (send-body
+                                                            sent))))))))
   (relabel! (box thread-id change)
             (do
               (try (api-post! (mut (:session box))

@@ -15,7 +15,7 @@
   (fetch-thread! (fn ((mut self) (ref str))
                    (result thread mail-error)))
   (deliver! (fn ((mut self) (ref outgoing))
-              (result unit mail-error)))
+              (result string mail-error)))
   (relabel! (fn ((mut self)
                  (ref str)
                  (ref label-change))

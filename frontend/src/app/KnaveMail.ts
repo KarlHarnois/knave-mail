@@ -140,6 +140,7 @@ export class KnaveMail {
       errors: this.services.errors,
       status: this.services.status,
       editors: this.services.editors,
+      afterSending: () => this.threadScreen.refresh(),
     });
   }
 }

@@ -18,6 +18,7 @@ export type ComposePorts = {
   errors: ErrorReporter;
   status: StatusLine;
   editors: VimEditorFactory;
+  afterSending: () => void;
 };
 
 type KeptDraft = { text: string; replyTo: string | null };
@@ -119,6 +120,8 @@ export class ComposeScreen implements Screen, VimExHandler {
     this.kept = null;
     this.ports.status.showNotice("sent");
     this.close();
+    this.ports.errors.run(this.ports.session.reload());
+    this.ports.afterSending();
   }
 
   private close(): void {

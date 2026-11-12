@@ -160,6 +160,26 @@ describe("reply and forward", () => {
     expect(ComposeHarness.sentDraft(app)).toEqual(MailFixtures.replyDraft());
   });
 
+  test("a sent reply reloads the open thread and the list", async () => {
+    const app = await AppHarness.started();
+    await app.press("l");
+    const threadLoads = app.core.requestsFor("thread").length;
+    const listLoads = app.core.requestsFor("threads").length;
+    await app.press("r");
+    await app.press("ZZ");
+    expect(app.status("mode")).toBe("THREAD");
+    expect(app.core.requestsFor("thread").length).toBe(threadLoads + 1);
+    expect(app.core.requestsFor("threads").length).toBe(listLoads + 1);
+  });
+
+  test("a new message sent from the list leaves the closed thread alone", async () => {
+    const app = await AppHarness.started();
+    await app.press("lq");
+    const threadLoads = app.core.requestsFor("thread").length;
+    await app.press("cAbob@example.com<Esc>ZZ");
+    expect(app.core.requestsFor("thread").length).toBe(threadLoads);
+  });
+
   test("leaving the composer returns to the thread", async () => {
     const app = await AppHarness.started();
     await app.press("l");

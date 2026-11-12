@@ -48,6 +48,10 @@ export class ThreadScreen implements Screen {
     this.ports.errors.run(this.load(summary.id));
   }
 
+  refresh(): void {
+    if (this.isShown()) this.header.withSummary((summary) => this.ports.errors.run(this.load(summary.id)));
+  }
+
   modeName(): string {
     return this.textMode.isActive ? this.textMode.modeName() : "THREAD";
   }
@@ -66,6 +70,10 @@ export class ThreadScreen implements Screen {
 
   focus(): void {
     this.element.focus({ preventScroll: true });
+  }
+
+  private isShown(): boolean {
+    return this.element.isConnected && !this.element.hasAttribute("hidden");
   }
 
   private async load(threadId: string): Promise<void> {

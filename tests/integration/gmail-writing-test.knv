@@ -32,6 +32,21 @@
                            0)
                        "\"threadId\":\"t1\""))))
 
+(deftest sending-returns-the-thread-gmail-filed-it-in
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (assert (= (unwrap-ok (deliver! (mut gmail)
+                                    (ref (->outgoing :from (str
+                                                             "ada@example.com")
+                                                     :to (addresses (vec "grace@example.com"))
+                                                     :cc (vec)
+                                                     :subject (str "Hello")
+                                                     :body (str "Hi")
+                                                     :thread-id none
+                                                     :in-reply-to none
+                                                     :references (str "")))))
+               "t1"))))
+
 (deftest relabels-a-thread-with-added-and-removed-labels
   (let (server (start-fake-gmail (ref (fixture-routes)))
         gmail (gmail-over (ref server)))
