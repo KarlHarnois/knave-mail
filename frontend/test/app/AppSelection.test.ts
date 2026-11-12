@@ -116,6 +116,20 @@ describe("undo and inbox", () => {
     expect(app.core.requestsFor("move-to-inbox")).toHaveLength(1);
   });
 
+  test("archiving in all mail marks the row as archived", async () => {
+    const app = await AppHarness.started();
+    await app.press("ga");
+    await app.press("e");
+    expect(app.driver.text('[data-thread-id="t-0"] .row-archived')).toBe("archived");
+  });
+
+  test("moving to the inbox removes the archived mark", async () => {
+    const app = await AppHarness.started();
+    await app.press("ga");
+    await app.press("eI");
+    expect(app.driver.text('[data-thread-id="t-0"] .row-archived')).toBe("");
+  });
+
   test("I moves the selected threads to the inbox", async () => {
     const app = await AppHarness.started();
     await app.press("ga");

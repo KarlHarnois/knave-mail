@@ -20,6 +20,9 @@ knaveE2E.scenario(async (driver) => {
   await e2e.step("Vjje");
   await e2e.step("gi");
   e2e.check("the archived selection stays out of the inbox", driver.count('[data-test~="thread-row"]') <= rowsBefore, String(driver.count('[data-test~="thread-row"]')));
+  await e2e.step("ga");
+  e2e.check("all mail marks archived threads", driver.count('[data-test~="thread-row"] .row-archived:not(:empty)') > 0, "no archived marker");
+  await e2e.step("gi");
   const starredBefore = e2e.selected(driver).includes("★");
   await e2e.step("s");
   e2e.check("s toggles the star of the selected thread", e2e.selected(driver).includes("★") !== starredBefore, e2e.selected(driver));

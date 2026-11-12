@@ -140,6 +140,20 @@ body {
   font-weight: 650;
 }
 
+.row-archived {
+  margin-right: 0.6em;
+  padding: 0 0.4em;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--muted);
+  font-size: 0.8em;
+  font-weight: normal;
+}
+
+.row-archived:empty {
+  display: none;
+}
+
 .row-star {
   color: var(--star);
   text-align: center;

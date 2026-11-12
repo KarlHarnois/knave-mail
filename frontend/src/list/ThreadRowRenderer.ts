@@ -1,7 +1,15 @@
 import type { ThreadSummary } from "../bridge/Protocol";
 import type { DateLabel } from "../render/DateLabel";
+import { ArchivedMarker } from "./ArchivedMarker";
 
-type RowParts = { star: HTMLElement; from: HTMLElement; subject: HTMLElement; snippet: HTMLElement; date: HTMLElement };
+type RowParts = {
+  star: HTMLElement;
+  from: HTMLElement;
+  archived: HTMLElement;
+  subject: HTMLElement;
+  snippet: HTMLElement;
+  date: HTMLElement;
+};
 
 const STAR = "★";
 const ROW_TEST_ID = "thread-row";
@@ -10,6 +18,7 @@ const CHOSEN_ROW_TEST_ID = "chosen-row";
 
 export class ThreadRowRenderer {
   private readonly parts = new WeakMap<HTMLElement, RowParts>();
+  private readonly archived = new ArchivedMarker();
 
   constructor(
     private readonly document: Document,
@@ -24,7 +33,7 @@ export class ThreadRowRenderer {
     this.parts.set(row, {
       star: this.appendPart(row, "row-star"),
       from: this.appendPart(row, "row-from"),
-      subject: this.appendPart(row, "row-subject"),
+      ...this.appendSubject(row),
       snippet: this.appendPart(row, "row-snippet"),
       date: this.appendPart(row, "row-date"),
     });
@@ -37,6 +46,7 @@ export class ThreadRowRenderer {
     row.classList.toggle("unread", summary.unread);
     parts.star.textContent = summary.starred ? STAR : "";
     parts.from.textContent = this.participantsWithCount(summary);
+    parts.archived.textContent = this.archived.textFor(summary);
     parts.subject.textContent = summary.subject;
     parts.snippet.textContent = summary.snippet;
     parts.date.textContent = this.dates.short(summary.date);
@@ -58,6 +68,11 @@ export class ThreadRowRenderer {
 
   private participantsWithCount(summary: ThreadSummary): string {
     return summary.messageCount > 1 ? `${summary.participants} (${summary.messageCount})` : summary.participants;
+  }
+
+  private appendSubject(row: HTMLElement): Pick<RowParts, "archived" | "subject"> {
+    const cell = this.appendPart(row, "row-subject");
+    return { archived: this.appendPart(cell, "row-archived"), subject: this.appendPart(cell, "row-subject-text") };
   }
 
   private appendPart(row: HTMLElement, className: string): HTMLElement {
