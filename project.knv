@@ -1,0 +1,2 @@
+(defproject knave-mail
+  (dependencies (wry "0.57.2") (tao "0.37.2")))

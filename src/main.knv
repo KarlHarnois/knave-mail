@@ -1,0 +1,18 @@
+(use adapters/driving/webview/window next-request open-window send-reply)
+
+(def page "<!doctype html><body><p id=out>waiting</p><script>
+window.knaveBridge = { receive(reply) { document.getElementById('out').textContent = reply; window.ipc.postMessage('done'); } };
+window.ipc.postMessage('ping');
+</script></body>")
+
+(defn main ()
+  (open-window "knave-mail" page
+    (fn (inbox outbox)
+      (answer-requests (ref inbox) (ref outbox)))))
+
+(defn answer-requests (inbox outbox)
+  (match (next-request inbox)
+    ((some request) (do (eprintln (str "request: " request))
+                        (send-reply outbox (str "\"pong\""))
+                        (recur inbox outbox)))
+    (none (do))))
