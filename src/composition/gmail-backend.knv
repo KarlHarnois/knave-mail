@@ -57,7 +57,8 @@
   (->gmail-endpoints :api-base (clone (:api-base chosen))
                      :token-url (clone (:token-url chosen))
                      :client-id (clone (:client-id chosen))
-                     :client-secret (clone (:client-secret chosen))))
+                     :client-secret (clone (:client-secret chosen))
+                     :rate-limit-pause-milliseconds 1000))
 
 (type chosen-credentials
   (fn ((ref settings)) (box credentials)))

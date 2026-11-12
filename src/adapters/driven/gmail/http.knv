@@ -1,6 +1,6 @@
 (export http-agent http-get http-get-all http-post-form
-        http-post-json http-reply new-agent reply-body
-        reply-status)
+        http-post-json http-reply new-agent rate-limited?
+        reply-body reply-status)
 
 (deftype http-agent (rust "ureq::Agent"))
 
@@ -16,11 +16,16 @@
       (result http-reply string))))
 
 (def http-get-all
-  (rust "{{ let ({!agent}, {!urls}, {!token}) = ({0}, {1}, {2}); let mut {!replies} = Vec::with_capacity({!urls}.len()); for {!chunk} in {!urls}.chunks(8) {{ std::thread::scope(|{!scope}| {{ let {!handles}: Vec<_> = {!chunk}.iter().map(|{!url}| {!scope}.spawn(move || {!agent}.get({!url}).header(\"Authorization\", &format!(\"Bearer {{}}\", {!token})).call().map(|mut {!response}| ({!response}.status().as_u16(), {!response}.body_mut().with_config().limit(64 * 1024 * 1024).read_to_string().unwrap_or_default())).map_err(|{!error}| {!error}.to_string()))).collect(); for {!handle} in {!handles} {{ {!replies}.push({!handle}.join().unwrap_or_else(|_| Err(String::from(\"a request thread panicked\")))); }} }}); }} {!replies} }}"
+  (rust "{{ let ({!agent}, {!urls}, {!token}, {!pause}) = ({0}, {1}, {2}, {3}); let {!fetch} = &|{!url}: &String| {{ let mut {!attempt} = 0u32; loop {{ let {!outcome} = {!agent}.get({!url}).header(\"Authorization\", &format!(\"Bearer {{}}\", {!token})).call().map(|mut {!response}| ({!response}.status().as_u16(), {!response}.body_mut().with_config().limit(64 * 1024 * 1024).read_to_string().unwrap_or_default())).map_err(|{!error}| {!error}.to_string()); let {!limited} = matches!(&{!outcome}, Ok(({!status}, {!body})) if *{!status} == 429 || (*{!status} == 403 && {!body}.contains(\"ateLimitExceeded\"))); if !{!limited} || {!attempt} >= 6 {{ break {!outcome}; }} std::thread::sleep(std::time::Duration::from_millis({!pause} << {!attempt})); {!attempt} += 1; }} }}; let mut {!replies} = Vec::with_capacity({!urls}.len()); for {!chunk} in {!urls}.chunks(8) {{ std::thread::scope(|{!scope}| {{ let {!handles}: Vec<_> = {!chunk}.iter().map(|{!url}| {!scope}.spawn(move || {!fetch}({!url}))).collect(); for {!handle} in {!handles} {{ {!replies}.push({!handle}.join().unwrap_or_else(|_| Err(String::from(\"a request thread panicked\")))); }} }}); }} {!replies} }}"
     (fn ((ref http-agent)
          (ref (vec string))
-         (ref str))
+         (ref str)
+         u64)
       (vec (result http-reply string)))))
+
+(def rate-limited?
+  (rust "{0}.0 == 429 || ({0}.0 == 403 && {0}.1.contains(\"ateLimitExceeded\"))"
+    (fn ((ref http-reply)) bool)))
 
 (def http-post-json
   (rust "{0}.post({1}).header(\"Authorization\", &format!(\"Bearer {{}}\", {2})).header(\"Content-Type\", \"application/json\").send({3}).map(|mut {!response}| ({!response}.status().as_u16(), {!response}.body_mut().read_to_string().unwrap_or_default())).map_err(|{!error}| {!error}.to_string())"

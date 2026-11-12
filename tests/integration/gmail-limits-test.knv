@@ -1,0 +1,38 @@
+(use adapters/driven/gmail/mailbox gmail-mailbox)
+(use domain/mail-error error-kind)
+(use ports/driven/mailbox fetch-labels!)
+(use support/fake-gmail start-fake-gmail)
+(use support/gmail-requests requests-matching)
+(use support/gmail-world fixture-routes gmail-over route)
+
+(def labels-request "GET /gmail/v1/users/me/labels")
+
+(type routes-answering-labels-with
+  (fn ((ref str))
+    (vec (pair string string))))
+
+(defn routes-answering-labels-with (answer)
+  (let (routes (fixture-routes))
+    (push! (mut routes) (route labels-request answer))
+    routes))
+
+(deftest a-rate-limited-request-is-retried-before-failing
+  (let (server (start-fake-gmail (ref (routes-answering-labels-with "403 tests/fixtures/gmail/rate-limited.json")))
+        gmail (gmail-over (ref server)))
+    (fetch-labels! (mut gmail))
+    (assert (= (len (requests-matching (ref server) labels-request))
+               7))))
+
+(deftest a-rate-limit-that-outlasts-the-retries-is-a-network-error
+  (let (server (start-fake-gmail (ref (routes-answering-labels-with "429 tests/fixtures/gmail/rate-limited.json")))
+        gmail (gmail-over (ref server)))
+    (assert (= (str (error-kind (ref (unwrap-err (fetch-labels! (mut gmail))))))
+               "network"))))
+
+(deftest a-forbidden-request-asks-to-sign-in-again
+  (let (server (start-fake-gmail (ref (routes-answering-labels-with "403 tests/fixtures/gmail/forbidden.json")))
+        gmail (gmail-over (ref server)))
+    (assert (= (str (error-kind (ref (unwrap-err (fetch-labels! (mut gmail))))))
+               "auth-required"))
+    (assert (= (len (requests-matching (ref server) labels-request))
+               1))))

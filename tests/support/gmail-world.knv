@@ -60,6 +60,7 @@
                                     :api-base (clone base)
                                     :token-url (str base "/token")
                                     :client-id (str "fake-client")
-                                    :client-secret (str "fake-secret"))
+                                    :client-secret (str "fake-secret")
+                                    :rate-limit-pause-milliseconds 1)
                        :refresh-token (str "fake-refresh")
                        :access-token none))))

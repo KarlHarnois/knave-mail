@@ -1,5 +1,5 @@
-(use adapters/driven/gmail/http http-agent http-get
-                                http-get-all http-post-form
+(use adapters/driven/gmail/http http-agent http-get-all
+                                http-post-form
                                 http-post-json http-reply
                                 reply-body reply-status)
 
@@ -22,7 +22,8 @@
   :api-base string
   :token-url string
   :client-id string
-  :client-secret string)
+  :client-secret string
+  :rate-limit-pause-milliseconds u64)
 
 (defstruct gmail-session
   :agent http-agent
@@ -36,16 +37,34 @@
 
 (defn api-get! (session path)
   (let (url (api-url session path)
-        first-reply (try (sent (http-get (ref (:agent session))
-                                         (ref url)
-                                         (ref (try (access-token! session)))))))
+        first-reply (try (get-one! session (ref url))))
     (if (= (reply-status (ref first-reply)) unauthorized)
       (do
         (try (refresh! session))
-        (checked (try (sent (http-get (ref (:agent session))
-                                      (ref url)
-                                      (ref (try (access-token! session))))))))
+        (checked (try (get-one! session (ref url)))))
       (checked first-reply))))
+
+(type get-one!
+  (fn ((mut gmail-session) (ref str))
+    (result http-reply mail-error)))
+
+(defn get-one! (session url)
+  (let (token (try (access-token! session)))
+    (sent (first-outcome (http-get-all (ref (:agent session))
+                                       (ref (vec (str url)))
+                                       (ref token)
+                                       (pause-of session))))))
+
+(type pause-of
+  (fn ((ref gmail-session)) u64))
+
+(defn pause-of (session)
+  (:rate-limit-pause-milliseconds (:endpoints session)))
+
+(def first-outcome
+  (rust "{0}.into_iter().next().unwrap_or_else(|| Err(String::from(\"no reply\")))"
+    (fn ((vec (result http-reply string)))
+      (result http-reply string))))
 
 (type api-get-all!
   (fn ((mut gmail-session) (ref (vec string)))
@@ -57,7 +76,8 @@
                         (fn (path) (api-url session path))))
         replies (http-get-all (ref (:agent session))
                               (ref urls)
-                              (ref token)))
+                              (ref token)
+                              (pause-of session)))
     (collect-results (collect (map (into-replies replies)
                                 (fn (outcome)
                                   (checked (try (sent outcome)))))))))
