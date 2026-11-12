@@ -5,6 +5,7 @@ import { type CodeMirror, getCM } from "@replit/codemirror-vim";
 import type { VimExCommands } from "./VimExCommands";
 import type { VimExHandler } from "./VimExHandler";
 import { VimKeyFeeder } from "./VimKeyFeeder";
+import type { VimPrompts } from "./VimPrompts";
 
 export type VimEditorOptions = {
   text: string;
@@ -19,6 +20,7 @@ export type VimEditorParts = {
   parent: HTMLElement;
   extensions: Extension[];
   commands: VimExCommands;
+  prompts: VimPrompts;
   options: VimEditorOptions;
 };
 
@@ -30,13 +32,14 @@ export class VimEditor {
   private readonly commands: VimExCommands;
   private readonly options: VimEditorOptions;
 
-  constructor({ parent, extensions, commands, options }: VimEditorParts) {
+  constructor({ parent, extensions, commands, prompts, options }: VimEditorParts) {
     this.commands = commands;
     this.options = options;
     this.view = new EditorView({ parent, state: EditorState.create({ doc: options.text, extensions }) });
     this.cm = this.vimAdapter();
     this.feeder = new VimKeyFeeder(this.view, this.cm);
     commands.register(this.cm, options.handler);
+    prompts.install(this.cm, () => this.focus());
     this.cm.on("vim-mode-change", (change: ModeChange) => this.reportMode(change));
     this.view.dom.addEventListener("keydown", (event) => this.interceptEscape(event), true);
   }
@@ -66,14 +69,9 @@ export class VimEditor {
   }
 
   private isIdleInNormalMode(): boolean {
-    if (this.isPrompting() || this.feeder.isTypingExCommand) return false;
     const vim = this.cm.state.vim;
     if (!vim) return true;
     return !vim.insertMode && !vim.visualMode && vim.inputState.keyBuffer.length === 0;
-  }
-
-  private isPrompting(): boolean {
-    return this.cm.state.dialog?.querySelector("input") != null;
   }
 
   private interceptEscape(event: KeyboardEvent): void {

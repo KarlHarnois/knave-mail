@@ -17,7 +17,7 @@ export type AppPorts = {
   shared: SharedActions;
 };
 
-const PROMPT_MODES: Readonly<Record<string, string>> = { ":": "COMMAND", "/": "SEARCH" };
+const PROMPT_MODES: Readonly<Record<string, string>> = { ":": "COMMAND", "/": "SEARCH", "?": "SEARCH" };
 
 export class App implements ScreenHost {
   constructor(private readonly ports: AppPorts) {}

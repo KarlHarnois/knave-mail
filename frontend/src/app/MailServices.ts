@@ -19,6 +19,7 @@ import { VimClipboard } from "../vim/VimClipboard";
 import { VimEditorFactory } from "../vim/VimEditorFactory";
 import { VimExCommands } from "../vim/VimExCommands";
 import { VimKeymap } from "../vim/VimKeymap";
+import { VimPrompts } from "../vim/VimPrompts";
 
 const ROW_HEIGHT = 30;
 const OVERSCAN_ROWS = 10;
@@ -100,6 +101,9 @@ export class MailServices {
     new VimClipboard(clipboard).install();
     const keymap = new VimKeymap();
     keymap.apply(keymap.entriesOf(this.window));
-    return new VimEditorFactory(exCommands);
+    return new VimEditorFactory(
+      exCommands,
+      new VimPrompts({ document: this.document, commandLine: this.commandLine, status: this.status }),
+    );
   }
 }

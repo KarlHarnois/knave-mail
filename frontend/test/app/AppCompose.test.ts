@@ -9,6 +9,35 @@ class ComposeHarness {
   }
 }
 
+describe("composer command bar", () => {
+  test(": in the composer opens the app's command line", async () => {
+    const app = await AppHarness.started();
+    await app.press("c:");
+    expect(app.isVisible('[data-test="command-line"]')).toBe(true);
+    expect(app.status("mode")).toBe("COMMAND");
+    expect(document.querySelectorAll(".cm-panels .cm-vim-panel")).toHaveLength(0);
+  });
+
+  test("/ in the composer opens the app's search prompt", async () => {
+    const app = await AppHarness.started();
+    await app.press("c/");
+    expect(app.status("mode")).toBe("SEARCH");
+  });
+
+  test("recording a macro shows in the status line", async () => {
+    const app = await AppHarness.started();
+    await app.press("cqk");
+    expect(app.status("notice")).toBe("recording @k");
+  });
+
+  test("escape closes the command line and returns to the composer", async () => {
+    const app = await AppHarness.started();
+    await app.press("c:<Esc>");
+    expect(app.isVisible('[data-test="command-line"]')).toBe(false);
+    expect(app.status("mode")).toBe("COMPOSE NORMAL");
+  });
+});
+
 describe("composer", () => {
   test("c opens a blank draft with header lines", async () => {
     const app = await AppHarness.started();

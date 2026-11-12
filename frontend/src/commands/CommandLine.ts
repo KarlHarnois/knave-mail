@@ -1,8 +1,9 @@
 import { KeyNotation } from "../keys/KeyNotation";
 
-export type PromptSymbol = ":" | "/";
+export type PromptSymbol = ":" | "/" | "?";
 
 type Submit = (text: string) => void;
+type Closed = () => void;
 
 export class CommandLine {
   readonly element: HTMLElement;
@@ -10,6 +11,7 @@ export class CommandLine {
   private readonly textElement: HTMLElement;
   private text = "";
   private submit: Submit | null = null;
+  private closed: Closed | null = null;
 
   constructor(
     document: Document,
@@ -32,8 +34,9 @@ export class CommandLine {
     return this.promptElement.textContent ?? "";
   }
 
-  open(prompt: PromptSymbol, submit: Submit): void {
+  open(prompt: PromptSymbol, submit: Submit, closed: Closed | null = null): void {
     this.submit = submit;
+    this.closed = closed;
     this.promptElement.textContent = prompt;
     this.replaceText("");
     this.element.hidden = false;
@@ -59,9 +62,16 @@ export class CommandLine {
     else this.replaceText(this.text.slice(0, -1));
   }
 
+  cancel(): void {
+    if (this.isOpen) this.close();
+  }
+
   private close(): void {
+    const closed = this.closed;
     this.submit = null;
+    this.closed = null;
     this.element.hidden = true;
+    closed?.();
   }
 
   private replaceText(text: string): void {
