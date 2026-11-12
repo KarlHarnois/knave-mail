@@ -1,4 +1,5 @@
-(export color? font-family? font-size? mode?)
+(export color? dark-mail-setting? font-family? font-size?
+        mode?)
 
 (def color?
   (rust "{{ let {!value} = {0}; {!value}.starts_with('#') && matches!({!value}.len(), 4 | 7 | 9) && {!value}[1..].chars().all(|{!c}| {!c}.is_ascii_hexdigit()) }}"
@@ -14,4 +15,8 @@
 
 (def mode?
   (rust "matches!({0}, \"light\" | \"dark\" | \"system\")"
+    (fn ((ref str)) bool)))
+
+(def dark-mail-setting?
+  (rust "matches!({0}, \"auto\" | \"off\")"
     (fn ((ref str)) bool)))

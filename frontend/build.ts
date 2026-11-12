@@ -9,6 +9,7 @@ class FrontendBuild {
     await rm(this.outputDirectory, { recursive: true, force: true });
     await mkdir(this.outputDirectory, { recursive: true });
     await this.bundle("main.ts", "app.js", "iife");
+    await this.bundle("darkmail/darkReaderEntry.ts", "darkreader.js", "iife");
     await this.bundle("app.css", "app.css", "esm");
     await copyFile(join(this.sourceDirectory, "index.html"), join(this.outputDirectory, "index.html"));
   }

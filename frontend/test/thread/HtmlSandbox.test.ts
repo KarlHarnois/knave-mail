@@ -1,4 +1,6 @@
 import { describe, expect, test } from "bun:test";
+import { DarkReaderWarmup } from "../../src/darkmail/DarkReaderWarmup";
+import type { MailColorSource } from "../../src/darkmail/MailDarkening";
 import { HtmlSandbox } from "../../src/thread/HtmlSandbox";
 import { MessageFrame } from "../../src/thread/MessageFrame";
 
@@ -52,22 +54,76 @@ describe("HtmlSandbox.srcdoc", () => {
   });
 });
 
+const LIGHT: MailColorSource = { colors: () => null };
+const DARK: MailColorSource = { colors: () => ({ background: "rgb(18, 18, 18)", foreground: "rgb(190, 190, 190)" }) };
+
+describe("dark mail", () => {
+  test("a dark theme lets only the Dark Reader script run, by nonce", () => {
+    const darkSandbox = new HtmlSandbox(() => "n0nce");
+    const policy = PolicyReader.directive(PolicyReader.of(darkSandbox.srcdoc("", false, DARK.colors())), "script-src");
+    expect(policy).toBe("script-src 'nonce-n0nce' knave://localhost/darkreader.js");
+  });
+
+  test("a dark theme starts Dark Reader with the theme colors", () => {
+    const srcdoc = new HtmlSandbox(() => "n0nce").srcdoc("<p>Hi</p>", false, DARK.colors());
+    expect(srcdoc).toContain(
+      '<script nonce="n0nce">window.knaveDarkReader.start("rgb(18, 18, 18)","rgb(190, 190, 190)")</script>',
+    );
+  });
+
+  test("every message gets a fresh nonce", () => {
+    const first = sandbox.srcdoc("", false, DARK.colors());
+    const second = sandbox.srcdoc("", false, DARK.colors());
+    expect(PolicyReader.directive(PolicyReader.of(first), "script-src")).not.toBe(
+      PolicyReader.directive(PolicyReader.of(second), "script-src"),
+    );
+  });
+
+  test("a light theme keeps every script blocked", () => {
+    expect(PolicyReader.directive(PolicyReader.of(sandbox.srcdoc("", false, LIGHT.colors())), "script-src")).toBe(
+      "script-src 'none'",
+    );
+  });
+
+  test("a darkened frame may run scripts and stays hidden until it has loaded", () => {
+    const frame = new MessageFrame({ document, sandbox, darkening: DARK, html: "<p>Hi</p>" });
+    expect(frame.element.getAttribute("sandbox")).toBe("allow-same-origin allow-scripts");
+    expect(frame.element.style.visibility).toBe("hidden");
+  });
+});
+
+describe("Dark Reader warm-up", () => {
+  test("loads Dark Reader once in a hidden frame when the theme is dark", () => {
+    document.body.replaceChildren();
+    new DarkReaderWarmup(document, sandbox, DARK).start();
+    const frame = document.querySelector("iframe");
+    expect(frame?.hidden).toBe(true);
+    expect(frame?.srcdoc).toContain("knave://localhost/darkreader.js");
+  });
+
+  test("does nothing when the theme is light", () => {
+    document.body.replaceChildren();
+    new DarkReaderWarmup(document, sandbox, LIGHT).start();
+    expect(document.querySelector("iframe")).toBeNull();
+  });
+});
+
 describe("MessageFrame", () => {
   test("is a sandboxed iframe without scripts that cannot take keyboard focus", () => {
-    const frame = new MessageFrame(document, sandbox, "<p>Hi</p>");
+    const frame = new MessageFrame({ document, sandbox, darkening: LIGHT, html: "<p>Hi</p>" });
     expect(frame.element.getAttribute("sandbox")).toBe("allow-same-origin");
     expect(frame.element.getAttribute("sandbox")).not.toContain("allow-scripts");
     expect(frame.element.tabIndex).toBe(-1);
   });
 
   test("loads the message with remote images blocked", () => {
-    const frame = new MessageFrame(document, sandbox, "<p>Hi</p>");
+    const frame = new MessageFrame({ document, sandbox, darkening: LIGHT, html: "<p>Hi</p>" });
     expect(frame.allowsRemoteImages).toBe(false);
     expect(frame.element.srcdoc).toContain("img-src data: cid:;");
   });
 
   test("reloads the message with remote images allowed", () => {
-    const frame = new MessageFrame(document, sandbox, "<p>Hi</p>");
+    const frame = new MessageFrame({ document, sandbox, darkening: LIGHT, html: "<p>Hi</p>" });
     frame.allowRemoteImages();
     expect(frame.allowsRemoteImages).toBe(true);
     expect(frame.element.srcdoc).toContain("img-src data: cid: https: http:");

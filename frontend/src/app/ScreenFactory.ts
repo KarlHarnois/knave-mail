@@ -1,7 +1,11 @@
+import { DarkReaderWarmup } from "../darkmail/DarkReaderWarmup";
+import { MailDarkening } from "../darkmail/MailDarkening";
 import { HelpScreen } from "../help/HelpScreen";
 import { LabelPickerScreen } from "../labels/LabelPickerScreen";
 import type { LabelRef } from "../mail/LabelDirectory";
 import { TestDriver } from "../testing/TestDriver";
+import { HtmlSandbox } from "../thread/HtmlSandbox";
+import type { MessageCardServices } from "../thread/MessageCard";
 import type { MailServices } from "./MailServices";
 import type { ScreenHost } from "./ScreenHost";
 import { ZoomControl } from "./ZoomControl";
@@ -51,5 +55,20 @@ export class ScreenFactory {
       askSearch: (submit) => this.services.commandLine.open("/", submit),
       showError: (message) => this.services.status.showError(message),
     });
+  }
+
+  messageCardServices(): MessageCardServices {
+    return {
+      document: this.services.document,
+      sandbox: new HtmlSandbox(),
+      darkening: new MailDarkening(this.services.document),
+      dates: this.services.dates,
+      editors: this.services.editors,
+    };
+  }
+
+  darkReaderWarmup(): DarkReaderWarmup {
+    const document = this.services.document;
+    return new DarkReaderWarmup(document, new HtmlSandbox(), new MailDarkening(document));
   }
 }

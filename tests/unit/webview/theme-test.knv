@@ -52,7 +52,7 @@
 
 (deftest an-unknown-key-is-skipped-with-a-warning
   (assert (= (warnings-of "(theme :font-weight 700 :font-size 15)")
-             (vec (str "theme.knv: unknown key :font-weight; use :font, :message-font, :font-size or :mode"))))
+             (vec (str "theme.knv: unknown key :font-weight; use :font, :message-font, :font-size, :mode or :dark-mail"))))
   (assert (= (css-of "(theme :font-weight 700 :font-size 15)")
              ":root {\n  --font-size: 15px;\n}\n")))
 
@@ -81,3 +81,11 @@
 (deftest the-file-must-start-with-theme
   (assert (= (warnings-of "(colors :font-size 15)")
              (vec (str "theme.knv: the file must start with (theme ...), not (colors ...)")))))
+
+(deftest dark-mail-can-be-turned-off
+  (assert (= (css-of "(theme :dark-mail \"off\")")
+             ":root {\n  --dark-mail: off;\n}\n")))
+
+(deftest dark-mail-accepts-only-auto-or-off
+  (assert (= (warnings-of "(theme :dark-mail \"always\")")
+             (vec (str "theme.knv: `always` is not a valid :dark-mail")))))

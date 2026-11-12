@@ -14,14 +14,20 @@ knaveE2E.scenario(async (driver) => {
   e2e.check("the theme file forces the dark mode", style.colorScheme === "dark", style.colorScheme);
   e2e.check("the message font falls back to the theme font", getComputedStyle(document.body).fontFamily.includes("Iosevka Aile"), getComputedStyle(document.body).fontFamily);
   e2e.check("the theme file overrides a dark color", style.getPropertyValue("--dark-accent").trim() === "#ff8800", style.getPropertyValue("--dark-accent"));
-  await e2e.step("<CR>");
+  const openedAt = performance.now();
+  driver.press("<CR>");
   const frame = await e2e.waitFor('[data-test~="message-html"]');
-  const canvasOf = () => frame?.contentDocument?.documentElement && getComputedStyle(frame.contentDocument.documentElement).backgroundColor;
-  for (let waited = 0; waited < 2000 && canvasOf() !== e2e.themeColor("--html-mail"); waited += 50) {
-    await new Promise((resolve) => setTimeout(resolve, 50));
+  for (let waited = 0; waited < 3000 && frame?.style.visibility !== "visible"; waited += 5) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
   }
-  const canvas = canvasOf();
-  e2e.check("HTML mail sits on the themed canvas", canvas === e2e.themeColor("--html-mail"), `${canvas} vs ${e2e.themeColor("--html-mail")}`);
+  const shownAfter = Math.round(performance.now() - openedAt);
+  e2e.report(`dark mail shown after ${shownAfter} ms`);
+  e2e.check("dark mail shows without a noticeable delay", shownAfter < 250, `${shownAfter} ms`);
+  const mailBody = frame?.contentDocument?.body;
+  const mailBackground = mailBody ? getComputedStyle(mailBody).backgroundColor : "none";
+  const channels = (mailBackground.match(/\d+/g) ?? ["255", "255", "255"]).slice(0, 3).map(Number);
+  e2e.check("a light newsletter is darkened in a dark theme", channels.every((channel) => channel < 90), mailBackground);
+  await driver.whenIdle();
   await e2e.step("qc");
   await e2e.step("Gohellojj");
   e2e.check("the keymap file maps jj to escape", driver.text('[data-test~="status-mode"]') === "COMPOSE NORMAL", driver.text('[data-test~="status-mode"]'));

@@ -36,6 +36,7 @@
       .with_custom_protocol(\"knave\".into(), move |_, {!request}| {{
         let ({!body}, {!kind}): (std::borrow::Cow<'static, [u8]>, &str) = match {!request}.uri().path() {{
           \"/theme.css\" => (std::borrow::Cow::Owned({!theme_css}.clone().into_bytes()), \"text/css; charset=utf-8\"),
+          \"/darkreader.js\" => (std::borrow::Cow::Borrowed(include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../../../frontend/dist/darkreader.js\"))), \"text/javascript; charset=utf-8\"),
           \"/app.js\" => (std::borrow::Cow::Borrowed(include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../../../frontend/dist/app.js\"))), \"text/javascript; charset=utf-8\"),
           \"/app.css\" => (std::borrow::Cow::Borrowed(include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../../../frontend/dist/app.css\"))), \"text/css; charset=utf-8\"),
           _ => (std::borrow::Cow::Borrowed(include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../../../frontend/dist/index.html\"))), \"text/html; charset=utf-8\"),

@@ -1,4 +1,5 @@
 import type { Message } from "../bridge/Protocol";
+import type { MailColorSource } from "../darkmail/MailDarkening";
 import type { DateLabel } from "../render/DateLabel";
 import type { VimEditor, VimEditorOptions } from "../vim/VimEditor";
 import type { VimEditorFactory } from "../vim/VimEditorFactory";
@@ -8,6 +9,7 @@ import { MessageFrame } from "./MessageFrame";
 export type MessageCardServices = {
   document: Document;
   sandbox: HtmlSandbox;
+  darkening: MailColorSource;
   dates: DateLabel;
   editors: VimEditorFactory;
 };
@@ -86,7 +88,12 @@ export class MessageCard {
   }
 
   private renderHtml(html: string): HTMLElement {
-    this.frame = new MessageFrame(this.services.document, this.services.sandbox, html);
+    this.frame = new MessageFrame({
+      document: this.services.document,
+      sandbox: this.services.sandbox,
+      darkening: this.services.darkening,
+      html,
+    });
     return this.frame.element;
   }
 

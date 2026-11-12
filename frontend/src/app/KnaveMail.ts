@@ -8,7 +8,6 @@ import { KeyboardInput } from "../keys/KeyboardInput";
 import type { LabelPickerScreen } from "../labels/LabelPickerScreen";
 import { ListScreen } from "../list/ListScreen";
 import { SharedActions } from "../mail/SharedActions";
-import { HtmlSandbox } from "../thread/HtmlSandbox";
 import { ThreadScreen } from "../thread/ThreadScreen";
 import { App } from "./App";
 import { AppKeyMaps } from "./AppKeyMaps";
@@ -50,6 +49,7 @@ export class KnaveMail {
     new KeyboardInput((token) => this.app.press(token)).listen(this.services.document);
     new FocusGuard(this.window, () => this.app.focusScreen()).watch();
     this.factory.zoomControl().listen(this.services.document);
+    this.factory.darkReaderWarmup().start();
     const startup = this.services.session.start();
     this.factory.testDriver((token) => this.app.press(token), startup).installOn(this.window);
     this.app.refreshStatus();
@@ -120,12 +120,7 @@ export class KnaveMail {
       session: this.services.session,
       actions: this.services.actions,
       errors: this.services.errors,
-      cards: {
-        document: this.services.document,
-        sandbox: new HtmlSandbox(),
-        dates: this.services.dates,
-        editors: this.services.editors,
-      },
+      cards: this.factory.messageCardServices(),
       openDraft: (draft) => this.composeScreen.open(draft),
       neighbourThread: (offset) => this.selectNeighbour(offset),
     });
