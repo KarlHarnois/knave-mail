@@ -1,0 +1,41 @@
+(use adapters/driven/gmail/http new-agent)
+(use adapters/driven/gmail/mailbox ->gmail-mailbox gmail-mailbox)
+(use adapters/driven/gmail/session ->gmail-endpoints ->gmail-session)
+(use support/fake-gmail fake-gmail fake-gmail-base start-fake-gmail)
+
+(export fixture-routes gmail-over route)
+
+(def fixtures "tests/fixtures/gmail/")
+
+(type route (fn ((ref str) (ref str)) (pair string string)))
+
+(defn route (request answer)
+  (pair (str request) (str answer)))
+
+(type fixture-routes (fn () (vec (pair string string))))
+
+(defn fixture-routes ()
+  (vec (route "POST /token" (ref (str "200 " fixtures "token.json")))
+       (route "GET /gmail/v1/users/me/labels" (ref (str "200 " fixtures "labels.json")))
+       (route "GET /gmail/v1/users/me/labels/INBOX" (ref (str "200 " fixtures "label-inbox.json")))
+       (route "GET /gmail/v1/users/me/labels/Label_1" (ref (str "200 " fixtures "label-receipts.json")))
+       (route "GET /gmail/v1/users/me/threads?" (ref (str "200 " fixtures "threads-inbox.json")))
+       (route "GET /gmail/v1/users/me/threads/t1?format=metadata" (ref (str "200 " fixtures "thread-t1-metadata.json")))
+       (route "GET /gmail/v1/users/me/threads/t2?format=metadata" (ref (str "200 " fixtures "thread-t2-metadata.json")))
+       (route "GET /gmail/v1/users/me/threads/t1?format=minimal" (ref (str "200 " fixtures "thread-t1-minimal.json")))
+       (route "GET /gmail/v1/users/me/messages/m1" (ref (str "200 " fixtures "message-m1-raw.json")))
+       (route "GET /gmail/v1/users/me/messages/m2" (ref (str "200 " fixtures "message-m2-raw.json")))
+       (route "POST /gmail/v1/users/me/messages/send" (ref (str "200 " fixtures "sent.json")))
+       (route "POST /gmail/v1/users/me/threads/t1/modify" (ref (str "200 " fixtures "empty.json")))))
+
+(type gmail-over (fn ((ref fake-gmail)) gmail-mailbox))
+
+(defn gmail-over (server)
+  (let (base (fake-gmail-base server))
+    (->gmail-mailbox (->gmail-session :agent (new-agent)
+                                      :endpoints (->gmail-endpoints :api-base (clone base)
+                                                                    :token-url (str base "/token")
+                                                                    :client-id (str "fake-client")
+                                                                    :client-secret (str "fake-secret"))
+                                      :refresh-token (str "fake-refresh")
+                                      :access-token none))))
