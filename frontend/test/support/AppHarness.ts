@@ -1,6 +1,6 @@
 import { EditorView } from "@codemirror/view";
-import { KnaveMail } from "../../src/KnaveMail";
-import type { TestDriverApi } from "../../src/TestDriver";
+import { KnaveMail } from "../../src/app/KnaveMail";
+import type { TestDriverApi } from "../../src/testing/TestDriver";
 import { FakeCore } from "./FakeCore";
 
 type DriverWindow = Window & { knaveTestDriver?: TestDriverApi };

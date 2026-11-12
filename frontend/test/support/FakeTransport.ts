@@ -1,5 +1,5 @@
-import type { CoreError, CoreEvent, Request } from "../../src/Protocol";
-import type { Transport } from "../../src/Transport";
+import type { CoreError, CoreEvent, Request } from "../../src/bridge/Protocol";
+import type { Transport } from "../../src/bridge/Transport";
 
 export class FakeTransport implements Transport {
   readonly sent: Request[] = [];

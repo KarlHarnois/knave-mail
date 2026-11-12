@@ -1,4 +1,4 @@
-import type { Draft, Label, Message, Thread, ThreadSummary } from "../../src/Protocol";
+import type { Draft, Label, Message, Thread, ThreadSummary } from "../../src/bridge/Protocol";
 
 const BASE_DATE = Date.UTC(2026, 10, 1, 9, 30);
 const MINUTE = 60_000;

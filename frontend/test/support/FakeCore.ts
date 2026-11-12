@@ -1,5 +1,5 @@
-import type { CoreError, CoreEvent, Request, Thread } from "../../src/Protocol";
-import type { Transport } from "../../src/Transport";
+import type { CoreError, CoreEvent, Request, Thread } from "../../src/bridge/Protocol";
+import type { Transport } from "../../src/bridge/Transport";
 import { MailFixtures } from "./MailFixtures";
 
 type Handler = (args: Record<string, unknown>) => unknown;
