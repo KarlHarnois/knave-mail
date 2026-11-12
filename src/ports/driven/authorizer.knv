@@ -1,0 +1,7 @@
+(use domain/mail account)
+(use domain/mail-error mail-error)
+
+(export authorizer)
+
+(deftrait authorizer
+  (authorize! (fn ((mut self)) (result account mail-error))))

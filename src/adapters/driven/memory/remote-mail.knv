@@ -1,0 +1,50 @@
+(use domain/mail ->message message outgoing thread)
+(use domain/mail-error mail-error)
+
+(export ->remote-mail fail-when! guard remote-mail sent-from)
+
+(defstruct remote-mail
+  :threads (vec thread)
+  :sent (vec outgoing)
+  :latency-milliseconds u64
+  :failing (option string)
+  :next-id i64)
+
+(type guard (fn ((ref remote-mail) (ref str)) (result unit mail-error)))
+
+(defn guard (remote operation)
+  (sleep-milliseconds (:latency-milliseconds remote))
+  (if (failing? remote operation)
+    (err (mail-error/network (str "simulated failure of " operation)))
+    (ok (do))))
+
+(type fail-when! (fn ((mut remote-mail) (option string)) unit))
+
+(defn fail-when! (remote operation)
+  (set! (:failing remote) operation))
+
+(type failing? (fn ((ref remote-mail) (ref str)) bool))
+
+(defn failing? (remote operation)
+  (match (ref (:failing remote))
+    ((some failing) (= failing operation))
+    (none false)))
+
+(type sent-from (fn ((ref outgoing) (ref str) (ref str) i64) message))
+
+(defn sent-from (sent message-id thread-id date)
+  (->message :id (str message-id)
+             :thread-id (str thread-id)
+             :from (clone (:from sent))
+             :to (clone (:to sent))
+             :cc (clone (:cc sent))
+             :subject (clone (:subject sent))
+             :date date
+             :text (clone (:body sent))
+             :html none
+             :header-id (str "<" message-id "@knave-mail.memory>")
+             :references (clone (:references sent))))
+
+(def sleep-milliseconds
+  (rust "std::thread::sleep(std::time::Duration::from_millis({0}))"
+    (fn (u64) unit)))

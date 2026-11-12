@@ -1,0 +1,56 @@
+(use adapters/driven/memory/stored message-in replace-summaries!
+                                   replace-thread!
+                                   stored-summary stored-thread
+                                   summaries-of thread-in)
+(use adapters/driven/memory/stored-labels labels-in relabel-everywhere!
+                                          replace-labels! stored-labels)
+(use domain/mail account)
+(use domain/summary newest-first)
+(use ports/driven/store store)
+
+(export ->memory-store empty-memory-store memory-store)
+
+(defstruct memory-store
+  :accounts (vec account)
+  :labels (vec stored-labels)
+  :summaries (vec stored-summary)
+  :threads (vec stored-thread))
+
+(defn empty-memory-store ()
+  (->memory-store (vec) (vec) (vec) (vec)))
+
+(impl store memory-store
+  (load-accounts (kept) (ok (clone (:accounts kept))))
+  (save-account! (kept added)
+    (ok (when (not (account-kept? (ref (:accounts kept)) (ref (:email added))))
+          (push! (mut (:accounts kept)) (clone added)))))
+  (forget-account! (kept email)
+    (ok (set! (:accounts kept) (accounts-without (ref (:accounts kept)) email))))
+  (load-labels (kept email) (ok (labels-in (ref (:labels kept)) email)))
+  (save-labels! (kept email labels)
+    (ok (replace-labels! (mut (:labels kept)) email labels)))
+  (load-threads (kept email query)
+    (ok (newest-first (summaries-of (ref (:summaries kept)) email query)
+                      query)))
+  (save-threads! (kept email summaries)
+    (ok (replace-summaries! (mut (:summaries kept)) email summaries)))
+  (load-thread (kept email thread-id)
+    (ok (thread-in (ref (:threads kept)) email thread-id)))
+  (load-message (kept email message-id)
+    (ok (message-in (ref (:threads kept)) email message-id)))
+  (save-thread! (kept email saved)
+    (ok (replace-thread! (mut (:threads kept)) email saved)))
+  (relabel-stored! (kept email thread-id change)
+    (ok (relabel-everywhere! (mut (:summaries kept))
+                             (mut (:threads kept))
+                             email
+                             thread-id
+                             change))))
+
+(def account-kept?
+  (rust "{0}.iter().any(|{!account}| {!account}.email == *{1})"
+    (fn ((ref (vec account)) (ref str)) bool)))
+
+(def accounts-without
+  (rust "{0}.iter().filter(|{!account}| {!account}.email != *{1}).cloned().collect::<Vec<_>>()"
+    (fn ((ref (vec account)) (ref str)) (vec account))))

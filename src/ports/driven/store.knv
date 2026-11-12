@@ -1,0 +1,30 @@
+(use domain/labels label-change)
+(use domain/mail account label message thread thread-query
+                 thread-summary)
+(use domain/mail-error mail-error)
+
+(export store)
+
+(deftrait store
+  (load-accounts (fn ((ref self)) (result (vec account) mail-error)))
+  (save-account! (fn ((mut self) (ref account)) (result unit mail-error)))
+  (forget-account! (fn ((mut self) (ref str)) (result unit mail-error)))
+  (load-labels (fn ((ref self) (ref str)) (result (vec label) mail-error)))
+  (save-labels!
+    (fn ((mut self) (ref str) (ref (vec label))) (result unit mail-error)))
+  (load-threads
+    (fn ((ref self) (ref str) (ref thread-query))
+      (result (vec thread-summary) mail-error)))
+  (save-threads!
+    (fn ((mut self) (ref str) (ref (vec thread-summary)))
+      (result unit mail-error)))
+  (load-thread
+    (fn ((ref self) (ref str) (ref str))
+      (result (option thread) mail-error)))
+  (load-message
+    (fn ((ref self) (ref str) (ref str))
+      (result (option message) mail-error)))
+  (save-thread! (fn ((mut self) (ref str) (ref thread)) (result unit mail-error)))
+  (relabel-stored!
+    (fn ((mut self) (ref str) (ref str) (ref label-change))
+      (result unit mail-error))))

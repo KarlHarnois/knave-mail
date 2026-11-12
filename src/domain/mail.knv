@@ -1,0 +1,61 @@
+(export ->account ->draft ->label ->message ->outgoing ->thread
+        ->thread-query ->thread-summary account draft label message
+        outgoing thread thread-query thread-summary)
+
+(defstruct account
+  :email string)
+
+(defstruct label
+  :id string
+  :name string
+  :unread i64)
+
+(defstruct thread-summary
+  :id string
+  :subject string
+  :participants string
+  :snippet string
+  :date i64
+  :labels (vec string)
+  :message-count i64)
+
+(defstruct message
+  :id string
+  :thread-id string
+  :from string
+  :to (vec string)
+  :cc (vec string)
+  :subject string
+  :date i64
+  :text string
+  :html (option string)
+  :header-id string
+  :references string)
+
+(defstruct thread
+  :id string
+  :subject string
+  :labels (vec string)
+  :messages (vec message))
+
+(defstruct draft
+  :to (vec string)
+  :cc (vec string)
+  :subject string
+  :body string
+  :reply-to (option string))
+
+(defstruct thread-query
+  :label string
+  :query string
+  :limit i64)
+
+(defstruct outgoing
+  :from string
+  :to (vec string)
+  :cc (vec string)
+  :subject string
+  :body string
+  :thread-id (option string)
+  :in-reply-to (option string)
+  :references string)

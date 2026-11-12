@@ -1,0 +1,4 @@
+(use domain/mail ->account)
+
+(deftest an-account-is-named-by-its-email
+  (assert (= (:email (->account (str "ada@example.com"))) "ada@example.com")))

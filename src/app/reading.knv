@@ -1,0 +1,69 @@
+(use app/mail-app mail-app)
+(use app/mailboxes mailbox-for!)
+(use domain/labels apply-label-change read-change unread?)
+(use domain/mail thread thread-query thread-summary)
+(use domain/mail-error mail-error)
+(use ports/driven/mailbox fetch-thread! fetch-threads! relabel!)
+(use ports/driven/store load-thread load-threads relabel-stored!
+                        save-thread! save-threads!)
+
+(export find-threads! read-thread!)
+
+(type find-threads!
+  (fn ((mut mail-app) (ref str) (ref thread-query))
+    (result (vec thread-summary) mail-error)))
+
+(defn find-threads! (app account query)
+  (if (empty? (:query query))
+    (load-threads (ref (:store app)) account query)
+    (search-threads! app account query)))
+
+(type search-threads!
+  (fn ((mut mail-app) (ref str) (ref thread-query))
+    (result (vec thread-summary) mail-error)))
+
+(defn search-threads! (app account query)
+  (let (found (try (fetch-threads! (try (mailbox-for! (mut (:mailboxes app))
+                                                      account))
+                                   query)))
+    (try (save-threads! (mut (:store app)) account (ref found)))
+    (ok found)))
+
+(type read-thread!
+  (fn ((mut mail-app) (ref str) (ref str)) (result thread mail-error)))
+
+(defn read-thread! (app account thread-id)
+  (let (opened (try (stored-or-fetched-thread! app account thread-id)))
+    (if (unread? (ref (:labels opened)))
+      (mark-thread-read! app account opened)
+      (ok opened))))
+
+(type stored-or-fetched-thread!
+  (fn ((mut mail-app) (ref str) (ref str)) (result thread mail-error)))
+
+(defn stored-or-fetched-thread! (app account thread-id)
+  (match (try (load-thread (ref (:store app)) account thread-id))
+    ((some stored) (ok stored))
+    (none (fetch-and-store-thread! app account thread-id))))
+
+(type fetch-and-store-thread!
+  (fn ((mut mail-app) (ref str) (ref str)) (result thread mail-error)))
+
+(defn fetch-and-store-thread! (app account thread-id)
+  (let (fetched (try (fetch-thread! (try (mailbox-for! (mut (:mailboxes app))
+                                                       account))
+                                    thread-id)))
+    (try (save-thread! (mut (:store app)) account (ref fetched)))
+    (ok fetched)))
+
+(type mark-thread-read!
+  (fn ((mut mail-app) (ref str) thread) (result thread mail-error)))
+
+(defn mark-thread-read! (app account opened)
+  (let (change (read-change))
+    (try (relabel! (try (mailbox-for! (mut (:mailboxes app)) account))
+                   (ref (:id opened))
+                   (ref change)))
+    (try (relabel-stored! (mut (:store app)) account (ref (:id opened)) (ref change)))
+    (ok (assoc opened
+          :labels (apply-label-change (ref (:labels opened)) (ref change))))))

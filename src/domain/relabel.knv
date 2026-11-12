@@ -1,0 +1,17 @@
+(use domain/labels apply-label-change label-change)
+(use domain/mail thread thread-summary)
+
+(export relabeled-summary relabeled-thread)
+
+(type relabeled-summary
+  (fn ((ref thread-summary) (ref label-change)) thread-summary))
+
+(defn relabeled-summary (summary change)
+  (assoc (clone summary)
+    :labels (apply-label-change (ref (:labels summary)) change)))
+
+(type relabeled-thread (fn ((ref thread) (ref label-change)) thread))
+
+(defn relabeled-thread (changed change)
+  (assoc (clone changed)
+    :labels (apply-label-change (ref (:labels changed)) change)))

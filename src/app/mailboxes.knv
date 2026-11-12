@@ -1,0 +1,34 @@
+(use domain/mail-error mail-error)
+(use ports/driven/mailbox mailbox)
+(use ports/driven/mailbox-provider mailbox-provider open-mailbox!)
+
+(export ->mailboxes mailboxes mailbox-for!)
+
+(defstruct mailboxes
+  :provider (box mailbox-provider)
+  :emails (vec string)
+  :opened (vec (box mailbox)))
+
+(type mailbox-for!
+  (fn ((mut mailboxes) (ref str)) (result (mut (box mailbox)) mail-error)))
+
+(defn mailbox-for! (all email)
+  (match (position-of (ref (:emails all)) email)
+    ((some index) (ok (opened-at! all index)))
+    (none (do
+            (local opened (try (open-mailbox! (mut (:provider all)) email)))
+            (push! (mut (:emails all)) (str email))
+            (push! (mut (:opened all)) opened)
+            (ok (last-opened! all))))))
+
+(def position-of
+  (rust "{0}.iter().position(|{!email}| *{!email} == *{1})"
+    (fn ((ref (vec string)) (ref str)) (option usize))))
+
+(def last-opened!
+  (rust "{0}.opened.last_mut().expect(\"a mailbox was just opened\")"
+    (fn ((mut mailboxes)) (mut (box mailbox)))))
+
+(def opened-at!
+  (rust "&mut {0}.opened[{1}]"
+    (fn ((mut mailboxes) usize) (mut (box mailbox)))))

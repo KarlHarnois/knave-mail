@@ -1,0 +1,13 @@
+(export join-with prefixed-ignoring-case? quoted)
+
+(def prefixed-ignoring-case?
+  (rust "{0}.to_lowercase().starts_with(&{1}.to_lowercase())"
+    (fn ((ref str) (ref str)) bool)))
+
+(def quoted
+  (rust "{0}.lines().map(|line| if line.is_empty() {{ String::from(\">\") }} else {{ format!(\"> {{line}}\") }}).collect::<Vec<_>>().join(\"\\n\")"
+    (fn ((ref str)) string)))
+
+(def join-with
+  (rust "{0}.join({1})"
+    (fn ((ref (vec string)) (ref str)) string)))

@@ -1,0 +1,24 @@
+(use adapters/driven/memory/mailbox ->memory-mailbox)
+(use adapters/driven/memory/remote-mail remote-mail)
+(use adapters/driven/memory/shared handle shared)
+(use domain/mail-error mail-error)
+(use ports/driven/mailbox mailbox)
+(use ports/driven/mailbox-provider mailbox-provider)
+
+(export ->memory-provider memory-provider)
+
+(defstruct memory-provider
+  :emails (vec string)
+  :remotes (vec (shared remote-mail)))
+
+(impl mailbox-provider memory-provider
+  (open-mailbox! (provider email)
+    (match (email-position (ref (:emails provider)) email)
+      ((some index)
+       (ok (the (box mailbox)
+             (box (->memory-mailbox (handle (at (:remotes provider) index)))))))
+      (none (err (mail-error/auth-required (str "no account " email)))))))
+
+(def email-position
+  (rust "{0}.iter().position(|{!email}| *{!email} == *{1})"
+    (fn ((ref (vec string)) (ref str)) (option usize))))

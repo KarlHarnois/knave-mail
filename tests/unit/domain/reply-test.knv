@@ -1,0 +1,47 @@
+(use domain/reply forward-draft reply-all-draft reply-draft)
+(use support/sample-mail addresses sample-message)
+
+(def own-address "ada@example.com")
+
+(deftest a-reply-goes-to-the-sender
+  (assert (= (:to (reply-draft (ref (sample-message))))
+             (addresses (vec "Grace Hopper <grace@example.com>")))))
+
+(deftest a-reply-prefixes-the-subject
+  (assert (= (:subject (reply-draft (ref (sample-message))))
+             "Re: Compiler meeting")))
+
+(deftest a-reply-keeps-an-existing-prefix-whatever-its-case
+  (let (original (assoc (sample-message) :subject (str "RE: Compiler meeting")))
+    (assert (= (:subject (reply-draft (ref original))) "RE: Compiler meeting"))))
+
+(deftest a-reply-quotes-the-original-text
+  (assert (= (:body (reply-draft (ref (sample-message))))
+             "\n\nGrace Hopper <grace@example.com> wrote:\n> Can we meet Tuesday?\n>\n> Grace")))
+
+(deftest a-reply-answers-the-original-message
+  (assert (= (:reply-to (reply-draft (ref (sample-message))))
+             (some (str "m-1")))))
+
+(deftest a-reply-all-adds-the-sender-and-keeps-the-other-recipients
+  (assert (= (:to (reply-all-draft (ref (sample-message)) own-address))
+             (addresses (vec "Grace Hopper <grace@example.com>"
+                             "alan@example.com")))))
+
+(deftest a-reply-all-leaves-out-the-own-address-in-any-case
+  (assert (= (:cc (reply-all-draft (ref (sample-message)) own-address))
+             (addresses (vec "edsger@example.com")))))
+
+(deftest a-forward-has-no-recipients
+  (assert (empty? (:to (forward-draft (ref (sample-message)))))))
+
+(deftest a-forward-prefixes-the-subject
+  (assert (= (:subject (forward-draft (ref (sample-message))))
+             "Fwd: Compiler meeting")))
+
+(deftest a-forward-carries-the-original-headers-and-text
+  (assert (= (:body (forward-draft (ref (sample-message))))
+             "\n\n---------- Forwarded message ----------\nFrom: Grace Hopper <grace@example.com>\nSubject: Compiler meeting\nTo: ada@example.com, alan@example.com\n\nCan we meet Tuesday?\n\nGrace")))
+
+(deftest a-forward-answers-no-message
+  (assert (= (:reply-to (forward-draft (ref (sample-message)))) none)))

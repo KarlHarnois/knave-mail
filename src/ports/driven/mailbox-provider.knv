@@ -1,0 +1,8 @@
+(use domain/mail-error mail-error)
+(use ports/driven/mailbox mailbox)
+
+(export mailbox-provider)
+
+(deftrait mailbox-provider
+  (open-mailbox!
+    (fn ((mut self) (ref str)) (result (box mailbox) mail-error))))

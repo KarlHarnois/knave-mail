@@ -1,0 +1,48 @@
+(use adapters/driven/memory/authorizer ->memory-authorizer)
+(use adapters/driven/memory/provider ->memory-provider)
+(use adapters/driven/memory/remote-mail ->remote-mail remote-mail)
+(use adapters/driven/memory/shared handle share shared)
+(use adapters/driven/memory/store empty-memory-store)
+(use app/mail-app mail-app new-mail-app)
+(use domain/mail ->account ->message ->thread account message thread)
+(use support/sample-mail addresses)
+
+(export app-over remote-with sample-thread world-account)
+
+(def world-account "ada@example.com")
+
+(type sample-thread (fn ((ref str) (vec (ref str)) i64) thread))
+
+(defn sample-thread (id labels date)
+  (->thread :id (str id)
+            :subject (str "Subject of " id)
+            :labels (addresses labels)
+            :messages (vec (->message :id (str "m-" id)
+                                      :thread-id (str id)
+                                      :from (str "Grace <grace@example.com>")
+                                      :to (addresses (vec world-account))
+                                      :cc (vec)
+                                      :subject (str "Subject of " id)
+                                      :date date
+                                      :text (str "Body of " id)
+                                      :html none
+                                      :header-id (str "<m-" id "@example.com>")
+                                      :references (str "")))))
+
+(type remote-with (fn ((vec thread)) (shared remote-mail)))
+
+(defn remote-with (threads)
+  (share (->remote-mail :threads threads
+                        :sent (vec)
+                        :latency-milliseconds 0
+                        :failing none
+                        :next-id 1)))
+
+(type app-over (fn ((ref (shared remote-mail))) mail-app))
+
+(defn app-over (remote)
+  (new-mail-app (box (empty-memory-store))
+                (box (->memory-provider (vec (str world-account))
+                                        (vec (handle remote))))
+                (box (->memory-authorizer (vec (->account (str "new@example.com")))))
+                50))

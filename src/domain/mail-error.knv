@@ -1,0 +1,28 @@
+(export error-kind error-message mail-error)
+
+(defenum mail-error
+  (usage string)
+  (not-found string)
+  (auth-required string)
+  (network string)
+  (internal string))
+
+(type error-kind (fn ((ref mail-error)) (ref str)))
+
+(defn error-kind (error)
+  (match error
+    ((usage _) "usage")
+    ((not-found _) "not-found")
+    ((auth-required _) "auth-required")
+    ((network _) "network")
+    ((internal _) "internal")))
+
+(type error-message (fn ((ref mail-error)) (ref str)))
+
+(defn error-message (error)
+  (match error
+    ((usage message) message)
+    ((not-found message) message)
+    ((auth-required message) message)
+    ((network message) message)
+    ((internal message) message)))

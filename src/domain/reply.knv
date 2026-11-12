@@ -1,0 +1,78 @@
+(use domain/mail ->draft draft message)
+(use domain/text join-with prefixed-ignoring-case? quoted)
+
+(export forward-draft reply-all-draft reply-draft)
+
+(def reply-prefix "Re: ")
+
+(def forward-prefix "Fwd: ")
+
+(type reply-draft (fn ((ref message)) draft))
+
+(defn reply-draft (original)
+  (->draft :to (vec (clone (:from original)))
+           :cc (vec)
+           :subject (prefixed-subject (:subject original) reply-prefix)
+           :body (quoted-reply original)
+           :reply-to (some (clone (:id original)))))
+
+(type reply-all-draft (fn ((ref message) (ref str)) draft))
+
+(defn reply-all-draft (original own-address)
+  (->draft :to (others (ref (everyone-written-to original)) own-address)
+           :cc (others (ref (:cc original)) own-address)
+           :subject (prefixed-subject (:subject original) reply-prefix)
+           :body (quoted-reply original)
+           :reply-to (some (clone (:id original)))))
+
+(type forward-draft (fn ((ref message)) draft))
+
+(defn forward-draft (original)
+  (->draft :to (vec)
+           :cc (vec)
+           :subject (prefixed-subject (:subject original) forward-prefix)
+           :body (forwarded-body original)
+           :reply-to none))
+
+(type prefixed-subject (fn ((ref str) (ref str)) string))
+
+(defn prefixed-subject (subject prefix)
+  (if (prefixed-ignoring-case? subject (trim prefix))
+    (str subject)
+    (str prefix subject)))
+
+(type quoted-reply (fn ((ref message)) string))
+
+(defn quoted-reply (original)
+  (str "\n\n" (:from original) " wrote:\n" (quoted (:text original))))
+
+(type forwarded-body (fn ((ref message)) string))
+
+(defn forwarded-body (original)
+  (str "\n\n---------- Forwarded message ----------\n"
+       "From: " (:from original) "\n"
+       "Subject: " (:subject original) "\n"
+       "To: " (join-with (:to original) ", ") "\n\n"
+       (:text original)))
+
+(type everyone-written-to (fn ((ref message)) (vec string)))
+
+(defn everyone-written-to (original)
+  (let (everyone (clone (:to original)))
+    (insert-first! (mut everyone) (clone (:from original)))
+    everyone))
+
+(type others (fn ((ref (vec string)) (ref str)) (vec string)))
+
+(defn others (addresses own-address)
+  (collect (map (filter (iter addresses)
+                        (fn (address) (not (address-of? address own-address))))
+                (fn (address) (clone address)))))
+
+(def address-of?
+  (rust "{0}.to_lowercase().contains(&{1}.to_lowercase())"
+    (fn ((ref str) (ref str)) bool)))
+
+(def insert-first!
+  (rust "{0}.insert(0, {1})"
+    (fn ((mut (vec string)) string) unit)))

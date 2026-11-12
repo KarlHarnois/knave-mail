@@ -1,0 +1,21 @@
+(use app/mailboxes ->mailboxes mailboxes)
+(use ports/driven/authorizer authorizer)
+(use ports/driven/mailbox-provider mailbox-provider)
+(use ports/driven/store store)
+
+(export ->mail-app mail-app new-mail-app)
+
+(defstruct mail-app
+  :store (box store)
+  :mailboxes mailboxes
+  :authorizer (box authorizer)
+  :sync-limit i64)
+
+(type new-mail-app
+  (fn ((box store) (box mailbox-provider) (box authorizer) i64) mail-app))
+
+(defn new-mail-app (store provider authorizer sync-limit)
+  (->mail-app :store store
+              :mailboxes (->mailboxes provider (vec) (vec))
+              :authorizer authorizer
+              :sync-limit sync-limit))

@@ -1,0 +1,73 @@
+(export ->label-change apply-label-change archive-change
+        inbox-label label-change read-change star-change
+        starred? trash-change unread-change unread? unstar-change)
+
+(def inbox-label "INBOX")
+
+(def unread-label "UNREAD")
+
+(def starred-label "STARRED")
+
+(def trash-label "TRASH")
+
+(defstruct label-change
+  :added (vec string)
+  :removed (vec string))
+
+(defn archive-change ()
+  (->label-change (vec) (vec (str inbox-label))))
+
+(defn trash-change ()
+  (->label-change (vec (str trash-label)) (vec (str inbox-label))))
+
+(defn star-change ()
+  (->label-change (vec (str starred-label)) (vec)))
+
+(defn unstar-change ()
+  (->label-change (vec) (vec (str starred-label))))
+
+(defn read-change ()
+  (->label-change (vec) (vec (str unread-label))))
+
+(defn unread-change ()
+  (->label-change (vec (str unread-label)) (vec)))
+
+(type unread? (fn ((ref (vec string))) bool))
+
+(defn unread? (labels)
+  (holds? labels unread-label))
+
+(type starred? (fn ((ref (vec string))) bool))
+
+(defn starred? (labels)
+  (holds? labels starred-label))
+
+(type apply-label-change
+  (fn ((ref (vec string)) (ref label-change)) (vec string)))
+
+(defn apply-label-change (labels change)
+  (with-added (without-removed labels (ref (:removed change)))
+              (ref (:added change))))
+
+(type holds? (fn ((ref (vec string)) (ref str)) bool))
+
+(defn holds? (labels wanted)
+  (any? (iter labels) (fn (label) (= label wanted))))
+
+(type without-removed
+  (fn ((ref (vec string)) (ref (vec string))) (vec string)))
+
+(defn without-removed (labels removed)
+  (collect (map (filter (iter labels) (fn (label) (not (holds? removed label))))
+            (fn (label) (clone label)))))
+
+(type with-added
+  (fn ((ref (vec string)) (ref (vec string))) (vec string)))
+
+(defn with-added (labels added)
+  (let (missing (without-removed added labels))
+    (concat-labels (clone labels) missing)))
+
+(def concat-labels
+  (rust "{{ let mut {!all} = {0}; {!all}.extend({1}); {!all} }}"
+    (fn ((vec string) (vec string)) (vec string))))

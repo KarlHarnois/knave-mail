@@ -1,0 +1,62 @@
+(use domain/mail ->thread-summary message thread thread-query thread-summary)
+(use domain/text join-with)
+
+(export all-mail-label in-label? newest-first summarize)
+
+(def all-mail-label "ALL")
+
+(def snippet-length 120)
+
+(type summarize (fn ((ref thread)) thread-summary))
+
+(defn summarize (summarized)
+  (let (latest (last-message summarized))
+    (->thread-summary :id (clone (:id summarized))
+                      :subject (clone (:subject summarized))
+                      :participants (participants summarized)
+                      :snippet (snippet (:text latest) snippet-length)
+                      :date (:date latest)
+                      :labels (clone (:labels summarized))
+                      :message-count (message-count summarized))))
+
+(type in-label? (fn ((ref thread-summary) (ref str)) bool))
+
+(defn in-label? (summary label)
+  (or (= label all-mail-label)
+      (any? (iter (:labels summary)) (fn (held) (= held label)))))
+
+(type newest-first
+  (fn ((vec thread-summary) (ref thread-query)) (vec thread-summary)))
+
+(defn newest-first (summaries query)
+  (let (sorted (sorted-by-date-descending summaries))
+    (first-few sorted (:limit query))))
+
+(type participants (fn ((ref thread)) string))
+
+(defn participants (summarized)
+  (join-with (ref (distinct-senders (ref (:messages summarized)))) ", "))
+
+(def last-message
+  (rust "{0}.messages.last().expect(\"a thread holds at least one message\")"
+    (fn ((ref thread)) (ref message))))
+
+(def message-count
+  (rust "{0}.messages.len() as i64"
+    (fn ((ref thread)) i64)))
+
+(def distinct-senders
+  (rust "{0}.iter().fold(Vec::<String>::new(), |mut {!names}, {!message}| {{ let {!name} = {!message}.from.split('<').next().unwrap_or(\"\").trim().trim_matches('\"').to_string(); let {!shown} = if {!name}.is_empty() {{ {!message}.from.clone() }} else {{ {!name} }}; if !{!names}.contains(&{!shown}) {{ {!names}.push({!shown}); }} {!names} }})"
+    (fn ((ref (vec message))) (vec string))))
+
+(def snippet
+  (rust "{0}.split_whitespace().collect::<Vec<_>>().join(\" \").chars().take({1}).collect::<String>()"
+    (fn ((ref str) usize) string)))
+
+(def sorted-by-date-descending
+  (rust "{{ let mut {!sorted} = {0}; {!sorted}.sort_by(|{!a}, {!b}| {!b}.date.cmp(&{!a}.date)); {!sorted} }}"
+    (fn ((vec thread-summary)) (vec thread-summary))))
+
+(def first-few
+  (rust "{0}.into_iter().take({1} as usize).collect::<Vec<_>>()"
+    (fn ((vec thread-summary) i64) (vec thread-summary))))

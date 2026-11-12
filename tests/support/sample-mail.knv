@@ -1,0 +1,23 @@
+(use domain/mail ->message message)
+
+(export addresses sample-message)
+
+(type addresses (fn ((vec (ref str))) (vec string)))
+
+(defn addresses (written)
+  (collect (map (iter written) (fn (address) (str address)))))
+
+(type sample-message (fn () message))
+
+(defn sample-message ()
+  (->message :id (str "m-1")
+             :thread-id (str "t-1")
+             :from (str "Grace Hopper <grace@example.com>")
+             :to (addresses (vec "ada@example.com" "alan@example.com"))
+             :cc (addresses (vec "edsger@example.com" "Ada <ADA@example.com>"))
+             :subject (str "Compiler meeting")
+             :date 1700000000000
+             :text (str "Can we meet Tuesday?\n\nGrace")
+             :html none
+             :header-id (str "<m-1@example.com>")
+             :references (str "")))
