@@ -64,5 +64,5 @@ type Draft = {
 | `reply-draft` | `{account, messageId, all}` | `Draft` with recipients, `Re:` subject and the quoted body filled in |
 | `forward-draft` | `{account, messageId}` | `Draft` with `Fwd:` subject and the forwarded body |
 | `send` | `{account, draft}` | `{}` |
-| `archive`, `trash`, `star`, `unstar`, `mark-read`, `mark-unread` | `{account, threadIds}` | `{}` |
+| `archive`, `move-to-inbox`, `trash`, `untrash`, `star`, `unstar`, `mark-read`, `mark-unread` | `{account, threadIds}` | `{}` |
 | `sync` | `{account}` | `{}`, then a `synced` or `sync-failed` event when it finishes |

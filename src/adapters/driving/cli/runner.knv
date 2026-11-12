@@ -1,11 +1,8 @@
 (use adapters/driving/cli/cli-result cli-result)
 (use adapters/driving/cli/command cli-command)
 (use adapters/driving/cli/help usage-text)
-
-(use domain/labels archive-change label-change read-change
-                   star-change trash-change unread-change
-                   unstar-change)
-
+(use domain/label-commands label-change-named)
+(use domain/labels label-change)
 (use domain/mail ->draft ->thread-query draft)
 (use domain/mail-error mail-error)
 
@@ -107,12 +104,16 @@
     (result label-change mail-error)))
 
 (defn change-named (word)
+  (ok-or (label-change-named (ref (canonical-command word)))
+         (mail-error/usage (str "unknown command `" word
+                                "`; try `knave-mail help`"))))
+
+(type canonical-command
+  (fn ((ref str)) string))
+
+(defn canonical-command (word)
   (match word
-    ("archive" (ok (archive-change)))
-    ("trash" (ok (trash-change)))
-    ("star" (ok (star-change)))
-    ("unstar" (ok (unstar-change)))
-    ("read" (ok (read-change)))
-    ("unread" (ok (unread-change)))
-    (_ (err (mail-error/usage (str "unknown command `" word
-                                   "`; try `knave-mail help`"))))))
+    ("read" (str "mark-read"))
+    ("unread" (str "mark-unread"))
+    ("inbox" (str "move-to-inbox"))
+    (_ (str word))))

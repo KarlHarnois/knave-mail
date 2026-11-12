@@ -8,8 +8,8 @@
 
 (def command-words
   (vec "accounts" "labels" "threads" "search" "send" "reply"
-       "forward" "archive" "trash" "star" "unstar" "read"
-       "unread" "sync" "help"))
+       "forward" "archive" "inbox" "trash" "untrash" "star"
+       "unstar" "read" "unread" "sync" "help"))
 
 (def default-limit 50)
 

@@ -50,4 +50,12 @@ export type SyncFailedEvent = { event: "sync-failed"; account: string; error: Co
 
 export type CoreEvent = SyncedEvent | SyncFailedEvent;
 
-export type ThreadCommand = "archive" | "trash" | "star" | "unstar" | "mark-read" | "mark-unread";
+export type ThreadCommand =
+  | "archive"
+  | "move-to-inbox"
+  | "trash"
+  | "untrash"
+  | "star"
+  | "unstar"
+  | "mark-read"
+  | "mark-unread";

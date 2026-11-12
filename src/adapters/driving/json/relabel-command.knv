@@ -2,11 +2,8 @@
                                      thread-ids-argument)
 
 (use adapters/driving/json/value json-value)
-
-(use domain/labels archive-change label-change read-change
-                   star-change trash-change unread-change
-                   unstar-change)
-
+(use domain/label-commands label-change-named)
+(use domain/labels label-change)
 (use domain/mail-error mail-error)
 (use ports/driving/mail-client mail-client relabel-threads!)
 
@@ -32,14 +29,8 @@
     (result label-change mail-error)))
 
 (defn change-named (command)
-  (match command
-    ("archive" (ok (archive-change)))
-    ("trash" (ok (trash-change)))
-    ("star" (ok (star-change)))
-    ("unstar" (ok (unstar-change)))
-    ("mark-read" (ok (read-change)))
-    ("mark-unread" (ok (unread-change)))
-    (_ (err (mail-error/usage (str "unknown command `" command "`"))))))
+  (ok-or (label-change-named command)
+         (mail-error/usage (str "unknown command `" command "`"))))
 
 (def empty-object
   (rust "serde_json::json!({{}})" (fn () json-value)))

@@ -88,3 +88,8 @@
 (deftest no-command-asks-for-help
   (assert (= (command (the (vec (ref str)) (vec)))
              cli-command/help)))
+
+(deftest inbox-takes-several-threads
+  (assert (= (command (vec "inbox" "t-1" "t-2"))
+             (cli-command/relabel (str "inbox")
+                                  (addresses (vec "t-1" "t-2"))))))

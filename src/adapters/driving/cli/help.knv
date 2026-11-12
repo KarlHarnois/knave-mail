@@ -12,7 +12,7 @@ Commands:
   send --to A [--cc B] --subject S Send the body read from stdin
   reply MESSAGE [--all]            Reply with the body read from stdin
   forward MESSAGE --to A           Forward with a note read from stdin
-  archive|trash|star|unstar|read|unread THREAD...
+  archive|inbox|trash|untrash|star|unstar|read|unread THREAD...
   sync                             Fetch new mail into the local cache
   help                             Show this text
 

@@ -1,7 +1,7 @@
 (use domain/labels apply-label-change archive-change
-                   read-change star-change starred?
-                   trash-change unread-change unread?
-                   unstar-change)
+                   inbox-change read-change star-change
+                   starred? trash-change unread-change
+                   unread? unstar-change untrash-change)
 
 (defn labels (names)
   (collect (map (iter names)
@@ -47,3 +47,11 @@
 
 (deftest starred-threads-carry-the-starred-label
   (assert (starred? (ref (labels (vec "STARRED"))))))
+
+(deftest moving-to-the-inbox-adds-the-inbox-label
+  (assert (= (changed (vec "Receipts") (inbox-change))
+             (labels (vec "Receipts" "INBOX")))))
+
+(deftest untrashing-moves-a-thread-back-to-the-inbox
+  (assert (= (changed (vec "TRASH") (untrash-change))
+             (labels (vec "INBOX")))))

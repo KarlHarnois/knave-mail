@@ -1,7 +1,7 @@
 (export ->label-change apply-label-change archive-change
-        inbox-label label-change read-change star-change
-        starred? trash-change unread-change unread?
-        unstar-change)
+        inbox-change inbox-label label-change read-change
+        star-change starred? trash-change unread-change
+        unread? unstar-change untrash-change)
 
 (def inbox-label "INBOX")
 
@@ -22,6 +22,14 @@
 (defn trash-change ()
   (->label-change (vec (str trash-label))
                   (vec (str inbox-label))))
+
+(defn inbox-change ()
+  (->label-change (vec (str inbox-label))
+                  (vec)))
+
+(defn untrash-change ()
+  (->label-change (vec (str inbox-label))
+                  (vec (str trash-label))))
 
 (defn star-change ()
   (->label-change (vec (str starred-label))

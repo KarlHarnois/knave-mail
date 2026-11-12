@@ -120,12 +120,32 @@ describe("thread view", () => {
     expect(app.core.lastArgsFor("trash").threadIds).toEqual(["t-0"]);
   });
 
-  test("s and u toggle star and unread on the open thread", async () => {
+  test("s and U toggle star and unread on the open thread", async () => {
     const app = await ThreadHarness.opened();
     await app.press("s");
     expect(app.driver.text('[data-test="thread-subject"]')).toBe("★ Subject 0");
-    await app.press("u");
+    await app.press("U");
     expect(app.core.lastArgsFor("mark-unread").threadIds).toEqual(["t-0"]);
+  });
+
+  test("u in a thread undoes the last action and goes back to the list", async () => {
+    const app = await ThreadHarness.opened();
+    await app.press("s");
+    await app.press("u");
+    expect(app.core.lastArgsFor("unstar").threadIds).toEqual(["t-0"]);
+    expect(app.status("mode")).toBe("LIST");
+  });
+
+  test("opening an unread thread leaves nothing to undo", async () => {
+    const app = await ThreadHarness.opened();
+    await app.press("u");
+    expect(app.status("error")).toContain("nothing to undo");
+  });
+
+  test("I moves the open thread to the inbox", async () => {
+    const app = await ThreadHarness.opened();
+    await app.press("I");
+    expect(app.core.lastArgsFor("move-to-inbox").threadIds).toEqual(["t-0"]);
   });
 
   test("a failed thread load shows the error in the status line", async () => {

@@ -62,6 +62,8 @@ export class ListScreen implements Screen {
       ["trash", () => this.withChosen((summaries) => this.actions.trashAll(summaries))],
       ["toggleStar", () => this.withChosen((summaries) => this.actions.toggleStarAll(summaries))],
       ["toggleUnread", () => this.withChosen((summaries) => this.actions.toggleUnreadAll(summaries))],
+      ["moveToInbox", () => this.withChosen((summaries) => this.actions.moveToInboxAll(summaries))],
+      ["undo", () => this.afterSelection(() => this.actions.undo())],
     ]);
   }
 

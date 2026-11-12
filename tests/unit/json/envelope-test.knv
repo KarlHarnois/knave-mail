@@ -40,6 +40,10 @@
   (assert (= (answered "{\"id\":5,\"command\":\"archive\",\"args\":{\"account\":\"ada@example.com\",\"threadIds\":[\"t-1\"]}}")
              "{\"id\":5,\"ok\":{}}")))
 
+(deftest moves-threads-back-to-the-inbox
+  (assert (= (answered "{\"id\":10,\"command\":\"move-to-inbox\",\"args\":{\"account\":\"ada@example.com\",\"threadIds\":[\"t-1\"]}}")
+             "{\"id\":10,\"ok\":{}}")))
+
 (deftest lists-labels-with-unread-counts
   (assert (= (answered "{\"id\":6,\"command\":\"labels\",\"args\":{\"account\":\"ada@example.com\"}}")
              "{\"id\":6,\"ok\":[{\"id\":\"INBOX\",\"name\":\"INBOX\",\"unread\":1},{\"id\":\"UNREAD\",\"name\":\"UNREAD\",\"unread\":1}]}")))

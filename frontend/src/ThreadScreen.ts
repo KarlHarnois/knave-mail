@@ -113,6 +113,8 @@ export class ThreadScreen implements Screen {
       ["trash", () => this.withSummary((summary) => this.closeAfter(() => this.ports.actions.trash(summary)))],
       ["toggleStar", () => this.withSummary((summary) => this.showSummary(this.ports.actions.toggleStar(summary)))],
       ["toggleUnread", () => this.withSummary((summary) => this.showSummary(this.ports.actions.toggleUnread(summary)))],
+      ["moveToInbox", () => this.withSummary((summary) => this.ports.actions.moveToInboxAll([summary]))],
+      ["undo", () => this.closeAfter(() => this.ports.actions.undo())],
     ]);
   }
 

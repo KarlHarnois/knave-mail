@@ -1,0 +1,21 @@
+(use domain/labels archive-change inbox-change label-change
+                   read-change star-change trash-change
+                   unread-change unstar-change
+                   untrash-change)
+
+(export label-change-named)
+
+(type label-change-named
+  (fn ((ref str)) (option label-change)))
+
+(defn label-change-named (command)
+  (match command
+    ("archive" (some (archive-change)))
+    ("move-to-inbox" (some (inbox-change)))
+    ("trash" (some (trash-change)))
+    ("untrash" (some (untrash-change)))
+    ("star" (some (star-change)))
+    ("unstar" (some (unstar-change)))
+    ("mark-read" (some (read-change)))
+    ("mark-unread" (some (unread-change)))
+    (_ none)))

@@ -4,6 +4,7 @@ import type { MailClient } from "./MailClient";
 import type { MailSession } from "./MailSession";
 import type { ThreadCommand, ThreadSummary } from "./Protocol";
 import type { ThreadList } from "./ThreadList";
+import { UndoHistory } from "./UndoHistory";
 
 export class ThreadActions {
   constructor(
@@ -11,6 +12,7 @@ export class ThreadActions {
     private readonly session: MailSession,
     private readonly list: ThreadList,
     private readonly errors: ErrorReporter,
+    private readonly history = new UndoHistory(),
   ) {}
 
   archive(summary: ThreadSummary): void {
@@ -20,6 +22,17 @@ export class ThreadActions {
   archiveAll(summaries: ThreadSummary[]): void {
     for (const summary of summaries) this.removeFromInbox(summary);
     this.send("archive", summaries);
+  }
+
+  moveToInboxAll(summaries: ThreadSummary[]): void {
+    this.updateAll(summaries.map((summary) => ({ ...summary, labels: [...this.without(summary, "INBOX"), "INBOX"] })));
+    this.send("move-to-inbox", summaries);
+  }
+
+  undo(): void {
+    const reversal = this.history.takeReversal();
+    const request = this.mail.modify(reversal.command, reversal.account, reversal.threadIds);
+    this.errors.run(request.then(() => this.session.reload()));
   }
 
   trash(summary: ThreadSummary): void {
@@ -54,7 +67,11 @@ export class ThreadActions {
   }
 
   markRead(summary: ThreadSummary): ThreadSummary {
-    return summary.unread ? this.toggleUnread(summary) : summary;
+    if (!summary.unread) return summary;
+    const updated = { ...summary, unread: false };
+    this.list.update(updated);
+    this.request("mark-read", [updated.id]);
+    return updated;
   }
 
   private removeFromInbox(summary: ThreadSummary): void {
@@ -69,8 +86,13 @@ export class ThreadActions {
 
   private send(command: ThreadCommand, summaries: ThreadSummary[]): void {
     if (summaries.length === 0) return;
-    const ids = summaries.map((summary) => summary.id);
-    const request = this.mail.modify(command, this.session.account, ids);
+    const threadIds = summaries.map((summary) => summary.id);
+    this.history.record({ command, account: this.session.account, threadIds });
+    this.request(command, threadIds);
+  }
+
+  private request(command: ThreadCommand, threadIds: string[]): void {
+    const request = this.mail.modify(command, this.session.account, threadIds);
     this.errors.run(request, () => this.errors.run(this.session.reload()));
   }
 

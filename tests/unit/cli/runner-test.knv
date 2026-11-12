@@ -97,3 +97,34 @@
 (deftest a-network-failure-exits-with-four
   (assert (= (exit-code (ref (mail-error/network (str "offline"))))
              4)))
+
+(deftest inbox-moves-an-archived-thread-back
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (unwrap-ok (run-cli-command! (mut app)
+                                 (ref (->cli-request (cli-command/relabel
+                                                       (str "archive")
+                                                       (addresses (vec "t-1")))
+                                                     (str world-account)
+                                                     (str "")
+                                                     false))))
+    (unwrap-ok (run-cli-command! (mut app)
+                                 (ref (->cli-request (cli-command/relabel
+                                                       (str "inbox")
+                                                       (addresses (vec "t-1")))
+                                                     (str world-account)
+                                                     (str "")
+                                                     false))))
+    (assert (= (listed-count!
+                 (mut app)
+                 (cli-command/list-threads (str "INBOX") (str "") 10))
+               1))))
+
+(defn listed-count! (app command)
+  (match (unwrap-ok
+           (run-cli-command!
+             app
+             (ref (->cli-request command (str world-account) (str "") false))))
+    ((threads-listed summaries) (len summaries))
+    (_ 0)))

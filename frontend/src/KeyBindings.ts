@@ -5,6 +5,8 @@ export type SharedAction =
   | "trash"
   | "toggleStar"
   | "toggleUnread"
+  | "moveToInbox"
+  | "undo"
   | "goToInbox"
   | "goToAllMail"
   | "nextAccount"
@@ -52,7 +54,9 @@ const SHARED_BINDINGS: ReadonlyArray<readonly [string, SharedAction]> = [
   ["e", "archive"],
   ["#", "trash"],
   ["s", "toggleStar"],
-  ["u", "toggleUnread"],
+  ["U", "toggleUnread"],
+  ["I", "moveToInbox"],
+  ["u", "undo"],
   ["gi", "goToInbox"],
   ["ga", "goToAllMail"],
   ["<C-n>", "nextAccount"],

@@ -30,7 +30,14 @@ window.knaveE2E = {
     await driver.whenIdle();
   },
   async scenario(body) {
+    if (window.top !== window) return;
     window.addEventListener("load", async () => {
+      const startedBefore = sessionStorage.getItem("knave-e2e-started");
+      sessionStorage.setItem("knave-e2e-started", "yes");
+      if (startedBefore) {
+        this.report("the page loaded again, so this scenario copy stays idle");
+        return;
+      }
       try {
         const driver = await this.driver();
         await this.whenListed(driver);

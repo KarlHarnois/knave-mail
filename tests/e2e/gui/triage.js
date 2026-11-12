@@ -15,6 +15,9 @@ knaveE2E.scenario(async (driver) => {
   e2e.check("V selects several threads", driver.count('[data-test~="chosen-row"]') === 3 && driver.text('[data-test~="status-mode"]') === "VISUAL", driver.text('[data-test~="status-line"]'));
   await e2e.step("e");
   e2e.check("e archives every selected thread", driver.count('[data-test~="chosen-row"]') === 0 && driver.text('[data-test~="status-error"]') === "", driver.text('[data-test~="status-line"]'));
+  await e2e.step("u");
+  e2e.check("u brings the archived selection back", driver.count('[data-test~="thread-row"]') === rowsBefore, String(driver.count('[data-test~="thread-row"]')));
+  await e2e.step("Vjje");
   await e2e.step("gi");
   e2e.check("the archived selection stays out of the inbox", driver.count('[data-test~="thread-row"]') <= rowsBefore, String(driver.count('[data-test~="thread-row"]')));
   const starredBefore = e2e.selected(driver).includes("★");
