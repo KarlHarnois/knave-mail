@@ -5,6 +5,7 @@ export type LabelRef = { id: string; name: string };
 
 export const INBOX: LabelRef = { id: "INBOX", name: "Inbox" };
 export const ALL_MAIL: LabelRef = { id: "ALL", name: "All Mail" };
+export const SENT: LabelRef = { id: "SENT", name: "Sent" };
 
 export class LabelDirectory {
   private readonly labelsByAccount = new Map<string, Label[]>();

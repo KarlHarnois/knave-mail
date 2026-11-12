@@ -125,6 +125,13 @@ describe("list locations", () => {
     expect(app.core.lastArgsFor("threads")["label"]).toBe("INBOX");
   });
 
+  test("gs lists sent mail", async () => {
+    const app = await AppHarness.started();
+    await app.press("gs");
+    expect(app.core.lastArgsFor("threads")["label"]).toBe("SENT");
+    expect(app.status("label")).toBe("Sent");
+  });
+
   test("the next key clears a wrong command error", async () => {
     const app = await AppHarness.started();
     await app.press(":labelz<CR>");
