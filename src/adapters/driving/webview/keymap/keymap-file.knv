@@ -1,0 +1,104 @@
+(use adapters/driving/webview/keymap/sexp-tokens sexp-tokens
+                                                 string-token?
+                                                 token-text)
+
+(export ->keymap-entry ->keymapped keymap-entry keymap-file
+        keymapped)
+
+(def modes (vec "normal" "insert" "visual"))
+
+(def entry-width 5)
+
+(defstruct keymap-entry
+  :mode string
+  :keys string
+  :action string)
+
+(defstruct keymapped
+  :entries (vec keymap-entry)
+  :warnings (vec string))
+
+(type keymap-file
+  (fn ((ref str)) keymapped))
+
+(defn keymap-file (text)
+  (let (tokens (sexp-tokens text))
+    (if (wrapped-in-keymap? (ref tokens))
+      (read-entries (ref tokens)
+                    2
+                    (vec)
+                    (vec))
+      (->keymapped (vec)
+                   (vec (str "keymap.knv: the file must be one (keymap ...) form"))))))
+
+(type read-entries
+  (fn ((ref (vec string))
+       usize
+       (vec keymap-entry)
+       (vec string))
+    keymapped))
+
+(defn read-entries (tokens index entries warnings)
+  (if (>= (+ index 1) (len tokens))
+    (->keymapped entries warnings)
+    (match (entry-at tokens index)
+      ((ok entry)
+       (recur tokens
+              (+ index entry-width)
+              (appended-entry entries entry)
+              warnings))
+      ((err problem)
+       (recur tokens
+              (next-entry tokens index)
+              entries
+              (appended-warning warnings (str "keymap.knv: " problem)))))))
+
+(type entry-at
+  (fn ((ref (vec string)) usize)
+    (result keymap-entry string)))
+
+(defn entry-at (tokens index)
+  (let (opening (token-at tokens index)
+        mode (token-at tokens (+ index 1))
+        keys (token-at tokens (+ index 2))
+        action (token-at tokens (+ index 3))
+        closing (token-at tokens (+ index 4)))
+    (cond
+      ((not (and (= opening "(") (= closing ")")))
+       (err (str "write each entry as (mode \"keys\" \"action\")")))
+      ((not (known-mode? (ref modes) (ref mode)))
+       (err (str "unknown mode " mode "; use normal, insert or visual")))
+      ((not (and (string-token? (ref keys))
+                 (string-token? (ref action))))
+       (err (str "quote the keys and the action of the " mode " entry")))
+      ((empty? (token-text (ref keys)))
+       (err (str "the keys of the " mode " entry are empty")))
+      (else (ok (->keymap-entry mode
+                                (token-text (ref keys))
+                                (token-text (ref action))))))))
+
+(def wrapped-in-keymap?
+  (rust "{{ let {!t} = {0}; {!t}.len() >= 3 && {!t}[0] == \"(\" && {!t}[1] == \"keymap\" && {!t}.last().is_some_and(|{!l}| {!l} == \")\") && {!t}.iter().filter(|{!x}| *{!x} == \"(\").count() == {!t}.iter().filter(|{!x}| *{!x} == \")\").count() }}"
+    (fn ((ref (vec string))) bool)))
+
+(def token-at
+  (rust "{0}.get({1}).cloned().unwrap_or_default()"
+    (fn ((ref (vec string)) usize) string)))
+
+(def next-entry
+  (rust "{0}.iter().enumerate().skip({1} + 1).find(|(_, {!t})| *{!t} == \"(\").map(|({!i}, _)| {!i}).unwrap_or({0}.len())"
+    (fn ((ref (vec string)) usize) usize)))
+
+(def known-mode?
+  (rust "{0}.contains(&{1}.as_str())"
+    (fn ((ref (vec (ref str))) (ref string))
+      bool)))
+
+(def appended-entry
+  (rust "{{ let mut {!all} = {0}; {!all}.push({1}); {!all} }}"
+    (fn ((vec keymap-entry) keymap-entry)
+      (vec keymap-entry))))
+
+(def appended-warning
+  (rust "{{ let mut {!all} = {0}; {!all}.push({1}); {!all} }}"
+    (fn ((vec string) string) (vec string))))

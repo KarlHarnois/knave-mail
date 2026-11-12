@@ -10,6 +10,8 @@
 
 (def theme-file "tests/fixtures/theme/e2e-theme.sexp")
 
+(def keymap-file "tests/fixtures/keymap/e2e-keymap.sexp")
+
 (deftask e2e ()
   "Builds knave-mail and runs each GUI scenario under xvfb-run against the memory backend."
   (try (succeeded "knave build"
@@ -49,6 +51,8 @@
                                    (str "memory")
                                    (str "--theme")
                                    (str theme-file)
+                                   (str "--keymap")
+                                   (str keymap-file)
                                    (str "--e2e-script")
                                    script))))
     ((err problem) (do (eprintln problem) false))))

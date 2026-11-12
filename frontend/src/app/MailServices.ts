@@ -18,6 +18,7 @@ import { SystemClipboard } from "../vim/SystemClipboard";
 import { VimClipboard } from "../vim/VimClipboard";
 import { VimEditorFactory } from "../vim/VimEditorFactory";
 import { VimExCommands } from "../vim/VimExCommands";
+import { VimKeymap } from "../vim/VimKeymap";
 
 const ROW_HEIGHT = 30;
 const OVERSCAN_ROWS = 10;
@@ -97,6 +98,8 @@ export class MailServices {
     exCommands.install();
     const clipboard = new SystemClipboard(this.window.navigator, (message) => this.status.showError(message));
     new VimClipboard(clipboard).install();
+    const keymap = new VimKeymap();
+    keymap.apply(keymap.entriesOf(this.window));
     return new VimEditorFactory(exCommands);
   }
 }

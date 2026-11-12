@@ -33,6 +33,10 @@ Press `?` in the window for every key.
 
 Copy [docs/theme.example.knv](docs/theme.example.knv) to `~/.config/knave-mail/theme.knv` and keep only what you change.
 
+### Keymap
+
+Copy [docs/keymap.example.knv](docs/keymap.example.knv) to `~/.config/knave-mail/keymap.knv` to add vim mappings to the composer and the text reader.
+
 ### CLI
 
 Run `knave-mail help` for the commands. Add `--json` for output that scripts and agents can read.

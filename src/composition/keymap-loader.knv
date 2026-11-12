@@ -1,0 +1,21 @@
+(use adapters/driving/webview/keymap/keymap-file keymap-file)
+(use adapters/driving/webview/keymap/keymap-script keymap-script)
+(use composition/settings settings)
+
+(export keymap-startup-script)
+
+(type keymap-startup-script
+  (fn ((ref settings)) string))
+
+(defn keymap-startup-script (chosen)
+  (match (file-text (ref (:keymap-path chosen)))
+    ((some text)
+     (let (mapped (keymap-file (ref text)))
+       (for-each (iter (:warnings mapped))
+         (fn (warning) (eprintln warning)))
+       (keymap-script (ref (:entries mapped)))))
+    (none (str ""))))
+
+(def file-text
+  (rust "std::fs::read_to_string({0}).ok()"
+    (fn ((ref str)) (option string))))

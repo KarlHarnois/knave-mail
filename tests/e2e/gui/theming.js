@@ -20,6 +20,8 @@ knaveE2E.scenario(async (driver) => {
   const canvas = frame?.contentDocument && getComputedStyle(frame.contentDocument.documentElement).backgroundColor;
   e2e.check("HTML mail sits on the themed canvas", canvas === e2e.themeColor("--html-mail"), `${canvas} vs ${e2e.themeColor("--html-mail")}`);
   await e2e.step("qc");
+  await e2e.step("Gohellojj");
+  e2e.check("the keymap file maps jj to escape", driver.text('[data-test~="status-mode"]') === "COMPOSE NORMAL", driver.text('[data-test~="status-mode"]'));
   await e2e.step("qk");
   const panel = document.querySelector('[data-test~="composer"]:not([hidden]) .cm-panels');
   e2e.check("the vim panel takes the status bar color", panel !== null && getComputedStyle(panel).backgroundColor === e2e.themeColor("--status-bar"), panel && getComputedStyle(panel).backgroundColor);

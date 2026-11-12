@@ -1,0 +1,49 @@
+(use adapters/driving/webview/keymap/keymap-file ->keymap-entry
+                                                 keymap-file)
+
+(use adapters/driving/webview/keymap/keymap-script keymap-script)
+
+(defn entries-of (text)
+  (clone (:entries (keymap-file text))))
+
+(defn warnings-of (text)
+  (clone (:warnings (keymap-file text))))
+
+(deftest reads-each-entry-with-its-mode
+  (assert (= (entries-of "(keymap (insert \"jj\" \"<Esc>\") (normal \"<CR>\" \"o<Esc>\"))")
+             (vec (->keymap-entry (str "insert")
+                                  (str "jj")
+                                  (str "<Esc>"))
+                  (->keymap-entry (str "normal")
+                                  (str "<CR>")
+                                  (str "o<Esc>"))))))
+
+(deftest comments-are-ignored
+  (assert (= (len (entries-of
+                    "; mine\n(keymap\n  (visual \"<\" \"<gv\") ; keep it\n)"))
+             1)))
+
+(deftest an-unknown-mode-is-skipped-with-a-warning
+  (assert (= (warnings-of
+               "(keymap (command \"x\" \"y\") (insert \"jk\" \"<Esc>\"))")
+             (vec (str "keymap.knv: unknown mode command; use normal, insert or visual"))))
+  (assert (= (len (entries-of
+                    "(keymap (command \"x\" \"y\") (insert \"jk\" \"<Esc>\"))"))
+             1)))
+
+(deftest unquoted-keys-are-rejected
+  (assert (= (warnings-of "(keymap (normal Y y$))")
+             (vec (str "keymap.knv: quote the keys and the action of the normal entry")))))
+
+(deftest empty-keys-are-rejected
+  (assert (= (warnings-of "(keymap (normal \"\" \"x\"))")
+             (vec (str "keymap.knv: the keys of the normal entry are empty")))))
+
+(deftest a-file-without-keymap-maps-nothing
+  (assert (= (warnings-of "(theme :font-size 14)")
+             (vec (str "keymap.knv: the file must be one (keymap ...) form")))))
+
+(deftest the-entries-become-a-page-script
+  (assert (= (keymap-script (ref (entries-of
+                                   "(keymap (insert \"jj\" \"<Esc>\"))")))
+             "window.knaveKeymap = [{\"action\":\"<Esc>\",\"keys\":\"jj\",\"mode\":\"insert\"}];\n")))

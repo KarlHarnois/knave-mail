@@ -44,7 +44,7 @@ export class VimKeyFeeder {
 
   private insert(token: string): void {
     if (token === "<BS>") deleteCharBackward(this.view);
-    else this.view.dispatch(this.view.state.replaceSelection(INSERTED_TEXT[token] ?? token));
+    else this.cm.replaceSelection(INSERTED_TEXT[token] ?? token);
   }
 
   private isInsertMode(): boolean {

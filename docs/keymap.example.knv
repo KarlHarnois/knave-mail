@@ -1,0 +1,5 @@
+; Copy this file to ~/.config/knave-mail/keymap.knv.
+; Each entry is (mode "keys" "action"), like noremap in a vimrc. The mode is
+; normal, insert or visual, and the mappings apply in the composer and the
+; vim text reader.
+(keymap (insert "jj" "<Esc>") (normal "<CR>" "o<Esc>"))
