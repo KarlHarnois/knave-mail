@@ -1,0 +1,36 @@
+(export json-value number-field parse-json string-field string-list-field
+        optional-string-field bool-field object-field json-text)
+
+(deftype json-value (rust "serde_json::Value"))
+
+(def parse-json
+  (rust "serde_json::from_str::<serde_json::Value>({0}).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref str)) (result json-value string))))
+
+(def json-text
+  (rust "{0}.to_string()"
+    (fn ((ref json-value)) string)))
+
+(def string-field
+  (rust "{{ let {!name} = {1}; {0}.get({!name}).and_then(serde_json::Value::as_str).map(str::to_string).ok_or_else(|| format!(\"expected a string in `{{}}`\", {!name}))}}"
+    (fn ((ref json-value) (ref str)) (result string string))))
+
+(def optional-string-field
+  (rust "{0}.get({1}).and_then(serde_json::Value::as_str).map(str::to_string)"
+    (fn ((ref json-value) (ref str)) (option string))))
+
+(def number-field
+  (rust "{{ let {!name} = {1}; {0}.get({!name}).and_then(serde_json::Value::as_i64).ok_or_else(|| format!(\"expected a number in `{{}}`\", {!name}))}}"
+    (fn ((ref json-value) (ref str)) (result i64 string))))
+
+(def bool-field
+  (rust "{{ let {!name} = {1}; {0}.get({!name}).and_then(serde_json::Value::as_bool).ok_or_else(|| format!(\"expected a boolean in `{{}}`\", {!name}))}}"
+    (fn ((ref json-value) (ref str)) (result bool string))))
+
+(def string-list-field
+  (rust "{{ let {!name} = {1}; {0}.get({!name}).and_then(serde_json::Value::as_array).and_then(|{!items}| {!items}.iter().map(|{!item}| {!item}.as_str().map(str::to_string)).collect::<Option<Vec<String>>>()).ok_or_else(|| format!(\"expected a list of strings in `{{}}`\", {!name}))}}"
+    (fn ((ref json-value) (ref str)) (result (vec string) string))))
+
+(def object-field
+  (rust "{{ let {!name} = {1}; {0}.get({!name}).filter(|{!value}| {!value}.is_object()).cloned().ok_or_else(|| format!(\"expected an object in `{{}}`\", {!name}))}}"
+    (fn ((ref json-value) (ref str)) (result json-value string))))

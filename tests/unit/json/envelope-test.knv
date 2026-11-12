@@ -1,0 +1,66 @@
+(use adapters/driving/json/commands answer!)
+(use adapters/driving/json/envelope failure-event request-command
+                                    synced-event)
+(use app/client)
+(use domain/mail-error mail-error)
+(use support/app-steps synced!)
+(use support/memory-world app-over remote-with sample-thread)
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-1" (vec "INBOX" "UNREAD") 100))))
+
+(defn answered (request)
+  (let (world (remote) app (app-over (ref world)))
+    (synced! (mut app))
+    (answer! (mut app) request)))
+
+(deftest lists-threads-of-a-label
+  (assert (= (answered "{\"id\":1,\"command\":\"threads\",\"args\":{\"account\":\"ada@example.com\",\"label\":\"INBOX\",\"query\":\"\",\"limit\":10}}")
+             "{\"id\":1,\"ok\":[{\"date\":100,\"id\":\"t-1\",\"labels\":[\"INBOX\",\"UNREAD\"],\"messageCount\":1,\"participants\":\"Grace\",\"snippet\":\"Body of t-1\",\"starred\":false,\"subject\":\"Subject of t-1\",\"unread\":true}]}")))
+
+(deftest opens-a-thread-with-its-messages
+  (assert (= (answered "{\"id\":2,\"command\":\"thread\",\"args\":{\"account\":\"ada@example.com\",\"threadId\":\"t-1\"}}")
+             "{\"id\":2,\"ok\":{\"id\":\"t-1\",\"labels\":[\"INBOX\"],\"messages\":[{\"cc\":[],\"date\":100,\"from\":\"Grace <grace@example.com>\",\"html\":null,\"id\":\"m-t-1\",\"subject\":\"Subject of t-1\",\"text\":\"Body of t-1\",\"threadId\":\"t-1\",\"to\":[\"ada@example.com\"]}],\"subject\":\"Subject of t-1\"}}")))
+
+(deftest drafts-a-reply-to-everyone
+  (assert (= (answered "{\"id\":3,\"command\":\"reply-draft\",\"args\":{\"account\":\"ada@example.com\",\"messageId\":\"m-t-1\",\"all\":true}}")
+             "{\"id\":3,\"ok\":{\"body\":\"\\n\\nGrace <grace@example.com> wrote:\\n> Body of t-1\",\"cc\":[],\"replyTo\":\"m-t-1\",\"subject\":\"Re: Subject of t-1\",\"to\":[\"Grace <grace@example.com>\"]}}")))
+
+(deftest sends-a-draft
+  (assert (= (answered "{\"id\":4,\"command\":\"send\",\"args\":{\"account\":\"ada@example.com\",\"draft\":{\"to\":[\"a@example.com\"],\"cc\":[],\"subject\":\"Hi\",\"body\":\"Hello\",\"replyTo\":null}}}")
+             "{\"id\":4,\"ok\":{}}")))
+
+(deftest archives-threads
+  (assert (= (answered "{\"id\":5,\"command\":\"archive\",\"args\":{\"account\":\"ada@example.com\",\"threadIds\":[\"t-1\"]}}")
+             "{\"id\":5,\"ok\":{}}")))
+
+(deftest lists-labels-with-unread-counts
+  (assert (= (answered "{\"id\":6,\"command\":\"labels\",\"args\":{\"account\":\"ada@example.com\"}}")
+             "{\"id\":6,\"ok\":[{\"id\":\"INBOX\",\"name\":\"INBOX\",\"unread\":1},{\"id\":\"UNREAD\",\"name\":\"UNREAD\",\"unread\":1}]}")))
+
+(deftest reports-an-unknown-command-as-a-usage-error
+  (assert (= (answered "{\"id\":7,\"command\":\"explode\",\"args\":{}}")
+             "{\"error\":{\"kind\":\"usage\",\"message\":\"unknown command `explode`\"},\"id\":7}")))
+
+(deftest reports-a-missing-argument-as-a-usage-error
+  (assert (= (answered "{\"id\":8,\"command\":\"labels\",\"args\":{}}")
+             "{\"error\":{\"kind\":\"usage\",\"message\":\"expected a string in `account`\"},\"id\":8}")))
+
+(deftest reports-a-missing-thread-as-not-found
+  (assert (= (answered "{\"id\":9,\"command\":\"thread\",\"args\":{\"account\":\"ada@example.com\",\"threadId\":\"t-9\"}}")
+             "{\"error\":{\"kind\":\"not-found\",\"message\":\"no thread t-9\"},\"id\":9}")))
+
+(deftest reports-malformed-json-without-an-id
+  (assert (= (answered "{nope")
+             "{\"error\":{\"kind\":\"usage\",\"message\":\"key must be a string at line 1 column 2\"},\"id\":null}")))
+
+(deftest reads-the-command-of-a-request
+  (assert (= (request-command "{\"command\":\"sync\"}") (some (str "sync")))))
+
+(deftest describes-a-finished-sync
+  (assert (= (synced-event "ada@example.com")
+             "{\"account\":\"ada@example.com\",\"event\":\"synced\"}")))
+
+(deftest describes-a-failed-sync
+  (assert (= (failure-event "ada@example.com" (ref (mail-error/network (str "offline"))))
+             "{\"account\":\"ada@example.com\",\"error\":{\"kind\":\"network\",\"message\":\"offline\"},\"event\":\"sync-failed\"}")))

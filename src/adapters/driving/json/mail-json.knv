@@ -1,0 +1,41 @@
+(use adapters/driving/json/value json-value)
+(use domain/labels starred? unread?)
+(use domain/mail account draft label message thread thread-summary)
+
+(export accounts-json draft-json labels-json summaries-json thread-json)
+
+(def accounts-json
+  (rust "serde_json::Value::Array({0}.iter().map(|{!account}| serde_json::json!({{\"email\": {!account}.email}})).collect())"
+    (fn ((ref (vec account))) json-value)))
+
+(def labels-json
+  (rust "serde_json::Value::Array({0}.iter().map(|{!label}| serde_json::json!({{\"id\": {!label}.id, \"name\": {!label}.name, \"unread\": {!label}.unread}})).collect())"
+    (fn ((ref (vec label))) json-value)))
+
+(type summaries-json (fn ((ref (vec thread-summary))) json-value))
+
+(defn summaries-json (summaries)
+  (json-array (collect (map (iter summaries) (fn (summary) (summary-json summary))))))
+
+(type summary-json (fn ((ref thread-summary)) json-value))
+
+(defn summary-json (summary)
+  (summary-object summary
+                  (unread? (ref (:labels summary)))
+                  (starred? (ref (:labels summary)))))
+
+(def summary-object
+  (rust "serde_json::json!({{\"id\": {0}.id, \"subject\": {0}.subject, \"participants\": {0}.participants, \"snippet\": {0}.snippet, \"date\": {0}.date, \"unread\": {1}, \"starred\": {2}, \"labels\": {0}.labels, \"messageCount\": {0}.message_count}})"
+    (fn ((ref thread-summary) bool bool) json-value)))
+
+(def json-array
+  (rust "serde_json::Value::Array({0})"
+    (fn ((vec json-value)) json-value)))
+
+(def thread-json
+  (rust "serde_json::json!({{\"id\": {0}.id, \"subject\": {0}.subject, \"labels\": {0}.labels, \"messages\": {0}.messages.iter().map(|{!message}| serde_json::json!({{\"id\": {!message}.id, \"threadId\": {!message}.thread_id, \"from\": {!message}.from, \"to\": {!message}.to, \"cc\": {!message}.cc, \"subject\": {!message}.subject, \"date\": {!message}.date, \"text\": {!message}.text, \"html\": {!message}.html}})).collect::<Vec<_>>()}})"
+    (fn ((ref thread)) json-value)))
+
+(def draft-json
+  (rust "serde_json::json!({{\"to\": {0}.to, \"cc\": {0}.cc, \"subject\": {0}.subject, \"body\": {0}.body, \"replyTo\": {0}.reply_to}})"
+    (fn ((ref draft)) json-value)))
