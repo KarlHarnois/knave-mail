@@ -14,7 +14,7 @@
 (def color-names
   (vec "background" "foreground" "muted" "border"
        "selection" "cursor" "accent" "error" "star"
-       "status-bar"))
+       "status-bar" "html-mail"))
 
 (defstruct themed
   :css string

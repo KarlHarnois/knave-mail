@@ -7,6 +7,15 @@ knaveE2E.scenario(async (driver) => {
   await e2e.step("r");
   e2e.check("r opens the composer", driver.count('[data-test~="composer"]:not([hidden])') === 1, "no composer");
   e2e.check("the reply is addressed to the sender", driver.text('[data-test~="composer"]').includes("To: Alan Turing"), driver.text('[data-test~="composer"]').slice(0, 80));
+  const probe = document.createElement("span");
+  probe.style.color = "var(--cursor)";
+  document.body.append(probe);
+  const themedCursor = getComputedStyle(probe).color;
+  probe.remove();
+  const fatCursor = await e2e.waitFor('[data-test~="composer"]:not([hidden]) .cm-fat-cursor');
+  const cursorStyle = fatCursor && getComputedStyle(fatCursor);
+  const cursorColor = cursorStyle && (cursorStyle.backgroundColor === "rgba(0, 0, 0, 0)" ? cursorStyle.outlineColor : cursorStyle.backgroundColor);
+  e2e.check("the composer cursor takes the theme cursor color", cursorColor === themedCursor, `${cursorColor} vs ${themedCursor}`);
   await e2e.step("Gp");
   e2e.check("a yank from the reader pastes in the composer", driver.text('[data-test~="composer"]').includes("This is message number 0"), driver.text('[data-test~="composer"]').slice(-120));
   await e2e.step(":wq<CR>");

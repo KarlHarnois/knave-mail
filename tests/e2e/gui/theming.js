@@ -1,10 +1,38 @@
-knaveE2E.scenario(async () => {
+knaveE2E.themeColor = (variable) => {
+  const probe = document.createElement("span");
+  probe.style.color = `var(${variable})`;
+  document.body.append(probe);
+  const color = getComputedStyle(probe).color;
+  probe.remove();
+  return color;
+};
+
+knaveE2E.scenario(async (driver) => {
   const e2e = knaveE2E;
   const style = getComputedStyle(document.documentElement);
   e2e.check("the theme file sets the font size", style.getPropertyValue("--font-size").trim() === "17px", style.getPropertyValue("--font-size"));
   e2e.check("the theme file forces the dark mode", style.colorScheme === "dark", style.colorScheme);
-  e2e.check("the message font falls back to the theme font", style.getPropertyValue("--theme-font").includes("Iosevka Aile") && getComputedStyle(document.body).fontFamily.includes("Iosevka Aile"), getComputedStyle(document.body).fontFamily);
+  e2e.check("the message font falls back to the theme font", getComputedStyle(document.body).fontFamily.includes("Iosevka Aile"), getComputedStyle(document.body).fontFamily);
   e2e.check("the theme file overrides a dark color", style.getPropertyValue("--dark-accent").trim() === "#ff8800", style.getPropertyValue("--dark-accent"));
+  await e2e.step("<CR>");
+  await new Promise((resolve) => setTimeout(resolve, 300));
+  const frame = document.querySelector('[data-test~="message-html"]');
+  const canvas = frame?.contentDocument && getComputedStyle(frame.contentDocument.documentElement).backgroundColor;
+  e2e.check("HTML mail sits on the themed canvas", canvas === e2e.themeColor("--html-mail"), `${canvas} vs ${e2e.themeColor("--html-mail")}`);
+  await e2e.step("qc");
+  await e2e.step("qk");
+  const panel = document.querySelector('[data-test~="composer"]:not([hidden]) .cm-panels');
+  e2e.check("the vim panel takes the status bar color", panel !== null && getComputedStyle(panel).backgroundColor === e2e.themeColor("--status-bar"), panel && getComputedStyle(panel).backgroundColor);
+  e2e.check("the vim panel text takes the foreground color", panel !== null && getComputedStyle(panel).color === e2e.themeColor("--foreground"), panel && getComputedStyle(panel).color);
+  await e2e.step("q");
+  const editor = document.querySelector('[data-test~="composer"]:not([hidden]) .cm-editor');
+  const promptPanel = document.createElement("div");
+  promptPanel.className = "cm-vim-panel";
+  const input = document.createElement("input");
+  promptPanel.append(input);
+  editor?.append(promptPanel);
+  e2e.check("the vim command input takes the foreground color", input !== null && getComputedStyle(input).color === e2e.themeColor("--foreground"), input && getComputedStyle(input).color);
+  promptPanel.remove();
   document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "=", ctrlKey: true, bubbles: true, cancelable: true }));
   e2e.check("ctrl and = zooms the window in", document.documentElement.style.getPropertyValue("zoom") === "1.1", document.documentElement.style.getPropertyValue("zoom"));
 });

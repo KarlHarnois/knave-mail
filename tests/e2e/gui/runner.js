@@ -23,6 +23,12 @@ window.knaveE2E = {
   selected(driver) {
     return driver.text('[data-test~="selected-row"]');
   },
+  async waitFor(selector) {
+    for (let waited = 0; waited < 2000 && !document.querySelector(selector); waited += 20) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    return document.querySelector(selector);
+  },
   async whenListed(driver) {
     for (let waited = 0; waited < 10000 && driver.count('[data-test~="selected-row"]') === 0; waited += 20) {
       await new Promise((resolve) => setTimeout(resolve, 20));

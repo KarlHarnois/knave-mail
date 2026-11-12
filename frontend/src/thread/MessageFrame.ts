@@ -15,7 +15,7 @@ export class MessageFrame {
     this.element.tabIndex = -1;
     this.element.setAttribute("sandbox", sandbox.sandboxFlags);
     this.element.setAttribute("referrerpolicy", "no-referrer");
-    this.element.addEventListener("load", () => this.fitContent());
+    this.element.addEventListener("load", () => this.settle());
     this.load();
   }
 
@@ -32,8 +32,10 @@ export class MessageFrame {
     this.element.srcdoc = this.sandbox.srcdoc(this.html, this.remoteImages);
   }
 
-  private fitContent(): void {
-    const height = this.element.contentDocument?.documentElement.scrollHeight;
-    if (height) this.element.style.height = `${height}px`;
+  private settle(): void {
+    const root = this.element.contentDocument?.documentElement;
+    if (!root) return;
+    root.style.background = getComputedStyle(this.element).backgroundColor;
+    this.element.style.height = `${root.scrollHeight}px`;
   }
 }

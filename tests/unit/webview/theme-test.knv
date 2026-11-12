@@ -41,6 +41,10 @@
   (assert (= (warnings-of "(theme (dark :star \"gold\"))")
              (vec (str "theme.knv: `gold` is not a valid :star")))))
 
+(deftest the-html-mail-canvas-is-themable
+  (assert (= (css-of "(theme (dark :html-mail \"#fafafa\"))")
+             ":root {\n  --dark-html-mail: #fafafa;\n}\n")))
+
 (deftest the-cursor-and-status-bar-colors-are-themable
   (assert (= (css-of
                "(theme (dark :cursor \"#e68e0d\" :status-bar \"#2a2a2a\"))")
