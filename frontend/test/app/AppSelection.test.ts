@@ -123,6 +123,44 @@ describe("undo and inbox", () => {
     expect(app.driver.text('[data-thread-id="t-0"] .row-archived')).toBe("archived");
   });
 
+  test("e on an archived thread moves it back to the inbox", async () => {
+    const app = await AppHarness.started();
+    await app.press("ga");
+    await app.press("ee");
+    expect(app.core.lastArgsFor("move-to-inbox")["threadIds"]).toEqual(["t-0"]);
+    expect(app.driver.text('[data-thread-id="t-0"] .row-archived')).toBe("");
+  });
+
+  test("e on a mixed selection archives every thread", async () => {
+    const app = await AppHarness.started();
+    await app.press("ga");
+    await app.press("e");
+    await app.press("Vje");
+    expect(app.core.lastArgsFor("archive")["threadIds"]).toEqual(["t-0", "t-1"]);
+    expect(app.core.requestsFor("move-to-inbox")).toHaveLength(0);
+  });
+
+  test("e on a selection that is all archived moves it back", async () => {
+    const app = await AppHarness.started();
+    await app.press("ga");
+    await app.press("Vje");
+    await app.press("Vke");
+    expect(app.core.lastArgsFor("move-to-inbox")["threadIds"]).toEqual(["t-0", "t-1"]);
+  });
+
+  test("archiving reports how many threads it archived", async () => {
+    const app = await AppHarness.started();
+    await app.press("Vje");
+    expect(app.status("notice")).toBe("archived 2 threads");
+  });
+
+  test("archiving in another label keeps the row with its mark", async () => {
+    const app = await AppHarness.started();
+    await app.press(":label Receipts<CR>");
+    await app.press("e");
+    expect(app.driver.text('[data-thread-id="t-0"] .row-archived')).toBe("archived");
+  });
+
   test("moving to the inbox removes the archived mark", async () => {
     const app = await AppHarness.started();
     await app.press("ga");

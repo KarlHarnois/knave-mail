@@ -3,7 +3,7 @@ import type { Action } from "../keys/KeyBindings";
 export const ACTION_DESCRIPTIONS: Readonly<Record<Action, string>> = {
   openCommandLine: "Open the command line",
   compose: "Compose a new message",
-  archive: "Archive (remove from the inbox)",
+  archive: "Archive, or move back to the inbox when every chosen thread is archived",
   trash: "Move to the trash",
   toggleStar: "Star or unstar",
   toggleUnread: "Mark read or unread",

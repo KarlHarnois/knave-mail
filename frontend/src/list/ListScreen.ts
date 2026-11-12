@@ -58,7 +58,7 @@ export class ListScreen implements Screen {
       ["search", () => this.afterSelection(() => this.ports.startSearch())],
       ["visualMode", () => this.toggleSelection()],
       ["escape", () => this.escape()],
-      ["archive", () => this.withChosen((summaries) => this.actions.archiveAll(summaries))],
+      ["archive", () => this.withChosen((summaries) => this.actions.toggleArchiveAll(summaries))],
       ["trash", () => this.withChosen((summaries) => this.actions.trashAll(summaries))],
       ["toggleStar", () => this.withChosen((summaries) => this.actions.toggleStarAll(summaries))],
       ["toggleUnread", () => this.withChosen((summaries) => this.actions.toggleUnreadAll(summaries))],

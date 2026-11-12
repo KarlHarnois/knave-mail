@@ -1,14 +1,12 @@
 import type { ThreadSummary } from "../bridge/Protocol";
+import { ArchiveRule } from "../mail/ArchiveRule";
 
-const LABELS_OUTSIDE_THE_ARCHIVE = new Set(["INBOX", "TRASH", "SPAM"]);
 const ARCHIVED_TEXT = "archived";
 
 export class ArchivedMarker {
-  textFor(summary: ThreadSummary): string {
-    return this.isArchived(summary) ? ARCHIVED_TEXT : "";
-  }
+  private readonly rule = new ArchiveRule();
 
-  private isArchived(summary: ThreadSummary): boolean {
-    return !summary.labels.some((label) => LABELS_OUTSIDE_THE_ARCHIVE.has(label));
+  textFor(summary: ThreadSummary): string {
+    return this.rule.isArchived(summary) ? ARCHIVED_TEXT : "";
   }
 }

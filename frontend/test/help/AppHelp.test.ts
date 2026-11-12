@@ -15,7 +15,7 @@ describe("help page", () => {
   test("the help page lists the list keys with their descriptions", async () => {
     const app = await AppHarness.started();
     await app.press("?");
-    expect(app.driver.text(HELP)).toContain("Archive (remove from the inbox)");
+    expect(app.driver.text(HELP)).toContain("Archive, or move back to the inbox");
     expect(app.driver.text(HELP)).toContain("j  <Down>");
   });
 
@@ -77,7 +77,7 @@ describe("help navigation", () => {
   test("/ jumps to the first matching row and marks every match", async () => {
     const app = await AppHarness.started();
     await app.press("?/archive<CR>");
-    expect(HelpHarness.cursorText()).toContain("Archive (remove from the inbox)");
+    expect(HelpHarness.cursorText()).toContain("Archive, or move back to the inbox");
     expect(document.querySelectorAll(".help-row.help-match").length).toBeGreaterThan(1);
   });
 

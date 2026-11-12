@@ -58,7 +58,13 @@ export class MailServices {
     this.session = new MailSession({ mail: this.mail, list: this.list, labels: this.labels, status: this.status });
     this.sync = this.createSyncMonitor();
     this.editors = this.createEditors();
-    this.actions = new ThreadActions({ mail: this.mail, session: this.session, list: this.list, errors: this.errors });
+    this.actions = new ThreadActions({
+      mail: this.mail,
+      session: this.session,
+      list: this.list,
+      errors: this.errors,
+      notify: (notice) => this.status.showNotice(notice),
+    });
   }
 
   private createScheduler(): RenderScheduler {

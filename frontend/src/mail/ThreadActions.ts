@@ -2,7 +2,8 @@ import type { MailClient } from "../bridge/MailClient";
 import type { ThreadCommand, ThreadSummary } from "../bridge/Protocol";
 import type { ThreadList } from "../list/ThreadList";
 import type { ErrorReporter } from "../status/ErrorReporter";
-import { ALL_MAIL } from "./LabelDirectory";
+import { ArchiveRule } from "./ArchiveRule";
+import { INBOX } from "./LabelDirectory";
 import type { MailSession } from "./MailSession";
 import { UndoHistory } from "./UndoHistory";
 
@@ -11,25 +12,34 @@ export type ThreadActionPorts = {
   session: MailSession;
   list: ThreadList;
   errors: ErrorReporter;
+  notify: (notice: string) => void;
 };
 
 export class ThreadActions {
   private readonly history = new UndoHistory();
+  private readonly archiveRule = new ArchiveRule();
 
   constructor(private readonly ports: ThreadActionPorts) {}
 
-  archive(summary: ThreadSummary): void {
-    this.archiveAll([summary]);
+  toggleArchive(summary: ThreadSummary): void {
+    this.toggleArchiveAll([summary]);
+  }
+
+  toggleArchiveAll(summaries: ThreadSummary[]): void {
+    if (this.archiveRule.allArchived(summaries)) this.moveToInboxAll(summaries);
+    else this.archiveAll(summaries);
   }
 
   archiveAll(summaries: ThreadSummary[]): void {
     for (const summary of summaries) this.removeFromInbox(summary);
     this.send("archive", summaries);
+    this.ports.notify(`archived ${this.threadCount(summaries)}`);
   }
 
   moveToInboxAll(summaries: ThreadSummary[]): void {
     this.updateAll(summaries.map((summary) => ({ ...summary, labels: [...this.without(summary, "INBOX"), "INBOX"] })));
     this.send("move-to-inbox", summaries);
+    this.ports.notify(`moved ${this.threadCount(summaries)} to the inbox`);
   }
 
   undo(): void {
@@ -78,9 +88,12 @@ export class ThreadActions {
   }
 
   private removeFromInbox(summary: ThreadSummary): void {
-    if (this.ports.session.labelId === ALL_MAIL.id)
-      this.ports.list.update({ ...summary, labels: this.without(summary, "INBOX") });
-    else this.ports.list.remove(summary.id);
+    if (this.ports.session.labelId === INBOX.id) this.ports.list.remove(summary.id);
+    else this.ports.list.update({ ...summary, labels: this.without(summary, "INBOX") });
+  }
+
+  private threadCount(summaries: readonly ThreadSummary[]): string {
+    return summaries.length === 1 ? "1 thread" : `${summaries.length} threads`;
   }
 
   private updateAll(summaries: ThreadSummary[]): ThreadSummary[] {

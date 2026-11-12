@@ -106,7 +106,7 @@ export class ThreadScreen implements Screen {
   private threadHandlers(): [ThreadAction, Handler][] {
     const actions = this.ports.actions;
     return [
-      ["archive", () => this.header.withSummary((summary) => this.closeAfter(() => actions.archive(summary)))],
+      ["archive", () => this.header.withSummary((summary) => this.closeAfter(() => actions.toggleArchive(summary)))],
       ["trash", () => this.header.withSummary((summary) => this.closeAfter(() => actions.trash(summary)))],
       ["toggleStar", () => this.header.withSummary((summary) => this.header.show(actions.toggleStar(summary)))],
       ["toggleUnread", () => this.header.withSummary((summary) => this.header.show(actions.toggleUnread(summary)))],
