@@ -1,0 +1,92 @@
+export type SharedAction =
+  | "openCommandLine"
+  | "compose"
+  | "archive"
+  | "trash"
+  | "toggleStar"
+  | "toggleUnread"
+  | "goToInbox"
+  | "goToAllMail"
+  | "nextAccount"
+  | "previousAccount"
+  | "refresh"
+  | "clearError";
+
+export type ListAction =
+  | SharedAction
+  | "moveDown"
+  | "moveUp"
+  | "moveToTop"
+  | "moveToBottom"
+  | "halfPageDown"
+  | "halfPageUp"
+  | "open"
+  | "search";
+
+export type ThreadAction =
+  | SharedAction
+  | "back"
+  | "nextMessage"
+  | "previousMessage"
+  | "firstMessage"
+  | "lastMessage"
+  | "scrollDown"
+  | "scrollUp"
+  | "reply"
+  | "replyAll"
+  | "forward"
+  | "toggleTextMode"
+  | "loadRemoteImages";
+
+export type Action = ListAction | ThreadAction;
+
+export type KeyMode = "list" | "thread";
+
+const SHARED_BINDINGS: ReadonlyArray<readonly [string, SharedAction]> = [
+  [":", "openCommandLine"],
+  ["c", "compose"],
+  ["e", "archive"],
+  ["#", "trash"],
+  ["s", "toggleStar"],
+  ["u", "toggleUnread"],
+  ["gi", "goToInbox"],
+  ["ga", "goToAllMail"],
+  ["<C-n>", "nextAccount"],
+  ["<C-p>", "previousAccount"],
+  ["R", "refresh"],
+  ["<Esc>", "clearError"],
+];
+
+export const LIST_BINDINGS: ReadonlyArray<readonly [string, ListAction]> = [
+  ...SHARED_BINDINGS,
+  ["j", "moveDown"],
+  ["<Down>", "moveDown"],
+  ["k", "moveUp"],
+  ["<Up>", "moveUp"],
+  ["gg", "moveToTop"],
+  ["G", "moveToBottom"],
+  ["<C-d>", "halfPageDown"],
+  ["<C-u>", "halfPageUp"],
+  ["l", "open"],
+  ["<CR>", "open"],
+  ["/", "search"],
+];
+
+export const THREAD_BINDINGS: ReadonlyArray<readonly [string, ThreadAction]> = [
+  ...SHARED_BINDINGS,
+  ["h", "back"],
+  ["q", "back"],
+  ["j", "nextMessage"],
+  ["<Down>", "nextMessage"],
+  ["k", "previousMessage"],
+  ["<Up>", "previousMessage"],
+  ["gg", "firstMessage"],
+  ["G", "lastMessage"],
+  ["<C-d>", "scrollDown"],
+  ["<C-u>", "scrollUp"],
+  ["r", "reply"],
+  ["a", "replyAll"],
+  ["f", "forward"],
+  ["v", "toggleTextMode"],
+  ["i", "loadRemoteImages"],
+];

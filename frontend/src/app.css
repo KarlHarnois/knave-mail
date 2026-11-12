@@ -1,0 +1,274 @@
+:root {
+  color-scheme: light dark;
+  --background: #ffffff;
+  --foreground: #1f2328;
+  --muted: #6e7781;
+  --border: #d8dee4;
+  --selection: #ddf4ff;
+  --selection-border: #0969da;
+  --accent: #0969da;
+  --error: #cf222e;
+  --star: #bf8700;
+  --status-background: #f6f8fa;
+  --font-chrome: system-ui, sans-serif;
+  --font-text: monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0d1117;
+    --foreground: #e6edf3;
+    --muted: #8d96a0;
+    --border: #30363d;
+    --selection: #1f2a3a;
+    --selection-border: #4493f8;
+    --accent: #4493f8;
+    --error: #f85149;
+    --star: #d29922;
+    --status-background: #161b22;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-chrome);
+  font-size: 14px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  outline: none;
+}
+
+.stage {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+.stage > * {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+  outline: none;
+}
+
+.thread-list {
+  contain: strict;
+}
+
+.thread-list-spacer {
+  width: 1px;
+}
+
+.thread-list-empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.thread-row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--row-height);
+  display: grid;
+  grid-template-columns: 1.5em minmax(8em, 14em) auto 1fr auto;
+  gap: 0.75em;
+  align-items: center;
+  padding: 0 1em 0 0.5em;
+  border-left: 3px solid transparent;
+  white-space: nowrap;
+  contain: strict;
+  will-change: transform;
+}
+
+.thread-row > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.thread-row.selected {
+  background: var(--selection);
+  border-left-color: var(--selection-border);
+}
+
+.thread-row.unread .row-from,
+.thread-row.unread .row-subject {
+  font-weight: 650;
+}
+
+.row-star {
+  color: var(--star);
+  text-align: center;
+}
+
+.row-snippet,
+.row-date {
+  color: var(--muted);
+}
+
+.row-date {
+  font-variant-numeric: tabular-nums;
+}
+
+.thread-view {
+  padding: 1em 1.5em 3em;
+}
+
+.thread-subject {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin: 0 0 0.75em;
+}
+
+.message {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: 4px;
+  margin-bottom: 0.75em;
+}
+
+.message.focused {
+  border-left-color: var(--selection-border);
+}
+
+.message-header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.15em 1em;
+  padding: 0.6em 0.9em;
+}
+
+.message-from {
+  font-weight: 600;
+}
+
+.message-date,
+.message-recipients,
+.message-snippet {
+  color: var(--muted);
+}
+
+.message-recipients,
+.message-snippet {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.message[data-expanded="false"] .message-recipients,
+.message[data-expanded="false"] .message-body,
+.message[data-expanded="true"] .message-snippet {
+  display: none;
+}
+
+.message-body {
+  border-top: 1px solid var(--border);
+}
+
+.message-html {
+  display: block;
+  width: 100%;
+  min-height: 4em;
+  border: 0;
+  background: #ffffff;
+  pointer-events: none;
+}
+
+.message-text {
+  margin: 0;
+  padding: 0.9em;
+  font-family: var(--font-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.text-reader .cm-editor,
+.composer .cm-editor {
+  font-family: var(--font-text);
+  outline: none;
+}
+
+.text-reader .cm-scroller,
+.composer .cm-scroller {
+  font-family: var(--font-text);
+}
+
+.composer {
+  padding: 0.5em 1em;
+}
+
+.composer .cm-editor {
+  height: 100%;
+}
+
+.command-line {
+  padding: 0.2em 0.75em;
+  font-family: var(--font-text);
+  border-top: 1px solid var(--border);
+}
+
+.command-cursor::after {
+  content: " ";
+  background: var(--foreground);
+  opacity: 0.6;
+}
+
+.status-line {
+  display: flex;
+  gap: 1em;
+  padding: 0.2em 0.75em;
+  background: var(--status-background);
+  border-top: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.status-mode {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.status-keys {
+  font-family: var(--font-text);
+}
+
+.status-notice {
+  margin-left: auto;
+  color: var(--muted);
+}
+
+.status-error {
+  color: var(--error);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-notice:empty,
+.status-error:empty,
+.status-keys:empty {
+  display: none;
+}
+
+.status-error:not(:empty) {
+  margin-left: auto;
+}
