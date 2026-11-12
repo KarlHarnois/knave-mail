@@ -1,0 +1,56 @@
+(use adapters/driven/file-credentials/credentials ->file-credentials)
+(use adapters/driven/gmail/http new-agent)
+(use adapters/driven/gmail/provider ->gmail-provider)
+(use adapters/driven/gmail/session ->gmail-endpoints gmail-endpoints)
+(use adapters/driven/google-oauth/authorizer ->google-authorizer ->oauth-settings)
+(use adapters/driven/google-oauth/consent-browser ->system-browser)
+(use adapters/driven/keyring/credentials ->keyring-credentials)
+(use adapters/driven/sqlite/store open-sqlite-store)
+(use app/mail-app mail-app new-mail-app)
+(use composition/settings settings)
+(use domain/mail-error mail-error)
+(use ports/driven/credentials credentials)
+
+(export gmail-app)
+
+(def sync-limit 100)
+
+(type gmail-app (fn ((ref settings)) (result mail-app mail-error)))
+
+(defn gmail-app (chosen)
+  (try (check-client chosen))
+  (ok (new-mail-app (box (try (open-sqlite-store (ref (:cache-path chosen)))))
+                    (box (->gmail-provider (endpoints chosen) (chosen-credentials chosen)))
+                    (box (->google-authorizer
+                           :agent (new-agent)
+                           :settings (->oauth-settings :auth-url (clone (:auth-url chosen))
+                                                       :token-url (clone (:token-url chosen))
+                                                       :api-base (clone (:api-base chosen))
+                                                       :client-id (clone (:client-id chosen))
+                                                       :client-secret (clone (:client-secret chosen)))
+                           :credentials (chosen-credentials chosen)
+                           :browser (box (->system-browser (clone (:browser chosen))))))
+                    sync-limit)))
+
+(type check-client (fn ((ref settings)) (result unit mail-error)))
+
+(defn check-client (chosen)
+  (if (empty? (:client-id chosen))
+    (err (mail-error/usage
+           (str "set KNAVE_MAIL_CLIENT_ID and KNAVE_MAIL_CLIENT_SECRET to your Google OAuth client, or pass --backend memory")))
+    (ok (do))))
+
+(type endpoints (fn ((ref settings)) gmail-endpoints))
+
+(defn endpoints (chosen)
+  (->gmail-endpoints :api-base (clone (:api-base chosen))
+                     :token-url (clone (:token-url chosen))
+                     :client-id (clone (:client-id chosen))
+                     :client-secret (clone (:client-secret chosen))))
+
+(type chosen-credentials (fn ((ref settings)) (box credentials)))
+
+(defn chosen-credentials (chosen)
+  (if (empty? (:credentials-file chosen))
+    (the (box credentials) (box (->keyring-credentials (str "knave-mail"))))
+    (the (box credentials) (box (->file-credentials (clone (:credentials-file chosen)))))))

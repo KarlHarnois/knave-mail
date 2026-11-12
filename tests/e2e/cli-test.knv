@@ -1,0 +1,95 @@
+(use adapters/driven/file-credentials/credentials ->file-credentials)
+(use ports/driven/credentials save-token!)
+(use support/binary binary-output binary-path output-code output-stderr
+                    output-stdout run-binary)
+(use support/fake-gmail fake-gmail fake-gmail-base requests-seen start-fake-gmail)
+(use support/gmail-world fixture-routes)
+(use support/sample-mail addresses)
+(use support/temporary temporary-path)
+
+(def account "ada@example.com")
+
+(type environment-for (fn ((ref fake-gmail) (ref str) (ref str)) (vec (pair string string))))
+
+(defn environment-for (server cache tokens)
+  (let (base (fake-gmail-base server))
+    (vec (pair (str "KNAVE_MAIL_GMAIL_BASE_URL") (clone base))
+         (pair (str "KNAVE_MAIL_TOKEN_URL") (str base "/token"))
+         (pair (str "KNAVE_MAIL_CLIENT_ID") (str "fake-client"))
+         (pair (str "KNAVE_MAIL_CLIENT_SECRET") (str "fake-secret"))
+         (pair (str "KNAVE_MAIL_CACHE") (str cache))
+         (pair (str "KNAVE_MAIL_CREDENTIALS_FILE") (str tokens)))))
+
+(type signed-in-tokens (fn () string))
+
+(defn signed-in-tokens ()
+  (let (path (temporary-path "tokens.json")
+        credentials (->file-credentials (clone path)))
+    (local saving credentials)
+    (unwrap-ok (save-token! (mut saving) account "fake-refresh"))
+    path))
+
+(type gmail-cli (fn ((ref fake-gmail) (ref str) (ref str) (vec (ref str)) (ref str)) binary-output))
+
+(defn gmail-cli (server cache tokens arguments input)
+  (let (written (addresses arguments))
+    (insert-account-flag! (mut written))
+    (run-binary binary-path (ref written) (ref (environment-for server cache tokens)) input)))
+
+(def insert-account-flag!
+  (rust "{{ {0}.insert(0, String::from(\"ada@example.com\")); {0}.insert(0, String::from(\"--account\")); }}"
+    (fn ((mut (vec string))) unit)))
+
+(def contains? (rust "{0}.contains({1})" (fn ((ref str) (ref str)) bool)))
+
+(deftest syncs-then-lists-the-inbox-from-the-cache
+  (let (server (start-fake-gmail (ref (fixture-routes))) cache (temporary-path "cache.sqlite3") tokens (signed-in-tokens))
+    (gmail-cli (ref server) (ref cache) (ref tokens) (vec "sync") "")
+    (assert (= (output-stdout (ref (gmail-cli (ref server) (ref cache) (ref tokens) (vec "threads" "list") "")))
+               "t1                  2023-11-14 22:23  N  Grace Hopper, ada@example.c Compiler meeting\nt2                  2023-11-03 08:26     Billing                     Invoice 42\n"))))
+
+(deftest prints-a-synced-thread-as-versioned-json
+  (let (server (start-fake-gmail (ref (fixture-routes))) cache (temporary-path "cache.sqlite3") tokens (signed-in-tokens))
+    (gmail-cli (ref server) (ref cache) (ref tokens) (vec "sync") "")
+    (assert (contains? (ref (output-stdout (ref (gmail-cli (ref server) (ref cache) (ref tokens) (vec "--json" "labels") ""))))
+                       "{\"result\":[{\"id\":\"INBOX\",\"name\":\"INBOX\",\"unread\":2}"))))
+
+(deftest sends-a-reply-with-the-body-from-standard-input
+  (let (server (start-fake-gmail (ref (fixture-routes))) cache (temporary-path "cache.sqlite3") tokens (signed-in-tokens))
+    (gmail-cli (ref server) (ref cache) (ref tokens) (vec "sync") "")
+    (assert (= (output-code (ref (gmail-cli (ref server) (ref cache) (ref tokens) (vec "reply" "m1") "Tuesday works.\n"))) 0))
+    (assert (contains? (ref (last-request (ref server))) "\"threadId\":\"t1\""))))
+
+(deftest a-dry-run-sends-nothing
+  (let (server (start-fake-gmail (ref (fixture-routes))) cache (temporary-path "cache.sqlite3") tokens (signed-in-tokens))
+    (gmail-cli (ref server) (ref cache) (ref tokens) (vec "sync") "")
+    (let (output (gmail-cli (ref server) (ref cache) (ref tokens) (vec "reply" "m1" "--dry-run") "Tuesday works.\n"))
+      (assert (contains? (ref (output-stdout (ref output))) "Subject: Re: Compiler meeting — Tuesday"))
+      (assert (not (contains? (ref (last-request (ref server))) "messages/send"))))))
+
+(deftest archives-a-thread-remotely
+  (let (server (start-fake-gmail (ref (fixture-routes))) cache (temporary-path "cache.sqlite3") tokens (signed-in-tokens))
+    (gmail-cli (ref server) (ref cache) (ref tokens) (vec "sync") "")
+    (gmail-cli (ref server) (ref cache) (ref tokens) (vec "archive" "t1") "")
+    (assert (contains? (ref (last-request (ref server))) "POST /gmail/v1/users/me/threads/t1/modify"))))
+
+(deftest a-missing-sign-in-exits-with-auth-required
+  (let (server (start-fake-gmail (ref (fixture-routes))) cache (temporary-path "cache.sqlite3")
+        output (gmail-cli (ref server) (ref cache) (ref (temporary-path "none.json")) (vec "sync") ""))
+    (assert (= (output-code (ref output)) 3))
+    (assert (contains? (ref (output-stderr (ref output))) "run `knave-mail accounts add`"))))
+
+(deftest an-unknown-thread-exits-with-not-found
+  (let (server (start-fake-gmail (ref (fixture-routes))) cache (temporary-path "cache.sqlite3") tokens (signed-in-tokens))
+    (assert (= (output-code (ref (gmail-cli (ref server) (ref cache) (ref tokens) (vec "threads" "show" "t9") ""))) 2))))
+
+(deftest a-missing-oauth-client-is-a-usage-error
+  (let (output (run-binary binary-path (ref (addresses (vec "labels"))) (ref (the (vec (pair string string)) (vec))) ""))
+    (assert (= (output-code (ref output)) 1))))
+
+(type last-request (fn ((ref fake-gmail)) string))
+
+(defn last-request (server)
+  (last-or-empty (requests-seen server)))
+
+(def last-or-empty (rust "{0}.pop().unwrap_or_default()" (fn ((vec string)) string)))

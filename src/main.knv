@@ -1,25 +1,12 @@
 (use adapters/driving/cli/arguments parse-arguments)
-(use adapters/driving/cli/cli run-cli!)
 (use adapters/driving/cli/command cli-command-word?)
-(use adapters/driving/webview/session serve-requests!)
-(use adapters/driving/webview/window open-window)
-(use composition/memory-backend memory-app)
-(use composition/settings settings settings-from)
+(use composition/launch launch-cli launch-window)
+(use composition/settings settings-from)
 
 (defn main ()
   (let (arguments (command-line-args)
         parsed (parse-arguments (ref arguments))
         chosen (settings-from (ref arguments)))
     (if (cli-command-word? (ref parsed))
-      (let (app (memory-app (ref chosen)))
-        (exit-with (run-cli! (mut app) (ref parsed))))
-      (let (script (clone (:e2e-script chosen)))
-        (open-window "knave-mail" (ref script)
-          (fn (inbox outbox)
-            (let (moved-settings chosen
-                  app (memory-app (ref moved-settings)))
-              (serve-requests! (mut app) (ref inbox) (ref outbox)))))))))
-
-(def exit-with
-  (rust "std::process::exit({0})"
-    (fn (i32) unit)))
+      (launch-cli chosen parsed)
+      (launch-window chosen))))

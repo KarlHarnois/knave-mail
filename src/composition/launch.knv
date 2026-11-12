@@ -1,0 +1,58 @@
+(use adapters/driving/cli/arguments parsed-arguments)
+(use adapters/driving/cli/cli run-cli!)
+(use adapters/driving/cli/exit-codes exit-code)
+(use adapters/driving/webview/session serve-requests!)
+(use adapters/driving/webview/sync-runner ->inline-sync)
+(use adapters/driving/webview/window open-window)
+(use app/client)
+(use app/mail-app mail-app)
+(use composition/background-sync ->background-sync)
+(use composition/gmail-backend gmail-app)
+(use composition/memory-backend memory-app)
+(use composition/settings settings)
+(use domain/mail-error error-message mail-error)
+
+(export launch-cli launch-window)
+
+(def memory-backend "memory")
+
+(type launch-cli (fn (settings parsed-arguments) unit))
+
+(defn launch-cli (chosen parsed)
+  (match (chosen-app (ref chosen))
+    ((ok app) (do (local running app) (exit-with (run-cli! (mut running) (ref parsed)))))
+    ((err failure) (fail-with (ref failure)))))
+
+(type launch-window (fn (settings) unit))
+
+(defn launch-window (chosen)
+  (let (script (clone (:e2e-script chosen)))
+    (open-window "knave-mail" (ref script)
+      (fn (inbox outbox)
+        (let (owned chosen)
+          (match (chosen-app (ref owned))
+            ((ok app)
+             (do (local running app)
+                 (if (= (:backend owned) memory-backend)
+                   (do (local runner (->inline-sync 0))
+                       (serve-requests! (mut running) (mut runner) (ref inbox) (ref outbox)))
+                   (do (local runner (->background-sync 0))
+                       (serve-requests! (mut running) (mut runner) (ref inbox) (ref outbox))))))
+            ((err failure) (fail-with (ref failure)))))))))
+
+(type chosen-app (fn ((ref settings)) (result mail-app mail-error)))
+
+(defn chosen-app (chosen)
+  (if (= (:backend chosen) memory-backend)
+    (ok (memory-app chosen))
+    (gmail-app chosen)))
+
+(type fail-with (fn ((ref mail-error)) unit))
+
+(defn fail-with (failure)
+  (eprintln (str "knave-mail: " (error-message failure)))
+  (exit-with (exit-code failure)))
+
+(def exit-with
+  (rust "std::process::exit({0})"
+    (fn (i32) unit)))
