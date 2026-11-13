@@ -71,7 +71,7 @@
                           code " after "
                           (- (clock-milliseconds) started)
                           "ms"))
-           (exit-with code))))
+           (exit code))))
       ((err failure) (fail-with (ref failure))))))
 
 (type launch-window (fn (settings) unit))
@@ -125,7 +125,4 @@
 
 (defn fail-with (failure)
   (eprintln (str "knave-mail: " (error-message failure)))
-  (exit-with (exit-code failure)))
-
-(def exit-with
-  (rust "std::process::exit({0})" (fn (i32) unit)))
+  (exit (exit-code failure)))
