@@ -31,6 +31,22 @@
   (assert (cli-command-word?
             (ref (parsed (vec "--backend" "memory" "threads" "list"))))))
 
+(def setting-flags
+  (vec "--backend" "--latency" "--fail" "--e2e-script"
+       "--cache" "--credentials-file" "--client-id"
+       "--client-secret" "--gmail-base-url" "--token-url"
+       "--auth-url" "--theme" "--keymap" "--browser"))
+
+(deftest a-setting-before-the-command-keeps-the-command
+  (assert (not (any? (iter setting-flags)
+                 (fn (flag)
+                   (not (cli-command-word?
+                          (ref (parsed (vec flag "some-value" "sync"))))))))))
+
+(deftest a-cache-path-is-not-mistaken-for-a-command
+  (assert (= (command (vec "--cache" "/tmp/cache.sqlite3" "sync"))
+             cli-command/sync)))
+
 (deftest no-word-means-the-window
   (assert (not (cli-command-word? (ref (parsed (vec "--backend" "memory")))))))
 
