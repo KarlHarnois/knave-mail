@@ -1,5 +1,6 @@
 (use adapters/driving/webview/keymap/keymap-file keymap-file)
 (use adapters/driving/webview/keymap/keymap-script keymap-script)
+(use composition/file-text file-text)
 (use composition/settings settings)
 
 (export keymap-startup-script)
@@ -15,7 +16,3 @@
          (fn (warning) (eprintln warning)))
        (keymap-script (ref (:entries mapped)))))
     (none (str ""))))
-
-(def file-text
-  (rust "std::fs::read_to_string({0}).ok()"
-    (fn ((ref str)) (option string))))
