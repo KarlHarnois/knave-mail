@@ -1,6 +1,9 @@
 (use adapters/driven/gmail/session api-get!)
 (use adapters/driven/gmail/session-state gmail-session)
-(use adapters/driving/json/value json-value)
+
+(use adapters/driving/json/value json-value
+                                 optional-string-field)
+
 (use domain/mail ->mail-changes mail-changes)
 (use domain/mail-error mail-error)
 
@@ -36,7 +39,7 @@
   (let (page (try (api-get! session
                             (ref (history-path since (ref page-token)))))
         found (with-changed-threads thread-ids (ref page)))
-    (match (next-page-token (ref page))
+    (match (optional-string-field (ref page) "nextPageToken")
       ((some token) (recur session since token found))
       (none (ok (->mail-changes :thread-ids found
                                 :history-id (history-id-of (ref page))))))))
@@ -54,10 +57,6 @@
 (def history-id-of
   (rust "{0}.get(\"historyId\").map(|{!value}| {!value}.as_str().map(str::to_string).unwrap_or_else(|| {!value}.to_string())).unwrap_or_default()"
     (fn ((ref json-value)) string)))
-
-(def next-page-token
-  (rust "{0}.get(\"nextPageToken\").and_then(|{!value}| {!value}.as_str()).map(str::to_string)"
-    (fn ((ref json-value)) (option string))))
 
 (def with-changed-threads
   (rust "{{ let mut {!ids} = {0}; for {!entry} in {1}.get(\"history\").and_then(|{!value}| {!value}.as_array()).into_iter().flatten() {{ for {!message} in {!entry}.get(\"messages\").and_then(|{!value}| {!value}.as_array()).into_iter().flatten() {{ if let Some({!thread}) = {!message}.get(\"threadId\").and_then(|{!value}| {!value}.as_str()) {{ if !{!ids}.iter().any(|{!known}| {!known} == {!thread}) {{ {!ids}.push({!thread}.to_string()); }} }} }} }} {!ids} }}"
