@@ -53,9 +53,13 @@
     (log-level/info (str "INFO"))
     (log-level/debug (str "DEBUG"))))
 
-(def padded
-  (rust "format!(\"{{:<width$}}\", {0}, width = {1})"
-    (fn (string usize) string)))
+(type padded (fn (string usize) string))
+
+(defn padded (text width)
+  (for-each (range (count (chars (as-str (ref text))))
+                   width)
+            (fn (_) (push! text (char " "))))
+  text)
 
 (def one-line
   (rust "{0}.replace('\\n', \"\\\\n\").replace('\\r', \"\")"
