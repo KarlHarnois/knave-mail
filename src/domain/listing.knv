@@ -1,3 +1,4 @@
+(use domain/collections appended)
 (use domain/mail thread-summary)
 
 (export ids-without-summary in-listed-order)
@@ -14,8 +15,23 @@
                            (fn (summary) (= (:id summary) id))))))
                 (fn (id) (clone id)))))
 
-(def in-listed-order
-  (rust "{{ let {!known} = {1}; {0}.iter().filter_map(|{!id}| {!known}.iter().find(|{!summary}| {!summary}.id == *{!id}).cloned()).collect::<Vec<_>>() }}"
-    (fn ((ref (vec string))
-         (ref (vec thread-summary)))
-      (vec thread-summary))))
+(type in-listed-order
+  (fn ((ref (vec string))
+       (ref (vec thread-summary)))
+    (vec thread-summary)))
+
+(defn in-listed-order (ids known)
+  (reduce (iter ids) (vec)
+    (fn (ordered id)
+      (match (summary-with id known)
+        ((some summary) (appended ordered (clone summary)))
+        (none ordered)))))
+
+(type summary-with
+  (fn ((ref string)
+       (ref (vec thread-summary)))
+    (option (ref thread-summary))))
+
+(defn summary-with (id known)
+  (find (iter known)
+    (fn (summary) (= (:id summary) id))))

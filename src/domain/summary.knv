@@ -46,9 +46,12 @@
   (join-with (ref (distinct-senders (ref (:messages summarized))))
              ", "))
 
-(def last-message
-  (rust "{0}.messages.last().expect(\"a thread holds at least one message\")"
-    (fn ((ref thread)) (ref message))))
+(type last-message
+  (fn ((ref thread)) (ref message)))
+
+(defn last-message (summarized)
+  (expect (last (:messages summarized))
+          "a thread holds at least one message"))
 
 (def message-count
   (rust "{0}.messages.len() as i64"
@@ -62,10 +65,28 @@
   (rust "{0}.split_whitespace().collect::<Vec<_>>().join(\" \").chars().take({1}).collect::<String>()"
     (fn ((ref str) usize) string)))
 
-(def sorted-by-date-descending
-  (rust "{{ let mut {!sorted} = {0}; {!sorted}.sort_by(|{!a}, {!b}| {!b}.date.cmp(&{!a}.date)); {!sorted} }}"
-    (fn ((vec thread-summary))
-      (vec thread-summary))))
+(type sorted-by-date-descending
+  (fn ((vec thread-summary))
+    (vec thread-summary)))
+
+(defn sorted-by-date-descending (summaries)
+  (sort! (mut summaries) newer-first)
+  summaries)
+
+(type newer-first
+  (fn ((ref thread-summary) (ref thread-summary))
+    i64))
+
+(defn newer-first (left right)
+  (comparison (:date right) (:date left)))
+
+(type comparison (fn (i64 i64) i64))
+
+(defn comparison (left right)
+  (cond
+    ((< left right) -1)
+    ((> left right) 1)
+    (else 0)))
 
 (def first-few
   (rust "{0}.into_iter().take({1} as usize).collect::<Vec<_>>()"
