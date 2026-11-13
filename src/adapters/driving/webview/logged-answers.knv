@@ -4,12 +4,12 @@
                                              reply-sink)
 
 (use adapters/driving/webview/request-log clock-milliseconds
-                                          ok-or-none
                                           reply-error)
 
 (use adapters/driving/webview/window next-request
                                      request-inbox)
 
+(use domain/results ok->option)
 (use ports/driven/event-log event-log log-debug log-warn)
 (use ports/driving/mail-client list-accounts! mail-client)
 
@@ -26,7 +26,7 @@
 (defn answer-relabels! (client log inbox sink)
   (log-debug log "window"
              (str "label worker ready for "
-                  (len (unwrap-or (ok-or-none (list-accounts! client))
+                  (len (unwrap-or (ok->option (list-accounts! client))
                                   (vec)))
                   " accounts"))
   (answer-queued-relabels! client log inbox sink))

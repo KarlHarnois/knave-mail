@@ -2,6 +2,7 @@
                                  string-field)
 
 (use domain/mail-error error-kind error-message mail-error)
+(use domain/results ok->option)
 
 (export failure-event failure-reply null-id
         request-arguments request-command request-id
@@ -32,11 +33,6 @@
   (sync-failed-event account
                      (error-kind failure)
                      (error-message failure)))
-
-(def ok->option
-  (rust "{0}.ok()"
-    (fn ((result string string))
-      (option string))))
 
 (def request-id
   (rust "{0}.get(\"id\").cloned().unwrap_or(serde_json::Value::Null)"

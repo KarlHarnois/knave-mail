@@ -1,11 +1,12 @@
 (use adapters/driving/json/commands answer!)
 (use adapters/driving/json/envelope request-arguments)
 (use adapters/driving/json/value json-value string-field)
+(use domain/results ok->option)
 
 (use ports/driven/event-log ->log-entry event-log log-level
                             record!)
 
-(export clock-milliseconds ok-or-none record-frontend-entry!
+(export clock-milliseconds record-frontend-entry!
         reply-error)
 
 (type record-frontend-entry!
@@ -15,12 +16,12 @@
 (defn record-frontend-entry! (log request)
   (let (arguments (request-arguments request))
     (record! log
-             (ref (->log-entry (level-named (ref (unwrap-or (ok-or-none (string-field
+             (ref (->log-entry (level-named (ref (unwrap-or (ok->option (string-field
                                                                           (ref arguments)
                                                                           "level"))
                                                             (str "info"))))
                                (str "frontend")
-                               (unwrap-or (ok-or-none (string-field (ref
+                               (unwrap-or (ok->option (string-field (ref
                                                                       arguments)
                                                                     "message"))
                                           (str "")))))))
@@ -34,12 +35,6 @@
     ("warn" log-level/warn)
     ("debug" log-level/debug)
     (_ log-level/info)))
-
-(def ok-or-none
-  (rust "{0}.ok()"
-    (where (value failure)
-      (fn ((result value failure))
-        (option value)))))
 
 (def reply-error
   (rust "serde_json::from_str::<serde_json::Value>(&{0}).ok().and_then(|{!reply}| {!reply}.get(\"error\").map(|{!error}| format!(\"{{}}: {{}}\", {!error}.get(\"kind\").and_then(|{!kind}| {!kind}.as_str()).unwrap_or(\"unknown\"), {!error}.get(\"message\").and_then(|{!message}| {!message}.as_str()).unwrap_or(\"\"))))"

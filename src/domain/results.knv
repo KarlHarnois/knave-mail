@@ -1,0 +1,11 @@
+(export ok->option)
+
+(type ok->option
+  (where (value failure)
+    (fn ((result value failure))
+      (option value))))
+
+(defn ok->option (outcome)
+  (match outcome
+    ((ok value) (some value))
+    ((err _) none)))
