@@ -13,17 +13,19 @@ const INVERSE_COMMANDS: Readonly<Record<ThreadCommand, ThreadCommand>> = {
   "mark-unread": "mark-read",
 };
 
+const KEPT_CHANGES = 100;
+
 export class UndoHistory {
-  private last: UndoableChange | null = null;
+  private readonly reversals: UndoableChange[] = [];
 
   record(change: UndoableChange): void {
-    this.last = { ...change, command: INVERSE_COMMANDS[change.command] };
+    this.reversals.push({ ...change, command: INVERSE_COMMANDS[change.command] });
+    if (this.reversals.length > KEPT_CHANGES) this.reversals.shift();
   }
 
   takeReversal(): UndoableChange {
-    const reversal = this.last;
+    const reversal = this.reversals.pop();
     if (!reversal) throw new Error("nothing to undo");
-    this.last = null;
     return reversal;
   }
 }

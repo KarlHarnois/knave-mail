@@ -100,6 +100,19 @@ describe("undo and inbox", () => {
     expect(app.core.lastArgsFor("untrash")["threadIds"]).toEqual(["t-0", "t-1", "t-2"]);
   });
 
+  test("u undoes archives made one by one, one at a time, newest first", async () => {
+    const app = await AppHarness.started();
+    await app.press("e");
+    await app.press("e");
+    await app.press("u");
+    expect(app.core.requestsFor("move-to-inbox").map((request) => request.args["threadIds"])).toEqual([["t-1"]]);
+    await app.press("u");
+    expect(app.core.requestsFor("move-to-inbox").map((request) => request.args["threadIds"])).toEqual([
+      ["t-1"],
+      ["t-0"],
+    ]);
+  });
+
   test("u undoes star, unstar and read changes with their opposite", async () => {
     const app = await AppHarness.started();
     await app.press("su");
@@ -108,7 +121,7 @@ describe("undo and inbox", () => {
     expect(app.core.lastArgsFor("mark-unread")["threadIds"]).toEqual(["t-0"]);
   });
 
-  test("a second u has nothing left to undo", async () => {
+  test("u has nothing left to undo once every change is undone", async () => {
     const app = await AppHarness.started();
     await app.press("eu");
     await app.press("u");
