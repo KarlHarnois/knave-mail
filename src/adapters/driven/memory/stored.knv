@@ -37,7 +37,8 @@
 (defn replace-summaries! (stored email summaries)
   (for-each (iter summaries)
     (fn (summary)
-      (retain-other-summaries! stored email (ref (:id summary)))
+      (set! stored
+            (other-summaries stored email (ref (:id summary))))
       (push! stored
              (->stored-summary (str email) (clone summary))))))
 
@@ -48,41 +49,100 @@
     unit))
 
 (defn replace-thread! (stored email saved)
-  (retain-other-threads! stored email (ref (:id saved)))
+  (set! stored
+        (other-threads stored email (ref (:id saved))))
   (push! stored
          (->stored-thread (str email) (clone saved))))
 
-(def retain-other-summaries!
-  (rust "{0}.retain(|{!entry}| !({!entry}.account == *{1} && {!entry}.summary.id == *{2}))"
-    (fn ((mut (vec stored-summary))
-         (ref str)
-         (ref str))
-      unit)))
+(type other-summaries
+  (fn ((ref (vec stored-summary))
+       (ref str)
+       (ref str))
+    (vec stored-summary)))
 
-(def retain-other-threads!
-  (rust "{0}.retain(|{!entry}| !({!entry}.account == *{1} && {!entry}.thread.id == *{2}))"
-    (fn ((mut (vec stored-thread))
-         (ref str)
-         (ref str))
-      unit)))
+(defn other-summaries (stored email thread-id)
+  (collect (map (filter (iter stored)
+                  (fn (entry)
+                    (not (summary-entry? entry email thread-id))))
+                (fn (entry) (clone entry)))))
 
-(def summaries-with-ids
-  (rust "{0}.iter().filter(|{!entry}| {!entry}.account == *{1} && {2}.contains(&{!entry}.summary.id)).map(|{!entry}| {!entry}.summary.clone()).collect::<Vec<_>>()"
-    (fn ((ref (vec stored-summary))
-         (ref str)
-         (ref (vec string)))
-      (vec thread-summary))))
+(type other-threads
+  (fn ((ref (vec stored-thread))
+       (ref str)
+       (ref str))
+    (vec stored-thread)))
 
-(def thread-in
-  (rust "{0}.iter().find(|{!entry}| {!entry}.account == *{1} && {!entry}.thread.id == *{2}).map(|{!entry}| {!entry}.thread.clone())"
-    (fn ((ref (vec stored-thread))
-         (ref str)
-         (ref str))
-      (option thread))))
+(defn other-threads (stored email thread-id)
+  (collect (map (filter (iter stored)
+                  (fn (entry)
+                    (not (thread-entry? entry email thread-id))))
+                (fn (entry) (clone entry)))))
 
-(def message-in
-  (rust "{0}.iter().filter(|{!entry}| {!entry}.account == *{1}).flat_map(|{!entry}| {!entry}.thread.messages.iter()).find(|{!message}| {!message}.id == *{2}).cloned()"
-    (fn ((ref (vec stored-thread))
-         (ref str)
-         (ref str))
-      (option message))))
+(type summary-entry?
+  (fn ((ref stored-summary)
+       (ref str)
+       (ref str))
+    bool))
+
+(defn summary-entry? (entry email thread-id)
+  (and (= (:account entry) email)
+       (= (:id (:summary entry)) thread-id)))
+
+(type thread-entry?
+  (fn ((ref stored-thread)
+       (ref str)
+       (ref str))
+    bool))
+
+(defn thread-entry? (entry email thread-id)
+  (and (= (:account entry) email)
+       (= (:id (:thread entry)) thread-id)))
+
+(type summaries-with-ids
+  (fn ((ref (vec stored-summary))
+       (ref str)
+       (ref (vec string)))
+    (vec thread-summary)))
+
+(defn summaries-with-ids (stored email ids)
+  (collect (map (filter (iter stored)
+                  (fn (entry)
+                    (and (= (:account entry) email)
+                         (any? (iter ids)
+                           (fn (id) (= id (:id (:summary entry))))))))
+                (fn (entry) (clone (:summary entry))))))
+
+(type thread-in
+  (fn ((ref (vec stored-thread))
+       (ref str)
+       (ref str))
+    (option thread)))
+
+(defn thread-in (stored email thread-id)
+  (map-some (find (iter stored)
+              (fn (entry) (thread-entry? entry email thread-id)))
+            (fn (entry) (clone (:thread entry)))))
+
+(type message-in
+  (fn ((ref (vec stored-thread))
+       (ref str)
+       (ref str))
+    (option message)))
+
+(defn message-in (stored email message-id)
+  (then-some (find (map (filter (iter stored)
+                          (fn (entry) (= (:account entry) email)))
+                        (fn (entry)
+                          (message-with-id (ref (:thread entry)) message-id)))
+                   some?)
+             (fn (found) found)))
+
+(type message-with-id
+  (fn ((ref thread) (ref str))
+    (option message)))
+
+(defn message-with-id (held message-id)
+  (map-some (find (iter (:messages held))
+              (fn (candidate)
+                (= (:id candidate) message-id)))
+            (fn (found) (clone found))))
