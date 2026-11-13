@@ -46,9 +46,12 @@
     (fn (problem)
       (mail-error/internal (str "unexpected Gmail answer: " problem)))))
 
-(def non-empty-json
-  (rust "if {0}.trim().is_empty() {{ String::from(\"{{}}\") }} else {{ {0} }}"
-    (fn (string) string)))
+(type non-empty-json (fn (string) string))
+
+(defn non-empty-json (body)
+  (if (empty? (trim (as-str body)))
+    (str "{}")
+    body))
 
 (def into-replies
   (rust "{0}.into_iter()"
