@@ -8,6 +8,7 @@ const EMPTY_OK = {};
 
 export class FakeCore implements Transport {
   readonly requests: Request[] = [];
+  readonly logged: Array<{ level: string; message: string }> = [];
   thread: Thread = MailFixtures.thread();
   private receive: (message: unknown) => void = () => {};
   private readonly handlers = new Map<string, Handler>();
@@ -29,6 +30,10 @@ export class FakeCore implements Transport {
 
   send(json: string): void {
     const request = JSON.parse(json) as Request;
+    if (request.command === "log") {
+      this.logged.push(request.args as { level: string; message: string });
+      return;
+    }
     this.requests.push(request);
     setTimeout(() => this.answer(request), 0);
   }

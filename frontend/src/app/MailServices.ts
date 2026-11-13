@@ -5,6 +5,7 @@ import { CommandLine } from "../commands/CommandLine";
 import { ListWindow } from "../list/ListWindow";
 import { ThreadList } from "../list/ThreadList";
 import { ThreadRowRenderer } from "../list/ThreadRowRenderer";
+import { Logger } from "../logging/Logger";
 import { LabelDirectory } from "../mail/LabelDirectory";
 import { MailSession } from "../mail/MailSession";
 import { SyncMonitor } from "../mail/SyncMonitor";
@@ -29,6 +30,7 @@ export class MailServices {
   readonly status: StatusLine;
   readonly commandLine: CommandLine;
   readonly errors: ErrorReporter;
+  readonly logger: Logger;
   readonly bridge: Bridge;
   readonly mail: MailClient;
   readonly scheduler: RenderScheduler;
@@ -47,7 +49,8 @@ export class MailServices {
     this.document = window.document;
     this.status = new StatusLine(this.document);
     this.commandLine = new CommandLine(this.document);
-    this.errors = new ErrorReporter(this.status);
+    this.logger = new Logger(transport);
+    this.errors = new ErrorReporter(this.status, this.logger);
     this.bridge = new Bridge(transport);
     this.mail = new MailClient(this.bridge);
     this.scheduler = this.createScheduler();
@@ -63,6 +66,11 @@ export class MailServices {
       errors: this.errors,
       notify: (notice) => this.status.showNotice(notice),
     });
+  }
+
+  launched(): void {
+    this.logger.info(`inbox shown ${Math.round(performance.now())}ms after launch`);
+    this.sync.syncOnLaunch();
   }
 
   private createScheduler(): RenderScheduler {

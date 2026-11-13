@@ -1,8 +1,12 @@
 import { BridgeError } from "../bridge/BridgeError";
+import type { Logger } from "../logging/Logger";
 import type { StatusLine } from "./StatusLine";
 
 export class ErrorReporter {
-  constructor(private readonly status: StatusLine) {}
+  constructor(
+    private readonly status: StatusLine,
+    private readonly logger: Logger,
+  ) {}
 
   run(task: Promise<unknown>, recover?: () => void): void {
     task.catch((error: unknown) => {
@@ -12,7 +16,9 @@ export class ErrorReporter {
   }
 
   report(error: unknown): void {
-    this.status.showError(this.describe(error));
+    const description = this.describe(error);
+    this.status.showError(description);
+    this.logger.warn(description);
   }
 
   private describe(error: unknown): string {

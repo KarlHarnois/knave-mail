@@ -7,6 +7,7 @@ import type { HelpScreen } from "../help/HelpScreen";
 import { KeyboardInput } from "../keys/KeyboardInput";
 import type { LabelPickerScreen } from "../labels/LabelPickerScreen";
 import { ListScreen } from "../list/ListScreen";
+import { GlobalErrorLog } from "../logging/GlobalErrorLog";
 import { SharedActions } from "../mail/SharedActions";
 import { ThreadScreen } from "../thread/ThreadScreen";
 import { App } from "./App";
@@ -46,11 +47,12 @@ export class KnaveMail {
 
   start(): void {
     this.mount();
+    new GlobalErrorLog(this.window, this.services.logger).watch();
     new KeyboardInput((token) => this.app.press(token)).listen(this.services.document);
     new FocusGuard(this.window, () => this.app.focusScreen()).watch();
     this.factory.zoomControl().listen(this.services.document);
     this.factory.darkReaderWarmup().start();
-    const startup = this.services.session.start().then(() => this.services.sync.syncOnLaunch());
+    const startup = this.services.session.start().then(() => this.services.launched());
     this.factory.testDriver((token) => this.app.press(token), startup).installOn(this.window);
     this.app.refreshStatus();
     this.services.errors.run(startup);
