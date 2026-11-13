@@ -35,9 +35,12 @@
       ((err problem)
        (log-warn log area (str shown " failed: " problem))))))
 
-(def without-query
-  (rust "{0}.split('?').next().unwrap_or_default().to_string()"
-    (fn ((ref str)) string)))
+(type without-query
+  (fn ((ref str)) string))
+
+(defn without-query (path)
+  (let (parts (collect (split path "?")))
+    (str (at parts 0))))
 
 (def clock-milliseconds
   (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as u64).unwrap_or(0)"
