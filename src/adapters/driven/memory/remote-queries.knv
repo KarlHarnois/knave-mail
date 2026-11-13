@@ -54,19 +54,54 @@
     (fn ((vec thread-summary))
       (iterator thread-summary))))
 
-(def thread-position
-  (rust "{0}.threads.iter().position(|{!thread}| {!thread}.id == *{1})"
-    (fn ((ref remote-mail) (ref str))
-      (option usize))))
+(type thread-position
+  (fn ((ref remote-mail) (ref str))
+    (option usize)))
 
-(def distinct-labels
-  (rust "{0}.iter().flat_map(|{!thread}| {!thread}.labels.iter().cloned()).collect::<std::collections::BTreeSet<String>>().into_iter().collect::<Vec<String>>()"
-    (fn ((ref (vec thread))) (vec string))))
+(defn thread-position (remote thread-id)
+  (map-some (find (enumerate (iter (:threads remote)))
+              (fn (numbered)
+                (let-match ((pair _ candidate) numbered)
+                  (= (:id candidate) thread-id))))
+            (fn (numbered)
+              (let-match ((pair index _) numbered) index))))
 
-(def unread-count
-  (rust "{0}.iter().filter(|{!thread}| {!thread}.labels.contains({1}) && {!thread}.labels.iter().any(|{!label}| {!label} == \"UNREAD\")).count() as i64"
-    (fn ((ref (vec thread)) (ref string))
-      i64)))
+(type distinct-labels
+  (fn ((ref (vec thread))) (vec string)))
+
+(defn distinct-labels (threads)
+  (local names (vec))
+  (for-each (iter threads)
+    (fn (held)
+      (for-each (iter (:labels held))
+        (fn (name) (push! names (clone name))))))
+  (sort! names)
+  (dedup! names)
+  names)
+
+(type unread-count
+  (fn ((ref (vec thread)) (ref string))
+    i64))
+
+(defn unread-count (threads name)
+  (reduce (iter threads) 0
+    (fn (unread held)
+      (if (unread-in? held (as-str name))
+        (+ unread 1)
+        unread))))
+
+(type unread-in?
+  (fn ((ref thread) (ref str)) bool))
+
+(defn unread-in? (held name)
+  (and (labelled? held name) (labelled? held "UNREAD")))
+
+(type labelled?
+  (fn ((ref thread) (ref str)) bool))
+
+(defn labelled? (held name)
+  (any? (iter (:labels held))
+    (fn (label) (= label name))))
 
 (def mentions?
   (rust "{{ let {!wanted} = {1}.to_lowercase(); {!wanted}.is_empty() || {0}.subject.to_lowercase().contains(&{!wanted}) || {0}.messages.iter().any(|{!message}| {!message}.from.to_lowercase().contains(&{!wanted}) || {!message}.text.to_lowercase().contains(&{!wanted})) }}"
