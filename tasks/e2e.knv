@@ -44,23 +44,23 @@
   (println "== " scenario)
   (match (scenario-script scenario runner-script script-directory)
     ((ok script)
-     (succeeded? (run-command "timeout"
-                              (vec (str run-seconds)
-                                   (str "xvfb-run")
-                                   (str "-a")
-                                   (str "-s")
-                                   (str screen-size)
-                                   (str binary)
-                                   (str "--backend")
-                                   (str "memory")
-                                   (str "--theme")
-                                   (str theme-file)
-                                   (str "--keymap")
-                                   (str keymap-file)
-                                   (str "--log-file")
-                                   (str script-directory "/gui.log")
-                                   (str "--e2e-script")
-                                   script))))
+     (run-command "timeout"
+                  (vec (str run-seconds)
+                       (str "xvfb-run")
+                       (str "-a")
+                       (str "-s")
+                       (str screen-size)
+                       (str binary)
+                       (str "--backend")
+                       (str "memory")
+                       (str "--theme")
+                       (str theme-file)
+                       (str "--keymap")
+                       (str keymap-file)
+                       (str "--log-file")
+                       (str script-directory "/gui.log")
+                       (str "--e2e-script")
+                       script)))
     ((err problem) (do (eprintln problem) false))))
 
 (type succeeded
@@ -68,16 +68,13 @@
     (result unit string)))
 
 (defn succeeded (description outcome)
-  (if (succeeded? outcome)
+  (if outcome
     (ok (do))
     (err (str description " failed"))))
 
 (def run-command
   (rust "std::process::Command::new({0}).args({1}).status().map(|{!status}| {!status}.success()).unwrap_or(false)"
     (fn ((ref str) (vec string)) bool)))
-
-(def succeeded?
-  (rust "{0}" (fn (bool) bool)))
 
 (def scenario-files
   (rust "std::fs::read_dir({0}).map(|{!entries}| {{ let mut {!paths} = {!entries}.filter_map(|{!entry}| {!entry}.ok().map(|{!entry}| {!entry}.path().to_string_lossy().into_owned())).filter(|{!path}| {!path}.ends_with(\".js\") && {!path} != {1}).collect::<Vec<String>>(); {!paths}.sort(); {!paths} }}).map_err(|{!error}| {!error}.to_string())"
