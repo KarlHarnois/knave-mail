@@ -5,18 +5,49 @@
   (rust "{{ let {!value} = {0}; {!value}.starts_with('#') && matches!({!value}.len(), 4 | 7 | 9) && {!value}[1..].chars().all(|{!c}| {!c}.is_ascii_hexdigit()) }}"
     (fn ((ref str)) bool)))
 
-(def font-family?
-  (rust "!{0}.is_empty() && {0}.chars().all(|{!c}| {!c}.is_alphanumeric() || \" -_.\".contains({!c}))"
-    (fn ((ref str)) bool)))
+(def font-punctuation " -_.")
 
-(def font-size?
-  (rust "{0}.parse::<u32>().is_ok_and(|{!size}| (8..=40).contains(&{!size}))"
-    (fn ((ref str)) bool)))
+(def smallest-font-size 8)
 
-(def mode?
-  (rust "matches!({0}, \"light\" | \"dark\" | \"system\")"
-    (fn ((ref str)) bool)))
+(def largest-font-size 40)
 
-(def dark-mail-setting?
-  (rust "matches!({0}, \"auto\" | \"off\")"
-    (fn ((ref str)) bool)))
+(type font-family?
+  (fn ((ref str)) bool))
+
+(defn font-family? (value)
+  (and (not (empty? value))
+       (every? (chars value) font-character?)))
+
+(type font-character? (fn (char) bool))
+
+(defn font-character? (character)
+  (or (alphanumeric? character)
+      (any? (chars font-punctuation)
+        (fn (allowed) (= allowed character)))))
+
+(type font-size? (fn ((ref str)) bool))
+
+(defn font-size? (value)
+  (match (the (result u32 _) (parse value))
+    ((ok size)
+     (and (>= size smallest-font-size)
+          (<= size largest-font-size)))
+    ((err _) false)))
+
+(type mode? (fn ((ref str)) bool))
+
+(defn mode? (value)
+  (match value
+    ("light" true)
+    ("dark" true)
+    ("system" true)
+    (_ false)))
+
+(type dark-mail-setting?
+  (fn ((ref str)) bool))
+
+(defn dark-mail-setting? (value)
+  (match value
+    ("auto" true)
+    ("off" true)
+    (_ false)))

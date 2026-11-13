@@ -10,6 +10,8 @@
                                                  font-size?
                                                  mode?)
 
+(use domain/collections appended one-of?)
+
 (export ->themed theme-css themed)
 
 (def color-names
@@ -99,7 +101,7 @@
 
 (defn color-declaration (mode key value)
   (cond
-    ((not (known-color? (ref color-names) key))
+    ((not (one-of? key (ref color-names)))
      (err (str "unknown color :" key " in (" mode " ...)")))
     (else (checked (color? value)
                    (str "--" mode "-" key ": " value)
@@ -119,15 +121,6 @@
 
 (defn scheme-for (mode)
   (if (= mode "system") "light dark" mode))
-
-(def known-color?
-  (rust "{0}.contains(&{1})"
-    (fn ((ref (vec (ref str))) (ref str))
-      bool)))
-
-(def appended
-  (rust "{{ let mut {!all} = {0}; {!all}.push({1}); {!all} }}"
-    (fn ((vec string) string) (vec string))))
 
 (def root-rule
   (rust "if {0}.is_empty() {{ String::new() }} else {{ format!(\":root {{{{\\n  {{}};\\n}}}}\\n\", {0}.join(\";\\n  \")) }}"
