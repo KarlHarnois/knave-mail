@@ -1,6 +1,5 @@
 (use adapters/driven/gmail/http http-agent http-get
-                                http-post-form reply-body
-                                reply-status)
+                                http-post-form)
 
 (use adapters/driven/google-oauth/consent-browser consent-browser
                                                   open-url!)
@@ -83,7 +82,7 @@
         reply (try (as-network (http-post-form (ref (:agent granting))
                                                (ref (:token-url settings))
                                                (ref form))))
-        tokens (try (as-auth (parse-json (ref (reply-body (ref reply))))))
+        tokens (try (as-auth (parse-json (:body reply))))
         refresh-token (try (as-auth (string-field (ref tokens)
                                                   "refresh_token")))
         access-token (try (as-auth (string-field (ref tokens) "access_token")))
@@ -103,7 +102,7 @@
         reply (try (as-network (http-get (ref (:agent granting))
                                          (ref url)
                                          access-token)))
-        profile (try (as-auth (parse-json (ref (reply-body (ref reply)))))))
+        profile (try (as-auth (parse-json (:body reply)))))
     (as-auth (string-field (ref profile) "emailAddress"))))
 
 (type as-auth

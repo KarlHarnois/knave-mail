@@ -1,6 +1,4 @@
-(use adapters/driven/gmail/http http-reply reply-retries
-                                reply-status)
-
+(use adapters/driven/gmail/http http-reply)
 (use ports/driven/event-log event-log log-debug log-warn)
 
 (export clock-milliseconds log-outcome!)
@@ -20,15 +18,15 @@
     (match outcome
       ((ok reply)
        (do
-         (when (> (reply-retries reply) 0)
+         (when (> (:retries reply) 0)
            (log-warn log area
                      (str shown
                           " hit the rate limit, retried "
-                          (reply-retries reply)
+                          (:retries reply)
                           " times")))
          (log-debug log area
                     (str shown " "
-                         (reply-status reply)
+                         (:status reply)
                          " "
                          (- (clock-milliseconds) started)
                          "ms"))))

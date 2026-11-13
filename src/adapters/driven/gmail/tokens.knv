@@ -1,6 +1,4 @@
-(use adapters/driven/gmail/http http-post-form reply-body
-                                reply-status)
-
+(use adapters/driven/gmail/http http-post-form)
 (use adapters/driven/gmail/replies as-internal sent)
 (use adapters/driven/gmail/session-state gmail-session)
 (use adapters/driving/json/value parse-json string-field)
@@ -36,9 +34,8 @@
         reply (try (sent (http-post-form (ref (:agent session))
                                          (ref (:token-url endpoints))
                                          (ref form)))))
-    (if (= (reply-status (ref reply)) 200)
-      (let (body (try (as-internal (parse-json (ref (reply-body (ref
-                                                                  reply)))))))
+    (if (= (:status reply) 200)
+      (let (body (try (as-internal (parse-json (:body reply)))))
         (set! (:access-token session)
               (some (try (as-internal (string-field (ref body)
                                                     "access_token")))))
@@ -50,6 +47,6 @@
         (log-warn (ref (:log session))
                   area
                   (str "Google refused the saved sign-in ("
-                       (reply-status (ref reply))
+                       (:status reply)
                        ")"))
         (err (mail-error/auth-required (str "Google refused the saved sign-in; run `knave-mail accounts add` again")))))))

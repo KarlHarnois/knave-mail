@@ -1,22 +1,41 @@
 (export http-agent http-get http-get-all http-post-form
-        http-post-json http-reply new-agent rate-limited?
-        reply-body reply-retries reply-status)
+        http-post-json http-reply new-agent rate-limited?)
 
 (deftype http-agent (rust "ureq::Agent"))
 
-(deftype http-reply (rust "(u16, String, u32)"))
+(defstruct http-reply
+  :status u16
+  :body string
+  :retries u32)
 
 (def new-agent
   (rust "ureq::Agent::from(ureq::Agent::config_builder().http_status_as_error(false).timeout_global(Some(std::time::Duration::from_secs(30))).build())"
     (fn () http-agent)))
 
-(def http-get
-  (rust "{0}.get({1}).header(\"Authorization\", &format!(\"Bearer {{}}\", {2})).call().map(|mut {!response}| ({!response}.status().as_u16(), {!response}.body_mut().with_config().limit(64 * 1024 * 1024).read_to_string().unwrap_or_default(), 0)).map_err(|{!error}| {!error}.to_string())"
+(type http-get
+  (fn ((ref http-agent) (ref str) (ref str))
+    (result http-reply string)))
+
+(defn http-get (agent url token)
+  (get-reply agent url token))
+
+(def get-reply
+  (rust "{0}.get({1}).header(\"Authorization\", &format!(\"Bearer {{}}\", {2})).call().map(|mut {!response}| HttpReply {{ status: {!response}.status().as_u16(), body: {!response}.body_mut().with_config().limit(64 * 1024 * 1024).read_to_string().unwrap_or_default(), retries: 0 }}).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref http-agent) (ref str) (ref str))
       (result http-reply string))))
 
-(def http-get-all
-  (rust "{{ let ({!agent}, {!urls}, {!token}, {!pause}, {!spacing}) = ({0}, {1}, {2}, {3}, {4}); let {!fetch} = &|{!url}: &String| {{ let mut {!attempt} = 0u32; loop {{ let {!outcome} = {!agent}.get({!url}).header(\"Authorization\", &format!(\"Bearer {{}}\", {!token})).call().map(|mut {!response}| ({!response}.status().as_u16(), {!response}.body_mut().with_config().limit(64 * 1024 * 1024).read_to_string().unwrap_or_default(), {!attempt})).map_err(|{!error}| {!error}.to_string()); let {!limited} = matches!(&{!outcome}, Ok(({!status}, {!body}, _)) if *{!status} == 429 || (*{!status} == 403 && {!body}.contains(\"ateLimitExceeded\"))); if !{!limited} || {!attempt} >= 6 {{ break {!outcome}; }} std::thread::sleep(std::time::Duration::from_millis({!pause} << {!attempt})); {!attempt} += 1; }} }}; let mut {!replies} = Vec::with_capacity({!urls}.len()); for {!chunk} in {!urls}.chunks(8) {{ let {!started} = std::time::Instant::now(); std::thread::scope(|{!scope}| {{ let {!handles}: Vec<_> = {!chunk}.iter().map(|{!url}| {!scope}.spawn(move || {!fetch}({!url}))).collect(); for {!handle} in {!handles} {{ {!replies}.push({!handle}.join().unwrap_or_else(|_| Err(String::from(\"a request thread panicked\")))); }} }}); let {!budget} = std::time::Duration::from_millis({!spacing} * {!chunk}.len() as u64); if let Some({!rest}) = {!budget}.checked_sub({!started}.elapsed()) {{ std::thread::sleep({!rest}); }} }} {!replies} }}"
+(type http-get-all
+  (fn ((ref http-agent)
+       (ref (vec string))
+       (ref str)
+       u64 u64)
+    (vec (result http-reply string))))
+
+(defn http-get-all (agent urls token pause spacing)
+  (get-all-replies agent urls token pause spacing))
+
+(def get-all-replies
+  (rust "{{ let ({!agent}, {!urls}, {!token}, {!pause}, {!spacing}) = ({0}, {1}, {2}, {3}, {4}); let {!fetch} = &|{!url}: &String| {{ let mut {!attempt} = 0u32; loop {{ let {!outcome} = {!agent}.get({!url}).header(\"Authorization\", &format!(\"Bearer {{}}\", {!token})).call().map(|mut {!response}| HttpReply {{ status: {!response}.status().as_u16(), body: {!response}.body_mut().with_config().limit(64 * 1024 * 1024).read_to_string().unwrap_or_default(), retries: {!attempt} }}).map_err(|{!error}| {!error}.to_string()); let {!limited} = matches!(&{!outcome}, Ok({!reply}) if {!reply}.status == 429 || ({!reply}.status == 403 && {!reply}.body.contains(\"ateLimitExceeded\"))); if !{!limited} || {!attempt} >= 6 {{ break {!outcome}; }} std::thread::sleep(std::time::Duration::from_millis({!pause} << {!attempt})); {!attempt} += 1; }} }}; let mut {!replies} = Vec::with_capacity({!urls}.len()); for {!chunk} in {!urls}.chunks(8) {{ let {!started} = std::time::Instant::now(); std::thread::scope(|{!scope}| {{ let {!handles}: Vec<_> = {!chunk}.iter().map(|{!url}| {!scope}.spawn(move || {!fetch}({!url}))).collect(); for {!handle} in {!handles} {{ {!replies}.push({!handle}.join().unwrap_or_else(|_| Err(String::from(\"a request thread panicked\")))); }} }}); let {!budget} = std::time::Duration::from_millis({!spacing} * {!chunk}.len() as u64); if let Some({!rest}) = {!budget}.checked_sub({!started}.elapsed()) {{ std::thread::sleep({!rest}); }} }} {!replies} }}"
     (fn ((ref http-agent)
          (ref (vec string))
          (ref str)
@@ -24,32 +43,39 @@
       (vec (result http-reply string)))))
 
 (def rate-limited?
-  (rust "{0}.0 == 429 || ({0}.0 == 403 && {0}.1.contains(\"ateLimitExceeded\"))"
+  (rust "{0}.status == 429 || ({0}.status == 403 && {0}.body.contains(\"ateLimitExceeded\"))"
     (fn ((ref http-reply)) bool)))
 
-(def http-post-json
-  (rust "{0}.post({1}).header(\"Authorization\", &format!(\"Bearer {{}}\", {2})).header(\"Content-Type\", \"application/json\").send({3}).map(|mut {!response}| ({!response}.status().as_u16(), {!response}.body_mut().read_to_string().unwrap_or_default(), 0)).map_err(|{!error}| {!error}.to_string())"
+(type http-post-json
+  (fn ((ref http-agent)
+       (ref str)
+       (ref str)
+       (ref str))
+    (result http-reply string)))
+
+(defn http-post-json (agent url token body)
+  (post-json-reply agent url token body))
+
+(def post-json-reply
+  (rust "{0}.post({1}).header(\"Authorization\", &format!(\"Bearer {{}}\", {2})).header(\"Content-Type\", \"application/json\").send({3}).map(|mut {!response}| HttpReply {{ status: {!response}.status().as_u16(), body: {!response}.body_mut().read_to_string().unwrap_or_default(), retries: 0 }}).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref http-agent)
          (ref str)
          (ref str)
          (ref str))
       (result http-reply string))))
 
-(def http-post-form
-  (rust "{0}.post({1}).send_form({2}.iter().map(|({!key}, {!value})| ({!key}.as_str(), {!value}.as_str()))).map(|mut {!response}| ({!response}.status().as_u16(), {!response}.body_mut().read_to_string().unwrap_or_default(), 0)).map_err(|{!error}| {!error}.to_string())"
+(type http-post-form
+  (fn ((ref http-agent)
+       (ref str)
+       (ref (vec (pair string string))))
+    (result http-reply string)))
+
+(defn http-post-form (agent url form)
+  (post-form-reply agent url form))
+
+(def post-form-reply
+  (rust "{0}.post({1}).send_form({2}.iter().map(|({!key}, {!value})| ({!key}.as_str(), {!value}.as_str()))).map(|mut {!response}| HttpReply {{ status: {!response}.status().as_u16(), body: {!response}.body_mut().read_to_string().unwrap_or_default(), retries: 0 }}).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref http-agent)
          (ref str)
          (ref (vec (pair string string))))
       (result http-reply string))))
-
-(def reply-status
-  (rust "{0}.0"
-    (fn ((ref http-reply)) u16)))
-
-(def reply-body
-  (rust "{0}.1.clone()"
-    (fn ((ref http-reply)) string)))
-
-(def reply-retries
-  (rust "{0}.2"
-    (fn ((ref http-reply)) u32)))

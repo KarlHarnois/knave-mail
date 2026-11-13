@@ -1,6 +1,4 @@
-(use adapters/driven/gmail/http http-reply rate-limited?
-                                reply-body reply-status)
-
+(use adapters/driven/gmail/http http-reply rate-limited?)
 (use adapters/driving/json/value json-value parse-json)
 (use domain/mail-error mail-error)
 
@@ -11,8 +9,8 @@
   (fn (http-reply) (result json-value mail-error)))
 
 (defn checked (reply)
-  (let (status (reply-status (ref reply))
-        body (reply-body (ref reply)))
+  (let (status (:status reply)
+        body (clone (:body reply)))
     (cond
       ((and (>= status 200) (< status 300))
        (as-internal (parse-json (ref (non-empty-json body)))))

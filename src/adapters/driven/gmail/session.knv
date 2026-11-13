@@ -1,5 +1,5 @@
 (use adapters/driven/gmail/http http-get-all http-post-json
-                                http-reply reply-status)
+                                http-reply)
 
 (use adapters/driven/gmail/replies checked collect-results
                                    into-replies sent)
@@ -22,7 +22,7 @@
 
 (defn api-get! (session path)
   (let (first-reply (try (get-one! session path)))
-    (if (= (reply-status (ref first-reply)) unauthorized)
+    (if (= (:status first-reply) unauthorized)
       (do
         (try (refresh! session))
         (checked (try (get-one! session path))))
@@ -86,7 +86,7 @@
 
 (defn api-post! (session path body)
   (let (first-reply (try (post-one! session path body)))
-    (if (= (reply-status (ref first-reply)) unauthorized)
+    (if (= (:status first-reply) unauthorized)
       (do
         (try (refresh! session))
         (checked (try (post-one! session path body))))
