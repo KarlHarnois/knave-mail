@@ -45,23 +45,24 @@
     binary-output))
 
 (defn gmail-cli (server cache tokens arguments input)
-  (let (written (addresses arguments))
-    (insert-account-flag! (mut written))
+  (let (written (addresses (with-account-flag arguments)))
     (run-binary binary-path
                 (ref written)
                 (ref (environment-for server cache tokens))
                 input)))
 
-(def insert-account-flag!
-  (rust "{{ {0}.insert(0, String::from(\"ada@example.com\")); {0}.insert(0, String::from(\"--account\")); }}"
-    (fn ((mut (vec string))) unit)))
+(type with-account-flag
+  (fn ((vec (ref str))) (vec (ref str))))
+
+(defn with-account-flag (arguments)
+  (local flagged (vec "--account" account))
+  (for-each arguments
+    (fn (argument) (push! flagged argument)))
+  flagged)
 
 (type last-request
   (fn ((ref fake-gmail)) string))
 
 (defn last-request (server)
-  (last-or-empty (requests-seen server)))
-
-(def last-or-empty
-  (rust "{0}.pop().unwrap_or_default()"
-    (fn ((vec string)) string)))
+  (local requests (requests-seen server))
+  (unwrap-or (pop! requests) (str "")))
