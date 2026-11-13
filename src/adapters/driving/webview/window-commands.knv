@@ -2,8 +2,8 @@
                                     request-id
                                     success-reply)
 
-(use adapters/driving/json/value bool-field json-value
-                                 string-field)
+(use adapters/driving/json/value bool-field empty-object
+                                 json-value string-field)
 
 (use adapters/driving/webview/window close-window
                                      reply-outbox send-reply
@@ -28,9 +28,6 @@
                 (match (bool-field (ref (request-arguments request)) "passed")
                   ((ok true) 0)
                   (_ 1))))
-
-(def empty-object
-  (rust "serde_json::json!({{}})" (fn () json-value)))
 
 (type zoom-to
   (fn ((ref json-value) (ref reply-outbox))

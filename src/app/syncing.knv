@@ -12,6 +12,8 @@
                         save-checkpoint! save-labels!
                         save-thread! save-threads!)
 
+(use domain/summary message-count)
+
 (export prefetch-limit sync! synced-labels)
 
 (def synced-labels (vec "INBOX" "STARRED" "SENT"))
@@ -142,7 +144,3 @@
      (ok (= (message-count (ref stored))
             (:message-count summary))))
     (none (ok false))))
-
-(def message-count
-  (rust "{0}.messages.len() as i64"
-    (fn ((ref thread)) i64)))

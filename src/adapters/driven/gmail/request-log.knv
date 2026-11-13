@@ -1,5 +1,6 @@
 (use adapters/driven/gmail/http http-reply)
 (use ports/driven/event-log event-log log-debug log-warn)
+(use adapters/clock clock-milliseconds)
 
 (export clock-milliseconds log-outcome!)
 
@@ -39,7 +40,3 @@
 (defn without-query (path)
   (let (parts (collect (split path "?")))
     (str (at parts 0))))
-
-(def clock-milliseconds
-  (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as u64).unwrap_or(0)"
-    (fn () u64)))

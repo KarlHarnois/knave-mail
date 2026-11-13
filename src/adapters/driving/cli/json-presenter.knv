@@ -5,7 +5,7 @@
                                      summaries-json
                                      thread-json)
 
-(use adapters/driving/json/value json-value)
+(use adapters/driving/json/value empty-object json-value)
 (use domain/mail-error error-kind error-message mail-error)
 
 (export error-json-text result-json-text)
@@ -48,9 +48,6 @@
 (def error-document-text
   (rust "serde_json::json!({{\"schema\": {0}, \"error\": {{\"kind\": {1}, \"message\": {2}}}}}).to_string()"
     (fn (i64 (ref str) (ref str)) string)))
-
-(def empty-object
-  (rust "serde_json::json!({{}})" (fn () json-value)))
 
 (def text-json
   (rust "serde_json::Value::String({0}.clone())"

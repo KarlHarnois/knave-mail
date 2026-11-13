@@ -6,6 +6,8 @@
 (use ports/driven/event-log ->log-entry event-log log-level
                             record!)
 
+(use adapters/clock clock-milliseconds)
+
 (export clock-milliseconds record-frontend-entry!
         reply-error)
 
@@ -39,7 +41,3 @@
 (def reply-error
   (rust "serde_json::from_str::<serde_json::Value>(&{0}).ok().and_then(|{!reply}| {!reply}.get(\"error\").map(|{!error}| format!(\"{{}}: {{}}\", {!error}.get(\"kind\").and_then(|{!kind}| {!kind}.as_str()).unwrap_or(\"unknown\"), {!error}.get(\"message\").and_then(|{!message}| {!message}.as_str()).unwrap_or(\"\"))))"
     (fn ((ref str)) (option string))))
-
-(def clock-milliseconds
-  (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as u64).unwrap_or(0)"
-    (fn () u64)))

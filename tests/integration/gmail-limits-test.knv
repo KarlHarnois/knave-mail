@@ -8,6 +8,8 @@
 (use support/gmail-world fixture-routes gmail-over
                          gmail-paced route)
 
+(use adapters/clock clock-milliseconds)
+
 (def labels-request "GET /gmail/v1/users/me/labels")
 
 (type routes-answering-labels-with
@@ -39,10 +41,6 @@
                "auth-required"))
     (assert (= (len (requests-matching (ref server) labels-request))
                1))))
-
-(def clock-milliseconds
-  (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as u64).unwrap_or(0)"
-    (fn () u64)))
 
 (deftest reads-are-spaced-to-stay-under-the-rate-limit
   (let (server (start-fake-gmail (ref (fixture-routes)))

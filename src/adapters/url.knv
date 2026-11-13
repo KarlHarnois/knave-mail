@@ -1,0 +1,5 @@
+(export url-encoded)
+
+(def url-encoded
+  (rust "{0}.bytes().map(|{!byte}| if {!byte}.is_ascii_alphanumeric() || b\"-_.~\".contains(&{!byte}) {{ ({!byte} as char).to_string() }} else {{ format!(\"%{{:02X}}\", {!byte}) }}).collect::<String>()"
+    (fn ((ref str)) string)))

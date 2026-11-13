@@ -21,6 +21,8 @@
 (use ports/driving/mail-client preview-account!
                                sync-account!)
 
+(use adapters/clock clock-milliseconds)
+
 (export ->background-sync background-sync)
 
 (defstruct background-sync
@@ -98,10 +100,6 @@
                       (error-kind failure)
                       ": "
                       (error-message failure)))))))
-
-(def clock-milliseconds
-  (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as u64).unwrap_or(0)"
-    (fn () u64)))
 
 (type previewed?
   (fn ((result bool mail-error)) bool))

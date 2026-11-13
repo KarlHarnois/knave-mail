@@ -1,4 +1,5 @@
 (use adapters/driven/google-oauth/pkce pkce-pair)
+(use adapters/url url-encoded)
 
 (export ->oauth-settings consent-url oauth-settings)
 
@@ -31,7 +32,3 @@
        "&code_challenge="
        (:challenge pkce)
        "&code_challenge_method=S256" "&state=" state))
-
-(def url-encoded
-  (rust "{0}.bytes().map(|{!byte}| if {!byte}.is_ascii_alphanumeric() || b\"-_.~\".contains(&{!byte}) {{ ({!byte} as char).to_string() }} else {{ format!(\"%{{:02X}}\", {!byte}) }}).collect::<String>()"
-    (fn ((ref str)) string)))

@@ -1,7 +1,7 @@
 (use adapters/driving/json/arguments account-argument
                                      thread-ids-argument)
 
-(use adapters/driving/json/value json-value)
+(use adapters/driving/json/value empty-object json-value)
 (use domain/label-commands label-change-named)
 (use domain/labels label-change)
 (use domain/mail-error mail-error)
@@ -31,6 +31,3 @@
 (defn change-named (command)
   (ok-or (label-change-named command)
          (mail-error/usage (str "unknown command `" command "`"))))
-
-(def empty-object
-  (rust "serde_json::json!({{}})" (fn () json-value)))

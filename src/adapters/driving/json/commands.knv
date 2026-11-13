@@ -16,8 +16,8 @@
 
 (use adapters/driving/json/relabel-command relabel-command!)
 
-(use adapters/driving/json/value json-value parse-json
-                                 string-field)
+(use adapters/driving/json/value empty-object json-value
+                                 parse-json string-field)
 
 (use domain/mail-error mail-error)
 
@@ -118,6 +118,3 @@
                  (if (try (flag-argument arguments "all"))
                    (draft-reply-all! client (ref account) (ref message-id))
                    (draft-reply! client (ref account) (ref message-id)))))))))
-
-(def empty-object
-  (rust "serde_json::json!({{}})" (fn () json-value)))

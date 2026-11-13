@@ -1,6 +1,6 @@
-(export bool-field json-text json-value number-field
-        object-field optional-string-field parse-json
-        string-field string-list-field)
+(export bool-field empty-object json-text json-value
+        number-field object-field optional-string-field
+        parse-json string-field string-list-field)
 
 (deftype json-value (rust "serde_json::Value"))
 
@@ -42,3 +42,6 @@
   (rust "{{ let {!name} = {1}; {0}.get({!name}).filter(|{!value}| {!value}.is_object()).cloned().ok_or_else(|| format!(\"expected an object in `{{}}`\", {!name}))}}"
     (fn ((ref json-value) (ref str))
       (result json-value string))))
+
+(def empty-object
+  (rust "serde_json::json!({{}})" (fn () json-value)))

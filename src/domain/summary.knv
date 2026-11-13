@@ -3,7 +3,8 @@
 
 (use domain/text join-with)
 
-(export all-mail-label in-label? newest-first summarize)
+(export all-mail-label in-label? message-count newest-first
+        summarize)
 
 (def all-mail-label "ALL")
 
