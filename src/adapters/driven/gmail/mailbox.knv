@@ -104,6 +104,10 @@
                   :labels (thread-labels (ref minimal))
                   :messages messages))))
 
-(def first-subject
-  (rust "{0}.first().map(|{!message}| {!message}.subject.clone()).unwrap_or_default()"
-    (fn ((ref (vec message))) string)))
+(type first-subject
+  (fn ((ref (vec message))) string))
+
+(defn first-subject (messages)
+  (match (first messages)
+    ((some message) (clone (:subject message)))
+    (none (str ""))))
