@@ -36,7 +36,11 @@
   (with-shared! (ref (:entries kept))
     (fn (entries) (entry-lines entries))))
 
-(def entry-lines
-  (rust "{0}.iter().map(|{!entry}| format!(\"{{}} {{}}\", {!entry}.area, {!entry}.message)).collect::<Vec<_>>()"
-    (fn ((mut (vec log-entry)))
-      (vec string))))
+(type entry-lines
+  (fn ((ref (vec log-entry)))
+    (vec string)))
+
+(defn entry-lines (entries)
+  (collect (map (iter entries)
+             (fn (entry)
+               (str (:area entry) " " (:message entry))))))
