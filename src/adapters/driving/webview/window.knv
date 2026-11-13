@@ -67,10 +67,20 @@
          (fn-once (request-inbox reply-outbox) unit))
       unit)))
 
-(def close-window
-  (rust "drop({0}.send_event(format!(\"\\u{{1}}exit {{}}\", {1})))"
-    (fn ((ref reply-outbox) i32) unit)))
+(type close-window
+  (fn ((ref reply-outbox) i32) unit))
 
-(def zoom-window
-  (rust "drop({0}.send_event(format!(\"\\u{{1}}zoom {{}}\", {1})))"
-    (fn ((ref reply-outbox) f64) unit)))
+(defn close-window (outbox code)
+  (send-window-command outbox (str "exit " code)))
+
+(type zoom-window
+  (fn ((ref reply-outbox) f64) unit))
+
+(defn zoom-window (outbox level)
+  (send-window-command outbox (str "zoom " level)))
+
+(type send-window-command
+  (fn ((ref reply-outbox) string) unit))
+
+(defn send-window-command (outbox command)
+  (send-reply outbox (str "\u{1}" command)))
