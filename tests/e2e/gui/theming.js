@@ -30,6 +30,8 @@ knaveE2E.scenario(async (driver) => {
   const mailBackground = mailBody ? getComputedStyle(mailBody).backgroundColor : "none";
   const channels = (mailBackground.match(/\d+/g) ?? ["255", "255", "255"]).slice(0, 3).map(Number);
   e2e.check("a light newsletter is darkened in a dark theme", channels.every((channel) => channel < 90), mailBackground);
+  const frameStyle = String(frame?.srcdoc ?? "").match(/body\{font-family:[^}]*\}/)?.[0] ?? "";
+  e2e.check("html mail defaults to the theme's message font", frameStyle.includes("Iosevka Aile") && frameStyle.includes("font-size:17px"), frameStyle);
   await driver.whenIdle();
   await e2e.step("qc");
   await e2e.step("Gohellojj");

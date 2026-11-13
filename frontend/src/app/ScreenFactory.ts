@@ -5,6 +5,7 @@ import { LabelPickerScreen } from "../labels/LabelPickerScreen";
 import type { LabelRef } from "../mail/LabelDirectory";
 import { TestDriver } from "../testing/TestDriver";
 import { HtmlSandbox } from "../thread/HtmlSandbox";
+import { ThemeMailFont } from "../thread/MailFont";
 import type { MessageCardServices } from "../thread/MessageCard";
 import type { MailServices } from "./MailServices";
 import type { ScreenHost } from "./ScreenHost";
@@ -60,7 +61,7 @@ export class ScreenFactory {
   messageCardServices(): MessageCardServices {
     return {
       document: this.services.document,
-      sandbox: new HtmlSandbox(),
+      sandbox: this.sandbox(),
       darkening: new MailDarkening(this.services.document),
       dates: this.services.dates,
       editors: this.services.editors,
@@ -69,6 +70,10 @@ export class ScreenFactory {
 
   darkReaderWarmup(): DarkReaderWarmup {
     const document = this.services.document;
-    return new DarkReaderWarmup(document, new HtmlSandbox(), new MailDarkening(document));
+    return new DarkReaderWarmup(document, this.sandbox(), new MailDarkening(document));
+  }
+
+  private sandbox(): HtmlSandbox {
+    return new HtmlSandbox(undefined, new ThemeMailFont(this.services.document));
   }
 }

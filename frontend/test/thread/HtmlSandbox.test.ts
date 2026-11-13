@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { DarkReaderWarmup } from "../../src/darkmail/DarkReaderWarmup";
 import type { MailColorSource } from "../../src/darkmail/MailDarkening";
 import { HtmlSandbox } from "../../src/thread/HtmlSandbox";
+import type { MailFontSource } from "../../src/thread/MailFont";
 import { MessageFrame } from "../../src/thread/MessageFrame";
 
 const sandbox = new HtmlSandbox();
@@ -128,5 +129,30 @@ describe("MessageFrame", () => {
     expect(frame.allowsRemoteImages).toBe(true);
     expect(frame.element.srcdoc).toContain("img-src data: cid: https: http:");
     expect(frame.element.srcdoc).toContain("<p>Hi</p>");
+  });
+});
+
+const IOSEVKA: MailFontSource = { font: () => ({ family: '"IosevkaTerm Nerd Font Mono", monospace', size: "15px" }) };
+
+describe("mail font", () => {
+  test("html mail defaults to the theme's message font and size", () => {
+    const srcdoc = new HtmlSandbox(undefined, IOSEVKA).srcdoc("<p>Hi</p>", false);
+    expect(srcdoc).toContain('body{font-family:"IosevkaTerm Nerd Font Mono", monospace;font-size:15px}');
+  });
+
+  test("the default comes before the message so its own fonts win", () => {
+    const srcdoc = new HtmlSandbox(undefined, IOSEVKA).srcdoc('<p style="font-family:Georgia">Hi</p>', false);
+    expect(srcdoc.indexOf("IosevkaTerm")).toBeLessThan(srcdoc.indexOf("Georgia"));
+  });
+
+  test("a font name cannot close the style or add rules", () => {
+    const hostile: MailFontSource = { font: () => ({ family: "x}</style><script>alert(1)</script>", size: "15px" }) };
+    const srcdoc = new HtmlSandbox(undefined, hostile).srcdoc("", false);
+    expect(srcdoc).not.toContain("<script>alert");
+    expect(srcdoc.match(/<\/style>/g)).toHaveLength(1);
+  });
+
+  test("without a theme font html mail uses the system font", () => {
+    expect(sandbox.srcdoc("", false)).toContain("body{font-family:system-ui, sans-serif;font-size:14px}");
   });
 });
