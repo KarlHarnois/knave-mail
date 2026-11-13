@@ -1,7 +1,4 @@
-(use adapters/driving/webview/theme/theme-entries entry-key
-                                                  entry-section
-                                                  entry-value
-                                                  read-theme-entries
+(use adapters/driving/webview/theme/theme-entries read-theme-entries
                                                   theme-entry)
 
 (use adapters/driving/webview/theme/theme-values color?
@@ -55,13 +52,13 @@
     (result string string)))
 
 (defn declaration (entry)
-  (let (section (entry-section entry)
-        key (entry-key entry)
-        value (entry-value entry))
-    (match (as-str section)
-      ("theme" (theme-declaration (ref key) (ref value)))
-      ("light" (color-declaration "light" (ref key) (ref value)))
-      ("dark" (color-declaration "dark" (ref key) (ref value)))
+  (let (section (as-str (:section entry))
+        key (as-str (:key entry))
+        value (as-str (:value entry)))
+    (match section
+      ("theme" (theme-declaration key value))
+      ("light" (color-declaration "light" key value))
+      ("dark" (color-declaration "dark" key value))
       (_ (err (str "unknown section (" section
                    " ...); use (light ...) or (dark ...)"))))))
 
