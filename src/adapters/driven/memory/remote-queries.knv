@@ -5,8 +5,8 @@
 
 (use domain/summary in-label? newest-first summarize)
 
-(export labels-of matching-summaries summaries-with-ids
-        thread-position)
+(export labelled? labels-of matching-summaries
+        summaries-with-ids thread-position)
 
 (type labels-of
   (fn ((ref remote-mail)) (vec label)))

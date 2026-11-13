@@ -3,7 +3,8 @@
                                         remote-mail
                                         sent-from)
 
-(use adapters/driven/memory/remote-queries labels-of
+(use adapters/driven/memory/remote-queries labelled?
+                                           labels-of
                                            matching-summaries
                                            summaries-with-ids
                                            thread-position)
@@ -109,9 +110,23 @@
                              :messages (vec message)))))
     thread-id))
 
-(def append-sent-message!
-  (rust "{{ let {!thread} = &mut {0}.threads[{1}]; {!thread}.messages.push({2}); if !{!thread}.labels.iter().any(|{!label}| {!label} == \"SENT\") {{ {!thread}.labels.push(\"SENT\".to_string()); }} }}"
-    (fn ((mut remote-mail) usize message) unit)))
+(type append-sent-message!
+  (fn ((mut remote-mail) usize message) unit))
+
+(defn append-sent-message! (remote index sent)
+  (set! (at (:threads remote) index)
+        (with-sent-message (at (:threads remote) index) sent)))
+
+(type with-sent-message
+  (fn ((ref thread) message) thread))
+
+(defn with-sent-message (held sent)
+  (local updated (clone held))
+  (push! (mut (:messages updated)) sent)
+  (unless (labelled? held "SENT")
+    (push! (mut (:labels updated))
+           (str "SENT")))
+  updated)
 
 (def now-milliseconds
   (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as i64).unwrap_or(0)"
