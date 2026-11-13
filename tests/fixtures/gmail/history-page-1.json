@@ -1,0 +1,43 @@
+{
+  "history": [
+    {
+      "id": "4001",
+      "messages": [
+        {
+          "id": "m1",
+          "threadId": "t1"
+        }
+      ],
+      "labelsRemoved": [
+        {
+          "message": {
+            "id": "m1",
+            "threadId": "t1"
+          },
+          "labelIds": [
+            "UNREAD"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "4002",
+      "messages": [
+        {
+          "id": "m5",
+          "threadId": "t5"
+        }
+      ],
+      "messagesAdded": [
+        {
+          "message": {
+            "id": "m5",
+            "threadId": "t5"
+          }
+        }
+      ]
+    }
+  ],
+  "nextPageToken": "p2",
+  "historyId": "4010"
+}

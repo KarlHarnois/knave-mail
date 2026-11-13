@@ -1,0 +1,33 @@
+(use adapters/driven/sqlite/connection sqlite-connection)
+(use adapters/driven/sqlite/rows as-internal)
+(use domain/mail-error mail-error)
+
+(export read-checkpoint write-checkpoint)
+
+(type read-checkpoint
+  (fn ((ref sqlite-connection) (ref str))
+    (result (option string) mail-error)))
+
+(defn read-checkpoint (connection account)
+  (as-internal (checkpoint-row connection account)))
+
+(type write-checkpoint
+  (fn ((ref sqlite-connection)
+       (ref str)
+       (ref str))
+    (result unit mail-error)))
+
+(defn write-checkpoint (connection account history-id)
+  (as-internal (upsert-checkpoint connection account history-id)))
+
+(def checkpoint-row
+  (rust "{{ use rusqlite::OptionalExtension; {0}.query_row(\"SELECT history_id FROM checkpoints WHERE account = ?1\", [{1}], |{!row}| {!row}.get::<_, String>(0)).optional().map_err(|{!error}| {!error}.to_string()) }}"
+    (fn ((ref sqlite-connection) (ref str))
+      (result (option string) string))))
+
+(def upsert-checkpoint
+  (rust "{0}.execute(\"INSERT INTO checkpoints (account, history_id) VALUES (?1, ?2) ON CONFLICT (account) DO UPDATE SET history_id = excluded.history_id\", [{1}, {2}]).map(|_| ()).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection)
+         (ref str)
+         (ref str))
+      (result unit string))))

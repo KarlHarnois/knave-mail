@@ -4,6 +4,9 @@
                                      write-account
                                      write-labels)
 
+(use adapters/driven/sqlite/checkpoints read-checkpoint
+                                        write-checkpoint)
+
 (use adapters/driven/sqlite/connection open-database
                                        sqlite-connection)
 
@@ -52,6 +55,11 @@
                 (read-message (ref (:connection kept)) email message-id))
   (save-thread! (kept email saved)
                 (write-thread (ref (:connection kept)) email saved))
+  (load-checkpoint (kept email)
+                   (read-checkpoint (ref (:connection kept)) email))
+  (save-checkpoint! (kept email history-id)
+                    (write-checkpoint (ref (:connection kept))
+                                      email history-id))
   (relabel-stored! (kept email thread-id change)
                    (relabel-everywhere (ref (:connection kept))
                                        email thread-id

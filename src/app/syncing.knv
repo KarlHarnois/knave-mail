@@ -1,12 +1,14 @@
+(use app/changes sync-changes!)
 (use app/mail-app mail-app)
 (use app/mailboxes mailbox-for!)
 (use domain/mail ->thread-query thread thread-summary)
-(use domain/mail-error mail-error)
+(use domain/mail-error error-kind mail-error)
 
-(use ports/driven/mailbox fetch-labels! fetch-thread!
-                          fetch-threads!)
+(use ports/driven/mailbox fetch-history-id! fetch-labels!
+                          fetch-thread! fetch-threads!)
 
-(use ports/driven/store load-thread save-labels!
+(use ports/driven/store load-checkpoint load-thread
+                        save-checkpoint! save-labels!
                         save-thread! save-threads!)
 
 (export prefetch-limit sync! synced-labels)
@@ -25,7 +27,33 @@
     (try (save-labels! (mut (:store app))
                        account
                        (ref labels)))
-    (sync-labels! app account 0)))
+    (match (try (load-checkpoint (ref (:store app)) account))
+      ((some since) (resume-or-restart! app account (ref since)))
+      (none (full-sync! app account)))))
+
+(type resume-or-restart!
+  (fn ((mut mail-app) (ref str) (ref str))
+    (result unit mail-error)))
+
+(defn resume-or-restart! (app account since)
+  (match (sync-changes! app account since)
+    ((err failure)
+     (if (= (error-kind (ref failure)) "not-found")
+       (full-sync! app account)
+       (err failure)))
+    (done done)))
+
+(type full-sync!
+  (fn ((mut mail-app) (ref str))
+    (result unit mail-error)))
+
+(defn full-sync! (app account)
+  (let (history-id (try (fetch-history-id!
+                          (try (mailbox-for! (mut (:mailboxes app)) account)))))
+    (try (sync-labels! app account 0))
+    (save-checkpoint! (mut (:store app))
+                      account
+                      (ref history-id))))
 
 (type sync-labels!
   (fn ((mut mail-app) (ref str) usize)

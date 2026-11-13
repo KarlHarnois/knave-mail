@@ -63,7 +63,7 @@
       (result unit string))))
 
 (def delete-account
-  (rust "[\"accounts WHERE email\", \"labels WHERE account\", \"summaries WHERE account\", \"threads WHERE account\", \"messages WHERE account\"].iter().try_for_each(|{!table}| {0}.execute(&format!(\"DELETE FROM {{}} = ?1\", {!table}), [{1}]).map(|_| ())).map_err(|{!error}| {!error}.to_string())"
+  (rust "[\"accounts WHERE email\", \"labels WHERE account\", \"summaries WHERE account\", \"threads WHERE account\", \"messages WHERE account\", \"checkpoints WHERE account\"].iter().try_for_each(|{!table}| {0}.execute(&format!(\"DELETE FROM {{}} = ?1\", {!table}), [{1}]).map(|_| ())).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection) (ref str))
       (result unit string))))
 

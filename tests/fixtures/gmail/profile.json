@@ -1,5 +1,6 @@
 {
   "emailAddress": "ada@example.com",
   "messagesTotal": 3,
-  "threadsTotal": 2
+  "threadsTotal": 2,
+  "historyId": "4000"
 }

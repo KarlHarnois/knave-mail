@@ -13,6 +13,9 @@
                                     thread-metadata-path
                                     thread-path)
 
+(use adapters/driven/gmail/history fetched-changes!
+                                   fetched-history-id!)
+
 (use adapters/driven/gmail/session api-get! api-get-all!
                                    api-post! gmail-session)
 
@@ -46,6 +49,10 @@
                                    (fn (found) (summary-from found)))))))
   (fetch-thread! (box thread-id)
                  (fetched-thread! (mut (:session box)) thread-id))
+  (fetch-history-id! (box)
+                     (fetched-history-id! (mut (:session box))))
+  (fetch-changes! (box since)
+                  (fetched-changes! (mut (:session box)) since))
   (deliver! (box sent)
             (ok (sent-thread-id (ref (try (api-post! (mut (:session box))
                                                      (ref (send-path))

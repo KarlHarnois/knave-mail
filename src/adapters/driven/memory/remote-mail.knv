@@ -1,7 +1,10 @@
-(use domain/mail ->message message outgoing thread)
+(use domain/mail ->mail-changes ->message mail-changes
+                 message outgoing thread)
+
 (use domain/mail-error mail-error)
 
-(export ->remote-mail fail-when! guard remote-mail
+(export ->remote-mail changes-since expire-history!
+        fail-when! guard record-change! remote-mail
         sent-from)
 
 (defstruct remote-mail
@@ -9,7 +12,48 @@
   :sent (vec outgoing)
   :latency-milliseconds u64
   :failing (option string)
-  :next-id i64)
+  :next-id i64
+  :history-id i64
+  :history-floor i64
+  :changes (vec (pair i64 string)))
+
+(type expire-history!
+  (fn ((mut remote-mail)) unit))
+
+(defn expire-history! (remote)
+  (set! (:history-floor remote) (:history-id remote))
+  (set! (:changes remote) (vec)))
+
+(type record-change!
+  (fn ((mut remote-mail) (ref str)) unit))
+
+(defn record-change! (remote thread-id)
+  (set! (:history-id remote)
+        (+ (:history-id remote) 1))
+  (push! (mut (:changes remote))
+         (pair (:history-id remote) (str thread-id))))
+
+(type changes-since
+  (fn ((ref remote-mail) (ref str))
+    (result mail-changes mail-error)))
+
+(defn changes-since (remote since)
+  (match (parsed-history-id since)
+    ((some start)
+     (if (< start (:history-floor remote))
+       (err (mail-error/not-found (str "history " since " has expired")))
+       (ok (->mail-changes :thread-ids (threads-changed-after remote start)
+                           :history-id (str (:history-id remote))))))
+    (none (err (mail-error/not-found (str "no history from " since))))))
+
+(def parsed-history-id
+  (rust "{0}.parse::<i64>().ok()"
+    (fn ((ref str)) (option i64))))
+
+(def threads-changed-after
+  (rust "{0}.changes.iter().filter(|({!id}, _)| *{!id} > {1}).fold(Vec::<String>::new(), |mut {!ids}, (_, {!thread})| {{ if !{!ids}.contains({!thread}) {{ {!ids}.push({!thread}.clone()); }} {!ids} }})"
+    (fn ((ref remote-mail) i64)
+      (vec string))))
 
 (type guard
   (fn ((ref remote-mail) (ref str))

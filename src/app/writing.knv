@@ -5,11 +5,9 @@
 (use domain/mail-error mail-error)
 (use domain/outgoing new-outgoing reply-outgoing)
 (use domain/reply forward-draft reply-all-draft reply-draft)
-(use domain/summary summarize)
-(use ports/driven/mailbox deliver! fetch-thread! relabel!)
-
-(use ports/driven/store load-message relabel-stored!
-                        save-thread! save-threads!)
+(use app/caching cache-thread!)
+(use ports/driven/mailbox deliver! relabel!)
+(use ports/driven/store load-message relabel-stored!)
 
 (export compose-forward compose-reply compose-reply-all
         relabel-each! send!)
@@ -60,21 +58,6 @@
 (defn remember-sent! (app account thread-id)
   (match (cache-thread! app account thread-id)
     (_ (do))))
-
-(type cache-thread!
-  (fn ((mut mail-app) (ref str) (ref str))
-    (result unit mail-error)))
-
-(defn cache-thread! (app account thread-id)
-  (let (fetched (try (fetch-thread! (try (mailbox-for! (mut (:mailboxes app))
-                                                       account))
-                                    thread-id)))
-    (try (save-thread! (mut (:store app))
-                       account
-                       (ref fetched)))
-    (save-threads! (mut (:store app))
-                   account
-                   (ref (vec (summarize (ref fetched)))))))
 
 (type relabel-each!
   (fn ((mut mail-app)

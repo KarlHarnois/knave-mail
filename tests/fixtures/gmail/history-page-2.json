@@ -1,0 +1,23 @@
+{
+  "history": [
+    {
+      "id": "4003",
+      "messages": [
+        {
+          "id": "m2",
+          "threadId": "t1"
+        }
+      ]
+    },
+    {
+      "id": "4004",
+      "messages": [
+        {
+          "id": "m6",
+          "threadId": "t6"
+        }
+      ]
+    }
+  ],
+  "historyId": "4010"
+}

@@ -1,0 +1,47 @@
+(use app/caching cache-thread!)
+(use app/mail-app mail-app)
+(use app/mailboxes mailbox-for!)
+(use domain/mail-error error-kind mail-error)
+(use ports/driven/mailbox fetch-changes!)
+(use ports/driven/store save-checkpoint!)
+
+(export sync-changes!)
+
+(type sync-changes!
+  (fn ((mut mail-app) (ref str) (ref str))
+    (result unit mail-error)))
+
+(defn sync-changes! (app account since)
+  (let (changes (try (fetch-changes! (try (mailbox-for! (mut (:mailboxes app))
+                                                        account))
+                                     since)))
+    (try (refresh-threads! app account (ref (:thread-ids changes)) 0))
+    (save-checkpoint! (mut (:store app))
+                      account
+                      (ref (:history-id changes)))))
+
+(type refresh-threads!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref (vec string))
+       usize)
+    (result unit mail-error)))
+
+(defn refresh-threads! (app account thread-ids index)
+  (if (>= index (len thread-ids))
+    (ok (do))
+    (do
+      (try (refresh-thread! app account (at thread-ids index)))
+      (recur app account thread-ids (+ index 1)))))
+
+(type refresh-thread!
+  (fn ((mut mail-app) (ref str) (ref str))
+    (result unit mail-error)))
+
+(defn refresh-thread! (app account thread-id)
+  (match (cache-thread! app account thread-id)
+    ((err failure)
+     (if (= (error-kind (ref failure)) "not-found")
+       (ok (do))
+       (err failure)))
+    (done done)))

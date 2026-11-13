@@ -1,0 +1,60 @@
+(use adapters/driven/gmail/mailbox gmail-mailbox)
+(use domain/mail-error error-kind)
+(use ports/driven/mailbox fetch-changes! fetch-history-id!)
+(use support/fake-gmail start-fake-gmail)
+(use support/gmail-world fixture-routes gmail-over route)
+
+(def fixtures "tests/fixtures/gmail/")
+
+(def history-from-4000
+  "GET /gmail/v1/users/me/history?startHistoryId=4000&maxResults=500")
+
+(type history-routes
+  (fn () (vec (pair string string))))
+
+(defn history-routes ()
+  (let (routes (fixture-routes))
+    (push! (mut routes)
+           (route history-from-4000
+                  (ref (str "200 " fixtures "history-page-1.json"))))
+    (push! (mut routes)
+           (route (ref (str history-from-4000 "&pageToken=p2"))
+                  (ref (str "200 " fixtures "history-page-2.json"))))
+    (push! (mut routes)
+           (route "GET /gmail/v1/users/me/history?startHistoryId=3999"
+                  (ref (str "200 " fixtures "history-empty.json"))))
+    (push! (mut routes)
+           (route "GET /gmail/v1/users/me/history?startHistoryId=1&"
+                  (ref (str "404 " fixtures "history-expired.json"))))
+    routes))
+
+(deftest reads-the-current-history-id-from-the-profile
+  (let (server (start-fake-gmail (ref (history-routes)))
+        gmail (gmail-over (ref server)))
+    (assert (= (unwrap-ok (fetch-history-id! (mut gmail)))
+               "4000"))))
+
+(deftest lists-each-changed-thread-once-across-pages
+  (let (server (start-fake-gmail (ref (history-routes)))
+        gmail (gmail-over (ref server)))
+    (assert (= (:thread-ids (unwrap-ok (fetch-changes! (mut gmail) "4000")))
+               (vec (str "t1") (str "t5") (str "t6"))))))
+
+(deftest returns-the-history-id-to-resume-from
+  (let (server (start-fake-gmail (ref (history-routes)))
+        gmail (gmail-over (ref server)))
+    (assert (= (:history-id (unwrap-ok (fetch-changes! (mut gmail) "4000")))
+               "4010"))))
+
+(deftest no-changes-means-no-threads
+  (let (server (start-fake-gmail (ref (history-routes)))
+        gmail (gmail-over (ref server)))
+    (assert (empty? (:thread-ids (unwrap-ok (fetch-changes! (mut gmail)
+                                                            "3999")))))))
+
+(deftest an-expired-history-is-not-found
+  (let (server (start-fake-gmail (ref (history-routes)))
+        gmail (gmail-over (ref server)))
+    (assert (= (str (error-kind (ref (unwrap-err (fetch-changes! (mut gmail)
+                                                                 "1")))))
+               "not-found"))))

@@ -1,0 +1,71 @@
+(use app/client)
+
+(use ports/driving/mail-client relabel-threads!
+                               sync-account!)
+
+(use domain/labels archive-change)
+
+(use support/app-steps fail-remote! inbox-query listed-ids!
+                       synced!)
+
+(use support/memory-world app-over remote-with sample-thread
+                          world-account)
+
+(use support/remote-changes arrive-remotely!
+                            expire-remote-history!
+                            heal-remote!)
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100)
+                    (sample-thread "t-2" (vec "INBOX") 200))))
+
+(deftest a-later-sync-picks-up-mail-that-arrived
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (arrive-remotely! (ref world)
+                      (sample-thread "t-3" (vec "INBOX") 300))
+    (synced! (mut app))
+    (assert (= (listed-ids! (mut app)
+                            (ref (inbox-query)))
+               (vec (str "t-3")
+                    (str "t-2")
+                    (str "t-1"))))))
+
+(deftest a-later-sync-reads-only-the-changed-threads
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (fail-remote! (ref world) "fetch-threads")
+    (arrive-remotely! (ref world)
+                      (sample-thread "t-3" (vec "INBOX") 300))
+    (unwrap-ok (sync-account! (mut app) world-account))
+    (assert (= (len (listed-ids! (mut app)
+                                 (ref (inbox-query))))
+               3))))
+
+(deftest a-later-sync-picks-up-label-changes
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (unwrap-ok (relabel-threads! (mut app)
+                                 world-account
+                                 (ref (vec (str "t-1")))
+                                 (ref (archive-change))))
+    (synced! (mut app))
+    (assert (= (listed-ids! (mut app)
+                            (ref (inbox-query)))
+               (vec (str "t-2"))))))
+
+(deftest an-expired-history-falls-back-to-a-full-sync
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (expire-remote-history! (ref world))
+    (arrive-remotely! (ref world)
+                      (sample-thread "t-3" (vec "INBOX") 300))
+    (expire-remote-history! (ref world))
+    (synced! (mut app))
+    (assert (= (len (listed-ids! (mut app)
+                                 (ref (inbox-query))))
+               3))))

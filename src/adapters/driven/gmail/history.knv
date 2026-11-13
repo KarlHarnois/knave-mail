@@ -1,0 +1,64 @@
+(use adapters/driven/gmail/session api-get! gmail-session)
+(use adapters/driving/json/value json-value)
+(use domain/mail ->mail-changes mail-changes)
+(use domain/mail-error mail-error)
+
+(export fetched-changes! fetched-history-id!)
+
+(def users-me "/gmail/v1/users/me")
+
+(def history-page-size 500)
+
+(type fetched-history-id!
+  (fn ((mut gmail-session))
+    (result string mail-error)))
+
+(defn fetched-history-id! (session)
+  (ok (history-id-of (ref (try (api-get! session
+                                         (ref (str users-me "/profile"))))))))
+
+(type fetched-changes!
+  (fn ((mut gmail-session) (ref str))
+    (result mail-changes mail-error)))
+
+(defn fetched-changes! (session since)
+  (collected-pages! session since (str "") (vec)))
+
+(type collected-pages!
+  (fn ((mut gmail-session)
+       (ref str)
+       string
+       (vec string))
+    (result mail-changes mail-error)))
+
+(defn collected-pages! (session since page-token thread-ids)
+  (let (page (try (api-get! session
+                            (ref (history-path since (ref page-token)))))
+        found (with-changed-threads thread-ids (ref page)))
+    (match (next-page-token (ref page))
+      ((some token) (recur session since token found))
+      (none (ok (->mail-changes :thread-ids found
+                                :history-id (history-id-of (ref page))))))))
+
+(type history-path
+  (fn ((ref str) (ref str)) string))
+
+(defn history-path (since page-token)
+  (str users-me "/history?startHistoryId=" since
+       "&maxResults=" history-page-size
+       (if (empty? page-token)
+         (str "")
+         (str "&pageToken=" page-token))))
+
+(def history-id-of
+  (rust "{0}.get(\"historyId\").map(|{!value}| {!value}.as_str().map(str::to_string).unwrap_or_else(|| {!value}.to_string())).unwrap_or_default()"
+    (fn ((ref json-value)) string)))
+
+(def next-page-token
+  (rust "{0}.get(\"nextPageToken\").and_then(|{!value}| {!value}.as_str()).map(str::to_string)"
+    (fn ((ref json-value)) (option string))))
+
+(def with-changed-threads
+  (rust "{{ let mut {!ids} = {0}; for {!entry} in {1}.get(\"history\").and_then(|{!value}| {!value}.as_array()).into_iter().flatten() {{ for {!message} in {!entry}.get(\"messages\").and_then(|{!value}| {!value}.as_array()).into_iter().flatten() {{ if let Some({!thread}) = {!message}.get(\"threadId\").and_then(|{!value}| {!value}.as_str()) {{ if !{!ids}.iter().any(|{!known}| {!known} == {!thread}) {{ {!ids}.push({!thread}.to_string()); }} }} }} }} {!ids} }}"
+    (fn ((vec string) (ref json-value))
+      (vec string))))

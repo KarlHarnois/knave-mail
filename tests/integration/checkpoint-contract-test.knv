@@ -1,0 +1,35 @@
+(use adapters/driven/memory/store empty-memory-store)
+(use adapters/driven/sqlite/store open-sqlite-store)
+
+(use support/contracts/checkpoint-contract has-no-checkpoint-at-first!
+                                           keeps-checkpoints-per-account!
+                                           keeps-the-latest-checkpoint!)
+
+(use support/temporary temporary-path)
+
+(defn sqlite ()
+  (unwrap-ok (open-sqlite-store (ref (temporary-path "cache.sqlite3")))))
+
+(deftest memory-store-has-no-checkpoint-at-first
+  (let (kept (empty-memory-store))
+    (assert (has-no-checkpoint-at-first! (mut kept)))))
+
+(deftest sqlite-store-has-no-checkpoint-at-first
+  (let (kept (sqlite))
+    (assert (has-no-checkpoint-at-first! (mut kept)))))
+
+(deftest memory-store-keeps-the-latest-checkpoint
+  (let (kept (empty-memory-store))
+    (assert (keeps-the-latest-checkpoint! (mut kept)))))
+
+(deftest sqlite-store-keeps-the-latest-checkpoint
+  (let (kept (sqlite))
+    (assert (keeps-the-latest-checkpoint! (mut kept)))))
+
+(deftest memory-store-keeps-checkpoints-per-account
+  (let (kept (empty-memory-store))
+    (assert (keeps-checkpoints-per-account! (mut kept)))))
+
+(deftest sqlite-store-keeps-checkpoints-per-account
+  (let (kept (sqlite))
+    (assert (keeps-checkpoints-per-account! (mut kept)))))

@@ -1,0 +1,35 @@
+(use adapters/driven/memory/remote-mail expire-history!
+                                        fail-when!
+                                        record-change!
+                                        remote-mail)
+
+(use adapters/driven/memory/shared shared with-shared!)
+(use domain/mail thread)
+
+(export arrive-remotely! expire-remote-history!
+        heal-remote!)
+
+(type arrive-remotely!
+  (fn ((ref (shared remote-mail)) thread)
+    unit))
+
+(defn arrive-remotely! (remote arrived)
+  (with-shared! remote
+    (fn (state)
+      (let (thread-id (clone (:id arrived)))
+        (push! (mut (:threads state)) arrived)
+        (record-change! state (ref thread-id))))))
+
+(type expire-remote-history!
+  (fn ((ref (shared remote-mail))) unit))
+
+(defn expire-remote-history! (remote)
+  (with-shared! remote
+    (fn (state) (expire-history! state))))
+
+(type heal-remote!
+  (fn ((ref (shared remote-mail))) unit))
+
+(defn heal-remote! (remote)
+  (with-shared! remote
+    (fn (state) (fail-when! state none))))

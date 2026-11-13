@@ -1,4 +1,6 @@
-(use adapters/driven/memory/remote-mail guard remote-mail
+(use adapters/driven/memory/remote-mail changes-since guard
+                                        record-change!
+                                        remote-mail
                                         sent-from)
 
 (use adapters/driven/memory/remote-queries labels-of
@@ -34,6 +36,16 @@
                      (try (guard remote "fetch-thread"))
                      (ok (clone (at (:threads remote)
                                     (try (found-thread remote thread-id))))))))
+  (fetch-history-id! (box)
+                     (with-shared! (ref (:remote box))
+                       (fn (remote)
+                         (try (guard remote "fetch-history-id"))
+                         (ok (str (:history-id remote))))))
+  (fetch-changes! (box since)
+                  (with-shared! (ref (:remote box))
+                    (fn (remote)
+                      (try (guard remote "fetch-changes"))
+                      (changes-since remote since))))
   (deliver! (box sent)
             (with-shared! (ref (:remote box))
               (fn (remote)
@@ -46,7 +58,8 @@
                 (let (index (try (found-thread remote thread-id))
                       changed (relabeled-thread (at (:threads remote) index)
                                                 change))
-                  (ok (set! (at (:threads remote) index) changed)))))))
+                  (set! (at (:threads remote) index) changed)
+                  (ok (record-change! remote thread-id)))))))
 
 (type found-thread
   (fn ((ref remote-mail) (ref str))
@@ -73,6 +86,7 @@
     (set! (:next-id remote) (+ number 1))
     (push! (mut (:sent remote))
            (clone sent))
+    (record-change! remote (ref thread-id))
     (match (thread-position remote (ref thread-id))
       ((some index) (append-sent-message! remote index message))
       (none (push! (mut (:threads remote))

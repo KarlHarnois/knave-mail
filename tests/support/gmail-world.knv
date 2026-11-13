@@ -26,6 +26,8 @@
 (defn fixture-routes ()
   (vec (route "POST /token"
               (ref (str "200 " fixtures "token.json")))
+       (route "GET /gmail/v1/users/me/profile"
+              (ref (str "200 " fixtures "profile.json")))
        (route "GET /gmail/v1/users/me/labels"
               (ref (str "200 " fixtures "labels.json")))
        (route "GET /gmail/v1/users/me/labels/INBOX"
