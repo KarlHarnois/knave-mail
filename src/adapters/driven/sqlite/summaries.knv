@@ -7,7 +7,8 @@
 
 (use domain/mail-error mail-error)
 
-(export load-summaries relabel-summary save-summaries)
+(export load-summaries relabel-summary save-summaries
+        summary-labels)
 
 (deftype summary-row
   (rust "(String, String, String, String, i64, Vec<String>, i64)"))
@@ -56,6 +57,22 @@
 
 (defn relabel-summary (connection account thread-id labels)
   (as-internal (update-summary-labels connection account thread-id labels)))
+
+(type summary-labels
+  (fn ((ref sqlite-connection)
+       (ref str)
+       (ref str))
+    (result (option (vec string)) mail-error)))
+
+(defn summary-labels (connection account thread-id)
+  (as-internal (stored-summary-labels connection account thread-id)))
+
+(def stored-summary-labels
+  (rust "{{ use rusqlite::OptionalExtension; {0}.query_row(\"SELECT labels FROM summaries WHERE account = ?1 AND id = ?2\", [{1}, {2}], |{!row}| {!row}.get::<_, String>(0)).optional().map(|{!found}| {!found}.map(|{!text}| serde_json::from_str::<Vec<String>>(&{!text}).unwrap_or_default())).map_err(|{!error}| {!error}.to_string()) }}"
+    (fn ((ref sqlite-connection)
+         (ref str)
+         (ref str))
+      (result (option (vec string)) string))))
 
 (def summary-rows
   (rust "{0}.prepare_cached(\"SELECT id, subject, participants, snippet, date, labels, message_count FROM summaries WHERE account = ?1 AND (?2 = 'ALL' OR EXISTS (SELECT 1 FROM json_each(summaries.labels) WHERE value = ?2)) ORDER BY date DESC LIMIT ?3\").and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{1}, {2}, {3}], |{!row}| Ok(({!row}.get(0)?, {!row}.get(1)?, {!row}.get(2)?, {!row}.get(3)?, {!row}.get(4)?, serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(5)?).unwrap_or_default(), {!row}.get(6)?))).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"

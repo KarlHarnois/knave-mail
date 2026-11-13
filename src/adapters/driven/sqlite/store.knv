@@ -12,7 +12,8 @@
 
 (use adapters/driven/sqlite/summaries load-summaries
                                       relabel-summary
-                                      save-summaries)
+                                      save-summaries
+                                      summary-labels)
 
 (use adapters/driven/sqlite/threads read-message read-thread
                                     relabel-thread
@@ -75,7 +76,11 @@
 (defn relabel-everywhere (connection email thread-id change)
   (match (try (read-thread connection email thread-id))
     ((some stored)
-     (let (labels (apply-label-change (ref (:labels stored)) change))
-       (try (relabel-thread connection email thread-id (clone labels)))
-       (relabel-summary connection email thread-id labels)))
+     (try (relabel-thread connection email thread-id
+                          (apply-label-change (ref (:labels stored)) change))))
+    (none (do)))
+  (match (try (summary-labels connection email thread-id))
+    ((some labels)
+     (relabel-summary connection email thread-id
+                      (apply-label-change (ref labels) change)))
     (none (ok (do)))))

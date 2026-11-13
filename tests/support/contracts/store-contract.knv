@@ -14,6 +14,7 @@
         keeps-accounts-once! keeps-labels-per-account!
         keeps-whole-threads! lists-label-newest-first!
         misses-unknown-threads!
+        relabels-a-summary-without-its-thread!
         relabels-threads-and-summaries!)
 
 (def account "ada@example.com")
@@ -105,6 +106,18 @@
 (defn misses-unknown-threads! (kept)
   (and (= (unwrap-ok (load-thread kept account "t-9")) none)
        (= (unwrap-ok (load-message kept account "m-9")) none)))
+
+(type relabels-a-summary-without-its-thread!
+  (where ((kept store))
+    (fn ((mut kept)) bool)))
+
+(defn relabels-a-summary-without-its-thread! (kept)
+  (unwrap-ok (save-threads!
+               kept account
+               (ref (vec (summarize
+                           (ref (sample-thread "t-1" (vec "INBOX") 100)))))))
+  (unwrap-ok (relabel-stored! kept account "t-1" (ref (archive-change))))
+  (empty? (ids kept)))
 
 (type relabels-threads-and-summaries!
   (where ((kept store))

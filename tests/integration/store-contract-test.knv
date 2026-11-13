@@ -8,6 +8,7 @@
                                       keeps-whole-threads!
                                       lists-label-newest-first!
                                       misses-unknown-threads!
+                                      relabels-a-summary-without-its-thread!
                                       relabels-threads-and-summaries!)
 
 (use support/temporary temporary-path)
@@ -78,3 +79,11 @@
 (deftest sqlite-store-relabels-threads-and-summaries
   (let (kept (sqlite))
     (assert (relabels-threads-and-summaries! (mut kept)))))
+
+(deftest memory-store-relabels-a-summary-without-its-thread
+  (let (kept (empty-memory-store))
+    (assert (relabels-a-summary-without-its-thread! (mut kept)))))
+
+(deftest sqlite-store-relabels-a-summary-without-its-thread
+  (let (kept (sqlite))
+    (assert (relabels-a-summary-without-its-thread! (mut kept)))))
