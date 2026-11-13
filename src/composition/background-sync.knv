@@ -103,6 +103,10 @@
   (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as u64).unwrap_or(0)"
     (fn () u64)))
 
-(def previewed?
-  (rust "matches!({0}, Ok(true))"
-    (fn ((result bool mail-error)) bool)))
+(type previewed?
+  (fn ((result bool mail-error)) bool))
+
+(defn previewed? (outcome)
+  (match outcome
+    ((ok true) true)
+    (_ false)))

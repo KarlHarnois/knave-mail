@@ -1,3 +1,5 @@
+(use domain/results ok->option)
+
 (export ->settings settings settings-from)
 
 (defstruct settings
@@ -84,17 +86,26 @@
   (rust "std::env::var(\"XDG_STATE_HOME\").map(std::path::PathBuf::from).or_else(|_| std::env::var(\"HOME\").map(|{!home}| std::path::Path::new(&{!home}).join(\".local/state\"))).unwrap_or_else(|_| std::path::PathBuf::from(\".\")).join(\"knave-mail/knave-mail.log\").to_string_lossy().into_owned()"
     (fn () string)))
 
-(def parse-or-zero
-  (rust "{0}.parse::<u64>().unwrap_or(0)"
-    (fn ((ref str)) u64)))
+(type parse-or-zero
+  (fn ((ref str)) u64))
 
-(def non-empty
-  (rust "Some({0}).filter(|{!text}: &String| !{!text}.is_empty())"
-    (fn (string) (option string))))
+(defn parse-or-zero (text)
+  (unwrap-or (ok->option (parse text)) 0))
 
-(def script-text
-  (rust "if {0}.is_empty() {{ String::new() }} else {{ std::fs::read_to_string({0}).unwrap_or_else(|{!error}| panic!(\"cannot read the e2e script {{}}: {{}}\", {0}, {!error})) }}"
-    (fn ((ref str)) string)))
+(type non-empty
+  (fn (string) (option string)))
+
+(defn non-empty (text)
+  (if (empty? text) none (some text)))
+
+(type script-text
+  (fn ((ref str)) string))
+
+(defn script-text (path)
+  (if (empty? path)
+    (str "")
+    (expect-ok (slurp path)
+               (ref (str "cannot read the e2e script " path)))))
 
 (def config-file
   (rust "std::env::var(\"XDG_CONFIG_HOME\").map(std::path::PathBuf::from).or_else(|_| std::env::var(\"HOME\").map(|{!home}| std::path::Path::new(&{!home}).join(\".config\"))).unwrap_or_else(|_| std::path::PathBuf::from(\".\")).join(\"knave-mail\").join({0}).to_string_lossy().into_owned()"

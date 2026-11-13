@@ -18,8 +18,10 @@
                  ", cache "
                  (:cache-path chosen))))
 
-(def trimmed
-  (rust "{0}.trim().to_string()" (fn (string) string)))
+(type trimmed (fn (string) string))
+
+(defn trimmed (text)
+  (str (trim (as-str text))))
 
 (def app-version
   (rust "env!(\"CARGO_PKG_VERSION\").to_string()"
