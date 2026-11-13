@@ -70,7 +70,7 @@
 (defn previewed-then-synced! (app account progress log started)
   (log-info log "sync"
             (str account ": background sync started"))
-  (when (is-ok (ref (preview-account! app account)))
+  (when (previewed? (preview-account! app account))
     (send-reply progress (sync-progress-event account))
     (log-info log "sync"
               (str account ": preview shown after "
@@ -103,7 +103,6 @@
   (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as u64).unwrap_or(0)"
     (fn () u64)))
 
-(def is-ok
-  (rust "{0}.is_ok()"
-    (where (value failure)
-      (fn ((ref (result value failure))) bool))))
+(def previewed?
+  (rust "matches!({0}, Ok(true))"
+    (fn ((result bool mail-error)) bool)))

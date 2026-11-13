@@ -1,5 +1,6 @@
 (use app/caching cache-thread!)
 (use app/mail-app mail-app)
+(use domain/text join-with)
 (use ports/driven/event-log log-debug log-info)
 (use app/mailboxes mailbox-for!)
 (use domain/mail-error error-kind mail-error)
@@ -22,6 +23,10 @@
                    (len (:thread-ids changes))
                    " threads changed, now at history "
                    (:history-id changes)))
+    (log-debug (ref (:log app))
+               "sync"
+               (str account ": changed threads "
+                    (join-with (ref (:thread-ids changes)) " ")))
     (try (refresh-threads! app account (ref (:thread-ids changes)) 0))
     (save-checkpoint! (mut (:store app))
                       account

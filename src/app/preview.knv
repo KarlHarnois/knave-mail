@@ -12,12 +12,12 @@
 
 (type preview-sync!
   (fn ((mut mail-app) (ref str))
-    (result unit mail-error)))
+    (result bool mail-error)))
 
 (defn preview-sync! (app account)
   (match (try (load-checkpoint (ref (:store app)) account))
-    ((some _) (ok (do)))
-    (none (list-newest-inbox! app account))))
+    ((some _) (ok false))
+    (none (try (list-newest-inbox! app account)) (ok true))))
 
 (type list-newest-inbox!
   (fn ((mut mail-app) (ref str))

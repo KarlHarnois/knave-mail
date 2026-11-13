@@ -3,9 +3,11 @@
                                        same-log)
 
 (use app/client)
+(use domain/labels archive-change)
 (use domain/mail ->draft)
 
-(use ports/driving/mail-client preview-account! send-draft!
+(use ports/driving/mail-client preview-account!
+                               relabel-threads! send-draft!
                                sync-account!)
 
 (use support/app-steps fail-remote! synced!)
@@ -83,3 +85,16 @@
                                           :reply-to none))))
     (assert (mentions? (ref (logged-lines (ref log)))
                        "caching it failed"))))
+
+(deftest a-label-change-is-logged-with-its-threads
+  (let (world (remote)
+        log (new-memory-log)
+        app (app-logging-to (ref world)
+                            (same-log (ref log))))
+    (synced! (mut app))
+    (unwrap-ok (relabel-threads! (mut app)
+                                 world-account
+                                 (ref (vec (str "t-1") (str "t-2")))
+                                 (ref (archive-change))))
+    (assert (mentions? (ref (logged-lines (ref log)))
+                       "labels ada@example.com: +[] -[INBOX] on t-1 t-2"))))

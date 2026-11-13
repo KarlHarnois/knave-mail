@@ -6,7 +6,8 @@
 (use domain/reply forward-draft reply-all-draft reply-draft)
 (use app/caching cache-thread!)
 (use domain/mail-error error-kind error-message mail-error)
-(use ports/driven/event-log log-warn)
+(use domain/text join-with)
+(use ports/driven/event-log log-info log-warn)
 (use ports/driven/mailbox deliver! relabel!)
 (use ports/driven/store load-message relabel-stored!)
 
@@ -76,6 +77,14 @@
     (result unit mail-error)))
 
 (defn relabel-each! (app account thread-ids change)
+  (log-info (ref (:log app))
+            "labels"
+            (str account ": +["
+                 (join-with (ref (:added change)) ",")
+                 "] -["
+                 (join-with (ref (:removed change)) ",")
+                 "] on "
+                 (join-with thread-ids " ")))
   (loop (index 0)
     (if (>= index (len thread-ids))
       (ok (do))
