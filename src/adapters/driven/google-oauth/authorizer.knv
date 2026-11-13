@@ -6,9 +6,6 @@
 
 (use adapters/driven/google-oauth/loopback bind-loopback
                                            loopback-port
-                                           redirect-code
-                                           redirect-error
-                                           redirect-state
                                            wait-for-redirect)
 
 (use adapters/driven/google-oauth/pkce new-pkce-pair
@@ -51,13 +48,13 @@
                                       (ref state)))))
     (let (answer (try (as-auth (wait-for-redirect (ref listener)))))
       (cond
-        ((not (empty? (redirect-error (ref answer))))
+        ((not (empty? (:error answer)))
          (err (mail-error/auth-required (str "Google refused consent: "
-                                             (redirect-error (ref answer))))))
-        ((not (= (redirect-state (ref answer)) state))
+                                             (:error answer)))))
+        ((not= (:state answer) state)
          (err (mail-error/auth-required (str "the sign-in answer did not match this request"))))
         (else (exchange-code! granting
-                              (ref (redirect-code (ref answer)))
+                              (ref (:code answer))
                               (ref redirect-uri)
                               (ref pkce)))))))
 
