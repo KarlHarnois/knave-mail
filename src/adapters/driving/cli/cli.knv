@@ -110,10 +110,14 @@
     (eprintln (error-json-text failure))
     (eprintln (str "knave-mail: " (error-message failure)))))
 
-(def print-unless-empty
-  (rust "if !{0}.is_empty() {{ println!(\"{{}}\", {0}) }}"
-    (fn (string) unit)))
+(type print-unless-empty (fn (string) unit))
 
-(def standard-input
-  (rust "std::io::read_to_string(std::io::stdin()).unwrap_or_default()"
-    (fn () string)))
+(defn print-unless-empty (text)
+  (unless (empty? text) (println text)))
+
+(type standard-input (fn () string))
+
+(defn standard-input ()
+  (match (slurp stdin)
+    ((ok text) text)
+    ((err _) (str ""))))

@@ -3,6 +3,7 @@
                                     value-of values-of)
 
 (use domain/mail-error mail-error)
+(use domain/results ok->option)
 
 (export cli-command cli-command-word? command-from)
 
@@ -127,16 +128,26 @@
 (defn unknown-action (command action)
   (mail-error/usage (str "unknown action `" action "` for `" command "`")))
 
-(def parsed-limit
-  (rust "{0}.and_then(|{!text}| {!text}.parse::<i64>().ok()).unwrap_or({1})"
-    (fn ((option string) i64) i64)))
+(type parsed-limit
+  (fn ((option string) i64) i64))
+
+(defn parsed-limit (text fallback)
+  (match text
+    ((some digits)
+     (unwrap-or (ok->option (parse (as-str digits)))
+                fallback))
+    (none fallback)))
 
 (def rest-positionals
   (rust "{0}.positionals.iter().skip(1).cloned().collect::<Vec<String>>()"
     (fn ((ref parsed-arguments))
       (vec string))))
 
-(def known-word?
-  (rust "{0}.contains(&{1}.as_str())"
-    (fn ((ref (vec (ref str))) (ref string))
-      bool)))
+(type known-word?
+  (fn ((ref (vec (ref str))) (ref string))
+    bool))
+
+(defn known-word? (words word)
+  (any? (iter words)
+    (fn (known)
+      (= (deref known) (as-str word)))))
