@@ -9,9 +9,11 @@
 (use ports/driven/store load-thread save-labels!
                         save-thread! save-threads!)
 
-(export sync! synced-labels)
+(export prefetch-limit sync! synced-labels)
 
 (def synced-labels (vec "INBOX" "STARRED" "SENT"))
+
+(def prefetch-limit 20)
 
 (type sync!
   (fn ((mut mail-app) (ref str))
@@ -60,7 +62,7 @@
     (result unit mail-error)))
 
 (defn prefetch-threads! (app account summaries index)
-  (if (>= index (len summaries))
+  (if (>= index (min (len summaries) prefetch-limit))
     (ok (do))
     (do
       (try (prefetch-thread! app account (at summaries index)))

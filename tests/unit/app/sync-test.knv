@@ -1,8 +1,12 @@
 (use app/client)
 (use domain/mail ->thread-query)
+(use app/syncing prefetch-limit)
+(use domain/mail-error error-kind)
 
 (use ports/driving/mail-client list-labels! list-threads!
-                               sync-account!)
+                               open-thread! sync-account!)
+
+(use support/app-steps fail-remote!)
 
 (use support/memory-world app-over remote-with sample-thread
                           world-account)
@@ -29,3 +33,34 @@
                                                              (ref (inbox-query)))))
                              (fn (summary) (clone (:id summary)))))
                (vec (str "t-2") (str "t-1"))))))
+
+(def as-date
+  (rust "{0} as i64" (fn (usize) i64)))
+
+(defn busy-remote ()
+  (remote-with (collect (map (range 0 (+ prefetch-limit 5))
+                          (fn (number)
+                            (sample-thread (ref (str "t-" number))
+                                           (vec "INBOX")
+                                           (as-date (+ 1000 number))))))))
+
+(deftest a-sync-downloads-the-newest-threads-in-full
+  (let (world (busy-remote)
+        app (app-over (ref world)))
+    (unwrap-ok (sync-account! (mut app) world-account))
+    (fail-remote! (ref world) "fetch-thread")
+    (assert (= (:subject (unwrap-ok (open-thread!
+                                      (mut app)
+                                      world-account
+                                      (ref (str "t-" (+ prefetch-limit 4))))))
+               (str "Subject of t-" (+ prefetch-limit 4))))))
+
+(deftest a-sync-leaves-older-threads-to-download-when-opened
+  (let (world (busy-remote)
+        app (app-over (ref world)))
+    (unwrap-ok (sync-account! (mut app) world-account))
+    (fail-remote! (ref world) "fetch-thread")
+    (assert (= (str (error-kind (ref (unwrap-err (open-thread! (mut app)
+                                                               world-account
+                                                               "t-0")))))
+               "network"))))
