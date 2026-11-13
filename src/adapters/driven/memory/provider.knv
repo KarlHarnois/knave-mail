@@ -21,7 +21,14 @@
                    (none (err (mail-error/auth-required (str "no account "
                                                              email)))))))
 
-(def email-position
-  (rust "{0}.iter().position(|{!email}| *{!email} == *{1})"
-    (fn ((ref (vec string)) (ref str))
-      (option usize))))
+(type email-position
+  (fn ((ref (vec string)) (ref str))
+    (option usize)))
+
+(defn email-position (emails email)
+  (map-some (find (enumerate (iter emails))
+              (fn (numbered)
+                (let-match ((pair _ candidate) numbered)
+                  (= (as-str candidate) email))))
+            (fn (numbered)
+              (let-match ((pair index _) numbered) index))))
