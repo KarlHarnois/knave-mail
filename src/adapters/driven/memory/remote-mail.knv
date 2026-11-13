@@ -38,22 +38,31 @@
     (result mail-changes mail-error)))
 
 (defn changes-since (remote since)
-  (match (parsed-history-id since)
-    ((some start)
+  (match (the (result i64 parse-int-error) (parse since))
+    ((ok start)
      (if (< start (:history-floor remote))
        (err (mail-error/not-found (str "history " since " has expired")))
        (ok (->mail-changes :thread-ids (threads-changed-after remote start)
                            :history-id (str (:history-id remote))))))
-    (none (err (mail-error/not-found (str "no history from " since))))))
+    ((err _)
+     (err (mail-error/not-found (str "no history from " since))))))
 
-(def parsed-history-id
-  (rust "{0}.parse::<i64>().ok()"
-    (fn ((ref str)) (option i64))))
+(type threads-changed-after
+  (fn ((ref remote-mail) i64)
+    (vec string)))
 
-(def threads-changed-after
-  (rust "{0}.changes.iter().filter(|({!id}, _)| *{!id} > {1}).fold(Vec::<String>::new(), |mut {!ids}, (_, {!thread})| {{ if !{!ids}.contains({!thread}) {{ {!ids}.push({!thread}.clone()); }} {!ids} }})"
-    (fn ((ref remote-mail) i64)
-      (vec string))))
+(defn threads-changed-after (remote start)
+  (reduce (filter (iter (:changes remote))
+            (fn (change)
+              (let-match ((pair id _) change)
+                (> id start))))
+          (vec)
+          (fn (changed change)
+            (let-match ((pair _ thread-id) change)
+              (unless (any? (iter changed)
+                        (fn (known) (= known thread-id)))
+                (push! changed (clone thread-id)))
+              changed))))
 
 (type guard
   (fn ((ref remote-mail) (ref str))
