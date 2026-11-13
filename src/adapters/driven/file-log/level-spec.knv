@@ -23,14 +23,54 @@
   (<= (severity (ref (:level entry)))
       (threshold-for spec (ref (:area entry)))))
 
-(def threshold-for
-  (rust "{0}.areas.iter().find(|({!area}, _)| {!area} == {1}).map(|(_, {!threshold})| *{!threshold}).unwrap_or({0}.default)"
-    (fn ((ref level-spec) (ref str)) u8)))
+(type threshold-for
+  (fn ((ref level-spec) (ref str)) u8))
 
-(def default-severity
-  (rust "{0}.split(',').map(str::trim).filter(|{!part}| !{!part}.contains('=')).find_map(|{!part}| match {!part}.to_ascii_lowercase().as_str() {{ \"error\" => Some(0u8), \"warn\" => Some(1), \"info\" => Some(2), \"debug\" => Some(3), _ => None }}).unwrap_or({1})"
-    (fn ((ref str) u8) u8)))
+(defn threshold-for (spec area)
+  (unwrap-or (map-some (find (iter (:areas spec))
+                         (fn (entry)
+                           (let-match ((pair name _) entry)
+                             (= name area))))
+                       (fn (entry)
+                         (let-match ((pair _ threshold) entry)
+                           (deref threshold))))
+             (:default spec)))
 
-(def area-severities
-  (rust "{0}.split(',').filter_map(|{!part}| {!part}.trim().split_once('=')).filter_map(|({!area}, {!level})| match {!level}.trim().to_ascii_lowercase().as_str() {{ \"error\" => Some(0u8), \"warn\" => Some(1), \"info\" => Some(2), \"debug\" => Some(3), _ => None }}.map(|{!threshold}| ({!area}.trim().to_string(), {!threshold}))).collect::<Vec<_>>()"
-    (fn ((ref str)) (vec (pair string u8)))))
+(type default-severity
+  (fn ((ref str) u8) u8))
+
+(defn default-severity (text fallback)
+  (unwrap-or (map-some (find (map (split text ",") severity-named) some?)
+                       unwrap)
+             fallback))
+
+(type area-severities
+  (fn ((ref str)) (vec (pair string u8))))
+
+(defn area-severities (text)
+  (collect (map (filter (map (split text ",") area-severity) some?)
+                unwrap)))
+
+(type area-severity
+  (fn ((ref str))
+    (option (pair string u8))))
+
+(defn area-severity (part)
+  (let (sides (collect (split part "=")))
+    (if (= (len sides) 2)
+      (map-some (severity-named (deref (at sides 1)))
+        (fn (threshold)
+          (pair (str (trim (deref (at sides 0))))
+                threshold)))
+      none)))
+
+(type severity-named
+  (fn ((ref str)) (option u8)))
+
+(defn severity-named (name)
+  (match (as-str (ref (lower-case (trim name))))
+    ("error" (some 0))
+    ("warn" (some 1))
+    ("info" (some 2))
+    ("debug" (some 3))
+    (_ none)))
