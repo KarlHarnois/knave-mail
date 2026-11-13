@@ -4,7 +4,7 @@
 (export ->stored-summary ->stored-thread message-in
         replace-summaries! replace-thread! stored-summary
         stored-thread summaries-of summaries-with-ids
-        thread-in)
+        summary-entry? thread-entry? thread-in)
 
 (defstruct stored-summary
   :account string

@@ -1,5 +1,9 @@
-(use adapters/driven/memory/stored stored-summary
-                                   stored-thread)
+(use adapters/driven/memory/stored ->stored-summary
+                                   ->stored-thread
+                                   stored-summary
+                                   stored-thread
+                                   summary-entry?
+                                   thread-entry?)
 
 (use domain/labels label-change)
 (use domain/mail label)
@@ -12,10 +16,15 @@
   :account string
   :labels (vec label))
 
-(def labels-in
-  (rust "{0}.iter().find(|{!entry}| {!entry}.account == *{1}).map(|{!entry}| {!entry}.labels.clone()).unwrap_or_default()"
-    (fn ((ref (vec stored-labels)) (ref str))
-      (vec label))))
+(type labels-in
+  (fn ((ref (vec stored-labels)) (ref str))
+    (vec label)))
+
+(defn labels-in (stored email)
+  (unwrap-or (map-some (find (iter stored)
+                         (fn (entry) (= (:account entry) email)))
+                       (fn (entry) (clone (:labels entry))))
+             (vec)))
 
 (type replace-labels!
   (fn ((mut (vec stored-labels))
@@ -24,40 +33,40 @@
     unit))
 
 (defn replace-labels! (stored email labels)
-  (retain-other-accounts! stored email)
+  (set! stored (other-accounts stored email))
   (push! stored
          (->stored-labels (str email) (clone labels))))
 
-(def retain-other-accounts!
-  (rust "{0}.retain(|{!entry}| {!entry}.account != *{1})"
-    (fn ((mut (vec stored-labels)) (ref str))
-      unit)))
+(type other-accounts
+  (fn ((ref (vec stored-labels)) (ref str))
+    (vec stored-labels)))
 
-(type relabel-everywhere!
-  (fn ((mut (vec stored-summary))
-       (mut (vec stored-thread))
-       (ref str)
-       (ref str)
-       (ref label-change))
-    unit))
+(defn other-accounts (stored email)
+  (collect (map (filter (iter stored)
+                  (fn (entry)
+                    (not= (:account entry) email)))
+                (fn (entry) (clone entry)))))
 
 (defn relabel-everywhere! (summaries threads email thread-id change)
-  (each-mut! summaries
-    (fn (entry)
-      (when (and (= (:account entry) email)
-                 (= (:id (:summary entry)) thread-id))
-        (set! (:summary entry)
-              (relabeled-summary (ref (:summary entry)) change)))))
-  (each-mut! threads
-    (fn (entry)
-      (when (and (= (:account entry) email)
-                 (= (:id (:thread entry)) thread-id))
-        (set! (:thread entry)
-              (relabeled-thread (ref (:thread entry)) change))))))
+  (relabel-summaries! summaries email thread-id change)
+  (relabel-threads! threads email thread-id change))
 
-(def each-mut!
-  (rust "for {!item} in {0}.iter_mut() {{ {1}({!item}) }}"
-    (where (item)
-      (fn ((mut (vec item))
-           (fn-mut ((mut item)) unit))
-        unit))))
+(defn relabel-summaries! (summaries email thread-id change)
+  (for-each (range 0 (len summaries))
+    (fn (index)
+      (let (entry (at summaries index))
+        (when (summary-entry? entry email thread-id)
+          (set! (at summaries index)
+                (->stored-summary (clone (:account entry))
+                                  (relabeled-summary (ref (:summary entry))
+                                                     change))))))))
+
+(defn relabel-threads! (threads email thread-id change)
+  (for-each (range 0 (len threads))
+    (fn (index)
+      (let (entry (at threads index))
+        (when (thread-entry? entry email thread-id)
+          (set! (at threads index)
+                (->stored-thread (clone (:account entry))
+                                 (relabeled-thread (ref (:thread entry))
+                                                   change))))))))
