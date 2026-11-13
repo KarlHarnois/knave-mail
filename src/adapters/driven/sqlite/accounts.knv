@@ -6,7 +6,10 @@
 (export erase-account read-accounts read-labels
         write-account write-labels)
 
-(deftype label-row (rust "(String, String, i64)"))
+(defstruct label-row
+  :id string
+  :name string
+  :unread i64)
 
 (type read-accounts
   (fn ((ref sqlite-connection))
@@ -39,9 +42,9 @@
   (let (rows (try (as-internal (label-rows connection account))))
     (ok (collect (map (iter rows)
                    (fn (row)
-                     (->label (label-id row)
-                              (label-name row)
-                              (label-unread row))))))))
+                     (->label (clone (:id row))
+                              (clone (:name row))
+                              (:unread row))))))))
 
 (type write-labels
   (fn ((ref sqlite-connection)
@@ -68,7 +71,7 @@
       (result unit string))))
 
 (def label-rows
-  (rust "{0}.prepare_cached(\"SELECT id, name, unread FROM labels WHERE account = ?1 ORDER BY name\").and_then(|mut {!statement}| {!statement}.query_map([{1}], |{!row}| Ok(({!row}.get(0)?, {!row}.get(1)?, {!row}.get(2)?))).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
+  (rust "{0}.prepare_cached(\"SELECT id, name, unread FROM labels WHERE account = ?1 ORDER BY name\").and_then(|mut {!statement}| {!statement}.query_map([{1}], |{!row}| Ok(LabelRow {{ id: {!row}.get(0)?, name: {!row}.get(1)?, unread: {!row}.get(2)? }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection) (ref str))
       (result (vec label-row) string))))
 
@@ -78,15 +81,3 @@
          (ref str)
          (ref (vec label)))
       (result unit string))))
-
-(def label-id
-  (rust "{0}.0.clone()"
-    (fn ((ref label-row)) string)))
-
-(def label-name
-  (rust "{0}.1.clone()"
-    (fn ((ref label-row)) string)))
-
-(def label-unread
-  (rust "{0}.2"
-    (fn ((ref label-row)) i64)))
