@@ -25,10 +25,16 @@
             (push! (mut (:opened all)) opened)
             (ok (last-opened! all))))))
 
-(def position-of
-  (rust "{0}.iter().position(|{!email}| *{!email} == *{1})"
-    (fn ((ref (vec string)) (ref str))
-      (option usize))))
+(type position-of
+  (fn ((ref (vec string)) (ref str))
+    (option usize)))
+
+(defn position-of (emails wanted)
+  (loop (index 0)
+    (cond
+      ((>= index (len emails)) none)
+      ((= (at emails index) wanted) (some index))
+      (else (recur (+ index 1))))))
 
 (def last-opened!
   (rust "{0}.opened.last_mut().expect(\"a mailbox was just opened\")"
