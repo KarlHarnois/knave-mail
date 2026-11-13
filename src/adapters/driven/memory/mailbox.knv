@@ -5,6 +5,7 @@
 
 (use adapters/driven/memory/remote-queries labels-of
                                            matching-summaries
+                                           summaries-with-ids
                                            thread-position)
 
 (use adapters/driven/memory/shared shared with-shared!)
@@ -30,6 +31,18 @@
                     (fn (remote)
                       (try (guard remote "fetch-threads"))
                       (ok (matching-summaries remote query)))))
+  (list-thread-ids! (box query)
+                    (with-shared! (ref (:remote box))
+                      (fn (remote)
+                        (try (guard remote "list-thread-ids"))
+                        (ok (collect
+                              (map (iter (matching-summaries remote query))
+                                (fn (summary) (clone (:id summary)))))))))
+  (fetch-summaries! (box ids)
+                    (with-shared! (ref (:remote box))
+                      (fn (remote)
+                        (try (guard remote "fetch-summaries"))
+                        (ok (summaries-with-ids remote ids)))))
   (fetch-thread! (box thread-id)
                  (with-shared! (ref (:remote box))
                    (fn (remote)

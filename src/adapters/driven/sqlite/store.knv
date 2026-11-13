@@ -11,6 +11,7 @@
                                        sqlite-connection)
 
 (use adapters/driven/sqlite/summaries load-summaries
+                                      load-summaries-with-ids
                                       relabel-summary
                                       save-summaries
                                       summary-labels)
@@ -50,6 +51,9 @@
                 (load-summaries (ref (:connection kept)) email query))
   (save-threads! (kept email summaries)
                  (save-summaries (ref (:connection kept)) email summaries))
+  (load-summaries-of (kept email ids)
+                     (load-summaries-with-ids (ref (:connection kept))
+                                              email ids))
   (load-thread (kept email thread-id)
                (read-thread (ref (:connection kept)) email thread-id))
   (load-message (kept email message-id)

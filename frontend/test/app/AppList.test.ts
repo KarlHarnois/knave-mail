@@ -75,6 +75,34 @@ describe("list locations", () => {
     expect(app.status("label")).toBe("Inbox /from:bob has:attachment");
   });
 
+  test("a search asks Gmail for one page of results", async () => {
+    const app = await AppHarness.started();
+    await app.press("/invoice<CR>");
+    expect(app.core.lastArgsFor("threads")["limit"]).toBe(50);
+  });
+
+  test("moving near the end of a full page of results loads the next page", async () => {
+    const app = await AppHarness.started();
+    await app.press("/invoice<CR>");
+    await app.press("G");
+    expect(app.core.lastArgsFor("threads")["limit"]).toBe(100);
+  });
+
+  test("a search with fewer results than a page loads no more", async () => {
+    const app = await AppHarness.started((core) => core.answerWith("threads", () => MailFixtures.summaries(20)));
+    await app.press("/invoice<CR>");
+    const requests = app.core.requestsFor("threads").length;
+    await app.press("G");
+    expect(app.core.requestsFor("threads")).toHaveLength(requests);
+  });
+
+  test("the inbox loads no extra pages", async () => {
+    const app = await AppHarness.started();
+    const requests = app.core.requestsFor("threads").length;
+    await app.press("G");
+    expect(app.core.requestsFor("threads")).toHaveLength(requests);
+  });
+
   test(":q clears a search", async () => {
     const app = await AppHarness.started();
     await app.press("/is:starred<CR>");

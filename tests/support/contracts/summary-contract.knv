@@ -1,0 +1,58 @@
+(use domain/labels archive-change)
+(use domain/mail ->thread-query)
+(use domain/summary summarize)
+
+(use ports/driven/store load-summaries-of load-threads
+                        relabel-stored! save-threads! store)
+
+(use support/memory-world sample-thread)
+
+(export finds-summaries-by-id!
+        relabels-a-summary-without-its-thread!)
+
+(def account "ada@example.com")
+
+(type ids
+  (where ((kept store))
+    (fn ((ref kept)) (vec string))))
+
+(defn ids (kept)
+  (collect (map (iter (unwrap-ok
+                        (load-threads
+                          kept account
+                          (ref (->thread-query (str "INBOX") (str "") 10)))))
+                (fn (summary) (clone (:id summary))))))
+
+(type finds-summaries-by-id!
+  (where ((kept store))
+    (fn ((mut kept)) bool)))
+
+(defn finds-summaries-by-id! (kept)
+  (unwrap-ok
+    (save-threads!
+      kept account
+      (ref (vec (summarize (ref (sample-thread "t-1" (vec "INBOX") 100)))
+                (summarize (ref (sample-thread "t-2" (vec "INBOX") 200)))))))
+  (unwrap-ok (save-threads!
+               kept "other@example.com"
+               (ref (vec (summarize
+                           (ref (sample-thread "t-3" (vec "INBOX") 300)))))))
+  (= (collect (map (iter (unwrap-ok (load-summaries-of
+                                      kept account
+                                      (ref (vec (str "t-2")
+                                                (str "t-3")
+                                                (str "t-9"))))))
+                   (fn (summary) (clone (:id summary)))))
+     (vec (str "t-2"))))
+
+(type relabels-a-summary-without-its-thread!
+  (where ((kept store))
+    (fn ((mut kept)) bool)))
+
+(defn relabels-a-summary-without-its-thread! (kept)
+  (unwrap-ok (save-threads!
+               kept account
+               (ref (vec (summarize
+                           (ref (sample-thread "t-1" (vec "INBOX") 100)))))))
+  (unwrap-ok (relabel-stored! kept account "t-1" (ref (archive-change))))
+  (empty? (ids kept)))

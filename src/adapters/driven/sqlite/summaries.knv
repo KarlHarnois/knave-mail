@@ -7,8 +7,8 @@
 
 (use domain/mail-error mail-error)
 
-(export load-summaries relabel-summary save-summaries
-        summary-labels)
+(export load-summaries load-summaries-with-ids
+        relabel-summary save-summaries summary-labels)
 
 (deftype summary-row
   (rust "(String, String, String, String, i64, Vec<String>, i64)"))
@@ -26,6 +26,24 @@
                                              (:limit query)))))
     (ok (collect (map (iter rows)
                    (fn (row) (summary-from row)))))))
+
+(type load-summaries-with-ids
+  (fn ((ref sqlite-connection)
+       (ref str)
+       (ref (vec string)))
+    (result (vec thread-summary) mail-error)))
+
+(defn load-summaries-with-ids (connection account ids)
+  (let (rows (try (as-internal (summary-rows-with-ids connection account ids))))
+    (ok (collect (map (iter rows)
+                   (fn (row) (summary-from row)))))))
+
+(def summary-rows-with-ids
+  (rust "{0}.prepare_cached(\"SELECT id, subject, participants, snippet, date, labels, message_count FROM summaries WHERE account = ?1 AND id IN (SELECT value FROM json_each(?2))\").and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{1}, serde_json::to_string({2}).unwrap_or_default()], |{!row}| Ok(({!row}.get(0)?, {!row}.get(1)?, {!row}.get(2)?, {!row}.get(3)?, {!row}.get(4)?, serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(5)?).unwrap_or_default(), {!row}.get(6)?))).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection)
+         (ref str)
+         (ref (vec string)))
+      (result (vec summary-row) string))))
 
 (type summary-from
   (fn ((ref summary-row)) thread-summary))

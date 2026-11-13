@@ -80,7 +80,7 @@
 (deftest a-failed-search-reports-a-network-error
   (let (world (remote)
         app (app-over (ref world)))
-    (fail-remote! (ref world) "fetch-threads")
+    (fail-remote! (ref world) "list-thread-ids")
     (assert (= (failing-kind (list-threads!
                                (mut app)
                                world-account

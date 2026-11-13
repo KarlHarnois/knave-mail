@@ -3,7 +3,8 @@
 
 (export ->stored-summary ->stored-thread message-in
         replace-summaries! replace-thread! stored-summary
-        stored-thread summaries-of thread-in)
+        stored-thread summaries-of summaries-with-ids
+        thread-in)
 
 (defstruct stored-summary
   :account string
@@ -64,6 +65,13 @@
          (ref str)
          (ref str))
       unit)))
+
+(def summaries-with-ids
+  (rust "{0}.iter().filter(|{!entry}| {!entry}.account == *{1} && {2}.contains(&{!entry}.summary.id)).map(|{!entry}| {!entry}.summary.clone()).collect::<Vec<_>>()"
+    (fn ((ref (vec stored-summary))
+         (ref str)
+         (ref (vec string)))
+      (vec thread-summary))))
 
 (def thread-in
   (rust "{0}.iter().find(|{!entry}| {!entry}.account == *{1} && {!entry}.thread.id == *{2}).map(|{!entry}| {!entry}.thread.clone())"

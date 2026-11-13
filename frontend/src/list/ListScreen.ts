@@ -8,7 +8,10 @@ export type ListScreenPorts = {
   openThread: (summary: ThreadSummary) => void;
   startSearch: () => void;
   clearError: () => void;
+  nearEnd: () => void;
 };
+
+const NEAR_END_ROWS = 10;
 
 type Handler = (count: number | null) => void;
 
@@ -48,11 +51,11 @@ export class ListScreen implements Screen {
 
   private createHandlers(): ReadonlyMap<ListAction, Handler> {
     return new Map<ListAction, Handler>([
-      ["moveDown", (count) => this.list.moveBy(count ?? 1)],
+      ["moveDown", (count) => this.downward(() => this.list.moveBy(count ?? 1))],
       ["moveUp", (count) => this.list.moveBy(-(count ?? 1))],
       ["moveToTop", (count) => this.list.moveTo((count ?? 1) - 1)],
-      ["moveToBottom", (count) => (count === null ? this.list.moveToLast() : this.list.moveTo(count - 1))],
-      ["halfPageDown", () => this.list.halfPageDown()],
+      ["moveToBottom", (count) => this.downward(() => this.moveToRow(count))],
+      ["halfPageDown", () => this.downward(() => this.list.halfPageDown())],
       ["halfPageUp", () => this.list.halfPageUp()],
       ["open", () => this.afterSelection(() => this.withSelected((summary) => this.ports.openThread(summary)))],
       ["search", () => this.afterSelection(() => this.ports.startSearch())],
@@ -65,6 +68,16 @@ export class ListScreen implements Screen {
       ["moveToInbox", () => this.withChosen((summaries) => this.actions.moveToInboxAll(summaries))],
       ["undo", () => this.afterSelection(() => this.actions.undo())],
     ]);
+  }
+
+  private moveToRow(count: number | null): void {
+    if (count === null) this.list.moveToLast();
+    else this.list.moveTo(count - 1);
+  }
+
+  private downward(move: () => void): void {
+    move();
+    if (this.list.length - this.list.selectedIndex <= NEAR_END_ROWS) this.ports.nearEnd();
   }
 
   private toggleSelection(): void {

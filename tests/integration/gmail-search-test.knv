@@ -1,0 +1,26 @@
+(use adapters/driven/gmail/mailbox gmail-mailbox)
+(use domain/mail ->thread-query)
+(use ports/driven/mailbox fetch-summaries! list-thread-ids!)
+(use support/fake-gmail start-fake-gmail)
+(use support/gmail-requests requests-matching)
+(use support/gmail-world fixture-routes gmail-over)
+
+(def metadata-request "GET /gmail/v1/users/me/threads/t")
+
+(deftest listing-thread-ids-reads-no-thread
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (assert (= (unwrap-ok (list-thread-ids!
+                            (mut gmail)
+                            (ref (->thread-query (str "INBOX") (str "") 20))))
+               (vec (str "t1") (str "t2"))))
+    (assert (empty? (requests-matching (ref server) metadata-request)))))
+
+(deftest fetching-summaries-reads-only-the-asked-threads
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (assert (= (len (unwrap-ok (fetch-summaries! (mut gmail)
+                                                 (ref (vec (str "t2"))))))
+               1))
+    (assert (= (len (requests-matching (ref server) metadata-request))
+               1))))

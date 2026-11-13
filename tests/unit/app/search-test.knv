@@ -1,0 +1,42 @@
+(use app/client)
+(use domain/mail ->thread-query)
+(use ports/driving/mail-client list-threads!)
+(use support/app-steps fail-remote! listed-ids! synced!)
+
+(use support/memory-world app-over remote-with sample-thread
+                          world-account)
+
+(use support/remote-changes arrive-remotely!)
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100)
+                    (sample-thread "t-2" (vec "INBOX") 200))))
+
+(defn search-for (text limit)
+  (->thread-query (str "ALL") (str text) limit))
+
+(deftest a-search-reuses-summaries-already-in-the-cache
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (fail-remote! (ref world) "fetch-summaries")
+    (assert (= (listed-ids! (mut app)
+                            (ref (search-for "Subject" 50)))
+               (vec (str "t-2") (str "t-1"))))))
+
+(deftest a-search-fetches-threads-missing-from-the-cache
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (arrive-remotely! (ref world)
+                      (sample-thread "t-3" (vec "Receipts") 300))
+    (assert (= (listed-ids! (mut app)
+                            (ref (search-for "t-3" 50)))
+               (vec (str "t-3"))))))
+
+(deftest a-search-lists-no-more-than-its-limit
+  (let (world (remote)
+        app (app-over (ref world)))
+    (assert (= (listed-ids! (mut app)
+                            (ref (search-for "Subject" 1)))
+               (vec (str "t-2"))))))

@@ -3,13 +3,14 @@
 (use domain/labels apply-label-change read-change unread?)
 (use domain/mail thread thread-query thread-summary)
 (use domain/mail-error mail-error)
+(use domain/listing ids-without-summary in-listed-order)
 
-(use ports/driven/mailbox fetch-thread! fetch-threads!
-                          relabel!)
+(use ports/driven/mailbox fetch-summaries! fetch-thread!
+                          list-thread-ids! relabel!)
 
-(use ports/driven/store load-thread load-threads
-                        relabel-stored! save-thread!
-                        save-threads!)
+(use ports/driven/store load-summaries-of load-thread
+                        load-threads relabel-stored!
+                        save-thread! save-threads!)
 
 (export find-threads! read-thread!)
 
@@ -31,13 +32,37 @@
     (result (vec thread-summary) mail-error)))
 
 (defn search-threads! (app account query)
-  (let (found (try (fetch-threads! (try (mailbox-for! (mut (:mailboxes app))
+  (let (ids (try (list-thread-ids! (try (mailbox-for! (mut (:mailboxes app))
                                                       account))
-                                   query)))
+                                   query))
+        known (try (load-summaries-of (ref (:store app))
+                                      account
+                                      (ref ids)))
+        fetched (try (missing-summaries!
+                       app account
+                       (ref (ids-without-summary (ref ids) (ref known))))))
     (try (save-threads! (mut (:store app))
                         account
-                        (ref found)))
-    (ok found)))
+                        (ref fetched)))
+    (ok (in-listed-order (ref ids)
+                         (ref (concat known fetched))))))
+
+(type missing-summaries!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref (vec string)))
+    (result (vec thread-summary) mail-error)))
+
+(defn missing-summaries! (app account ids)
+  (if (empty? ids)
+    (ok (vec))
+    (fetch-summaries! (try (mailbox-for! (mut (:mailboxes app)) account))
+                      ids)))
+
+(def concat
+  (rust "{{ let mut {!all} = {0}; {!all}.extend({1}); {!all} }}"
+    (fn ((vec thread-summary) (vec thread-summary))
+      (vec thread-summary))))
 
 (type read-thread!
   (fn ((mut mail-app) (ref str) (ref str))

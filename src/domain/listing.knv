@@ -1,0 +1,21 @@
+(use domain/mail thread-summary)
+
+(export ids-without-summary in-listed-order)
+
+(type ids-without-summary
+  (fn ((ref (vec string))
+       (ref (vec thread-summary)))
+    (vec string)))
+
+(defn ids-without-summary (ids known)
+  (collect (map (filter (iter ids)
+                  (fn (id)
+                    (not (any? (iter known)
+                           (fn (summary) (= (:id summary) id))))))
+                (fn (id) (clone id)))))
+
+(def in-listed-order
+  (rust "{{ let {!known} = {1}; {0}.iter().filter_map(|{!id}| {!known}.iter().find(|{!summary}| {!summary}.id == *{!id}).cloned()).collect::<Vec<_>>() }}"
+    (fn ((ref (vec string))
+         (ref (vec thread-summary)))
+      (vec thread-summary))))

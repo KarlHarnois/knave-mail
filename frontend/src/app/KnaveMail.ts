@@ -76,6 +76,7 @@ export class KnaveMail {
       openThread: (summary) => this.threadScreen.open(summary),
       startSearch: () => this.shared.startSearch(),
       clearError: () => this.services.status.clearError(),
+      nearEnd: () => this.services.errors.run(this.services.session.showMore()),
     });
   }
 

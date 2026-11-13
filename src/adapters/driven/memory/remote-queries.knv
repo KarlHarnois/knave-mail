@@ -5,7 +5,8 @@
 
 (use domain/summary in-label? newest-first summarize)
 
-(export labels-of matching-summaries thread-position)
+(export labels-of matching-summaries summaries-with-ids
+        thread-position)
 
 (type labels-of
   (fn ((ref remote-mail)) (vec label)))
@@ -36,6 +37,17 @@
                             (fn (summary)
                               (in-label? summary (:label query))))))
     (newest-first labelled query)))
+
+(type summaries-with-ids
+  (fn ((ref remote-mail) (ref (vec string)))
+    (vec thread-summary)))
+
+(defn summaries-with-ids (remote ids)
+  (collect (map (filter (iter (:threads remote))
+                  (fn (candidate)
+                    (any? (iter ids)
+                      (fn (id) (= id (:id candidate))))))
+                (fn (matched) (summarize matched)))))
 
 (def into-iter
   (rust "{0}.into_iter()"

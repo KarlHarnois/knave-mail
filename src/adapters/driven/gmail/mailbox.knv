@@ -20,7 +20,10 @@
                                    api-post!)
 
 (use adapters/driven/gmail/session-state gmail-session)
-(use domain/mail ->thread message thread)
+
+(use domain/mail ->thread message thread thread-query
+                 thread-summary)
+
 (use domain/mail-error mail-error)
 (use ports/driven/mailbox mailbox)
 
@@ -40,14 +43,14 @@
                    (ok (collect (map (iter details)
                                   (fn (detail) (label-from detail)))))))
   (fetch-threads! (box query)
-                  (let (listed (try (api-get! (mut (:session box))
-                                              (ref (thread-list-path query))))
-                        paths (collect (map (iter (thread-ids (ref listed)))
-                                         (fn (id) (thread-metadata-path id))))
-                        threads (try (api-get-all! (mut (:session box))
-                                                   (ref paths))))
-                    (ok (collect (map (iter threads)
-                                   (fn (found) (summary-from found)))))))
+                  (let (ids (try (listed-thread-ids! (mut (:session box))
+                                                     query)))
+                    (summaries-of! (mut (:session box))
+                                   (ref ids))))
+  (list-thread-ids! (box query)
+                    (listed-thread-ids! (mut (:session box)) query))
+  (fetch-summaries! (box ids)
+                    (summaries-of! (mut (:session box)) ids))
   (fetch-thread! (box thread-id)
                  (fetched-thread! (mut (:session box)) thread-id))
   (fetch-history-id! (box)
@@ -65,6 +68,25 @@
                               (ref (modify-path thread-id))
                               (ref (modify-body change))))
               (ok (do)))))
+
+(type listed-thread-ids!
+  (fn ((mut gmail-session) (ref thread-query))
+    (result (vec string) mail-error)))
+
+(defn listed-thread-ids! (session query)
+  (ok (thread-ids (ref (try (api-get! session
+                                      (ref (thread-list-path query))))))))
+
+(type summaries-of!
+  (fn ((mut gmail-session) (ref (vec string)))
+    (result (vec thread-summary) mail-error)))
+
+(defn summaries-of! (session ids)
+  (let (paths (collect (map (iter ids)
+                         (fn (id) (thread-metadata-path id))))
+        threads (try (api-get-all! session (ref paths))))
+    (ok (collect (map (iter threads)
+                   (fn (found) (summary-from found)))))))
 
 (type fetched-thread!
   (fn ((mut gmail-session) (ref str))

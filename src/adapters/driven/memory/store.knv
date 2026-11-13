@@ -3,7 +3,9 @@
                                    replace-thread!
                                    stored-summary
                                    stored-thread
-                                   summaries-of thread-in)
+                                   summaries-of
+                                   summaries-with-ids
+                                   thread-in)
 
 (use adapters/driven/memory/stored-labels labels-in
                                           relabel-everywhere!
@@ -52,6 +54,9 @@
   (save-threads! (kept email summaries)
                  (ok (replace-summaries! (mut (:summaries kept))
                                          email summaries)))
+  (load-summaries-of (kept email ids)
+                     (ok (summaries-with-ids (ref (:summaries kept))
+                                             email ids)))
   (load-thread (kept email thread-id)
                (ok (thread-in (ref (:threads kept)) email thread-id)))
   (load-message (kept email message-id)

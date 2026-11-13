@@ -3,8 +3,9 @@ import type { Account, ThreadSummary } from "../bridge/Protocol";
 import type { ThreadList } from "../list/ThreadList";
 import type { StatusLine } from "../status/StatusLine";
 import { INBOX, type LabelDirectory, type LabelRef } from "./LabelDirectory";
+import { ListingPages } from "./ListingPages";
 
-export const THREAD_LIMIT = 1000;
+export { THREAD_LIMIT } from "./ListingPages";
 
 type AccountListener = (account: string) => void;
 
@@ -21,6 +22,8 @@ export class MailSession {
   private label: LabelRef = INBOX;
   private query = "";
   private loadGeneration = 0;
+  private loadingMore = false;
+  private readonly pages = new ListingPages();
   private readonly accountListeners: AccountListener[] = [];
 
   constructor(private readonly ports: MailSessionPorts) {}
@@ -83,9 +86,21 @@ export class MailSession {
     if (summaries) this.ports.list.refresh(summaries);
   }
 
+  async showMore(): Promise<void> {
+    if (this.loadingMore || !this.pages.mayHaveMore) return;
+    this.loadingMore = true;
+    this.pages.grow();
+    try {
+      await this.reload();
+    } finally {
+      this.loadingMore = false;
+    }
+  }
+
   private async goTo(label: LabelRef, query: string): Promise<void> {
     this.label = label;
     this.query = query;
+    this.pages.startListing(query);
     this.showLocation();
     const summaries = await this.fetchThreads();
     if (summaries) this.ports.list.show(summaries);
@@ -100,9 +115,11 @@ export class MailSession {
 
   private async fetchThreads(): Promise<ThreadSummary[] | null> {
     const generation = ++this.loadGeneration;
-    const query = { account: this.account, label: this.label.id, query: this.query, limit: THREAD_LIMIT };
+    const query = { account: this.account, label: this.label.id, query: this.query, limit: this.pages.size };
     const summaries = await this.ports.mail.threads(query);
-    return generation === this.loadGeneration ? summaries : null;
+    if (generation !== this.loadGeneration) return null;
+    this.pages.record(summaries.length);
+    return summaries;
   }
 
   private indexOfAccount(search: string): number {

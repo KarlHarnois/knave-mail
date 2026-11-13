@@ -1,0 +1,31 @@
+(use domain/listing ids-without-summary in-listed-order)
+(use domain/mail thread-summary)
+(use domain/summary summarize)
+(use support/memory-world sample-thread)
+
+(defn summary-of (id)
+  (summarize (ref (sample-thread id (vec "INBOX") 100))))
+
+(type ids-of
+  (fn ((vec thread-summary)) (vec string)))
+
+(defn ids-of (summaries)
+  (collect (map (iter summaries)
+             (fn (summary) (clone (:id summary))))))
+
+(deftest ids-without-a-summary-are-the-ones-to-fetch
+  (assert (= (ids-without-summary (ref (vec (str "a") (str "b") (str "c")))
+                                  (ref (vec (summary-of "b"))))
+             (vec (str "a") (str "c")))))
+
+(deftest summaries-follow-the-listed-order
+  (assert (= (ids-of (in-listed-order (ref (vec (str "c") (str "a") (str "b")))
+                                      (ref (vec (summary-of "a")
+                                                (summary-of "b")
+                                                (summary-of "c")))))
+             (vec (str "c") (str "a") (str "b")))))
+
+(deftest listed-ids-without-any-summary-are-left-out
+  (assert (= (ids-of (in-listed-order (ref (vec (str "a") (str "x")))
+                                      (ref (vec (summary-of "a")))))
+             (vec (str "a")))))
