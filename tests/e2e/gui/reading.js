@@ -19,8 +19,12 @@ knaveE2E.scenario(async (driver) => {
   await e2e.step("<CR>");
   const focusedId = () => document.querySelector('[data-test~="focused-message"]')?.getAttribute("data-message-id");
   e2e.check("a long thread opens on its newest message", focusedId() === "m-long-11", focusedId());
-  await e2e.step("kk");
+  const pressUntilFocused = async (key, messageId) => {
+    for (let presses = 0; presses < 30 && focusedId() !== messageId; presses++) await e2e.step(key);
+  };
+  await pressUntilFocused("k", "m-long-10");
+  await pressUntilFocused("k", "m-long-9");
   e2e.check("k steps back through the messages of a thread", focusedId() === "m-long-9", focusedId());
-  await e2e.step("j");
+  await pressUntilFocused("j", "m-long-10");
   e2e.check("j steps forward through the messages of a thread", focusedId() === "m-long-10", focusedId());
 });

@@ -35,6 +35,23 @@ window.knaveE2E = {
     }
     await driver.whenIdle();
   },
+  async whenWindowSettled() {
+    const size = () => `${window.innerWidth}x${window.innerHeight}`;
+    let last = size();
+    let stableFor = 0;
+    for (let waited = 0; waited < 10000 && stableFor < 1000; waited += 50) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      stableFor = size() === last ? stableFor + 50 : 0;
+      last = size();
+    }
+  },
+  async whenSynced(driver) {
+    const finished = () => /^(synced|sync failed)/.test(driver.text('[data-test="status-sync"]'));
+    for (let waited = 0; waited < 20000 && !finished(); waited += 20) {
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    await driver.whenIdle();
+  },
   async scenario(body) {
     if (window.top !== window) return;
     window.addEventListener("load", async () => {
@@ -45,8 +62,10 @@ window.knaveE2E = {
         return;
       }
       try {
+        await this.whenWindowSettled();
         const driver = await this.driver();
         await this.whenListed(driver);
+        await this.whenSynced(driver);
         const firstRows = [...document.querySelectorAll('[data-test~="thread-row"]')].slice(0, 3).map((row) => row.getAttribute("data-thread-id"));
         this.report(`first rows: ${firstRows.join(", ")}; selected: ${document.querySelector('[data-test~="selected-row"]')?.getAttribute("data-thread-id")}`);
         await body(driver);

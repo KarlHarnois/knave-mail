@@ -8,6 +8,8 @@
 
 (def run-seconds 60)
 
+(def screen-size "-screen 0 1920x1200x24")
+
 (def theme-file "tests/fixtures/theme/e2e-theme.sexp")
 
 (def keymap-file "tests/fixtures/keymap/e2e-keymap.sexp")
@@ -46,6 +48,8 @@
                               (vec (str run-seconds)
                                    (str "xvfb-run")
                                    (str "-a")
+                                   (str "-s")
+                                   (str screen-size)
                                    (str binary)
                                    (str "--backend")
                                    (str "memory")
