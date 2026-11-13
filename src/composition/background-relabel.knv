@@ -1,0 +1,66 @@
+(use adapters/driving/webview/relabel-runner ->outbox-sink
+                                             relabel-runner)
+
+(use adapters/driving/webview/logged-answers answer-relabels!)
+
+(use adapters/driving/webview/window reply-outbox
+                                     request-inbox)
+
+(use app/client)
+(use composition/gmail-backend gmail-app)
+(use composition/logging chosen-log)
+(use composition/settings settings-from)
+(use domain/mail-error error-message)
+(use ports/driven/event-log log-warn share-log)
+
+(export background-relabel start-background-relabel)
+
+(deftype relabel-queue
+  (rust "std::sync::mpsc::Sender<String>"))
+
+(defstruct background-relabel
+  :queue relabel-queue)
+
+(impl relabel-runner background-relabel
+  (hand-off! (runner request-text)
+             (enqueued? (ref (:queue runner)) request-text)))
+
+(type start-background-relabel
+  (fn ((ref reply-outbox)) background-relabel))
+
+(defn start-background-relabel (outbox)
+  (->background-relabel (spawn-worker outbox
+                          (fn (inbox replies)
+                            (relabel-in-own-app inbox replies)))))
+
+(type relabel-in-own-app
+  (fn (request-inbox reply-outbox) unit))
+
+(defn relabel-in-own-app (inbox outbox)
+  (let (chosen (settings-from (ref (command-line-args)))
+        log (chosen-log (ref chosen)))
+    (match (gmail-app (ref chosen)
+                      (share-log (ref log)))
+      ((ok app)
+       (do
+         (local running app)
+         (answer-relabels! (mut running)
+                           (ref log)
+                           (ref inbox)
+                           (ref (->outbox-sink outbox)))))
+      ((err failure)
+       (log-warn (ref log)
+                 "window"
+                 (str "the label worker could not start, so label changes run inline: "
+                      (error-message (ref failure))))))))
+
+(def spawn-worker
+  (rust "{{ let ({!queue}, {!inbox}) = std::sync::mpsc::channel::<String>(); let {!outbox} = {0}.clone(); let {!job} = {1}; std::thread::spawn(move || {!job}({!inbox}, {!outbox})); {!queue} }}"
+    (fn ((ref reply-outbox)
+         (fn-once (request-inbox reply-outbox) unit))
+      relabel-queue)))
+
+(def enqueued?
+  (rust "{0}.send({1}.to_string()).is_ok()"
+    (fn ((ref relabel-queue) (ref str))
+      bool)))

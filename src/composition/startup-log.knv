@@ -1,0 +1,30 @@
+(use composition/settings settings)
+(use ports/driven/event-log event-log log-info)
+
+(export clock-milliseconds log-started trimmed)
+
+(type log-started
+  (fn ((ref (box event-log))
+       (ref settings)
+       (ref str))
+    unit))
+
+(defn log-started (log chosen mode)
+  (log-info log "app"
+            (str "knave-mail "
+                 (app-version)
+                 " started: " mode ", backend "
+                 (:backend chosen)
+                 ", cache "
+                 (:cache-path chosen))))
+
+(def trimmed
+  (rust "{0}.trim().to_string()" (fn (string) string)))
+
+(def app-version
+  (rust "env!(\"CARGO_PKG_VERSION\").to_string()"
+    (fn () string)))
+
+(def clock-milliseconds
+  (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as u64).unwrap_or(0)"
+    (fn () u64)))

@@ -1,12 +1,19 @@
 (use adapters/driving/json/commands answer!)
 
-(use adapters/driving/json/envelope failure-event null-id
-                                    request-arguments
-                                    request-id success-reply
-                                    synced-event)
+(use adapters/driving/json/envelope request-arguments
+                                    request-id
+                                    success-reply)
 
 (use adapters/driving/json/value json-value parse-json
                                  string-field)
+
+(use adapters/driving/webview/logged-answers answered-and-logged!)
+
+(use adapters/driving/webview/relabel-runner hand-off!
+                                             relabel-command?
+                                             relabel-runner)
+
+(use adapters/driving/webview/sync-requests sync-event)
 
 (use adapters/driving/webview/sync-runner start-sync!
                                           sync-runner)
@@ -21,42 +28,46 @@
                                               report-e2e-line
                                               zoom-to)
 
-(use adapters/driving/webview/request-log clock-milliseconds
-                                          record-frontend-entry!
-                                          reply-error)
-
-(use domain/mail-error mail-error)
-(use ports/driven/event-log event-log log-debug log-warn)
+(use adapters/driving/webview/request-log record-frontend-entry!)
+(use ports/driven/event-log event-log)
 (use ports/driving/mail-client mail-client sync-account!)
 
-(export serve-requests! sync-event)
+(export serve-requests!)
 
 (type serve-requests!
-  (where ((client mail-client) (runner sync-runner))
+  (where ((client mail-client)
+          (runner sync-runner)
+          (relabeler relabel-runner))
     (fn ((mut client)
          (mut runner)
+         (mut relabeler)
          (ref (box event-log))
          (ref request-inbox)
          (ref reply-outbox))
       unit)))
 
-(defn serve-requests! (client runner log inbox outbox)
+(defn serve-requests! (client runner relabeler log inbox outbox)
   (match (next-request inbox)
     ((some request)
-     (handle-request! client runner log (ref request) outbox)
-     (recur client runner log inbox outbox))
+     (handle-request! client runner relabeler log
+                      (ref request)
+                      outbox)
+     (recur client runner relabeler log inbox outbox))
     (none (do))))
 
 (type handle-request!
-  (where ((client mail-client) (runner sync-runner))
+  (where ((client mail-client)
+          (runner sync-runner)
+          (relabeler relabel-runner))
     (fn ((mut client)
          (mut runner)
+         (mut relabeler)
          (ref (box event-log))
          (ref str)
          (ref reply-outbox))
       unit)))
 
-(defn handle-request! (client runner log request-text outbox)
+(defn handle-request! (client runner relabeler log request-text outbox)
   (match (parse-json request-text)
     ((ok request)
      (match (string-field (ref request) "command")
@@ -67,9 +78,11 @@
        ((ok "zoom") (zoom-to (ref request) outbox))
        ((ok "log") (record-frontend-entry! log (ref request)))
        ((ok command)
-        (send-reply
-          outbox
-          (answered-and-logged! client log request-text (ref command))))
+        (when (not (and (relabel-command? (ref command))
+                        (hand-off! relabeler request-text)))
+          (send-reply
+            outbox
+            (answered-and-logged! client log request-text (ref command)))))
        (_ (send-reply outbox (answer! client request-text)))))
     ((err _) (send-reply outbox (answer! client request-text)))))
 
@@ -94,31 +107,3 @@
     ((err _)
      (send-reply outbox
                  (answer! client "{\"command\":\"sync\"}")))))
-
-(type sync-event
-  (fn ((result unit mail-error) (ref str))
-    string))
-
-(defn sync-event (outcome account)
-  (match outcome
-    ((ok _) (synced-event account))
-    ((err failure) (failure-event account (ref failure)))))
-
-(type answered-and-logged!
-  (where ((client mail-client))
-    (fn ((mut client)
-         (ref (box event-log))
-         (ref str)
-         (ref str))
-      string)))
-
-(defn answered-and-logged! (client log request-text command)
-  (let (started (clock-milliseconds)
-        reply (answer! client request-text)
-        elapsed (- (clock-milliseconds) started))
-    (match (reply-error (ref reply))
-      ((some problem)
-       (log-warn log "window"
-                 (str command " failed after " elapsed "ms: " problem)))
-      (none (log-debug log "window" (str command " " elapsed "ms"))))
-    reply))

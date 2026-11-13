@@ -1,0 +1,35 @@
+(use adapters/driving/webview/window reply-outbox
+                                     send-reply)
+
+(use domain/label-commands label-change-named)
+
+(export ->inline-relabel ->outbox-sink inline-relabel
+        outbox-sink relabel-command? relabel-runner
+        reply-sink)
+
+(deftrait relabel-runner
+  (hand-off! (fn ((mut self) (ref str)) bool)))
+
+(deftrait reply-sink
+  (deliver-reply! (fn ((ref self) string) unit)))
+
+(defstruct inline-relabel
+  :handed-off i64)
+
+(impl relabel-runner inline-relabel
+  (hand-off! (runner request-text) false))
+
+(defstruct outbox-sink
+  :outbox reply-outbox)
+
+(impl reply-sink outbox-sink
+  (deliver-reply! (sink reply)
+                  (send-reply (ref (:outbox sink)) reply)))
+
+(type relabel-command?
+  (fn ((ref str)) bool))
+
+(defn relabel-command? (command)
+  (match (label-change-named command)
+    ((some _) true)
+    (none false)))

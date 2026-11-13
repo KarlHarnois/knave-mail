@@ -1,5 +1,5 @@
 (use adapters/driving/json/envelope sync-progress-event)
-(use adapters/driving/webview/session sync-event)
+(use adapters/driving/webview/sync-requests sync-event)
 
 (use adapters/driving/webview/sync-runner run-in-background
                                           sync-runner)

@@ -1,0 +1,15 @@
+(use adapters/driving/json/envelope failure-event
+                                    synced-event)
+
+(use domain/mail-error mail-error)
+
+(export sync-event)
+
+(type sync-event
+  (fn ((result unit mail-error) (ref str))
+    string))
+
+(defn sync-event (outcome account)
+  (match outcome
+    ((ok _) (synced-event account))
+    ((err failure) (failure-event account (ref failure)))))

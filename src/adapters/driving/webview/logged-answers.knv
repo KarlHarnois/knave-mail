@@ -1,0 +1,67 @@
+(use adapters/driving/json/commands answer!)
+
+(use adapters/driving/webview/relabel-runner deliver-reply!
+                                             reply-sink)
+
+(use adapters/driving/webview/request-log clock-milliseconds
+                                          ok-or-none
+                                          reply-error)
+
+(use adapters/driving/webview/window next-request
+                                     request-inbox)
+
+(use ports/driven/event-log event-log log-debug log-warn)
+(use ports/driving/mail-client list-accounts! mail-client)
+
+(export answer-relabels! answered-and-logged!)
+
+(type answer-relabels!
+  (where ((client mail-client) (sink reply-sink))
+    (fn ((mut client)
+         (ref (box event-log))
+         (ref request-inbox)
+         (ref sink))
+      unit)))
+
+(defn answer-relabels! (client log inbox sink)
+  (log-debug log "window"
+             (str "label worker ready for "
+                  (len (unwrap-or (ok-or-none (list-accounts! client))
+                                  (vec)))
+                  " accounts"))
+  (answer-queued-relabels! client log inbox sink))
+
+(type answer-queued-relabels!
+  (where ((client mail-client) (sink reply-sink))
+    (fn ((mut client)
+         (ref (box event-log))
+         (ref request-inbox)
+         (ref sink))
+      unit)))
+
+(defn answer-queued-relabels! (client log inbox sink)
+  (match (next-request inbox)
+    ((some request)
+     (deliver-reply! sink
+                     (answered-and-logged! client log (ref request) "relabel"))
+     (recur client log inbox sink))
+    (none (do))))
+
+(type answered-and-logged!
+  (where ((client mail-client))
+    (fn ((mut client)
+         (ref (box event-log))
+         (ref str)
+         (ref str))
+      string)))
+
+(defn answered-and-logged! (client log request-text command)
+  (let (started (clock-milliseconds)
+        reply (answer! client request-text)
+        elapsed (- (clock-milliseconds) started))
+    (match (reply-error (ref reply))
+      ((some problem)
+       (log-warn log "window"
+                 (str command " failed after " elapsed "ms: " problem)))
+      (none (log-debug log "window" (str command " " elapsed "ms"))))
+    reply))

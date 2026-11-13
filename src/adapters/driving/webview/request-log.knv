@@ -5,7 +5,7 @@
 (use ports/driven/event-log ->log-entry event-log log-level
                             record!)
 
-(export clock-milliseconds record-frontend-entry!
+(export clock-milliseconds ok-or-none record-frontend-entry!
         reply-error)
 
 (type record-frontend-entry!

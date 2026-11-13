@@ -1,0 +1,88 @@
+(use adapters/driven/memory/memory-log logged-lines
+                                       new-memory-log
+                                       same-log)
+
+(use adapters/driven/memory/shared share shared
+                                   with-shared!)
+
+(use adapters/driving/webview/relabel-runner relabel-command?
+                                             reply-sink)
+
+(use adapters/driving/webview/logged-answers answer-relabels!)
+(use adapters/driving/webview/window request-inbox)
+(use app/client)
+(use ports/driven/event-log event-log)
+(use support/app-steps remote-thread synced!)
+(use support/log-lines mentions?)
+
+(use support/memory-world app-over remote-with sample-thread
+                          world-account)
+
+(defstruct collected-replies
+  :replies (shared (vec string)))
+
+(impl reply-sink collected-replies
+  (deliver-reply! (sink reply)
+                  (with-shared! (ref (:replies sink))
+                    (fn (replies) (push! replies reply)))))
+
+(def inbox-holding
+  (rust "{{ let ({!sender}, {!inbox}) = std::sync::mpsc::channel::<String>(); for {!request} in {0}.iter() {{ {!sender}.send({!request}.clone()).expect(\"the inbox is open\"); }} {!inbox} }}"
+    (fn ((ref (vec string))) request-inbox)))
+
+(def contains?
+  (rust "{0}.contains({1})"
+    (fn ((ref str) (ref str)) bool)))
+
+(def archive-t-1
+  "{\"id\":7,\"command\":\"archive\",\"args\":{\"account\":\"ada@example.com\",\"threadIds\":[\"t-1\"]}}")
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100))))
+
+(deftest label-commands-go-to-the-worker
+  (assert (relabel-command? "archive"))
+  (assert (relabel-command? "mark-unread"))
+  (assert (not (relabel-command? "threads")))
+  (assert (not (relabel-command? "send"))))
+
+(deftest the-worker-applies-each-queued-label-change
+  (let (world (remote)
+        app (app-over (ref world))
+        sink (->collected-replies (share (vec))))
+    (synced! (mut app))
+    (answer-relabels! (mut app)
+                      (ref (the (box event-log)
+                                (box (new-memory-log))))
+                      (ref (inbox-holding (ref (vec (str archive-t-1)))))
+                      (ref sink))
+    (assert (not (any? (iter (:labels (remote-thread (ref world) "t-1")))
+                   (fn (label) (= label "INBOX")))))))
+
+(deftest the-worker-replies-to-each-request-by-its-id
+  (let (world (remote)
+        app (app-over (ref world))
+        sink (->collected-replies (share (vec))))
+    (synced! (mut app))
+    (answer-relabels! (mut app)
+                      (ref (the (box event-log)
+                                (box (new-memory-log))))
+                      (ref (inbox-holding (ref (vec (str archive-t-1)))))
+                      (ref sink))
+    (let (replies (with-shared! (ref (:replies sink))
+                    (fn (replies) (clone replies))))
+      (assert (= (len replies) 1))
+      (assert (contains? (at replies 0) "\"id\":7")))))
+
+(deftest a-failed-label-change-is-logged
+  (let (world (remote)
+        app (app-over (ref world))
+        log (new-memory-log)
+        sink (->collected-replies (share (vec))))
+    (answer-relabels! (mut app)
+                      (ref (the (box event-log)
+                                (box (same-log (ref log)))))
+                      (ref (inbox-holding (ref (vec (str "{\"id\":8,\"command\":\"archive\",\"args\":{\"account\":\"ada@example.com\",\"threadIds\":[\"t-9\"]}}")))))
+                      (ref sink))
+    (assert (mentions? (ref (logged-lines (ref log)))
+                       "relabel failed"))))
