@@ -1,9 +1,12 @@
 (use adapters/driven/gmail/mailbox gmail-mailbox)
 (use domain/mail-error error-kind)
-(use ports/driven/mailbox fetch-labels!)
+(use domain/mail ->thread-query)
+(use ports/driven/mailbox fetch-labels! fetch-threads!)
 (use support/fake-gmail start-fake-gmail)
 (use support/gmail-requests requests-matching)
-(use support/gmail-world fixture-routes gmail-over route)
+
+(use support/gmail-world fixture-routes gmail-over
+                         gmail-paced route)
 
 (def labels-request "GET /gmail/v1/users/me/labels")
 
@@ -36,3 +39,15 @@
                "auth-required"))
     (assert (= (len (requests-matching (ref server) labels-request))
                1))))
+
+(def clock-milliseconds
+  (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as u64).unwrap_or(0)"
+    (fn () u64)))
+
+(deftest reads-are-spaced-to-stay-under-the-rate-limit
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-paced (ref server) 100)
+        query (->thread-query (str "INBOX") (str "") 20)
+        started (clock-milliseconds))
+    (unwrap-ok (fetch-threads! (mut gmail) (ref query)))
+    (assert (>= (- (clock-milliseconds) started) 300))))

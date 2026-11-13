@@ -9,7 +9,7 @@
 (use support/fake-gmail fake-gmail fake-gmail-base
                         start-fake-gmail)
 
-(export fixture-routes gmail-over route)
+(export fixture-routes gmail-over gmail-paced route)
 
 (def fixtures "tests/fixtures/gmail/")
 
@@ -52,7 +52,12 @@
 (type gmail-over
   (fn ((ref fake-gmail)) gmail-mailbox))
 
-(defn gmail-over (server)
+(defn gmail-over (server) (gmail-paced server 0))
+
+(type gmail-paced
+  (fn ((ref fake-gmail) u64) gmail-mailbox))
+
+(defn gmail-paced (server spacing)
   (let (base (fake-gmail-base server))
     (->gmail-mailbox (->gmail-session
                        :agent (new-agent)
@@ -61,6 +66,7 @@
                                     :token-url (str base "/token")
                                     :client-id (str "fake-client")
                                     :client-secret (str "fake-secret")
-                                    :rate-limit-pause-milliseconds 1)
+                                    :rate-limit-pause-milliseconds 1
+                                    :request-spacing-milliseconds spacing)
                        :refresh-token (str "fake-refresh")
                        :access-token none))))

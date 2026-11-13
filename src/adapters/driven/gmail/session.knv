@@ -23,7 +23,8 @@
   :token-url string
   :client-id string
   :client-secret string
-  :rate-limit-pause-milliseconds u64)
+  :rate-limit-pause-milliseconds u64
+  :request-spacing-milliseconds u64)
 
 (defstruct gmail-session
   :agent http-agent
@@ -53,13 +54,10 @@
     (sent (first-outcome (http-get-all (ref (:agent session))
                                        (ref (vec (str url)))
                                        (ref token)
-                                       (pause-of session))))))
-
-(type pause-of
-  (fn ((ref gmail-session)) u64))
-
-(defn pause-of (session)
-  (:rate-limit-pause-milliseconds (:endpoints session)))
+                                       (:rate-limit-pause-milliseconds (:endpoints
+                                                                         session))
+                                       (:request-spacing-milliseconds (:endpoints
+                                                                        session)))))))
 
 (def first-outcome
   (rust "{0}.into_iter().next().unwrap_or_else(|| Err(String::from(\"no reply\")))"
@@ -74,10 +72,12 @@
   (let (token (try (access-token! session))
         urls (collect (map (iter paths)
                         (fn (path) (api-url session path))))
-        replies (http-get-all (ref (:agent session))
-                              (ref urls)
-                              (ref token)
-                              (pause-of session)))
+        replies (http-get-all
+                  (ref (:agent session))
+                  (ref urls)
+                  (ref token)
+                  (:rate-limit-pause-milliseconds (:endpoints session))
+                  (:request-spacing-milliseconds (:endpoints session))))
     (collect-results (collect (map (into-replies replies)
                                 (fn (outcome)
                                   (checked (try (sent outcome)))))))))

@@ -58,7 +58,8 @@
                      :token-url (clone (:token-url chosen))
                      :client-id (clone (:client-id chosen))
                      :client-secret (clone (:client-secret chosen))
-                     :rate-limit-pause-milliseconds 1000))
+                     :rate-limit-pause-milliseconds 1000
+                     :request-spacing-milliseconds 160))
 
 (type chosen-credentials
   (fn ((ref settings)) (box credentials)))
