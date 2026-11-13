@@ -4,9 +4,9 @@ import { AppHarness } from "../support/AppHarness";
 import { MailFixtures } from "../support/MailFixtures";
 
 describe("app start", () => {
-  test("loads the inbox of the first account", async () => {
+  test("loads the inbox of the first account, then syncs it", async () => {
     const app = await AppHarness.started();
-    expect(app.core.requests.map((request) => request.command)).toEqual(["accounts", "threads"]);
+    expect(app.core.requests.map((request) => request.command)).toEqual(["accounts", "threads", "sync"]);
     expect(app.core.lastArgsFor("threads")).toEqual({
       account: MailFixtures.ADA,
       label: "INBOX",
@@ -221,7 +221,29 @@ describe("sync", () => {
     const app = await AppHarness.started();
     app.core.emit({ event: "synced", account: MailFixtures.GRACE });
     await app.driver.whenIdle();
-    expect(app.status("sync")).toBe("");
+    expect(app.status("sync")).toBe("syncing");
+    expect(app.core.requestsFor("threads")).toHaveLength(1);
+  });
+
+  test("opening the window syncs the current account", async () => {
+    const app = await AppHarness.started();
+    expect(app.core.requestsFor("sync")).toHaveLength(1);
+    expect(app.core.lastArgsFor("sync")).toEqual({ account: MailFixtures.ADA });
+    expect(app.status("sync")).toBe("syncing");
+  });
+
+  test("a sync-progress event shows the mail synced so far and keeps syncing", async () => {
+    const app = await AppHarness.started();
+    app.core.emit({ event: "sync-progress", account: MailFixtures.ADA });
+    await app.driver.whenIdle();
+    expect(app.core.requestsFor("threads")).toHaveLength(2);
+    expect(app.status("sync")).toBe("syncing");
+  });
+
+  test("progress for another account does not reload the list", async () => {
+    const app = await AppHarness.started();
+    app.core.emit({ event: "sync-progress", account: MailFixtures.GRACE });
+    await app.driver.whenIdle();
     expect(app.core.requestsFor("threads")).toHaveLength(1);
   });
 });

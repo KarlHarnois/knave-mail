@@ -33,6 +33,8 @@
                       (result unit mail-error)))
   (sync-account! (fn ((mut self) (ref str))
                    (result unit mail-error)))
+  (preview-account! (fn ((mut self) (ref str))
+                      (result unit mail-error)))
   (add-account! (fn ((mut self))
                   (result account mail-error)))
   (remove-account! (fn ((mut self) (ref str))

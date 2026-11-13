@@ -1,12 +1,18 @@
+(use adapters/driving/json/envelope sync-progress-event)
 (use adapters/driving/webview/session sync-event)
 
 (use adapters/driving/webview/sync-runner run-in-background
                                           sync-runner)
 
+(use adapters/driving/webview/window reply-outbox
+                                     send-reply)
+
 (use app/client)
 (use composition/gmail-backend gmail-app)
 (use composition/settings settings-from)
-(use ports/driving/mail-client sync-account!)
+
+(use ports/driving/mail-client preview-account!
+                               sync-account!)
 
 (export ->background-sync background-sync)
 
@@ -19,19 +25,27 @@
                  (set! (:started runner)
                        (+ (:started runner) 1))
                  (run-in-background outbox
-                   (fn ()
+                   (fn (progress)
                      (let (moved-account owned-account)
-                       (synced-in-own-app (ref moved-account)))))
+                       (synced-in-own-app (ref moved-account) progress))))
                  true)))
 
 (type synced-in-own-app
-  (fn ((ref str)) string))
+  (fn ((ref str) (ref reply-outbox))
+    string))
 
-(defn synced-in-own-app (account)
+(defn synced-in-own-app (account progress)
   (sync-event (match (gmail-app (ref (settings-from (ref (command-line-args)))))
                 ((ok app)
                  (do
                    (local syncing app)
+                   (when (is-ok (ref (preview-account! (mut syncing) account)))
+                     (send-reply progress (sync-progress-event account)))
                    (sync-account! (mut syncing) account)))
                 ((err failure) (err failure)))
               account))
+
+(def is-ok
+  (rust "{0}.is_ok()"
+    (where (value failure)
+      (fn ((ref (result value failure))) bool))))

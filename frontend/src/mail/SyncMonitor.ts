@@ -29,13 +29,22 @@ export class SyncMonitor {
     this.ports.errors.run(this.ports.mail.sync(account), () => this.record(account, SYNC_FAILED));
   }
 
+  syncOnLaunch(): void {
+    if (this.ports.session.hasAccount) this.sync();
+  }
+
   showStateOf(account: string): void {
     this.ports.status.showSync(this.stateByAccount.get(account) ?? "");
   }
 
   handle(event: CoreEvent): void {
     if (event.event === "synced") this.finishSync(event.account);
+    else if (event.event === "sync-progress") this.showProgress(event.account);
     else this.failSync(event);
+  }
+
+  private showProgress(account: string): void {
+    if (this.isCurrent(account)) this.ports.errors.run(this.ports.session.reload());
   }
 
   private finishSync(account: string): void {

@@ -1,0 +1,32 @@
+(use app/mail-app mail-app)
+(use app/mailboxes mailbox-for!)
+(use domain/mail ->thread-query)
+(use domain/mail-error mail-error)
+(use ports/driven/mailbox fetch-threads!)
+(use ports/driven/store load-checkpoint save-threads!)
+
+(export preview-limit preview-sync!)
+
+(def preview-limit 25)
+
+(type preview-sync!
+  (fn ((mut mail-app) (ref str))
+    (result unit mail-error)))
+
+(defn preview-sync! (app account)
+  (match (try (load-checkpoint (ref (:store app)) account))
+    ((some _) (ok (do)))
+    (none (list-newest-inbox! app account))))
+
+(type list-newest-inbox!
+  (fn ((mut mail-app) (ref str))
+    (result unit mail-error)))
+
+(defn list-newest-inbox! (app account)
+  (let (query (->thread-query (str "INBOX") (str "") preview-limit)
+        summaries (try (fetch-threads! (try (mailbox-for! (mut (:mailboxes app))
+                                                          account))
+                                       (ref query))))
+    (save-threads! (mut (:store app))
+                   account
+                   (ref summaries))))

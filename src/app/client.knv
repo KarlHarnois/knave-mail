@@ -1,5 +1,6 @@
 (use app/mail-app mail-app)
 (use app/reading find-threads! read-thread!)
+(use app/preview preview-sync!)
 (use app/syncing sync!)
 
 (use app/writing compose-forward compose-reply
@@ -34,6 +35,7 @@
   (relabel-threads! (app account thread-ids change)
                     (relabel-each! app account thread-ids change))
   (sync-account! (app account) (sync! app account))
+  (preview-account! (app account) (preview-sync! app account))
   (add-account! (app) (add-authorized-account! app))
   (remove-account! (app account)
                    (forget-account! (mut (:store app)) account)))

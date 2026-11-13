@@ -5,7 +5,7 @@
 
 (export failure-event failure-reply null-id
         request-arguments request-command request-id
-        success-reply synced-event)
+        success-reply sync-progress-event synced-event)
 
 (type request-command
   (fn ((ref str)) (option string)))
@@ -61,6 +61,10 @@
 
 (def synced-event
   (rust "serde_json::json!({{\"event\": \"synced\", \"account\": {0}}}).to_string()"
+    (fn ((ref str)) string)))
+
+(def sync-progress-event
+  (rust "serde_json::json!({{\"event\": \"sync-progress\", \"account\": {0}}}).to_string()"
     (fn ((ref str)) string)))
 
 (def sync-failed-event

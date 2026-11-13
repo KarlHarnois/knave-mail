@@ -48,7 +48,9 @@ export type SyncedEvent = { event: "synced"; account: string };
 
 export type SyncFailedEvent = { event: "sync-failed"; account: string; error: CoreError };
 
-export type CoreEvent = SyncedEvent | SyncFailedEvent;
+export type SyncProgressEvent = { event: "sync-progress"; account: string };
+
+export type CoreEvent = SyncedEvent | SyncProgressEvent | SyncFailedEvent;
 
 export type ThreadCommand =
   | "archive"

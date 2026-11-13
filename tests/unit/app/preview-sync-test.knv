@@ -1,0 +1,30 @@
+(use app/client)
+(use ports/driving/mail-client preview-account!)
+
+(use support/app-steps fail-remote! inbox-query listed-ids!
+                       synced!)
+
+(use support/memory-world app-over remote-with sample-thread
+                          world-account)
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100)
+                    (sample-thread "t-2" (vec "INBOX") 200))))
+
+(deftest a-preview-lists-the-newest-inbox-before-the-first-sync
+  (let (world (remote)
+        app (app-over (ref world)))
+    (unwrap-ok (preview-account! (mut app) world-account))
+    (assert (= (listed-ids! (mut app)
+                            (ref (inbox-query)))
+               (vec (str "t-2") (str "t-1"))))))
+
+(deftest a-preview-does-nothing-once-the-account-has-synced
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (fail-remote! (ref world) "fetch-threads")
+    (assert (= (str (match (preview-account! (mut app) world-account)
+                      ((ok _) "ok")
+                      ((err _) "failed")))
+               "ok"))))
