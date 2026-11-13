@@ -1,5 +1,6 @@
 (use adapters/driving/cli/arguments parsed-arguments
-                                    positional switch?
+                                    positional
+                                    rest-positionals switch?
                                     value-of values-of)
 
 (use domain/collections one-of?)
@@ -138,8 +139,3 @@
      (unwrap-or (ok->option (parse (as-str digits)))
                 fallback))
     (none fallback)))
-
-(def rest-positionals
-  (rust "{0}.positionals.iter().skip(1).cloned().collect::<Vec<String>>()"
-    (fn ((ref parsed-arguments))
-      (vec string))))

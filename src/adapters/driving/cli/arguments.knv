@@ -1,7 +1,8 @@
-(use domain/collections one-of?)
+(use domain/collections appended one-of?)
 
 (export ->parsed-arguments parse-arguments parsed-arguments
-        positional switch? value-of values-of)
+        positional rest-positionals switch? value-of
+        values-of)
 
 (def valued-options
   (vec "--account" "--label" "--query" "--limit" "--format"
@@ -43,6 +44,17 @@
   (if (< index (len (:positionals parsed)))
     (some (clone (at (:positionals parsed) index)))
     none))
+
+(type rest-positionals
+  (fn ((ref parsed-arguments))
+    (vec string)))
+
+(defn rest-positionals (parsed)
+  (loop (index 1
+         words (vec))
+    (match (positional parsed index)
+      ((some word) (recur (+ index 1) (appended words word)))
+      (none words))))
 
 (type value-of
   (fn ((ref parsed-arguments) (ref str))
