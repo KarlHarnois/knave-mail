@@ -55,8 +55,8 @@
 
 (defn values-of (parsed name)
   (collect (map (filter (iter (:options parsed))
-                  (fn (option) (= (first-of option) name)))
-                (fn (option) (clone (second-of option))))))
+                  (fn (option) (= (key-of option) name)))
+                (fn (option) (clone (value-in option))))))
 
 (type switch?
   (fn ((ref parsed-arguments) (ref str))
@@ -91,30 +91,44 @@
     (push! (mut positionals) (clone token))
     (assoc parsed :positionals positionals)))
 
-(def valued-option?
-  (rust "{1}.contains(&{0}.as_str())"
-    (fn ((ref string) (ref (vec (ref str))))
-      bool)))
+(type valued-option?
+  (fn ((ref string) (ref (vec (ref str))))
+    bool))
+
+(defn valued-option? (token options)
+  (any? (iter options)
+    (fn (option)
+      (= (deref option) (as-str token)))))
 
 (def flag?
   (rust "{0}.starts_with(\"--\")"
     (fn ((ref string)) bool)))
 
-(def value-after
-  (rust "{0}.get({1} + 1).cloned().unwrap_or_default()"
-    (fn ((ref (vec string)) usize) string)))
+(type value-after
+  (fn ((ref (vec string)) usize) string))
 
-(def first-of
-  (rust "&{0}.0"
-    (fn ((ref (pair string string)))
-      (ref string))))
+(defn value-after (tokens index)
+  (match (get tokens (+ index 1))
+    ((some value) (clone value))
+    (none (str ""))))
 
-(def second-of
-  (rust "&{0}.1"
-    (fn ((ref (pair string string)))
-      (ref string))))
+(type key-of
+  (fn ((ref (pair string string)))
+    (ref string)))
 
-(def last-value
-  (rust "{0}.last().cloned()"
-    (fn ((ref (vec string)))
-      (option string))))
+(defn key-of (option)
+  (let-match ((pair key _) option) key))
+
+(type value-in
+  (fn ((ref (pair string string)))
+    (ref string)))
+
+(defn value-in (option)
+  (let-match ((pair _ value) option) value))
+
+(type last-value
+  (fn ((ref (vec string)))
+    (option string)))
+
+(defn last-value (values)
+  (map-some (last values) clone))
