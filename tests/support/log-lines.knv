@@ -1,3 +1,5 @@
+(use support/gmail-requests contains?)
+
 (export mentions-none? mentions?)
 
 (type mentions?
@@ -15,7 +17,3 @@
 (defn mentions-none? (lines fragments)
   (not (any? (iter fragments)
          (fn (fragment) (mentions? lines fragment)))))
-
-(def contains?
-  (rust "{0}.contains({1})"
-    (fn ((ref str) (ref str)) bool)))

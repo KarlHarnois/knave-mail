@@ -14,6 +14,7 @@
 (use support/fake-gmail fake-gmail fake-gmail-base
                         requests-seen start-fake-gmail)
 
+(use support/gmail-requests contains?)
 (use support/gmail-world route)
 (use support/temporary temporary-path)
 
@@ -39,10 +40,6 @@
                                      :client-secret (str "fake-secret"))
                          :credentials (box (->file-credentials (str credentials-path)))
                          :browser (box (->fake-browser (str answer))))))
-
-(def contains?
-  (rust "{0}.contains({1})"
-    (fn ((ref str) (ref str)) bool)))
 
 (deftest consent-names-the-account-from-the-gmail-profile
   (let (server (consent-server)

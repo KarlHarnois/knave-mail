@@ -1,5 +1,6 @@
 (use adapters/driven/file-log/file-log open-file-log)
 (use ports/driven/event-log ->log-entry log-level record!)
+(use support/gmail-requests contains?)
 (use support/temporary temporary-path)
 
 (type read-file (fn ((ref str)) string))
@@ -16,10 +17,6 @@
 (def exists?
   (rust "std::path::Path::new({0}).exists()"
     (fn ((ref str)) bool)))
-
-(def contains?
-  (rust "{0}.contains({1})"
-    (fn ((ref str) (ref str)) bool)))
 
 (type line-count (fn ((ref str)) usize))
 
