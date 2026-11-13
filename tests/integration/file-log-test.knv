@@ -2,9 +2,12 @@
 (use ports/driven/event-log ->log-entry log-level record!)
 (use support/temporary temporary-path)
 
-(def read-file
-  (rust "std::fs::read_to_string({0}).unwrap_or_default()"
-    (fn ((ref str)) string)))
+(type read-file (fn ((ref str)) string))
+
+(defn read-file (path)
+  (match (slurp path)
+    ((ok text) text)
+    ((err _) (str ""))))
 
 (def write-bytes
   (rust "{{ let _ = std::fs::write({0}, vec![b'x'; {1}]); }}"
@@ -18,9 +21,10 @@
   (rust "{0}.contains({1})"
     (fn ((ref str) (ref str)) bool)))
 
-(def line-count
-  (rust "{0}.lines().count()"
-    (fn ((ref str)) usize)))
+(type line-count (fn ((ref str)) usize))
+
+(defn line-count (text)
+  (count (lines text)))
 
 (defn record-at! (log level area message)
   (record! (ref log)

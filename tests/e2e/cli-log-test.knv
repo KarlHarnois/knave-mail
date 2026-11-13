@@ -8,9 +8,15 @@
 (use support/log-lines mentions-none? mentions?)
 (use support/temporary temporary-path)
 
-(def log-lines-of
-  (rust "std::fs::read_to_string({0}).unwrap_or_default().lines().map(str::to_string).collect::<Vec<_>>()"
-    (fn ((ref str)) (vec string))))
+(type log-lines-of
+  (fn ((ref str)) (vec string)))
+
+(defn log-lines-of (path)
+  (match (slurp path)
+    ((ok text)
+     (collect (map (lines (as-str text))
+                (fn (line) (str line)))))
+    ((err _) (vec))))
 
 (defn synced-with-debug-log ()
   (let (server (start-fake-gmail (ref (fixture-routes)))
