@@ -75,25 +75,63 @@
                                             email thread-id
                                             change))))
 
-(def checkpoint-of
-  (rust "{0}.iter().find(|({!account}, _)| {!account} == {1}).map(|(_, {!history})| {!history}.clone())"
-    (fn ((ref (vec (pair string string)))
-         (ref str))
-      (option string))))
+(type checkpoint-of
+  (fn ((ref (vec (pair string string)))
+       (ref str))
+    (option string)))
 
-(def replace-checkpoint!
-  (rust "{{ {0}.retain(|({!account}, _)| {!account} != {1}); {0}.push(({1}.to_string(), {2}.to_string())); }}"
-    (fn ((mut (vec (pair string string)))
-         (ref str)
-         (ref str))
-      unit)))
+(defn checkpoint-of (checkpoints email)
+  (map-some (find (iter checkpoints)
+              (fn (checkpoint) (checkpoint-of? checkpoint email)))
+            (fn (checkpoint)
+              (let-match ((pair _ history-id) checkpoint)
+                (clone history-id)))))
 
-(def account-kept?
-  (rust "{0}.iter().any(|{!account}| {!account}.email == *{1})"
-    (fn ((ref (vec account)) (ref str))
-      bool)))
+(type replace-checkpoint!
+  (fn ((mut (vec (pair string string)))
+       (ref str)
+       (ref str))
+    unit))
 
-(def accounts-without
-  (rust "{0}.iter().filter(|{!account}| {!account}.email != *{1}).cloned().collect::<Vec<_>>()"
-    (fn ((ref (vec account)) (ref str))
-      (vec account))))
+(defn replace-checkpoint! (checkpoints email history-id)
+  (set! checkpoints (checkpoints-without checkpoints email))
+  (push! checkpoints
+         (pair (str email) (str history-id))))
+
+(type checkpoints-without
+  (fn ((ref (vec (pair string string)))
+       (ref str))
+    (vec (pair string string))))
+
+(defn checkpoints-without (checkpoints email)
+  (collect (map (filter (iter checkpoints)
+                  (fn (checkpoint)
+                    (not (checkpoint-of? checkpoint email))))
+                (fn (checkpoint) (clone checkpoint)))))
+
+(type checkpoint-of?
+  (fn ((ref (pair string string)) (ref str))
+    bool))
+
+(defn checkpoint-of? (checkpoint email)
+  (let-match ((pair account _) checkpoint)
+    (= account email)))
+
+(type account-kept?
+  (fn ((ref (vec account)) (ref str))
+    bool))
+
+(defn account-kept? (accounts email)
+  (any? (iter accounts)
+    (fn (account)
+      (= (:email account) email))))
+
+(type accounts-without
+  (fn ((ref (vec account)) (ref str))
+    (vec account)))
+
+(defn accounts-without (accounts email)
+  (collect (map (filter (iter accounts)
+                  (fn (account)
+                    (not= (:email account) email)))
+                (fn (account) (clone account)))))
