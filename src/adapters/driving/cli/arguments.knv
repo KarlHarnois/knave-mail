@@ -1,3 +1,5 @@
+(use domain/collections one-of?)
+
 (export ->parsed-arguments parse-arguments parsed-arguments
         positional switch? value-of values-of)
 
@@ -26,7 +28,7 @@
       parsed
       (let (token (at tokens index))
         (cond
-          ((valued-option? token valued-options)
+          ((one-of? (as-str token) valued-options)
            (recur (+ index 2)
                   (with-option parsed token (value-after tokens index))))
           ((flag? token)
@@ -90,15 +92,6 @@
   (let (positionals (clone (:positionals parsed)))
     (push! (mut positionals) (clone token))
     (assoc parsed :positionals positionals)))
-
-(type valued-option?
-  (fn ((ref string) (ref (vec (ref str))))
-    bool))
-
-(defn valued-option? (token options)
-  (any? (iter options)
-    (fn (option)
-      (= (deref option) (as-str token)))))
 
 (def flag?
   (rust "{0}.starts_with(\"--\")"

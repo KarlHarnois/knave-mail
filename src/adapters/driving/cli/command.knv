@@ -2,6 +2,7 @@
                                     positional switch?
                                     value-of values-of)
 
+(use domain/collections one-of?)
 (use domain/mail-error mail-error)
 (use domain/results ok->option)
 
@@ -33,7 +34,7 @@
 
 (defn cli-command-word? (parsed)
   (match (positional parsed 0)
-    ((some word) (known-word? (ref command-words) (ref word)))
+    ((some word) (one-of? (as-str word) (ref command-words)))
     (none false)))
 
 (type command-from
@@ -142,12 +143,3 @@
   (rust "{0}.positionals.iter().skip(1).cloned().collect::<Vec<String>>()"
     (fn ((ref parsed-arguments))
       (vec string))))
-
-(type known-word?
-  (fn ((ref (vec (ref str))) (ref string))
-    bool))
-
-(defn known-word? (words word)
-  (any? (iter words)
-    (fn (known)
-      (= (deref known) (as-str word)))))
