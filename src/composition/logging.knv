@@ -1,0 +1,13 @@
+(use adapters/driven/file-log/file-log open-file-log)
+(use composition/settings settings)
+(use ports/driven/event-log event-log)
+
+(export chosen-log)
+
+(type chosen-log
+  (fn ((ref settings)) (box event-log)))
+
+(defn chosen-log (chosen)
+  (the (box event-log)
+       (box (open-file-log (ref (:log-path chosen))
+                           (ref (:log-level chosen))))))

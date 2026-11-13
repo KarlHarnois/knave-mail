@@ -1,0 +1,46 @@
+(use support/binary output-code)
+
+(use support/cli-world gmail-cli last-request
+                       signed-in-tokens)
+
+(use support/fake-gmail start-fake-gmail)
+(use support/gmail-world fixture-routes)
+(use support/log-lines mentions-none? mentions?)
+(use support/temporary temporary-path)
+
+(def log-lines-of
+  (rust "std::fs::read_to_string({0}).unwrap_or_default().lines().map(str::to_string).collect::<Vec<_>>()"
+    (fn ((ref str)) (vec string))))
+
+(defn synced-with-debug-log ()
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        cache (temporary-path "log-cache.sqlite3")
+        tokens (signed-in-tokens)
+        log-path (temporary-path "cli-debug.log"))
+    (assert (= (output-code (ref (gmail-cli (ref server)
+                                            (ref cache)
+                                            (ref tokens)
+                                            (vec "--log-file"
+                                                 (as-str log-path)
+                                                 "--log-level"
+                                                 "debug"
+                                                 "sync")
+                                            "")))
+               0))
+    (log-lines-of (ref log-path))))
+
+(deftest a-cli-sync-logs-startup-requests-and-the-sync
+  (let (lines (synced-with-debug-log))
+    (assert (mentions? (ref lines) "started: cli sync"))
+    (assert (mentions? (ref lines) "GET /gmail/v1/users/me/labels 200"))
+    (assert (mentions? (ref lines) "full sync, no checkpoint yet"))
+    (assert (mentions? (ref lines) "cli sync exited with 0"))))
+
+(deftest a-debug-log-holds-no-credentials-or-mail-content
+  (let (lines (synced-with-debug-log))
+    (assert (mentions-none?
+              (ref lines)
+              (ref (vec "Bearer" "fake-access-token"
+                        "fake-secret" "fake-refresh"
+                        "Compiler meeting"
+                        "meet Tuesday"))))))

@@ -2,10 +2,11 @@
 (use app/mailboxes mailbox-for!)
 (use domain/labels label-change)
 (use domain/mail draft message)
-(use domain/mail-error mail-error)
 (use domain/outgoing new-outgoing reply-outgoing)
 (use domain/reply forward-draft reply-all-draft reply-draft)
 (use app/caching cache-thread!)
+(use domain/mail-error error-kind error-message mail-error)
+(use ports/driven/event-log log-warn)
 (use ports/driven/mailbox deliver! relabel!)
 (use ports/driven/store load-message relabel-stored!)
 
@@ -57,6 +58,14 @@
 
 (defn remember-sent! (app account thread-id)
   (match (cache-thread! app account thread-id)
+    ((err failure)
+     (log-warn (ref (:log app))
+               "send"
+               (str account ": sent into thread " thread-id
+                    ", but caching it failed: "
+                    (error-kind (ref failure))
+                    ": "
+                    (error-message (ref failure)))))
     (_ (do))))
 
 (type relabel-each!

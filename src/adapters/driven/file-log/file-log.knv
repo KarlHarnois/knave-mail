@@ -1,0 +1,74 @@
+(use adapters/driven/file-log/level-spec allows? level-spec
+                                         parse-level-spec)
+
+(use ports/driven/event-log event-log log-entry log-level)
+
+(export file-log open-file-log)
+
+(def rotate-above-bytes 5000000)
+
+(def kept-old-files 3)
+
+(defstruct file-log
+  :path string
+  :levels level-spec)
+
+(type open-file-log
+  (fn ((ref str) (ref str)) file-log))
+
+(defn open-file-log (path levels)
+  (rotate-when-large path rotate-above-bytes kept-old-files)
+  (->file-log :path (str path)
+              :levels (parse-level-spec levels)))
+
+(impl event-log file-log
+  (record! (kept entry)
+           (when (allows? (ref (:levels kept)) entry)
+             (append-line (ref (:path kept))
+                          (ref (log-line entry)))))
+  (share-log (kept)
+             (the (box event-log) (box (clone kept)))))
+
+(type log-line
+  (fn ((ref log-entry)) string))
+
+(defn log-line (entry)
+  (str (utc-timestamp)
+       " "
+       (padded (level-name (ref (:level entry)))
+               5)
+       " "
+       (padded (str (:area entry)) 8)
+       " "
+       (one-line (ref (:message entry)))
+       "\n"))
+
+(type level-name
+  (fn ((ref log-level)) string))
+
+(defn level-name (level)
+  (match level
+    (log-level/error (str "ERROR"))
+    (log-level/warn (str "WARN"))
+    (log-level/info (str "INFO"))
+    (log-level/debug (str "DEBUG"))))
+
+(def padded
+  (rust "format!(\"{{:<width$}}\", {0}, width = {1})"
+    (fn (string usize) string)))
+
+(def one-line
+  (rust "{0}.replace('\\n', \"\\\\n\").replace('\\r', \"\")"
+    (fn ((ref str)) string)))
+
+(def utc-timestamp
+  (rust "{{ let {!elapsed} = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default(); let {!seconds} = {!elapsed}.as_secs() as i64; let {!days} = {!seconds}.div_euclid(86400); let {!clock} = {!seconds}.rem_euclid(86400); let {!shifted} = {!days} + 719468; let {!era} = {!shifted}.div_euclid(146097); let {!day_of_era} = {!shifted} - {!era} * 146097; let {!year_of_era} = ({!day_of_era} - {!day_of_era} / 1460 + {!day_of_era} / 36524 - {!day_of_era} / 146096) / 365; let {!day_of_year} = {!day_of_era} - (365 * {!year_of_era} + {!year_of_era} / 4 - {!year_of_era} / 100); let {!month_index} = (5 * {!day_of_year} + 2) / 153; let {!day} = {!day_of_year} - (153 * {!month_index} + 2) / 5 + 1; let {!month} = if {!month_index} < 10 {{ {!month_index} + 3 }} else {{ {!month_index} - 9 }}; let {!year} = {!year_of_era} + {!era} * 400 + if {!month} <= 2 {{ 1 }} else {{ 0 }}; format!(\"{{:04}}-{{:02}}-{{:02}}T{{:02}}:{{:02}}:{{:02}}.{{:03}}Z\", {!year}, {!month}, {!day}, {!clock} / 3600, {!clock} % 3600 / 60, {!clock} % 60, {!elapsed}.subsec_millis()) }}"
+    (fn () string)))
+
+(def append-line
+  (rust "{{ use std::io::Write; let _ = std::fs::OpenOptions::new().create(true).append(true).open({0}).and_then(|mut {!file}| {!file}.write_all({1}.as_bytes())); }}"
+    (fn ((ref str) (ref str)) unit)))
+
+(def rotate-when-large
+  (rust "{{ let {!path} = std::path::Path::new({0}); if let Some({!parent}) = {!path}.parent() {{ if std::fs::create_dir_all({!parent}).is_err() {{ eprintln!(\"knave-mail: cannot create the log folder {{}}\", {!parent}.display()); }} }} if std::fs::metadata({!path}).map(|{!meta}| {!meta}.len() > {1}).unwrap_or(false) {{ for {!number} in (1..{2}).rev() {{ let _ = std::fs::rename(format!(\"{{}}.{{}}\", {0}, {!number}), format!(\"{{}}.{{}}\", {0}, {!number} + 1)); }} let _ = std::fs::rename({0}, format!(\"{{}}.1\", {0})); }} }}"
+    (fn ((ref str) u64 u64) unit)))

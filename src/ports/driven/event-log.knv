@@ -1,0 +1,59 @@
+(export ->log-entry event-log log-debug log-entry log-error
+        log-info log-level log-warn severity)
+
+(defenum log-level
+  error
+  warn
+  info
+  debug)
+
+(defstruct log-entry
+  :level log-level
+  :area string
+  :message string)
+
+(deftrait event-log
+  (record! (fn ((ref self) (ref log-entry)) unit))
+  (share-log (fn ((ref self)) (box event-log))))
+
+(type severity
+  (fn ((ref log-level)) u8))
+
+(defn severity (level)
+  (match level
+    (log-level/error 0)
+    (log-level/warn 1)
+    (log-level/info 2)
+    (log-level/debug 3)))
+
+(type log-error
+  (fn ((ref (box event-log)) (ref str) string)
+    unit))
+
+(defn log-error (log area message)
+  (record! log
+           (ref (->log-entry log-level/error (str area) message))))
+
+(type log-warn
+  (fn ((ref (box event-log)) (ref str) string)
+    unit))
+
+(defn log-warn (log area message)
+  (record! log
+           (ref (->log-entry log-level/warn (str area) message))))
+
+(type log-info
+  (fn ((ref (box event-log)) (ref str) string)
+    unit))
+
+(defn log-info (log area message)
+  (record! log
+           (ref (->log-entry log-level/info (str area) message))))
+
+(type log-debug
+  (fn ((ref (box event-log)) (ref str) string)
+    unit))
+
+(defn log-debug (log area message)
+  (record! log
+           (ref (->log-entry log-level/debug (str area) message))))

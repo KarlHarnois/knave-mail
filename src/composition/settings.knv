@@ -14,7 +14,9 @@
   :auth-url string
   :browser string
   :theme-path string
-  :keymap-path string)
+  :keymap-path string
+  :log-path string
+  :log-level string)
 
 (type settings-from
   (fn ((ref (vec string))) settings))
@@ -59,8 +61,12 @@
                                "KNAVE_MAIL_KEYMAP"
                                (ref (config-file "keymap.knv")))
     :browser (option-value arguments "--browser"
-                           "KNAVE_MAIL_BROWSER"
-                           "xdg-open")))
+                           "KNAVE_MAIL_BROWSER" "xdg-open")
+    :log-path (option-value arguments "--log-file"
+                            "KNAVE_MAIL_LOG_FILE"
+                            (ref (default-log-path)))
+    :log-level (option-value arguments "--log-level"
+                             "KNAVE_MAIL_LOG" "info")))
 
 (def option-value
   (rust "{0}.iter().position(|{!argument}| *{!argument} == *{1}).and_then(|{!index}| {0}.get({!index} + 1).cloned()).or_else(|| std::env::var({2}).ok()).unwrap_or_else(|| {3}.to_string())"
@@ -72,6 +78,10 @@
 
 (def default-cache-path
   (rust "std::env::var(\"XDG_DATA_HOME\").map(std::path::PathBuf::from).or_else(|_| std::env::var(\"HOME\").map(|{!home}| std::path::Path::new(&{!home}).join(\".local/share\"))).unwrap_or_else(|_| std::path::PathBuf::from(\".\")).join(\"knave-mail/cache.sqlite3\").to_string_lossy().into_owned()"
+    (fn () string)))
+
+(def default-log-path
+  (rust "std::env::var(\"XDG_STATE_HOME\").map(std::path::PathBuf::from).or_else(|_| std::env::var(\"HOME\").map(|{!home}| std::path::Path::new(&{!home}).join(\".local/state\"))).unwrap_or_else(|_| std::path::PathBuf::from(\".\")).join(\"knave-mail/knave-mail.log\").to_string_lossy().into_owned()"
     (fn () string)))
 
 (def parse-or-zero

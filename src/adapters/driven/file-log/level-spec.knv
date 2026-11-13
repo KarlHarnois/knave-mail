@@ -1,0 +1,36 @@
+(use ports/driven/event-log log-entry severity)
+
+(export ->level-spec allows? level-spec parse-level-spec)
+
+(def info-severity 2)
+
+(defstruct level-spec
+  :default u8
+  :areas (vec (pair string u8)))
+
+(type parse-level-spec
+  (fn ((ref str)) level-spec))
+
+(defn parse-level-spec (text)
+  (->level-spec :default (default-severity text info-severity)
+                :areas (area-severities text)))
+
+(type allows?
+  (fn ((ref level-spec) (ref log-entry))
+    bool))
+
+(defn allows? (spec entry)
+  (<= (severity (ref (:level entry)))
+      (threshold-for spec (ref (:area entry)))))
+
+(def threshold-for
+  (rust "{0}.areas.iter().find(|({!area}, _)| {!area} == {1}).map(|(_, {!threshold})| *{!threshold}).unwrap_or({0}.default)"
+    (fn ((ref level-spec) (ref str)) u8)))
+
+(def default-severity
+  (rust "{0}.split(',').map(str::trim).filter(|{!part}| !{!part}.contains('=')).find_map(|{!part}| match {!part}.to_ascii_lowercase().as_str() {{ \"error\" => Some(0u8), \"warn\" => Some(1), \"info\" => Some(2), \"debug\" => Some(3), _ => None }}).unwrap_or({1})"
+    (fn ((ref str) u8) u8)))
+
+(def area-severities
+  (rust "{0}.split(',').filter_map(|{!part}| {!part}.trim().split_once('=')).filter_map(|({!area}, {!level})| match {!level}.trim().to_ascii_lowercase().as_str() {{ \"error\" => Some(0u8), \"warn\" => Some(1), \"info\" => Some(2), \"debug\" => Some(3), _ => None }}.map(|{!threshold}| ({!area}.trim().to_string(), {!threshold}))).collect::<Vec<_>>()"
+    (fn ((ref str)) (vec (pair string u8)))))

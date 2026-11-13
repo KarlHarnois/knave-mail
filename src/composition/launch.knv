@@ -1,4 +1,6 @@
-(use adapters/driving/cli/arguments parsed-arguments)
+(use adapters/driving/cli/arguments parsed-arguments
+                                    positional)
+
 (use adapters/driving/cli/cli run-cli!)
 (use adapters/driving/cli/command cli-command command-from)
 (use adapters/driving/cli/exit-codes exit-code)
@@ -12,9 +14,11 @@
 (use composition/gmail-backend gmail-app)
 (use composition/memory-backend memory-app)
 (use composition/keymap-loader keymap-startup-script)
+(use composition/logging chosen-log)
 (use composition/settings settings)
 (use composition/theme-file theme-stylesheet)
 (use domain/mail-error error-message mail-error)
+(use ports/driven/event-log event-log log-info share-log)
 
 (export launch-cli launch-window)
 
@@ -39,12 +43,45 @@
   (fn (settings parsed-arguments) unit))
 
 (defn run-cli-with-app (chosen parsed)
-  (match (chosen-app (ref chosen))
-    ((ok app)
-     (do
-       (local running app)
-       (exit-with (run-cli! (mut running) (ref parsed)))))
-    ((err failure) (fail-with (ref failure)))))
+  (let (log (chosen-log (ref chosen))
+        command (trimmed (str (unwrap-or (positional (ref parsed) 0)
+                                         (str ""))
+                              " "
+                              (unwrap-or (positional (ref parsed) 1)
+                                         (str ""))))
+        started (clock-milliseconds))
+    (log-started (ref log)
+                 (ref chosen)
+                 (ref (str "cli " command)))
+    (match (chosen-app (ref chosen)
+                       (share-log (ref log)))
+      ((ok app)
+       (do
+         (local running app)
+         (let (code (run-cli! (mut running) (ref parsed)))
+           (log-info (ref log)
+                     "app"
+                     (str "cli " command " exited with "
+                          code " after "
+                          (- (clock-milliseconds) started)
+                          "ms"))
+           (exit-with code))))
+      ((err failure) (fail-with (ref failure))))))
+
+(type log-started
+  (fn ((ref (box event-log))
+       (ref settings)
+       (ref str))
+    unit))
+
+(defn log-started (log chosen mode)
+  (log-info log "app"
+            (str "knave-mail "
+                 (app-version)
+                 " started: " mode ", backend "
+                 (:backend chosen)
+                 ", cache "
+                 (:cache-path chosen))))
 
 (type launch-window (fn (settings) unit))
 
@@ -54,8 +91,11 @@
         stylesheet (theme-stylesheet (ref chosen)))
     (open-window "knave-mail" (ref script) (ref stylesheet)
       (fn (inbox outbox)
-        (let (owned chosen)
-          (match (chosen-app (ref owned))
+        (let (owned chosen
+              log (chosen-log (ref owned)))
+          (log-started (ref log) (ref owned) "window")
+          (match (chosen-app (ref owned)
+                             (share-log (ref log)))
             ((ok app)
              (do
                (local running app)
@@ -64,24 +104,26 @@
                    (local runner (->inline-sync 0))
                    (serve-requests! (mut running)
                                     (mut runner)
+                                    (ref log)
                                     (ref inbox)
                                     (ref outbox)))
                  (do
                    (local runner (->background-sync 0))
                    (serve-requests! (mut running)
                                     (mut runner)
+                                    (ref log)
                                     (ref inbox)
                                     (ref outbox))))))
             ((err failure) (fail-with (ref failure)))))))))
 
 (type chosen-app
-  (fn ((ref settings))
+  (fn ((ref settings) (box event-log))
     (result mail-app mail-error)))
 
-(defn chosen-app (chosen)
+(defn chosen-app (chosen log)
   (if (= (:backend chosen) memory-backend)
-    (ok (memory-app chosen))
-    (gmail-app chosen)))
+    (ok (memory-app chosen log))
+    (gmail-app chosen log)))
 
 (type fail-with
   (fn ((ref mail-error)) unit))
@@ -89,6 +131,17 @@
 (defn fail-with (failure)
   (eprintln (str "knave-mail: " (error-message failure)))
   (exit-with (exit-code failure)))
+
+(def trimmed
+  (rust "{0}.trim().to_string()" (fn (string) string)))
+
+(def app-version
+  (rust "env!(\"CARGO_PKG_VERSION\").to_string()"
+    (fn () string)))
+
+(def clock-milliseconds
+  (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as u64).unwrap_or(0)"
+    (fn () u64)))
 
 (def exit-with
   (rust "std::process::exit({0})" (fn (i32) unit)))

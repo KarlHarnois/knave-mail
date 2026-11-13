@@ -1,11 +1,12 @@
 (use adapters/driven/gmail/http new-agent)
 (use adapters/driven/gmail/mailbox ->gmail-mailbox)
 
-(use adapters/driven/gmail/session ->gmail-session
-                                   gmail-endpoints)
+(use adapters/driven/gmail/session-state ->gmail-session
+                                         gmail-endpoints)
 
 (use domain/mail-error mail-error)
 (use ports/driven/credentials credentials load-token)
+(use ports/driven/event-log event-log share-log)
 (use ports/driven/mailbox mailbox)
 (use ports/driven/mailbox-provider mailbox-provider)
 
@@ -13,7 +14,8 @@
 
 (defstruct gmail-provider
   :endpoints gmail-endpoints
-  :credentials (box credentials))
+  :credentials (box credentials)
+  :log (box event-log))
 
 (impl mailbox-provider gmail-provider
   (open-mailbox! (provider email)
@@ -25,7 +27,9 @@
                                       :agent (new-agent)
                                       :endpoints (clone (:endpoints provider))
                                       :refresh-token refresh-token
-                                      :access-token none))))))
+                                      :access-token none
+                                      :log (share-log (ref (:log
+                                                             provider)))))))))
                    (none (err (mail-error/auth-required (str "no saved sign-in for "
                                                              email
                                                              "; run `knave-mail accounts add`")))))))

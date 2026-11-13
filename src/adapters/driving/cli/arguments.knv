@@ -7,7 +7,8 @@
        "--fail" "--e2e-script" "--cache"
        "--credentials-file" "--client-id" "--client-secret"
        "--gmail-base-url" "--token-url" "--auth-url"
-       "--theme" "--keymap" "--browser"))
+       "--theme" "--keymap" "--browser" "--log-file"
+       "--log-level"))
 
 (defstruct parsed-arguments
   :positionals (vec string)

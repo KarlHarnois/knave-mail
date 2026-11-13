@@ -3,13 +3,19 @@
 (use adapters/driven/gmail/mailbox ->gmail-mailbox
                                    gmail-mailbox)
 
-(use adapters/driven/gmail/session ->gmail-endpoints
-                                   ->gmail-session)
+(use adapters/driven/gmail/session-state ->gmail-endpoints
+                                         ->gmail-session)
+
+(use adapters/driven/memory/memory-log memory-log
+                                       new-memory-log)
+
+(use ports/driven/event-log event-log)
 
 (use support/fake-gmail fake-gmail fake-gmail-base
                         start-fake-gmail)
 
-(export fixture-routes gmail-over gmail-paced route)
+(export fixture-routes gmail-logging gmail-over gmail-paced
+        route)
 
 (def fixtures "tests/fixtures/gmail/")
 
@@ -46,6 +52,10 @@
               (ref (str "200 " fixtures "message-m1-raw.json")))
        (route "GET /gmail/v1/users/me/messages/m2"
               (ref (str "200 " fixtures "message-m2-raw.json")))
+       (route "GET /gmail/v1/users/me/threads/t2?format=minimal"
+              (ref (str "200 " fixtures "thread-t2-minimal.json")))
+       (route "GET /gmail/v1/users/me/messages/m3"
+              (ref (str "200 " fixtures "message-m3-raw.json")))
        (route "POST /gmail/v1/users/me/messages/send"
               (ref (str "200 " fixtures "sent.json")))
        (route "POST /gmail/v1/users/me/threads/t1/modify"
@@ -60,6 +70,17 @@
   (fn ((ref fake-gmail) u64) gmail-mailbox))
 
 (defn gmail-paced (server spacing)
+  (gmail-built server spacing (new-memory-log)))
+
+(type gmail-logging
+  (fn ((ref fake-gmail) memory-log) gmail-mailbox))
+
+(defn gmail-logging (server log) (gmail-built server 0 log))
+
+(type gmail-built
+  (fn ((ref fake-gmail) u64 memory-log) gmail-mailbox))
+
+(defn gmail-built (server spacing log)
   (let (base (fake-gmail-base server))
     (->gmail-mailbox (->gmail-session
                        :agent (new-agent)
@@ -71,4 +92,5 @@
                                     :rate-limit-pause-milliseconds 1
                                     :request-spacing-milliseconds spacing)
                        :refresh-token (str "fake-refresh")
-                       :access-token none))))
+                       :access-token none
+                       :log (the (box event-log) (box log))))))

@@ -1,0 +1,21 @@
+(export mentions-none? mentions?)
+
+(type mentions?
+  (fn ((ref (vec string)) (ref str)) bool))
+
+(defn mentions? (lines fragment)
+  (any? (iter lines)
+    (fn (line) (contains? line fragment))))
+
+(type mentions-none?
+  (fn ((ref (vec string))
+       (ref (vec (ref str))))
+    bool))
+
+(defn mentions-none? (lines fragments)
+  (not (any? (iter fragments)
+         (fn (fragment) (mentions? lines fragment)))))
+
+(def contains?
+  (rust "{0}.contains({1})"
+    (fn ((ref str) (ref str)) bool)))

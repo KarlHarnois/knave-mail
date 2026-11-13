@@ -8,7 +8,14 @@
                                      send-reply)
 
 (use app/client)
+(use app/mail-app mail-app)
 (use composition/gmail-backend gmail-app)
+(use composition/logging chosen-log)
+(use domain/mail-error error-kind error-message mail-error)
+
+(use ports/driven/event-log event-log log-info log-warn
+                            share-log)
+
 (use composition/settings settings-from)
 
 (use ports/driving/mail-client preview-account!
@@ -35,15 +42,66 @@
     string))
 
 (defn synced-in-own-app (account progress)
-  (sync-event (match (gmail-app (ref (settings-from (ref (command-line-args)))))
-                ((ok app)
-                 (do
-                   (local syncing app)
-                   (when (is-ok (ref (preview-account! (mut syncing) account)))
-                     (send-reply progress (sync-progress-event account)))
-                   (sync-account! (mut syncing) account)))
-                ((err failure) (err failure)))
-              account))
+  (let (chosen (settings-from (ref (command-line-args)))
+        log (chosen-log (ref chosen))
+        started (clock-milliseconds)
+        outcome (match (gmail-app (ref chosen)
+                                  (share-log (ref log)))
+                  ((ok app)
+                   (do
+                     (local syncing app)
+                     (previewed-then-synced! (mut syncing)
+                                             account
+                                             progress
+                                             (ref log)
+                                             started)))
+                  ((err failure) (err failure))))
+    (log-outcome (ref log) account (ref outcome) started)
+    (sync-event outcome account)))
+
+(type previewed-then-synced!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref reply-outbox)
+       (ref (box event-log))
+       u64)
+    (result unit mail-error)))
+
+(defn previewed-then-synced! (app account progress log started)
+  (log-info log "sync"
+            (str account ": background sync started"))
+  (when (is-ok (ref (preview-account! app account)))
+    (send-reply progress (sync-progress-event account))
+    (log-info log "sync"
+              (str account ": preview shown after "
+                   (- (clock-milliseconds) started)
+                   "ms")))
+  (sync-account! app account))
+
+(type log-outcome
+  (fn ((ref (box event-log))
+       (ref str)
+       (ref (result unit mail-error))
+       u64)
+    unit))
+
+(defn log-outcome (log account outcome started)
+  (let (elapsed (- (clock-milliseconds) started))
+    (match outcome
+      ((ok _)
+       (log-info log "sync"
+                 (str account ": sync finished after " elapsed "ms")))
+      ((err failure)
+       (log-warn log "sync"
+                 (str account ": sync failed after " elapsed
+                      "ms: "
+                      (error-kind failure)
+                      ": "
+                      (error-message failure)))))))
+
+(def clock-milliseconds
+  (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as u64).unwrap_or(0)"
+    (fn () u64)))
 
 (def is-ok
   (rust "{0}.is_ok()"

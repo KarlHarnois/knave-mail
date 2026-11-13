@@ -17,8 +17,9 @@
                                    fetched-history-id!)
 
 (use adapters/driven/gmail/session api-get! api-get-all!
-                                   api-post! gmail-session)
+                                   api-post!)
 
+(use adapters/driven/gmail/session-state gmail-session)
 (use domain/mail ->thread message thread)
 (use domain/mail-error mail-error)
 (use ports/driven/mailbox mailbox)

@@ -14,6 +14,7 @@
 
 (use app/client)
 (use app/mail-app mail-app new-mail-app)
+(use ports/driven/event-log event-log)
 (use composition/settings settings)
 (use domain/mail ->account)
 (use ports/driven/store save-account!)
@@ -28,14 +29,15 @@
 (def sync-limit 500)
 
 (type memory-app
-  (fn ((ref settings)) mail-app))
+  (fn ((ref settings) (box event-log))
+    mail-app))
 
-(defn memory-app (chosen)
+(defn memory-app (chosen log)
   (let (app (new-mail-app (box (store-with-accounts))
                           (box (->memory-provider (account-emails)
                                                   (seeded-remotes chosen)))
                           (box (->memory-authorizer (vec)))
-                          sync-limit))
+                          log sync-limit))
     (sync-every-account! (mut app) 0)
     app))
 

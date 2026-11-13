@@ -1,5 +1,6 @@
 (use app/caching cache-thread!)
 (use app/mail-app mail-app)
+(use ports/driven/event-log log-debug log-info)
 (use app/mailboxes mailbox-for!)
 (use domain/mail-error error-kind mail-error)
 (use ports/driven/mailbox fetch-changes!)
@@ -15,6 +16,12 @@
   (let (changes (try (fetch-changes! (try (mailbox-for! (mut (:mailboxes app))
                                                         account))
                                      since)))
+    (log-info (ref (:log app))
+              "sync"
+              (str account ": "
+                   (len (:thread-ids changes))
+                   " threads changed, now at history "
+                   (:history-id changes)))
     (try (refresh-threads! app account (ref (:thread-ids changes)) 0))
     (save-checkpoint! (mut (:store app))
                       account
@@ -42,6 +49,9 @@
   (match (cache-thread! app account thread-id)
     ((err failure)
      (if (= (error-kind (ref failure)) "not-found")
-       (ok (do))
+       (ok (log-debug (ref (:log app))
+                      "sync"
+                      (str account ": changed thread "
+                           thread-id " no longer exists")))
        (err failure)))
     (done done)))

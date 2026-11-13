@@ -1,0 +1,55 @@
+(use adapters/driven/gmail/http http-post-form reply-body
+                                reply-status)
+
+(use adapters/driven/gmail/replies as-internal sent)
+(use adapters/driven/gmail/session-state gmail-session)
+(use adapters/driving/json/value parse-json string-field)
+(use domain/mail-error mail-error)
+(use ports/driven/event-log log-info log-warn)
+
+(export access-token! refresh!)
+
+(def area "gmail")
+
+(type access-token!
+  (fn ((mut gmail-session))
+    (result string mail-error)))
+
+(defn access-token! (session)
+  (match (ref (:access-token session))
+    ((some token) (ok (clone token)))
+    (none (do (try (refresh! session)) (access-token! session)))))
+
+(type refresh!
+  (fn ((mut gmail-session))
+    (result unit mail-error)))
+
+(defn refresh! (session)
+  (let (endpoints (ref (:endpoints session))
+        form (vec (pair (str "grant_type") (str "refresh_token"))
+                  (pair (str "client_id")
+                        (clone (:client-id endpoints)))
+                  (pair (str "client_secret")
+                        (clone (:client-secret endpoints)))
+                  (pair (str "refresh_token")
+                        (clone (:refresh-token session))))
+        reply (try (sent (http-post-form (ref (:agent session))
+                                         (ref (:token-url endpoints))
+                                         (ref form)))))
+    (if (= (reply-status (ref reply)) 200)
+      (let (body (try (as-internal (parse-json (ref (reply-body (ref
+                                                                  reply)))))))
+        (set! (:access-token session)
+              (some (try (as-internal (string-field (ref body)
+                                                    "access_token")))))
+        (log-info (ref (:log session))
+                  area
+                  (str "refreshed the access token"))
+        (ok (do)))
+      (do
+        (log-warn (ref (:log session))
+                  area
+                  (str "Google refused the saved sign-in ("
+                       (reply-status (ref reply))
+                       ")"))
+        (err (mail-error/auth-required (str "Google refused the saved sign-in; run `knave-mail accounts add` again")))))))

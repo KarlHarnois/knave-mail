@@ -2,8 +2,8 @@
 (use adapters/driven/gmail/http new-agent)
 (use adapters/driven/gmail/provider ->gmail-provider)
 
-(use adapters/driven/gmail/session ->gmail-endpoints
-                                   gmail-endpoints)
+(use adapters/driven/gmail/session-state ->gmail-endpoints
+                                         gmail-endpoints)
 
 (use adapters/driven/google-oauth/authorizer ->google-authorizer)
 (use adapters/driven/google-oauth/oauth-settings ->oauth-settings)
@@ -11,6 +11,7 @@
 (use adapters/driven/keyring/credentials ->keyring-credentials)
 (use adapters/driven/sqlite/store open-sqlite-store)
 (use app/mail-app mail-app new-mail-app)
+(use ports/driven/event-log event-log share-log)
 (use composition/settings settings)
 (use domain/mail-error mail-error)
 (use ports/driven/credentials credentials)
@@ -20,15 +21,16 @@
 (def sync-limit 100)
 
 (type gmail-app
-  (fn ((ref settings))
+  (fn ((ref settings) (box event-log))
     (result mail-app mail-error)))
 
-(defn gmail-app (chosen)
+(defn gmail-app (chosen log)
   (try (check-client chosen))
   (ok (new-mail-app
         (box (try (open-sqlite-store (ref (:cache-path chosen)))))
         (box (->gmail-provider (endpoints chosen)
-                               (chosen-credentials chosen)))
+                               (chosen-credentials chosen)
+                               (share-log (ref log))))
         (box (->google-authorizer
                :agent (new-agent)
                :settings (->oauth-settings
@@ -39,7 +41,7 @@
                            :client-secret (clone (:client-secret chosen)))
                :credentials (chosen-credentials chosen)
                :browser (box (->system-browser (clone (:browser chosen))))))
-        sync-limit)))
+        log sync-limit)))
 
 (type check-client
   (fn ((ref settings))

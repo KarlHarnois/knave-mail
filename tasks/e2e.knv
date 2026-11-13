@@ -53,6 +53,8 @@
                                    (str theme-file)
                                    (str "--keymap")
                                    (str keymap-file)
+                                   (str "--log-file")
+                                   (str script-directory "/gui.log")
                                    (str "--e2e-script")
                                    script))))
     ((err problem) (do (eprintln problem) false))))

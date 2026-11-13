@@ -6,14 +6,20 @@
 
 (use adapters/driven/memory/shared handle share shared)
 (use adapters/driven/memory/store empty-memory-store)
+
+(use adapters/driven/memory/memory-log memory-log
+                                       new-memory-log)
+
 (use app/mail-app mail-app new-mail-app)
+(use ports/driven/event-log event-log)
 
 (use domain/mail ->account ->message ->thread account
                  message thread)
 
 (use support/sample-mail addresses)
 
-(export app-over remote-with sample-thread world-account)
+(export app-logging-to app-over remote-with sample-thread
+        world-account)
 
 (def world-account "ada@example.com")
 
@@ -55,8 +61,16 @@
     mail-app))
 
 (defn app-over (remote)
+  (app-logging-to remote (new-memory-log)))
+
+(type app-logging-to
+  (fn ((ref (shared remote-mail)) memory-log)
+    mail-app))
+
+(defn app-logging-to (remote log)
   (new-mail-app (box (empty-memory-store))
                 (box (->memory-provider (vec (str world-account))
                                         (vec (handle remote))))
                 (box (->memory-authorizer (vec (->account (str "new@example.com")))))
+                (the (box event-log) (box log))
                 50))

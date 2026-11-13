@@ -1,4 +1,5 @@
-(use adapters/driven/gmail/session api-get! gmail-session)
+(use adapters/driven/gmail/session api-get!)
+(use adapters/driven/gmail/session-state gmail-session)
 (use adapters/driving/json/value json-value)
 (use domain/mail ->mail-changes mail-changes)
 (use domain/mail-error mail-error)

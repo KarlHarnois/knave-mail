@@ -1,5 +1,6 @@
 (use app/changes sync-changes!)
 (use app/mail-app mail-app)
+(use ports/driven/event-log log-info log-warn)
 (use app/mailboxes mailbox-for!)
 (use domain/mail ->thread-query thread thread-summary)
 (use domain/mail-error error-kind mail-error)
@@ -28,8 +29,15 @@
                        account
                        (ref labels)))
     (match (try (load-checkpoint (ref (:store app)) account))
-      ((some since) (resume-or-restart! app account (ref since)))
-      (none (full-sync! app account)))))
+      ((some since)
+       (log-info (ref (:log app))
+                 "sync"
+                 (str account ": incremental sync from history " since))
+       (resume-or-restart! app account (ref since)))
+      (none (log-info (ref (:log app))
+                      "sync"
+                      (str account ": full sync, no checkpoint yet"))
+            (full-sync! app account)))))
 
 (type resume-or-restart!
   (fn ((mut mail-app) (ref str) (ref str))
@@ -39,7 +47,12 @@
   (match (sync-changes! app account since)
     ((err failure)
      (if (= (error-kind (ref failure)) "not-found")
-       (full-sync! app account)
+       (do
+         (log-warn (ref (:log app))
+                   "sync"
+                   (str account ": history " since
+                        " expired, running a full sync"))
+         (full-sync! app account))
        (err failure)))
     (done done)))
 
@@ -51,6 +64,9 @@
   (let (history-id (try (fetch-history-id!
                           (try (mailbox-for! (mut (:mailboxes app)) account)))))
     (try (sync-labels! app account 0))
+    (log-info (ref (:log app))
+              "sync"
+              (str account ": full sync done at history " history-id))
     (save-checkpoint! (mut (:store app))
                       account
                       (ref history-id))))

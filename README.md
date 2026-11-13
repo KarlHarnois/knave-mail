@@ -27,7 +27,7 @@ Press `?` in the window for every key.
 1. In the [Google Cloud console](https://console.cloud.google.com/), enable the Gmail API and create an OAuth client of type **Desktop app**. Add your address as a test user.
 2. Export `KNAVE_MAIL_CLIENT_ID` and `KNAVE_MAIL_CLIENT_SECRET`, for example as `op://` references for `op run`.
 3. Run `knave-mail accounts add` once per account. It opens Google's sign-in page and keeps the token in your keyring.
-4. Run `knave-mail` to open the window, then press `R` to sync.
+4. Run `knave-mail` to open the window. It syncs the account when it opens, and `R` syncs again.
 
 ### Theme
 
@@ -40,6 +40,15 @@ Copy [docs/keymap.example.knv](docs/keymap.example.knv) to `~/.config/knave-mail
 ### CLI
 
 Run `knave-mail help` for the commands. Add `--json` for output that scripts and agents can read.
+
+### Logs
+
+knave-mail writes a log to `~/.local/state/knave-mail/knave-mail.log`, or to `$XDG_STATE_HOME/knave-mail/knave-mail.log` when `XDG_STATE_HOME` is set. The log records requests, sync steps, timings and errors. It holds no tokens or mail content.
+
+- To log every Gmail request and window command, set `KNAVE_MAIL_LOG=debug`.
+- To log more for one area only, name the area, for example `KNAVE_MAIL_LOG=info,gmail=debug`.
+- Each log line names its area, such as `sync`, `gmail` or `frontend`.
+- To write the log elsewhere, set `KNAVE_MAIL_LOG_FILE` or pass `--log-file`.
 
 ## Develop
 

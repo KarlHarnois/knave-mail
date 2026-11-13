@@ -1,68 +1,48 @@
-(use adapters/driven/gmail/http http-agent http-get-all
-                                http-post-form
-                                http-post-json http-reply
-                                reply-body reply-status)
+(use adapters/driven/gmail/http http-get-all http-post-json
+                                http-reply reply-status)
 
-(use adapters/driving/json/value json-value parse-json
-                                 string-field)
-
-(use adapters/driven/gmail/replies as-internal checked
-                                   collect-results
+(use adapters/driven/gmail/replies checked collect-results
                                    into-replies sent)
 
+(use adapters/driven/gmail/request-log clock-milliseconds
+                                       log-outcome!)
+
+(use adapters/driven/gmail/session-state gmail-session)
+(use adapters/driven/gmail/tokens access-token! refresh!)
+(use adapters/driving/json/value json-value)
 (use domain/mail-error mail-error)
 
-(export ->gmail-endpoints ->gmail-session api-get!
-        api-get-all! api-post! gmail-endpoints
-        gmail-session)
+(export api-get! api-get-all! api-post!)
 
 (def unauthorized 401)
-
-(defstruct gmail-endpoints
-  :api-base string
-  :token-url string
-  :client-id string
-  :client-secret string
-  :rate-limit-pause-milliseconds u64
-  :request-spacing-milliseconds u64)
-
-(defstruct gmail-session
-  :agent http-agent
-  :endpoints gmail-endpoints
-  :refresh-token string
-  :access-token (option string))
 
 (type api-get!
   (fn ((mut gmail-session) (ref str))
     (result json-value mail-error)))
 
 (defn api-get! (session path)
-  (let (url (api-url session path)
-        first-reply (try (get-one! session (ref url))))
+  (let (first-reply (try (get-one! session path)))
     (if (= (reply-status (ref first-reply)) unauthorized)
       (do
         (try (refresh! session))
-        (checked (try (get-one! session (ref url)))))
+        (checked (try (get-one! session path))))
       (checked first-reply))))
 
 (type get-one!
   (fn ((mut gmail-session) (ref str))
     (result http-reply mail-error)))
 
-(defn get-one! (session url)
-  (let (token (try (access-token! session)))
-    (sent (first-outcome (http-get-all (ref (:agent session))
-                                       (ref (vec (str url)))
-                                       (ref token)
-                                       (:rate-limit-pause-milliseconds (:endpoints
-                                                                         session))
-                                       (:request-spacing-milliseconds (:endpoints
-                                                                        session)))))))
-
-(def first-outcome
-  (rust "{0}.into_iter().next().unwrap_or_else(|| Err(String::from(\"no reply\")))"
-    (fn ((vec (result http-reply string)))
-      (result http-reply string))))
+(defn get-one! (session path)
+  (let (token (try (access-token! session))
+        started (clock-milliseconds)
+        outcome (first-outcome (fetched-all session
+                                            (ref (vec (str path)))
+                                            (ref token))))
+    (log-outcome! (ref (:log session))
+                  "GET" path
+                  (ref outcome)
+                  started)
+    (sent outcome)))
 
 (type api-get-all!
   (fn ((mut gmail-session) (ref (vec string)))
@@ -70,17 +50,33 @@
 
 (defn api-get-all! (session paths)
   (let (token (try (access-token! session))
-        urls (collect (map (iter paths)
-                        (fn (path) (api-url session path))))
-        replies (http-get-all
-                  (ref (:agent session))
-                  (ref urls)
-                  (ref token)
-                  (:rate-limit-pause-milliseconds (:endpoints session))
-                  (:request-spacing-milliseconds (:endpoints session))))
+        started (clock-milliseconds)
+        replies (fetched-all session paths (ref token)))
+    (for-each (enumerate (iter replies))
+      (fn (numbered)
+        (let-match ((pair index outcome) numbered)
+          (log-outcome! (ref (:log session))
+                        "GET"
+                        (at paths index)
+                        outcome started))))
     (collect-results (collect (map (into-replies replies)
                                 (fn (outcome)
                                   (checked (try (sent outcome)))))))))
+
+(type fetched-all
+  (fn ((ref gmail-session)
+       (ref (vec string))
+       (ref str))
+    (vec (result http-reply string))))
+
+(defn fetched-all (session paths token)
+  (let (endpoints (ref (:endpoints session)))
+    (http-get-all (ref (:agent session))
+                  (ref (collect (map (iter paths)
+                                  (fn (path) (api-url session path)))))
+                  token
+                  (:rate-limit-pause-milliseconds endpoints)
+                  (:request-spacing-milliseconds endpoints))))
 
 (type api-post!
   (fn ((mut gmail-session)
@@ -89,54 +85,36 @@
     (result json-value mail-error)))
 
 (defn api-post! (session path body)
-  (let (url (api-url session path)
-        first-reply (try (sent (http-post-json (ref (:agent session))
-                                               (ref url)
-                                               (ref (try (access-token!
-                                                           session)))
-                                               body))))
+  (let (first-reply (try (post-one! session path body)))
     (if (= (reply-status (ref first-reply)) unauthorized)
       (do
         (try (refresh! session))
-        (checked (try (sent (http-post-json (ref (:agent session))
-                                            (ref url)
-                                            (ref (try (access-token! session)))
-                                            body)))))
+        (checked (try (post-one! session path body))))
       (checked first-reply))))
 
-(type access-token!
-  (fn ((mut gmail-session))
-    (result string mail-error)))
+(type post-one!
+  (fn ((mut gmail-session)
+       (ref str)
+       (ref str))
+    (result http-reply mail-error)))
 
-(defn access-token! (session)
-  (match (ref (:access-token session))
-    ((some token) (ok (clone token)))
-    (none (do (try (refresh! session)) (access-token! session)))))
+(defn post-one! (session path body)
+  (let (token (try (access-token! session))
+        started (clock-milliseconds)
+        outcome (http-post-json (ref (:agent session))
+                                (ref (api-url session path))
+                                (ref token)
+                                body))
+    (log-outcome! (ref (:log session))
+                  "POST" path
+                  (ref outcome)
+                  started)
+    (sent outcome)))
 
-(type refresh!
-  (fn ((mut gmail-session))
-    (result unit mail-error)))
-
-(defn refresh! (session)
-  (let (endpoints (ref (:endpoints session))
-        form (vec (pair (str "grant_type") (str "refresh_token"))
-                  (pair (str "client_id")
-                        (clone (:client-id endpoints)))
-                  (pair (str "client_secret")
-                        (clone (:client-secret endpoints)))
-                  (pair (str "refresh_token")
-                        (clone (:refresh-token session))))
-        reply (try (sent (http-post-form (ref (:agent session))
-                                         (ref (:token-url endpoints))
-                                         (ref form)))))
-    (if (= (reply-status (ref reply)) 200)
-      (let (body (try (as-internal (parse-json (ref (reply-body (ref
-                                                                  reply)))))))
-        (set! (:access-token session)
-              (some (try (as-internal (string-field (ref body)
-                                                    "access_token")))))
-        (ok (do)))
-      (err (mail-error/auth-required (str "Google refused the saved sign-in; run `knave-mail accounts add` again"))))))
+(def first-outcome
+  (rust "{0}.into_iter().next().unwrap_or_else(|| Err(String::from(\"no reply\")))"
+    (fn ((vec (result http-reply string)))
+      (result http-reply string))))
 
 (type api-url
   (fn ((ref gmail-session) (ref str))

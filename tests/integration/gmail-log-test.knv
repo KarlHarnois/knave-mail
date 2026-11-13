@@ -1,0 +1,50 @@
+(use adapters/driven/memory/memory-log logged-lines
+                                       new-memory-log
+                                       same-log)
+
+(use ports/driven/mailbox fetch-labels!)
+(use support/fake-gmail start-fake-gmail)
+(use support/gmail-world fixture-routes gmail-logging route)
+(use support/log-lines mentions-none? mentions?)
+
+(deftest each-request-is-logged-with-its-status
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        log (new-memory-log)
+        gmail (gmail-logging (ref server)
+                             (same-log (ref log))))
+    (unwrap-ok (fetch-labels! (mut gmail)))
+    (assert (mentions? (ref (logged-lines (ref log)))
+                       "gmail GET /gmail/v1/users/me/labels 200"))))
+
+(deftest a-token-refresh-is-logged
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        log (new-memory-log)
+        gmail (gmail-logging (ref server)
+                             (same-log (ref log))))
+    (unwrap-ok (fetch-labels! (mut gmail)))
+    (assert (mentions? (ref (logged-lines (ref log)))
+                       "refreshed the access token"))))
+
+(deftest rate-limit-retries-are-logged
+  (let (routes (fixture-routes))
+    (push! (mut routes)
+           (route "GET /gmail/v1/users/me/labels"
+                  "429 tests/fixtures/gmail/rate-limited.json"))
+    (let (server (start-fake-gmail (ref routes))
+          log (new-memory-log)
+          gmail (gmail-logging (ref server)
+                               (same-log (ref log))))
+      (fetch-labels! (mut gmail))
+      (assert (mentions? (ref (logged-lines (ref log)))
+                         "hit the rate limit, retried 6 times")))))
+
+(deftest the-log-holds-no-credentials
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        log (new-memory-log)
+        gmail (gmail-logging (ref server)
+                             (same-log (ref log))))
+    (unwrap-ok (fetch-labels! (mut gmail)))
+    (assert (mentions-none?
+              (ref (logged-lines (ref log)))
+              (ref (vec "Bearer" "fake-access-token"
+                        "fake-secret" "fake-refresh"))))))

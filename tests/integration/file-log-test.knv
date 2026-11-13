@@ -1,0 +1,69 @@
+(use adapters/driven/file-log/file-log open-file-log)
+(use ports/driven/event-log ->log-entry log-level record!)
+(use support/temporary temporary-path)
+
+(def read-file
+  (rust "std::fs::read_to_string({0}).unwrap_or_default()"
+    (fn ((ref str)) string)))
+
+(def write-bytes
+  (rust "{{ let _ = std::fs::write({0}, vec![b'x'; {1}]); }}"
+    (fn ((ref str) usize) unit)))
+
+(def exists?
+  (rust "std::path::Path::new({0}).exists()"
+    (fn ((ref str)) bool)))
+
+(def contains?
+  (rust "{0}.contains({1})"
+    (fn ((ref str) (ref str)) bool)))
+
+(def line-count
+  (rust "{0}.lines().count()"
+    (fn ((ref str)) usize)))
+
+(defn record-at! (log level area message)
+  (record! (ref log)
+           (ref (->log-entry level (str area) (str message)))))
+
+(deftest writes-one-timestamped-line-per-entry
+  (let (path (temporary-path "one-line-per-entry.log")
+        log (open-file-log (ref path) "info"))
+    (record-at! log log-level/info "gmail"
+                "GET /labels 200 12ms")
+    (let (written (read-file (ref path)))
+      (assert (contains? (ref written)
+                         "INFO  gmail    GET /labels 200 12ms\n"))
+      (assert (contains? (ref written) "Z ")))))
+
+(deftest drops-entries-below-the-level
+  (let (path (temporary-path "below-level.log")
+        log (open-file-log (ref path) "info"))
+    (record-at! log log-level/debug "gmail" "hidden")
+    (record-at! log log-level/warn "gmail" "shown")
+    (assert (= (line-count (ref (read-file (ref path))))
+               1))))
+
+(deftest an-area-can-log-more-than-the-default
+  (let (path (temporary-path "area-level.log")
+        log (open-file-log (ref path) "warn,gmail=debug"))
+    (record-at! log log-level/debug "gmail" "request")
+    (record-at! log log-level/info "sync" "dropped")
+    (assert (= (line-count (ref (read-file (ref path))))
+               1))))
+
+(deftest keeps-each-entry-on-one-line
+  (let (path (temporary-path "single-line.log")
+        log (open-file-log (ref path) "info"))
+    (record-at! log log-level/error "frontend" "first\nsecond")
+    (assert (= (line-count (ref (read-file (ref path))))
+               1))))
+
+(deftest rotates-a-large-log-when-opened
+  (let (path (temporary-path "rotation.log"))
+    (write-bytes (ref path) 5000001)
+    (let (log (open-file-log (ref path) "info"))
+      (record-at! log log-level/info "app" "fresh")
+      (assert (exists? (ref (str path ".1"))))
+      (assert (= (line-count (ref (read-file (ref path))))
+                 1)))))
