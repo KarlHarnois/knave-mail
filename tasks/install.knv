@@ -5,20 +5,20 @@
 
 (deftask install ()
   "Builds the frontend and the release binary, then installs knave-mail to ~/.local/bin."
-  (try (run! (->command :desc (str "frontend dependencies")
-                        :dir (str "frontend")
-                        :cmd (str "bun")
-                        :args (vec (str "install") (str "--frozen-lockfile")))))
-  (try (run! (->command :desc (str "frontend build")
-                        :dir (str "frontend")
-                        :cmd (str "bun")
-                        :args (vec (str "run") (str "build")))))
-  (try (run! (->command :desc (str "knave build --release")
-                        :dir (str ".")
-                        :cmd (str "knave")
-                        :args (vec (str "build") (str "--release")))))
-  (try (run! (->command :desc (str "install to ~/.local/bin")
-                        :dir (str ".")
-                        :cmd (str "sh")
-                        :args (vec (str "-c") (str install-binary)))))
+  (try (run! (->command :desc "frontend dependencies"
+                        :dir "frontend"
+                        :cmd "bun"
+                        :args (vec "install" "--frozen-lockfile"))))
+  (try (run! (->command :desc "frontend build"
+                        :dir "frontend"
+                        :cmd "bun"
+                        :args (vec "run" "build"))))
+  (try (run! (->command :desc "knave build --release"
+                        :dir "."
+                        :cmd "knave"
+                        :args (vec "build" "--release"))))
+  (try (run! (->command :desc "install to ~/.local/bin"
+                        :dir "."
+                        :cmd "sh"
+                        :args (vec "-c" install-binary))))
   (ok (println "Installed knave-mail to ~/.local/bin/knave-mail.")))

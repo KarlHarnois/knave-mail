@@ -5,40 +5,40 @@
 
 (deftask ci ()
   "Runs every check in order: formatting, file lengths, the frontend, the build, the knave tests and the GUI scenarios."
-  (try (run! (->command :desc (str "knave fmt --check")
-                        :dir (str ".")
-                        :cmd (str "knave")
-                        :args (vec (str "fmt") (str "--check")))))
-  (try (run! (->command :desc (str "file lengths")
-                        :dir (str ".")
-                        :cmd (str "knave")
-                        :args (vec (str "task") (str "check-file-lengths")))))
-  (try (run! (->command :desc (str "frontend lint")
-                        :dir (str "frontend")
-                        :cmd (str "bun")
-                        :args (vec (str "run") (str "lint")))))
-  (try (run! (->command :desc (str "frontend typecheck")
-                        :dir (str "frontend")
-                        :cmd (str "bun")
-                        :args (vec (str "run") (str "typecheck")))))
-  (try (run! (->command :desc (str "frontend tests")
-                        :dir (str "frontend")
-                        :cmd (str "sh")
-                        :args (vec (str "-c") (str capped-bun-test)))))
-  (try (run! (->command :desc (str "frontend build")
-                        :dir (str "frontend")
-                        :cmd (str "bun")
-                        :args (vec (str "run") (str "build")))))
-  (try (run! (->command :desc (str "knave build")
-                        :dir (str ".")
-                        :cmd (str "knave")
-                        :args (vec (str "build")))))
-  (try (run! (->command :desc (str "knave tests")
-                        :dir (str ".")
-                        :cmd (str "knave")
-                        :args (vec (str "test")))))
-  (try (run! (->command :desc (str "GUI scenarios")
-                        :dir (str ".")
-                        :cmd (str "knave")
-                        :args (vec (str "task") (str "e2e")))))
+  (try (run! (->command :desc "knave fmt --check"
+                        :dir "."
+                        :cmd "knave"
+                        :args (vec "fmt" "--check"))))
+  (try (run! (->command :desc "file lengths"
+                        :dir "."
+                        :cmd "knave"
+                        :args (vec "task" "check-file-lengths"))))
+  (try (run! (->command :desc "frontend lint"
+                        :dir "frontend"
+                        :cmd "bun"
+                        :args (vec "run" "lint"))))
+  (try (run! (->command :desc "frontend typecheck"
+                        :dir "frontend"
+                        :cmd "bun"
+                        :args (vec "run" "typecheck"))))
+  (try (run! (->command :desc "frontend tests"
+                        :dir "frontend"
+                        :cmd "sh"
+                        :args (vec "-c" capped-bun-test))))
+  (try (run! (->command :desc "frontend build"
+                        :dir "frontend"
+                        :cmd "bun"
+                        :args (vec "run" "build"))))
+  (try (run! (->command :desc "knave build"
+                        :dir "."
+                        :cmd "knave"
+                        :args (vec "build"))))
+  (try (run! (->command :desc "knave tests"
+                        :dir "."
+                        :cmd "knave"
+                        :args (vec "test"))))
+  (try (run! (->command :desc "GUI scenarios"
+                        :dir "."
+                        :cmd "knave"
+                        :args (vec "task" "e2e"))))
   (ok (println "All checks passed.")))
