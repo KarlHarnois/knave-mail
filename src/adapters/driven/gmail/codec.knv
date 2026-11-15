@@ -1,5 +1,5 @@
-(use adapters/driving/json/value json-value number-field
-                                 optional-string-field)
+(use adapters/json/value json-value number-field
+                         optional-string-field)
 
 (use domain/mail ->label ->message ->thread-summary label
                  message thread-summary)

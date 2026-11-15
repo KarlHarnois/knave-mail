@@ -9,7 +9,7 @@
 
 (use adapters/driven/gmail/session-state gmail-session)
 (use adapters/driven/gmail/tokens access-token! refresh!)
-(use adapters/driving/json/value json-value)
+(use adapters/json/value json-value)
 (use domain/mail-error mail-error)
 
 (export api-get! api-get-all! api-post!)

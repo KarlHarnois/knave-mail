@@ -1,4 +1,4 @@
-(use adapters/driving/json/value json-value)
+(use adapters/json/value json-value)
 (use domain/labels starred? unread?)
 
 (use domain/mail account draft label message summary-page

@@ -1,8 +1,6 @@
-(use adapters/driving/json/value bool-field json-value
-                                 number-field object-field
-                                 optional-string-field
-                                 string-field
-                                 string-list-field)
+(use adapters/json/value bool-field json-value number-field
+                         object-field optional-string-field
+                         string-field string-list-field)
 
 (use domain/mail ->draft ->thread-query draft thread-query)
 (use domain/mail-error mail-error)

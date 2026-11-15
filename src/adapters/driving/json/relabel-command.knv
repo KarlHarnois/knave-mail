@@ -1,7 +1,7 @@
 (use adapters/driving/json/arguments account-argument
                                      thread-ids-argument)
 
-(use adapters/driving/json/value empty-object json-value)
+(use adapters/json/value empty-object json-value)
 (use domain/label-commands label-change-named)
 (use domain/labels label-change)
 (use domain/mail-error mail-error)

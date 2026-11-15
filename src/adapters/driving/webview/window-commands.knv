@@ -2,8 +2,8 @@
                                     request-id
                                     success-reply)
 
-(use adapters/driving/json/value bool-field empty-object
-                                 json-value string-field)
+(use adapters/json/value bool-field empty-object json-value
+                         string-field)
 
 (use adapters/driving/webview/window close-window
                                      reply-outbox send-reply

@@ -17,9 +17,8 @@
 (use adapters/driving/json/page-command thread-page-command!)
 (use adapters/driving/json/relabel-command relabel-command!)
 
-(use adapters/driving/json/value bool-field empty-object
-                                 json-value parse-json
-                                 string-field)
+(use adapters/json/value bool-field empty-object json-value
+                         parse-json string-field)
 
 (use domain/mail-error mail-error)
 

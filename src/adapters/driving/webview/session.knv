@@ -4,9 +4,7 @@
                                     request-id
                                     success-reply)
 
-(use adapters/driving/json/value json-value parse-json
-                                 string-field)
-
+(use adapters/json/value json-value parse-json string-field)
 (use adapters/driving/webview/logged-answers answered-and-logged!)
 
 (use adapters/driving/webview/relabel-runner hand-off!

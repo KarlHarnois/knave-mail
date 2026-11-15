@@ -2,10 +2,7 @@
                                      send-reply)
 
 (use adapters/driving/json/envelope request-arguments)
-
-(use adapters/driving/json/value bool-field json-value
-                                 string-field)
-
+(use adapters/json/value bool-field json-value string-field)
 (use domain/label-commands label-change-named)
 
 (export ->inline-relabel ->outbox-sink inline-relabel

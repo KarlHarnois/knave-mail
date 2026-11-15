@@ -5,7 +5,7 @@
                                      summaries-json
                                      thread-json)
 
-(use adapters/driving/json/value empty-object json-value)
+(use adapters/json/value empty-object json-value)
 (use domain/mail-error error-kind error-message mail-error)
 
 (export error-json-text result-json-text)

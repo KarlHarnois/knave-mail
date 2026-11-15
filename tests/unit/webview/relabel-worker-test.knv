@@ -5,7 +5,7 @@
 (use adapters/driven/memory/shared share shared
                                    with-shared!)
 
-(use adapters/driving/json/value parse-json)
+(use adapters/json/value parse-json)
 
 (use adapters/driving/webview/relabel-runner reply-sink
                                              worker-request?)

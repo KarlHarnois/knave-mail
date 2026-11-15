@@ -1,5 +1,5 @@
 (use adapters/driven/gmail/http http-reply rate-limited?)
-(use adapters/driving/json/value json-value parse-json)
+(use adapters/json/value json-value parse-json)
 (use domain/mail-error mail-error)
 
 (export as-internal checked collect-results into-replies

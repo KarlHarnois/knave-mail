@@ -1,7 +1,7 @@
 (use adapters/driven/gmail/http http-post-form)
 (use adapters/driven/gmail/replies as-internal sent)
 (use adapters/driven/gmail/session-state gmail-session)
-(use adapters/driving/json/value parse-json string-field)
+(use adapters/json/value parse-json string-field)
 (use domain/mail-error mail-error)
 (use ports/driven/event-log log-info log-warn)
 

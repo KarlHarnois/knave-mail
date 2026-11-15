@@ -1,6 +1,6 @@
 (use adapters/driving/json/commands answer!)
 (use adapters/driving/json/envelope request-arguments)
-(use adapters/driving/json/value json-value string-field)
+(use adapters/json/value json-value string-field)
 (use domain/results ok->option)
 
 (use ports/driven/event-log ->log-entry event-log log-level

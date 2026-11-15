@@ -11,7 +11,7 @@
 (use adapters/driven/google-oauth/pkce new-pkce-pair
                                        new-state pkce-pair)
 
-(use adapters/driving/json/value parse-json string-field)
+(use adapters/json/value parse-json string-field)
 
 (use adapters/driven/google-oauth/oauth-settings consent-url
                                                  oauth-settings)
