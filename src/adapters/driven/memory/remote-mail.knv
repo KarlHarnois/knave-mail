@@ -47,10 +47,6 @@
     ((err _)
      (err (mail-error/not-found (str "no history from " since))))))
 
-(type threads-changed-after
-  (fn ((ref remote-mail) i64)
-    (vec string)))
-
 (defn threads-changed-after (remote start)
   (reduce (filter (iter (:changes remote))
             (fn (change)

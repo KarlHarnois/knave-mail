@@ -6,14 +6,6 @@
 
 (def area "gmail")
 
-(type log-outcome!
-  (fn ((ref (box event-log))
-       (ref str)
-       (ref str)
-       (ref (result http-reply string))
-       u64)
-    unit))
-
 (defn log-outcome! (log method path outcome started)
   (let (shown (str method " " (without-query path)))
     (match outcome
@@ -33,9 +25,6 @@
                          "ms"))))
       ((err problem)
        (log-warn log area (str shown " failed: " problem))))))
-
-(type without-query
-  (fn ((ref str)) string))
 
 (defn without-query (path)
   (let (parts (collect (split path "?")))

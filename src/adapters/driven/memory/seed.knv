@@ -30,17 +30,10 @@
 
 (def hour-milliseconds 3600000)
 
-(type seeded-threads
-  (fn ((ref str) i64) (vec thread)))
-
 (defn seeded-threads (account count)
   (let (generated (collect (map (range 0 count)
                              (fn (index) (generated-thread account index)))))
     (with-specials generated account)))
-
-(type with-specials
-  (fn ((vec thread) (ref str))
-    (vec thread)))
 
 (defn with-specials (generated account)
   (let (all generated)
@@ -48,9 +41,6 @@
     (push! (mut all) (long-thread account newest-date))
     (push! (mut all) (unicode-thread account newest-date))
     all))
-
-(type generated-thread
-  (fn ((ref str) i64) thread))
 
 (defn generated-thread (account index)
   (let (id (str "seed-" index)
@@ -73,9 +63,6 @@
                                :header-id (str "<m-" id "@seed.example>")
                                :references (str ""))))))
 
-(type labels-for
-  (fn (i64) (vec string)))
-
 (defn labels-for (index)
   (let (labels (vec (str (if (< index 150) "INBOX" "Archive"))))
     (when (= (rem index 3) 0)
@@ -85,9 +72,6 @@
     (when (= (rem index 5) 0)
       (push! (mut labels) (str "Receipts")))
     labels))
-
-(type body-for
-  (fn ((ref str) (ref str) i64) string))
 
 (defn body-for (sender subject index)
   (str "Hi,\n\nThis is message number " index " about \""

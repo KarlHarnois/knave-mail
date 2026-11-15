@@ -9,8 +9,6 @@
 (defstruct memory-log
   :entries (shared (vec log-entry)))
 
-(type new-memory-log (fn () memory-log))
-
 (defn new-memory-log ()
   (->memory-log (share (vec))))
 

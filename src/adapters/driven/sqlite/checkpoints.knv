@@ -4,18 +4,8 @@
 
 (export read-checkpoint write-checkpoint)
 
-(type read-checkpoint
-  (fn ((ref sqlite-connection) (ref str))
-    (result (option string) mail-error)))
-
 (defn read-checkpoint (connection account)
   (as-internal (checkpoint-row connection account)))
-
-(type write-checkpoint
-  (fn ((ref sqlite-connection)
-       (ref str)
-       (ref str))
-    (result unit mail-error)))
 
 (defn write-checkpoint (connection account history-id)
   (as-internal (upsert-checkpoint connection account history-id)))

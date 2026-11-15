@@ -21,10 +21,6 @@
                    (none (err (mail-error/auth-required (str "no account "
                                                              email)))))))
 
-(type email-position
-  (fn ((ref (vec string)) (ref str))
-    (option usize)))
-
 (defn email-position (emails email)
   (map-some (find (enumerate (iter emails))
               (fn (numbered)

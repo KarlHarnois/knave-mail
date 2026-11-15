@@ -11,32 +11,16 @@
   :name string
   :unread i64)
 
-(type read-accounts
-  (fn ((ref sqlite-connection))
-    (result (vec account) mail-error)))
-
 (defn read-accounts (connection)
   (let (emails (try (as-internal (account-emails connection))))
     (ok (collect (map (iter emails)
                    (fn (email) (->account (clone email))))))))
 
-(type write-account
-  (fn ((ref sqlite-connection) (ref account))
-    (result unit mail-error)))
-
 (defn write-account (connection saved)
   (as-internal (insert-account connection (ref (:email saved)))))
 
-(type erase-account
-  (fn ((ref sqlite-connection) (ref str))
-    (result unit mail-error)))
-
 (defn erase-account (connection email)
   (as-internal (delete-account connection email)))
-
-(type read-labels
-  (fn ((ref sqlite-connection) (ref str))
-    (result (vec label) mail-error)))
 
 (defn read-labels (connection account)
   (let (rows (try (as-internal (label-rows connection account))))
@@ -45,12 +29,6 @@
                      (->label (clone (:id row))
                               (clone (:name row))
                               (:unread row))))))))
-
-(type write-labels
-  (fn ((ref sqlite-connection)
-       (ref str)
-       (ref (vec label)))
-    (result unit mail-error)))
 
 (defn write-labels (connection account labels)
   (as-internal (replace-labels connection account labels)))

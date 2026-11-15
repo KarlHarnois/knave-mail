@@ -29,9 +29,6 @@
   (share-log (kept)
              (the (box event-log) (box (clone kept)))))
 
-(type log-line
-  (fn ((ref log-entry)) string))
-
 (defn log-line (entry)
   (str (utc-timestamp)
        " "
@@ -52,8 +49,6 @@
     (log-level/warn (str "WARN"))
     (log-level/info (str "INFO"))
     (log-level/debug (str "DEBUG"))))
-
-(type padded (fn (string usize) string))
 
 (defn padded (text width)
   (for-each (range (count (chars (as-str (ref text))))

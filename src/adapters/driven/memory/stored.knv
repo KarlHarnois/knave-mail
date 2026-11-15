@@ -113,12 +113,6 @@
                            (fn (id) (= id (:id (:summary entry))))))))
                 (fn (entry) (clone (:summary entry))))))
 
-(type thread-in
-  (fn ((ref (vec stored-thread))
-       (ref str)
-       (ref str))
-    (option thread)))
-
 (defn thread-in (stored email thread-id)
   (map-some (find (iter stored)
               (fn (entry) (thread-entry? entry email thread-id)))

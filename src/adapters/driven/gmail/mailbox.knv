@@ -74,19 +74,9 @@
                               (ref (modify-body change))))
               (ok (do)))))
 
-(type listed-thread-ids!
-  (fn ((mut gmail-session) (ref thread-query))
-    (result (vec string) mail-error)))
-
 (defn listed-thread-ids! (session query)
   (ok (thread-ids (ref (try (api-get! session
                                       (ref (thread-list-path query))))))))
-
-(type listed-thread-page!
-  (fn ((mut gmail-session)
-       (ref thread-query)
-       (ref str))
-    (result thread-page mail-error)))
 
 (defn listed-thread-page! (session query page-token)
   (let (listed (try (api-get! session
@@ -107,10 +97,6 @@
         threads (try (api-get-all! session (ref paths))))
     (ok (collect (map (iter threads)
                    (fn (found) (summary-from found)))))))
-
-(type fetched-thread!
-  (fn ((mut gmail-session) (ref str))
-    (result thread mail-error)))
 
 (defn fetched-thread! (session thread-id)
   (let (minimal (try (api-get! session (ref (thread-path thread-id))))

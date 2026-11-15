@@ -73,8 +73,6 @@
     (fn ((ref (vec string)) i64 i64)
       (vec string))))
 
-(type page-offset (fn ((ref str)) i64))
-
 (defn page-offset (page-token)
   (match (parse page-token)
     ((ok offset) offset)
@@ -121,19 +119,12 @@
   (dedup! names)
   names)
 
-(type unread-count
-  (fn ((ref (vec thread)) (ref string))
-    i64))
-
 (defn unread-count (threads name)
   (reduce (iter threads) 0
     (fn (unread held)
       (if (unread-in? held (as-str name))
         (+ unread 1)
         unread))))
-
-(type unread-in?
-  (fn ((ref thread) (ref str)) bool))
 
 (defn unread-in? (held name)
   (and (labelled? held name) (labelled? held "UNREAD")))

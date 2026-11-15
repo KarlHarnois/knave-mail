@@ -19,12 +19,6 @@
   :labels (vec string)
   :message-count i64)
 
-(type load-summaries
-  (fn ((ref sqlite-connection)
-       (ref str)
-       (ref thread-query))
-    (result (vec thread-summary) mail-error)))
-
 (defn load-summaries (connection account query)
   (let (rows (try (as-internal (summary-rows connection
                                              account
@@ -32,12 +26,6 @@
                                              (:limit query)))))
     (ok (collect (map (iter rows)
                    (fn (row) (summary-from row)))))))
-
-(type load-summaries-with-ids
-  (fn ((ref sqlite-connection)
-       (ref str)
-       (ref (vec string)))
-    (result (vec thread-summary) mail-error)))
 
 (defn load-summaries-with-ids (connection account ids)
   (let (rows (try (as-internal (summary-rows-with-ids connection account ids))))
@@ -63,31 +51,12 @@
                     :labels (clone (:labels row))
                     :message-count (:message-count row)))
 
-(type save-summaries
-  (fn ((ref sqlite-connection)
-       (ref str)
-       (ref (vec thread-summary)))
-    (result unit mail-error)))
-
 (defn save-summaries (connection account summaries)
   (try (as-internal (upsert-summaries connection account summaries)))
   (as-internal (align-thread-labels connection account summaries)))
 
-(type relabel-summary
-  (fn ((ref sqlite-connection)
-       (ref str)
-       (ref str)
-       (vec string))
-    (result unit mail-error)))
-
 (defn relabel-summary (connection account thread-id labels)
   (as-internal (update-summary-labels connection account thread-id labels)))
-
-(type summary-labels
-  (fn ((ref sqlite-connection)
-       (ref str)
-       (ref str))
-    (result (option (vec string)) mail-error)))
 
 (defn summary-labels (connection account thread-id)
   (as-internal (stored-summary-labels connection account thread-id)))

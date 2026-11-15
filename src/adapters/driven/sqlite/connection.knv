@@ -29,10 +29,6 @@
    CREATE INDEX IF NOT EXISTS messages_by_thread ON messages (account, thread_id, position);
    CREATE TABLE IF NOT EXISTS checkpoints (account TEXT PRIMARY KEY, history_id TEXT NOT NULL);")
 
-(type open-database
-  (fn ((ref str))
-    (result sqlite-connection mail-error)))
-
 (defn open-database (path)
   (map-err (opened-with-schema path schema)
     (fn (problem)

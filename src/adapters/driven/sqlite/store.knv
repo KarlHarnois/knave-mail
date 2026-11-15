@@ -30,10 +30,6 @@
 (defstruct sqlite-store
   :connection sqlite-connection)
 
-(type open-sqlite-store
-  (fn ((ref str))
-    (result sqlite-store mail-error)))
-
 (defn open-sqlite-store (path)
   (ok (->sqlite-store (try (open-database path)))))
 
@@ -72,13 +68,6 @@
                    (relabel-everywhere (ref (:connection kept))
                                        email thread-id
                                        change)))
-
-(type relabel-everywhere
-  (fn ((ref sqlite-connection)
-       (ref str)
-       (ref str)
-       (ref label-change))
-    (result unit mail-error)))
 
 (defn relabel-everywhere (connection email thread-id change)
   (match (try (read-thread connection email thread-id))

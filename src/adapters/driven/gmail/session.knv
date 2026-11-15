@@ -78,12 +78,6 @@
                   (:rate-limit-pause-milliseconds endpoints)
                   (:request-spacing-milliseconds endpoints))))
 
-(type api-post!
-  (fn ((mut gmail-session)
-       (ref str)
-       (ref str))
-    (result json-value mail-error)))
-
 (defn api-post! (session path body)
   (let (first-reply (try (post-one! session path body)))
     (if (= (:status first-reply) unauthorized)
@@ -91,12 +85,6 @@
         (try (refresh! session))
         (checked (try (post-one! session path body))))
       (checked first-reply))))
-
-(type post-one!
-  (fn ((mut gmail-session)
-       (ref str)
-       (ref str))
-    (result http-reply mail-error)))
 
 (defn post-one! (session path body)
   (let (token (try (access-token! session))
@@ -110,10 +98,6 @@
                   (ref outcome)
                   started)
     (sent outcome)))
-
-(type only-outcome
-  (fn ((vec (result http-reply string)))
-    (result http-reply string)))
 
 (defn only-outcome (replies)
   (local remaining replies)

@@ -125,20 +125,10 @@
         profile (try (as-auth (parse-json (:body reply)))))
     (as-auth (string-field (ref profile) "emailAddress"))))
 
-(type as-auth
-  (where (value)
-    (fn ((result value string))
-      (result value mail-error))))
-
 (defn as-auth (outcome)
   (map-err outcome
     (fn (problem)
       (mail-error/auth-required (str "sign-in failed: " problem)))))
-
-(type as-network
-  (where (value)
-    (fn ((result value string))
-      (result value mail-error))))
 
 (defn as-network (outcome)
   (map-err outcome

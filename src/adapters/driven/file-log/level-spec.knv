@@ -8,23 +8,13 @@
   :default u8
   :areas (vec (pair string u8)))
 
-(type parse-level-spec
-  (fn ((ref str)) level-spec))
-
 (defn parse-level-spec (text)
   (->level-spec :default (default-severity text info-severity)
                 :areas (area-severities text)))
 
-(type allows?
-  (fn ((ref level-spec) (ref log-entry))
-    bool))
-
 (defn allows? (spec entry)
   (<= (severity (ref (:level entry)))
       (threshold-for spec (ref (:area entry)))))
-
-(type threshold-for
-  (fn ((ref level-spec) (ref str)) u8))
 
 (defn threshold-for (spec area)
   (unwrap-or (map-some (find (iter (:areas spec))
@@ -36,24 +26,14 @@
                            (deref threshold))))
              (:default spec)))
 
-(type default-severity
-  (fn ((ref str) u8) u8))
-
 (defn default-severity (text fallback)
   (unwrap-or (map-some (find (map (split text ",") severity-named) some?)
                        unwrap)
              fallback))
 
-(type area-severities
-  (fn ((ref str)) (vec (pair string u8))))
-
 (defn area-severities (text)
   (collect (map (filter (map (split text ",") area-severity) some?)
                 unwrap)))
-
-(type area-severity
-  (fn ((ref str))
-    (option (pair string u8))))
 
 (defn area-severity (part)
   (let (sides (collect (split part "=")))
@@ -63,9 +43,6 @@
           (pair (str (trim (deref (at sides 0))))
                 threshold)))
       none)))
-
-(type severity-named
-  (fn ((ref str)) (option u8)))
 
 (defn severity-named (name)
   (match (as-str (ref (lower-case (trim name))))

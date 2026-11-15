@@ -26,12 +26,6 @@
                        (fn (entry) (clone (:labels entry))))
              (vec)))
 
-(type replace-labels!
-  (fn ((mut (vec stored-labels))
-       (ref str)
-       (ref (vec label)))
-    unit))
-
 (defn replace-labels! (stored email labels)
   (set! stored (other-accounts stored email))
   (push! stored

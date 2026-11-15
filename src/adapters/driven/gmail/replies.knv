@@ -8,9 +8,6 @@
 (export as-internal checked collect-results into-replies
         sent)
 
-(type checked
-  (fn (http-reply) (result json-value mail-error)))
-
 (defn checked (reply)
   (let (status (:status reply)
         body (clone (:body reply)))
@@ -30,26 +27,15 @@
       (else (err (mail-error/internal
                    (str "Gmail answered " status ": " body)))))))
 
-(type sent
-  (fn ((result http-reply string))
-    (result http-reply mail-error)))
-
 (defn sent (outcome)
   (map-err outcome
     (fn (problem)
       (mail-error/network (str "cannot reach Google: " problem)))))
 
-(type as-internal
-  (where (value)
-    (fn ((result value string))
-      (result value mail-error))))
-
 (defn as-internal (outcome)
   (map-err outcome
     (fn (problem)
       (mail-error/internal (str "unexpected Gmail answer: " problem)))))
-
-(type non-empty-json (fn (string) string))
 
 (defn non-empty-json (body)
   (if (empty? (trim (as-str body)))

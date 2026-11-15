@@ -32,9 +32,6 @@
   (rust "{0}.get(\"labels\").and_then(|{!labels}| {!labels}.as_array()).map(|{!labels}| {!labels}.iter().filter_map(|{!label}| {!label}.get(\"id\").and_then(|{!id}| {!id}.as_str()).map(str::to_string)).collect::<Vec<_>>()).unwrap_or_default()"
     (fn ((ref json-value)) (vec string))))
 
-(type label-from
-  (fn ((ref json-value)) label))
-
 (defn label-from (details)
   (->label :id (text-at details "id")
            :name (text-at details "name")
@@ -43,9 +40,6 @@
 (def thread-ids
   (rust "{0}.get(\"threads\").and_then(|{!threads}| {!threads}.as_array()).map(|{!threads}| {!threads}.iter().filter_map(|{!thread}| {!thread}.get(\"id\").and_then(|{!id}| {!id}.as_str()).map(str::to_string)).collect::<Vec<_>>()).unwrap_or_default()"
     (fn ((ref json-value)) (vec string))))
-
-(type summary-from
-  (fn ((ref json-value)) thread-summary))
 
 (defn summary-from (thread)
   (let (parts (summary-parts-of thread))
@@ -65,10 +59,6 @@
   (rust "{0}.get(\"messages\").and_then(|{!messages}| {!messages}.as_array()).map(|{!messages}| {!messages}.iter().flat_map(|{!message}| {!message}.get(\"labelIds\").and_then(|{!ids}| {!ids}.as_array()).cloned().unwrap_or_default()).filter_map(|{!id}| {!id}.as_str().map(str::to_string)).fold(Vec::<String>::new(), |mut {!all}, {!id}| {{ if !{!all}.contains(&{!id}) {{ {!all}.push({!id}); }} {!all} }})).unwrap_or_default()"
     (fn ((ref json-value)) (vec string))))
 
-(type message-from-raw
-  (fn ((ref json-value) (ref str))
-    message))
-
 (defn message-from-raw (raw-message thread-id)
   (let (parts (message-parts-of raw-message))
     (->message :id (text-at raw-message "id")
@@ -83,19 +73,10 @@
                :header-id (clone (:header-id parts))
                :references (clone (:references parts)))))
 
-(type sent-thread-id
-  (fn ((ref json-value)) string))
-
 (defn sent-thread-id (reply) (text-at reply "threadId"))
-
-(type text-at
-  (fn ((ref json-value) (ref str)) string))
 
 (defn text-at (details key)
   (unwrap-or (optional-string-field details key) (str "")))
-
-(type number-at
-  (fn ((ref json-value) (ref str)) i64))
 
 (defn number-at (details key)
   (match (number-field details key)

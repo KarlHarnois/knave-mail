@@ -41,13 +41,6 @@
   (rust "{{ let mut {!response} = {0}; let {!status} = {!response}.status().as_u16(); {!response}.body_mut().with_config().limit(64 * 1024 * 1024).read_to_string().map(|{!body}| crate::adapters::driven::gmail::http_reply::HttpReply {{ status: {!status}, body: {!body}, retries: {1} }}).map_err(|{!error}| format!(\"the answer was cut short: {{}}\", {!error})) }}"
     (fn (http-response u32) (result http-reply string))))
 
-(type http-get-all
-  (fn ((ref http-agent)
-       (ref (vec string))
-       (ref str)
-       u64 u64)
-    (vec (result http-reply string))))
-
 (defn http-get-all (agent urls token pause spacing)
   (get-all-replies agent urls token pause spacing reply-from
                    rate-limited?))

@@ -123,9 +123,6 @@
   (set! (at (:threads remote) index)
         (with-sent-message (at (:threads remote) index) sent)))
 
-(type with-sent-message
-  (fn ((ref thread) message) thread))
-
 (defn with-sent-message (held sent)
   (local updated (clone held))
   (push! (mut (:messages updated)) sent)

@@ -2,9 +2,6 @@
 
 (export html-newsletter long-thread unicode-thread)
 
-(type html-newsletter
-  (fn ((ref str) i64) thread))
-
 (defn html-newsletter (account date)
   (single-message-thread account
                          (->message :id (str "m-newsletter")
@@ -19,9 +16,6 @@
                                     :header-id (str "<newsletter@example.com>")
                                     :references (str ""))
                          (vec (str "INBOX") (str "UNREAD"))))
-
-(type unicode-thread
-  (fn ((ref str) i64) thread))
 
 (defn unicode-thread (account date)
   (single-message-thread account
@@ -39,9 +33,6 @@
                                     :references (str ""))
                          (vec (str "INBOX") (str "STARRED"))))
 
-(type long-thread
-  (fn ((ref str) i64) thread))
-
 (defn long-thread (account date)
   (->thread :id (str "long")
             :subject (str "Re: The never-ending design thread")
@@ -49,9 +40,6 @@
             :messages (collect (map (range 0 12)
                                  (fn (index)
                                    (long-thread-message account date index))))))
-
-(type long-thread-message
-  (fn ((ref str) i64 i64) message))
 
 (defn long-thread-message (account date index)
   (->message :id (str "m-long-" index)

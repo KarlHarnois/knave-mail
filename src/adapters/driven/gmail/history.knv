@@ -10,17 +10,9 @@
 
 (def history-page-size 500)
 
-(type fetched-history-id!
-  (fn ((mut gmail-session))
-    (result string mail-error)))
-
 (defn fetched-history-id! (session)
   (ok (history-id-of (ref (try (api-get! session
                                          (ref (str users-me "/profile"))))))))
-
-(type fetched-changes!
-  (fn ((mut gmail-session) (ref str))
-    (result mail-changes mail-error)))
 
 (defn fetched-changes! (session since)
   (collected-pages! session since (str "") (vec)))
@@ -40,9 +32,6 @@
       ((some token) (recur session since token found))
       (none (ok (->mail-changes :thread-ids found
                                 :history-id (history-id-of (ref page))))))))
-
-(type history-path
-  (fn ((ref str) (ref str)) string))
 
 (defn history-path (since page-token)
   (str users-me "/history?startHistoryId=" since

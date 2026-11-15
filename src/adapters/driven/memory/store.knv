@@ -85,23 +85,12 @@
                                             email thread-id
                                             change))))
 
-(type checkpoint-of
-  (fn ((ref (vec (pair string string)))
-       (ref str))
-    (option string)))
-
 (defn checkpoint-of (checkpoints email)
   (map-some (find (iter checkpoints)
               (fn (checkpoint) (checkpoint-of? checkpoint email)))
             (fn (checkpoint)
               (let-match ((pair _ history-id) checkpoint)
                 (clone history-id)))))
-
-(type replace-checkpoint!
-  (fn ((mut (vec (pair string string)))
-       (ref str)
-       (ref str))
-    unit))
 
 (defn replace-checkpoint! (checkpoints email history-id)
   (set! checkpoints (checkpoints-without checkpoints email))
@@ -126,10 +115,6 @@
 (defn checkpoint-of? (checkpoint email)
   (let-match ((pair account _) checkpoint)
     (= account email)))
-
-(type account-kept?
-  (fn ((ref (vec account)) (ref str))
-    bool))
 
 (defn account-kept? (accounts email)
   (any? (iter accounts)
