@@ -29,13 +29,22 @@ knaveE2E.scenario(async (driver) => {
   const mailBody = frame?.contentDocument?.body;
   const mailBackground = mailBody ? getComputedStyle(mailBody).backgroundColor : "none";
   const channels = (mailBackground.match(/\d+/g) ?? ["255", "255", "255"]).slice(0, 3).map(Number);
-  const probe = document.createElement("span");
-  probe.style.color = "var(--background)";
-  document.body.append(probe);
-  const themeBackground = getComputedStyle(probe).color;
-  probe.remove();
-  const darkMail = getComputedStyle(document.documentElement).getPropertyValue("--dark-mail").trim();
-  const darkening = `sandbox=${frame?.getAttribute("sandbox")} theme background=${themeBackground} dark-mail=${darkMail || "unset"}`;
+  const resolvedColor = (value) => {
+    const probe = document.createElement("span");
+    probe.style.color = value;
+    document.body.append(probe);
+    const color = getComputedStyle(probe).color;
+    probe.remove();
+    return color;
+  };
+  const darkening = [
+    `sandbox=${frame?.getAttribute("sandbox")}`,
+    `background=${resolvedColor("var(--background)")}`,
+    `dark-background=${resolvedColor("var(--dark-background)")}`,
+    `light-dark=${resolvedColor("light-dark(rgb(1, 1, 1), rgb(2, 2, 2))")}`,
+    `prefers-dark=${matchMedia("(prefers-color-scheme: dark)").matches}`,
+    `agent=${navigator.userAgent.match(/AppleWebKit\/[\d.]+/)?.[0]}`,
+  ].join(" ");
   e2e.check("a light newsletter is darkened in a dark theme", channels.every((channel) => channel < 90), `${mailBackground} ${darkening}`);
   const frameStyle = String(frame?.srcdoc ?? "").match(/body\{font-family:[^}]*\}/)?.[0] ?? "";
   e2e.check("html mail defaults to the theme's message font", frameStyle.includes("Iosevka Aile") && frameStyle.includes("font-size:17px"), frameStyle);
