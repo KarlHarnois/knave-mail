@@ -1,7 +1,8 @@
 import type { MailClient, ThreadQuery } from "../bridge/MailClient";
-import type { Account, ThreadSummary } from "../bridge/Protocol";
+import type { ThreadSummary } from "../bridge/Protocol";
 import type { ThreadList } from "../list/ThreadList";
 import type { StatusLine } from "../status/StatusLine";
+import { AccountRoster } from "./AccountRoster";
 import { INBOX, type LabelDirectory, type LabelRef } from "./LabelDirectory";
 import { GMAIL_PAGE, ListingPages, SEARCH_PAGE, THREAD_LIMIT } from "./ListingPages";
 import type { PendingChanges } from "./PendingChanges";
@@ -19,8 +20,7 @@ export type MailSessionPorts = {
 };
 
 export class MailSession {
-  private accounts: Account[] = [];
-  private accountIndex = 0;
+  private readonly accounts = new AccountRoster();
   private label: LabelRef = INBOX;
   private query = "";
   private loadGeneration = 0;
@@ -31,13 +31,11 @@ export class MailSession {
   constructor(private readonly ports: MailSessionPorts) {}
 
   get account(): string {
-    const account = this.accounts[this.accountIndex];
-    if (!account) throw new Error("no account: add one with `knave-mail accounts add`");
-    return account.email;
+    return this.accounts.current;
   }
 
   get hasAccount(): boolean {
-    return this.accounts.length > 0;
+    return !this.accounts.isEmpty;
   }
 
   get labelId(): string {
@@ -53,18 +51,16 @@ export class MailSession {
   }
 
   async start(): Promise<void> {
-    this.accounts = await this.ports.mail.accounts();
+    this.accounts.load(await this.ports.mail.accounts());
     await this.enterAccount(0);
   }
 
   async selectAccount(search: string): Promise<void> {
-    await this.enterAccount(this.indexOfAccount(search));
+    await this.enterAccount(this.accounts.indexMatching(search));
   }
 
   async cycleAccount(step: number): Promise<void> {
-    const count = this.accounts.length;
-    if (count === 0) throw new Error("no account to switch to");
-    await this.enterAccount((this.accountIndex + step + count) % count);
+    await this.enterAccount(this.accounts.indexAfter(step));
   }
 
   async goToLabelNamed(name: string): Promise<void> {
@@ -116,7 +112,7 @@ export class MailSession {
   }
 
   private async enterAccount(index: number): Promise<void> {
-    this.accountIndex = index;
+    this.accounts.moveTo(index);
     const account = this.account;
     for (const listener of this.accountListeners) listener(account);
     await this.goTo(INBOX, "");
@@ -132,14 +128,6 @@ export class MailSession {
 
   private queryOf(limit: number): ThreadQuery {
     return { account: this.account, label: this.label.id, query: this.query, limit };
-  }
-
-  private indexOfAccount(search: string): number {
-    const exact = this.accounts.findIndex((account) => account.email === search);
-    if (exact >= 0) return exact;
-    const partial = this.accounts.flatMap((account, index) => (account.email.includes(search) ? [index] : []));
-    if (partial.length !== 1) throw new Error(`no single account matches ${search}`);
-    return partial[0] ?? 0;
   }
 
   private showLocation(): void {
