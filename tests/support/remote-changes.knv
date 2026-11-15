@@ -4,11 +4,12 @@
                                         remote-mail)
 
 (use adapters/driven/memory/shared shared with-shared!)
+(use domain/labels apply-label-change label-change)
 (use domain/mail thread)
 
 (export arrive-remotely! delete-remotely!
         expire-remote-history! heal-remote!
-        surface-remotely!)
+        relabel-remotely! surface-remotely!)
 
 (type arrive-remotely!
   (fn ((ref (shared remote-mail)) thread)
@@ -56,3 +57,28 @@
                             (fn (kept) (not= (:id kept) thread-id)))
                           (fn (kept) (clone kept)))))
       (record-change! state thread-id))))
+
+(type relabel-remotely!
+  (fn ((ref (shared remote-mail))
+       (ref str)
+       label-change)
+    unit))
+
+(defn relabel-remotely! (remote thread-id change)
+  (with-shared! remote
+    (fn (state)
+      (set! (:threads state)
+            (collect (map (iter (:threads state))
+                       (fn (held)
+                         (if (= (:id held) thread-id)
+                           (relabeled held (ref change))
+                           (clone held))))))
+      (record-change! state thread-id))))
+
+(type relabeled
+  (fn ((ref thread) (ref label-change))
+    thread))
+
+(defn relabeled (held change)
+  (assoc (clone held)
+         :labels (apply-label-change (ref (:labels held)) change)))

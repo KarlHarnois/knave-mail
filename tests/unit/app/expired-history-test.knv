@@ -1,0 +1,24 @@
+(use app/client)
+(use domain/labels archive-change)
+(use support/app-steps inbox-query listed-ids! synced!)
+
+(use support/memory-world app-over remote-with
+                          sample-thread)
+
+(use support/remote-changes expire-remote-history!
+                            relabel-remotely!)
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100)
+                    (sample-thread "t-2" (vec "INBOX") 200))))
+
+(deftest a-thread-archived-while-history-expired-leaves-the-inbox
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (relabel-remotely! (ref world) "t-1" (archive-change))
+    (expire-remote-history! (ref world))
+    (synced! (mut app))
+    (assert (= (listed-ids! (mut app)
+                            (ref (inbox-query)))
+               (vec (str "t-2"))))))

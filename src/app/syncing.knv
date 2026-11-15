@@ -1,25 +1,14 @@
 (use app/changes sync-changes!)
+(use app/full-sync full-sync! synced-labels)
 (use app/mail-app mail-app)
 (use app/relisting relist-labels!)
 (use ports/driven/event-log log-info log-warn)
 (use app/mailboxes mailbox-for!)
-(use domain/mail ->thread-query thread thread-summary)
 (use domain/mail-error error-kind mail-error)
+(use ports/driven/mailbox fetch-labels!)
+(use ports/driven/store load-checkpoint save-labels!)
 
-(use ports/driven/mailbox fetch-history-id! fetch-labels!
-                          fetch-thread! fetch-threads!)
-
-(use ports/driven/store load-checkpoint load-thread
-                        save-checkpoint! save-labels!
-                        save-thread! save-threads!)
-
-(use domain/summary message-count)
-
-(export prefetch-limit sync! synced-labels)
-
-(def synced-labels (vec "INBOX" "STARRED" "SENT"))
-
-(def prefetch-limit 20)
+(export sync!)
 
 (type sync!
   (fn ((mut mail-app) (ref str))
@@ -59,90 +48,3 @@
          (full-sync! app account))
        (err failure)))
     (done done)))
-
-(type full-sync!
-  (fn ((mut mail-app) (ref str))
-    (result unit mail-error)))
-
-(defn full-sync! (app account)
-  (let (history-id (try (fetch-history-id!
-                          (try (mailbox-for! (mut (:mailboxes app)) account)))))
-    (try (sync-labels! app account 0))
-    (log-info (ref (:log app))
-              "sync"
-              (str account ": full sync done at history " history-id))
-    (save-checkpoint! (mut (:store app))
-                      account
-                      (ref history-id))))
-
-(type sync-labels!
-  (fn ((mut mail-app) (ref str) usize)
-    (result unit mail-error)))
-
-(defn sync-labels! (app account index)
-  (if (>= index (len synced-labels))
-    (ok (do))
-    (do
-      (try (sync-label! app account (at synced-labels index)))
-      (recur app account (+ index 1)))))
-
-(type sync-label!
-  (fn ((mut mail-app) (ref str) (ref str))
-    (result unit mail-error)))
-
-(defn sync-label! (app account label)
-  (let (query (->thread-query (str label)
-                              (str "")
-                              (:sync-limit app))
-        summaries (try (fetch-threads! (try (mailbox-for! (mut (:mailboxes app))
-                                                          account))
-                                       (ref query))))
-    (try (save-threads! (mut (:store app))
-                        account
-                        (ref summaries)))
-    (prefetch-threads! app account (ref summaries) 0)))
-
-(type prefetch-threads!
-  (fn ((mut mail-app)
-       (ref str)
-       (ref (vec thread-summary))
-       usize)
-    (result unit mail-error)))
-
-(defn prefetch-threads! (app account summaries index)
-  (if (>= index (min (len summaries) prefetch-limit))
-    (ok (do))
-    (do
-      (try (prefetch-thread! app account (at summaries index)))
-      (recur app account summaries (+ index 1)))))
-
-(type prefetch-thread!
-  (fn ((mut mail-app)
-       (ref str)
-       (ref thread-summary))
-    (result unit mail-error)))
-
-(defn prefetch-thread! (app account summary)
-  (if (try (stored-in-full? app account summary))
-    (ok (do))
-    (let (fetched (try (fetch-thread! (try (mailbox-for! (mut (:mailboxes app))
-                                                         account))
-                                      (ref (:id summary)))))
-      (save-thread! (mut (:store app))
-                    account
-                    (ref fetched)))))
-
-(type stored-in-full?
-  (fn ((ref mail-app)
-       (ref str)
-       (ref thread-summary))
-    (result bool mail-error)))
-
-(defn stored-in-full? (app account summary)
-  (match (try (load-thread (ref (:store app))
-                           account
-                           (ref (:id summary))))
-    ((some stored)
-     (ok (= (message-count (ref stored))
-            (:message-count summary))))
-    (none (ok false))))

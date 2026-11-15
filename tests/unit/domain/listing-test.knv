@@ -1,10 +1,14 @@
-(use domain/listing ids-without-summary in-listed-order)
+(use domain/listing ids-without-summary in-listed-order
+                    missing-from-listing)
+
 (use domain/mail thread-summary)
 (use domain/summary summarize)
 (use support/memory-world sample-thread)
 
-(defn summary-of (id)
-  (summarize (ref (sample-thread id (vec "INBOX") 100))))
+(defn summary-of (id) (dated-summary id 100))
+
+(defn dated-summary (id date)
+  (summarize (ref (sample-thread id (vec "INBOX") date))))
 
 (type ids-of
   (fn ((vec thread-summary)) (vec string)))
@@ -28,4 +32,18 @@
 (deftest listed-ids-without-any-summary-are-left-out
   (assert (= (ids-of (in-listed-order (ref (vec (str "a") (str "x")))
                                       (ref (vec (summary-of "a")))))
+             (vec (str "a")))))
+
+(deftest a-complete-listing-misses-every-cached-thread-it-left-out
+  (assert (= (missing-from-listing (ref (vec (dated-summary "a" 300)
+                                             (dated-summary "b" 100)))
+                                   (ref (vec (dated-summary "c" 200)))
+                                   2)
+             (vec (str "a") (str "b")))))
+
+(deftest a-full-listing-misses-only-cached-threads-newer-than-its-oldest
+  (assert (= (missing-from-listing (ref (vec (dated-summary "a" 300)
+                                             (dated-summary "b" 100)))
+                                   (ref (vec (dated-summary "c" 200)))
+                                   1)
              (vec (str "a")))))

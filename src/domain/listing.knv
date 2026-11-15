@@ -1,7 +1,8 @@
 (use domain/collections appended)
 (use domain/mail thread-summary)
 
-(export ids-without-summary in-listed-order)
+(export ids-without-summary in-listed-order
+        missing-from-listing)
 
 (type ids-without-summary
   (fn ((ref (vec string))
@@ -35,3 +36,41 @@
 (defn summary-with (id known)
   (find (iter known)
     (fn (summary) (= (:id summary) id))))
+
+(defn missing-from-listing (cached listed limit)
+  (collect (map (filter (iter cached)
+                  (fn (summary) (missing-from? summary listed limit)))
+                (fn (summary) (clone (:id summary))))))
+
+(type missing-from?
+  (fn ((ref thread-summary)
+       (ref (vec thread-summary))
+       i64)
+    bool))
+
+(defn missing-from? (summary listed limit)
+  (and (none? (summary-with (ref (:id summary)) listed))
+       (or (listing-complete? listed limit)
+           (newer-than-listed? summary listed))))
+
+(defn listing-complete? (listed limit)
+  (< (listed-count listed) limit))
+
+(type newer-than-listed?
+  (fn ((ref thread-summary)
+       (ref (vec thread-summary)))
+    bool))
+
+(defn newer-than-listed? (summary listed)
+  (match (oldest-date listed)
+    ((some oldest) (> (:date summary) oldest))
+    (none true)))
+
+(def listed-count
+  (rust "{0}.len() as i64"
+    (fn ((ref (vec thread-summary))) i64)))
+
+(def oldest-date
+  (rust "{0}.iter().map(|{!summary}| {!summary}.date).min()"
+    (fn ((ref (vec thread-summary)))
+      (option i64))))

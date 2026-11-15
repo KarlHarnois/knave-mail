@@ -1,0 +1,56 @@
+(use app/mail-app mail-app)
+(use app/mailboxes mailbox-for!)
+(use domain/mail thread-summary)
+(use domain/mail-error mail-error)
+(use domain/summary message-count)
+(use ports/driven/mailbox fetch-thread!)
+(use ports/driven/store load-thread save-thread!)
+
+(export prefetch-limit prefetch-threads!)
+
+(def prefetch-limit 20)
+
+(type prefetch-threads!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref (vec thread-summary))
+       usize)
+    (result unit mail-error)))
+
+(defn prefetch-threads! (app account summaries index)
+  (if (>= index (min (len summaries) prefetch-limit))
+    (ok (do))
+    (do
+      (try (prefetch-thread! app account (at summaries index)))
+      (recur app account summaries (+ index 1)))))
+
+(type prefetch-thread!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref thread-summary))
+    (result unit mail-error)))
+
+(defn prefetch-thread! (app account summary)
+  (if (try (stored-in-full? app account summary))
+    (ok (do))
+    (let (fetched (try (fetch-thread! (try (mailbox-for! (mut (:mailboxes app))
+                                                         account))
+                                      (ref (:id summary)))))
+      (save-thread! (mut (:store app))
+                    account
+                    (ref fetched)))))
+
+(type stored-in-full?
+  (fn ((ref mail-app)
+       (ref str)
+       (ref thread-summary))
+    (result bool mail-error)))
+
+(defn stored-in-full? (app account summary)
+  (match (try (load-thread (ref (:store app))
+                           account
+                           (ref (:id summary))))
+    ((some stored)
+     (ok (= (message-count (ref stored))
+            (:message-count summary))))
+    (none (ok false))))
