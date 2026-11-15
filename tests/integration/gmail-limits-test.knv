@@ -4,6 +4,7 @@
 (use ports/driven/mailbox fetch-labels! fetch-threads!)
 (use support/fake-gmail start-fake-gmail)
 (use support/gmail-requests requests-matching)
+(use support/truncating-gmail start-truncating-gmail)
 
 (use support/gmail-world fixture-routes gmail-over
                          gmail-paced route)
@@ -49,3 +50,9 @@
         started (clock-milliseconds))
     (unwrap-ok (fetch-threads! (mut gmail) (ref query)))
     (assert (>= (- (clock-milliseconds) started) 300))))
+
+(deftest a-truncated-answer-is-a-network-error
+  (let (server (start-truncating-gmail)
+        gmail (gmail-over (ref server)))
+    (assert (= (str (error-kind (ref (unwrap-err (fetch-labels! (mut gmail))))))
+               "network"))))
