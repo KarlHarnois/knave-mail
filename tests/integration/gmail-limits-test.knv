@@ -35,6 +35,18 @@
     (assert (= (str (error-kind (ref (unwrap-err (fetch-labels! (mut gmail))))))
                "network"))))
 
+(deftest a-used-up-daily-limit-is-a-network-error
+  (let (server (start-fake-gmail (ref (routes-answering-labels-with "403 tests/fixtures/gmail/daily-limit.json")))
+        gmail (gmail-over (ref server)))
+    (assert (= (str (error-kind (ref (unwrap-err (fetch-labels! (mut gmail))))))
+               "network"))))
+
+(deftest a-used-up-quota-is-a-network-error
+  (let (server (start-fake-gmail (ref (routes-answering-labels-with "403 tests/fixtures/gmail/quota-exceeded.json")))
+        gmail (gmail-over (ref server)))
+    (assert (= (str (error-kind (ref (unwrap-err (fetch-labels! (mut gmail))))))
+               "network"))))
+
 (deftest a-forbidden-request-asks-to-sign-in-again
   (let (server (start-fake-gmail (ref (routes-answering-labels-with "403 tests/fixtures/gmail/forbidden.json")))
         gmail (gmail-over (ref server)))

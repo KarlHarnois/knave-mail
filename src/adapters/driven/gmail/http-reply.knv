@@ -1,0 +1,25 @@
+(export http-reply quota-exhausted? rate-limited?)
+
+(defstruct http-reply
+  :status u16
+  :body string
+  :retries u32)
+
+(defn rate-limited? (reply)
+  (or (= (:status reply) 429)
+      (refused-for-any? reply
+                        (vec "rateLimitExceeded" "userRateLimitExceeded"))))
+
+(defn quota-exhausted? (reply)
+  (refused-for-any? reply
+                    (vec "dailyLimitExceeded" "quotaExceeded")))
+
+(defn refused-for-any? (reply reasons)
+  (and (= (:status reply) 403)
+       (names-any-reason? (ref (:body reply))
+                          (ref reasons))))
+
+(def names-any-reason?
+  (rust "serde_json::from_str::<serde_json::Value>({0}).ok().and_then(|{!answer}| {!answer}[\"error\"][\"errors\"].as_array().map(|{!errors}| {!errors}.iter().any(|{!error}| {!error}[\"reason\"].as_str().is_some_and(|{!reason}| {1}.contains(&{!reason}))))).unwrap_or(false)"
+    (fn ((ref str) (ref (vec (ref str))))
+      bool)))

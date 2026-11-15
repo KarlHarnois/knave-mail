@@ -1,5 +1,5 @@
-(use adapters/driven/gmail/http http-get-all http-post-json
-                                http-reply)
+(use adapters/driven/gmail/http http-get-all http-post-json)
+(use adapters/driven/gmail/http-reply http-reply)
 
 (use adapters/driven/gmail/replies checked collect-results
                                    into-replies sent)

@@ -1,4 +1,4 @@
-(use adapters/driven/gmail/http http-reply)
+(use adapters/driven/gmail/http-reply http-reply)
 (use ports/driven/event-log event-log log-debug log-warn)
 (use adapters/clock clock-milliseconds)
 

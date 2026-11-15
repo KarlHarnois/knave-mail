@@ -1,4 +1,7 @@
-(use adapters/driven/gmail/http http-reply rate-limited?)
+(use adapters/driven/gmail/http-reply http-reply
+                                      quota-exhausted?
+                                      rate-limited?)
+
 (use adapters/json/value json-value parse-json)
 (use domain/mail-error mail-error)
 
@@ -16,6 +19,8 @@
        (as-internal (parse-json (ref (non-empty-json body)))))
       ((rate-limited? (ref reply))
        (err (mail-error/network (str "Gmail's rate limit is still reached after retrying; sync again in a minute"))))
+      ((quota-exhausted? (ref reply))
+       (err (mail-error/network (str "Gmail's usage quota is used up; try again later"))))
       ((= status 404)
        (err (mail-error/not-found (str "Gmail has no such item: " body))))
       ((or (= status 401) (= status 403))
