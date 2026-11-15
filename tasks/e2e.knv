@@ -17,7 +17,7 @@
 (deftask e2e ()
   "Builds knave-mail and runs each GUI scenario under xvfb-run against the memory backend."
   (try (succeeded "knave build"
-                  (run-command "knave" (vec (str "build")))))
+                  (run-command! "knave" (vec (str "build")))))
   (let (scenarios (try (scenario-files scenario-directory runner-script))
         failures (count-failures (ref scenarios) 0 0))
     (if (= failures 0)
@@ -44,23 +44,23 @@
   (println "== " scenario)
   (match (scenario-script scenario runner-script script-directory)
     ((ok script)
-     (run-command "timeout"
-                  (vec (str run-seconds)
-                       (str "xvfb-run")
-                       (str "-a")
-                       (str "-s")
-                       (str screen-size)
-                       (str binary)
-                       (str "--backend")
-                       (str "memory")
-                       (str "--theme")
-                       (str theme-file)
-                       (str "--keymap")
-                       (str keymap-file)
-                       (str "--log-file")
-                       (str script-directory "/gui.log")
-                       (str "--e2e-script")
-                       script)))
+     (run-command! "timeout"
+                   (vec (str run-seconds)
+                        (str "xvfb-run")
+                        (str "-a")
+                        (str "-s")
+                        (str screen-size)
+                        (str binary)
+                        (str "--backend")
+                        (str "memory")
+                        (str "--theme")
+                        (str theme-file)
+                        (str "--keymap")
+                        (str keymap-file)
+                        (str "--log-file")
+                        (str script-directory "/gui.log")
+                        (str "--e2e-script")
+                        script)))
     ((err problem) (do (eprintln problem) false))))
 
 (type succeeded
@@ -72,7 +72,7 @@
     (ok (do))
     (err (str description " failed"))))
 
-(def run-command
+(def run-command!
   (rust "std::process::Command::new({0}).args({1}).status().map(|{!status}| {!status}.success()).unwrap_or(false)"
     (fn ((ref str) (vec string)) bool)))
 

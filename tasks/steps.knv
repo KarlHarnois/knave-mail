@@ -8,13 +8,13 @@
 
 (defn run! (step)
   (println "== " (:desc step))
-  (if (ran? (ref (:dir step))
-            (ref (:cmd step))
-            (clone (:args step)))
+  (if (run-command! (ref (:dir step))
+                    (ref (:cmd step))
+                    (clone (:args step)))
     (ok (do))
     (err (str (:desc step) " failed"))))
 
-(def ran?
+(def run-command!
   (rust "std::process::Command::new({1}).args({2}).current_dir({0}).status().map(|{!status}| {!status}.success()).unwrap_or(false)"
     (fn ((ref str) (ref str) (vec string))
       bool)))
