@@ -108,6 +108,18 @@ describe("composer", () => {
     expect(app.status("notice")).toBe("sent");
   });
 
+  test(":wq again while the send is pending sends once", async () => {
+    const app = await AppHarness.started();
+    await app.press("cAbob@example.com<Esc>");
+    app.core.holdReplies("send");
+    await ComposeHarness.pressWithoutWaiting(app, ":wq<CR>");
+    await ComposeHarness.pressWithoutWaiting(app, ":wq<CR>");
+    expect(app.status("notice")).toBe("still sending");
+    app.core.releaseReplies();
+    await app.driver.whenIdle();
+    expect(app.core.requestsFor("send")).toHaveLength(1);
+  });
+
   test(":q warns when the draft is dirty", async () => {
     const app = await AppHarness.started();
     await app.press("cAbob@example.com<Esc>:q<CR>");

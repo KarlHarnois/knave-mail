@@ -9,6 +9,7 @@ import type { VimEditor } from "../vim/VimEditor";
 import type { VimEditorFactory } from "../vim/VimEditorFactory";
 import type { VimExHandler } from "../vim/VimExHandler";
 import { DraftFormat } from "./DraftFormat";
+import { DraftSender } from "./DraftSender";
 
 export type ComposePorts = {
   document: Document;
@@ -35,11 +36,13 @@ export class ComposeScreen implements Screen, VimExHandler {
   private savedText = "";
   private kept: KeptDraft | null = null;
   private vimMode = NORMAL;
+  private readonly sender: DraftSender;
 
   constructor(
     private readonly ports: ComposePorts,
     private readonly format: DraftFormat = new DraftFormat(),
   ) {
+    this.sender = new DraftSender(ports);
     this.element = ports.document.createElement("section");
     this.element.className = "composer";
     this.element.dataset["test"] = "composer";
@@ -109,13 +112,8 @@ export class ComposeScreen implements Screen, VimExHandler {
   }
 
   private send(draft: Draft): void {
-    if (draft.to.length === 0) {
-      this.ports.status.showError("send: add at least one address on the To: line");
-      return;
-    }
     const sending: SendingDraft = { editor: this.editor, kept: this.kept };
-    const sent = this.ports.mail.send(this.ports.session.account, draft).then(() => this.finishSending(sending));
-    this.ports.errors.run(sent);
+    this.sender.send(draft, () => this.finishSending(sending));
   }
 
   private finishSending(sending: SendingDraft): void {
