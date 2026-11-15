@@ -1,12 +1,12 @@
 import type { MailClient } from "../bridge/MailClient";
-import type { ThreadCommand, ThreadSummary } from "../bridge/Protocol";
+import type { ThreadSummary } from "../bridge/Protocol";
 import type { ThreadList } from "../list/ThreadList";
 import type { ErrorReporter } from "../status/ErrorReporter";
 import { ArchiveRule } from "./ArchiveRule";
 import { INBOX } from "./LabelDirectory";
 import type { MailSession } from "./MailSession";
 import type { PendingChanges } from "./PendingChanges";
-import { UndoHistory } from "./UndoHistory";
+import { ThreadModifications } from "./ThreadModifications";
 
 export type ThreadActionPorts = {
   mail: MailClient;
@@ -18,10 +18,12 @@ export type ThreadActionPorts = {
 };
 
 export class ThreadActions {
-  private readonly history = new UndoHistory();
   private readonly archiveRule = new ArchiveRule();
+  private readonly modifications: ThreadModifications;
 
-  constructor(private readonly ports: ThreadActionPorts) {}
+  constructor(private readonly ports: ThreadActionPorts) {
+    this.modifications = new ThreadModifications(ports);
+  }
 
   toggleArchive(summary: ThreadSummary): ThreadSummary {
     const archived = this.archiveRule.isArchived(summary);
@@ -40,7 +42,7 @@ export class ThreadActions {
 
   archiveAll(summaries: ThreadSummary[]): void {
     for (const summary of summaries) this.removeFromInbox(summary);
-    this.send("archive", summaries);
+    this.modifications.apply("archive", summaries, this.inInbox(summaries));
     this.ports.notify(`archived ${this.threadCount(summaries)}`);
   }
 
@@ -48,16 +50,14 @@ export class ThreadActions {
     const updated = this.updateAll(
       summaries.map((summary) => ({ ...summary, labels: [...this.without(summary, INBOX.id), INBOX.id] })),
     );
-    this.send("move-to-inbox", updated);
+    const changed = summaries.filter((summary) => this.archiveRule.isArchived(summary));
+    this.modifications.apply("move-to-inbox", updated, changed);
     this.ports.notify(`moved ${this.threadCount(updated)} to the inbox`);
     return updated;
   }
 
   undo(): void {
-    const reversal = this.history.takeReversal();
-    const request = this.ports.mail.modify(reversal.command, reversal.account, reversal.threadIds);
-    this.ports.pending.track(reversal.command, reversal.threadIds, request);
-    this.ports.errors.run(request.then(() => this.ports.session.reload()));
+    this.modifications.undo();
   }
 
   trash(summary: ThreadSummary): void {
@@ -66,7 +66,7 @@ export class ThreadActions {
 
   trashAll(summaries: ThreadSummary[]): void {
     for (const summary of summaries) this.ports.session.removeThread(summary.id);
-    this.send("trash", summaries);
+    this.modifications.apply("trash", summaries);
   }
 
   toggleStar(summary: ThreadSummary): ThreadSummary {
@@ -76,7 +76,8 @@ export class ThreadActions {
   toggleStarAll(summaries: ThreadSummary[]): ThreadSummary[] {
     const starred = !summaries.every((summary) => summary.starred);
     const updated = this.updateAll(summaries.map((summary) => ({ ...summary, starred })));
-    this.send(starred ? "star" : "unstar", updated);
+    const changed = summaries.filter((summary) => summary.starred !== starred);
+    this.modifications.apply(starred ? "star" : "unstar", updated, changed);
     return updated;
   }
 
@@ -87,7 +88,8 @@ export class ThreadActions {
   toggleUnreadAll(summaries: ThreadSummary[]): ThreadSummary[] {
     const unread = summaries.every((summary) => !summary.unread);
     const updated = this.updateAll(summaries.map((summary) => ({ ...summary, unread })));
-    this.send(unread ? "mark-unread" : "mark-read", updated);
+    const changed = summaries.filter((summary) => summary.unread !== unread);
+    this.modifications.apply(unread ? "mark-unread" : "mark-read", updated, changed);
     return updated;
   }
 
@@ -95,13 +97,13 @@ export class ThreadActions {
     if (!summary.unread) return summary;
     const updated = { ...summary, unread: false };
     this.ports.list.update(updated);
-    this.request("mark-read", [updated.id]);
+    this.modifications.applyWithoutUndo("mark-read", [updated.id]);
     return updated;
   }
 
   private markArchivedAll(summaries: ThreadSummary[]): ThreadSummary[] {
     const updated = this.updateAll(summaries.map((summary) => this.archivedCopy(summary)));
-    this.send("archive", updated);
+    this.modifications.apply("archive", updated, this.inInbox(summaries));
     this.ports.notify(`archived ${this.threadCount(updated)}`);
     return updated;
   }
@@ -109,6 +111,10 @@ export class ThreadActions {
   private removeFromInbox(summary: ThreadSummary): void {
     if (this.isInInboxView()) this.ports.session.removeThread(summary.id);
     else this.ports.list.update(this.archivedCopy(summary));
+  }
+
+  private inInbox(summaries: ThreadSummary[]): ThreadSummary[] {
+    return summaries.filter((summary) => !this.archiveRule.isArchived(summary));
   }
 
   private isInInboxView(): boolean {
@@ -126,19 +132,6 @@ export class ThreadActions {
   private updateAll(summaries: ThreadSummary[]): ThreadSummary[] {
     for (const summary of summaries) this.ports.list.update(summary);
     return summaries;
-  }
-
-  private send(command: ThreadCommand, summaries: ThreadSummary[]): void {
-    if (summaries.length === 0) return;
-    const threadIds = summaries.map((summary) => summary.id);
-    this.history.record({ command, account: this.ports.session.account, threadIds });
-    this.request(command, threadIds);
-  }
-
-  private request(command: ThreadCommand, threadIds: string[]): void {
-    const request = this.ports.mail.modify(command, this.ports.session.account, threadIds);
-    this.ports.pending.track(command, threadIds, request);
-    this.ports.errors.run(request, () => this.ports.errors.run(this.ports.session.reload()));
   }
 
   private without(summary: ThreadSummary, labelId: string): string[] {

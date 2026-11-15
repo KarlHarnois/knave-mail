@@ -132,6 +132,37 @@ describe("undo and inbox", () => {
     expect(app.core.lastArgsFor("mark-unread")["threadIds"]).toEqual(["t-0"]);
   });
 
+  test("u after a mixed star toggle unstars only the thread it starred", async () => {
+    const app = await AppHarness.started((core) =>
+      core.answerWith("threads", () => [MailFixtures.summary(0, { starred: true }), MailFixtures.summary(1)]),
+    );
+    await app.press("Vjs");
+    await app.press("u");
+    expect(app.core.lastArgsFor("unstar")["threadIds"]).toEqual(["t-1"]);
+  });
+
+  test("u after a mixed read toggle marks unread only the thread it marked read", async () => {
+    const app = await AppHarness.started();
+    await app.press("VjU");
+    expect(app.core.lastArgsFor("mark-read")["threadIds"]).toEqual(["t-0", "t-1"]);
+    await app.press("u");
+    expect(app.core.lastArgsFor("mark-unread")["threadIds"]).toEqual(["t-0"]);
+  });
+
+  test("u after a mixed archive in a label moves back only the thread it archived", async () => {
+    const app = await AppHarness.started((core) =>
+      core.answerWith("threads", () => [
+        MailFixtures.summary(0, { labels: ["Label_7"] }),
+        MailFixtures.summary(1, { labels: ["INBOX", "Label_7"] }),
+      ]),
+    );
+    await app.press(":label Receipts<CR>");
+    await app.press("Vje");
+    expect(app.core.lastArgsFor("archive")["threadIds"]).toEqual(["t-0", "t-1"]);
+    await app.press("u");
+    expect(app.core.lastArgsFor("move-to-inbox")["threadIds"]).toEqual(["t-1"]);
+  });
+
   test("u has nothing left to undo once every change is undone", async () => {
     const app = await AppHarness.started();
     await app.press("eu");
