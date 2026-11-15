@@ -25,17 +25,13 @@ Press `?` in the window for every key.
 ### Gmail
 
 1. In the [Google Cloud console](https://console.cloud.google.com/), enable the Gmail API and create an OAuth client of type **Desktop app**. Add your address as a test user.
-2. Export `KNAVE_MAIL_CLIENT_ID` and `KNAVE_MAIL_CLIENT_SECRET`, for example as `op://` references for `op run`.
+2. Export `KNAVE_MAIL_CLIENT_ID` and `KNAVE_MAIL_CLIENT_SECRET`.
 3. Run `knave-mail accounts add` once per account. It opens Google's sign-in page and keeps the token in your keyring.
-4. Run `knave-mail` to open the window. It syncs the account when it opens, and `R` syncs again.
+4. Run `knave-mail`.
 
-### Theme
+### Config
 
-Copy [docs/theme.example.knv](docs/theme.example.knv) to `~/.config/knave-mail/theme.knv` and keep only what you change.
-
-### Keymap
-
-Copy [docs/keymap.example.knv](docs/keymap.example.knv) to `~/.config/knave-mail/keymap.knv` to add vim mappings to the composer and the text reader.
+Copy [docs/theme.example.knv](docs/theme.example.knv) and [docs/keymap.example.knv](docs/keymap.example.knv) to `~/.config/knave-mail/` as `theme.knv` and `keymap.knv`, and keep only what you change.
 
 ### CLI
 
