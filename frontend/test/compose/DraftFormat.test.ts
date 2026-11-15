@@ -48,6 +48,11 @@ describe("DraftFormat.parse", () => {
     expect(draft.body).toBe("Line one\n\nLine three");
   });
 
+  test("a separator line holding only spaces still starts the body", () => {
+    const draft = format.parse("To: a@example.com\nCc: \nSubject: Hi\n \nBody text", null);
+    expect(draft.body).toBe("Body text");
+  });
+
   test("header names are case insensitive and order free", () => {
     const draft = format.parse("subject: Late\nTO: x@example.com\n\n", null);
     expect(draft.subject).toBe("Late");

@@ -30,7 +30,7 @@ export class DraftFormat {
 
   parse(buffer: string, replyTo: string | null): Draft {
     const lines = buffer.split("\n");
-    const blankLine = lines.indexOf("");
+    const blankLine = lines.findIndex((line) => line.trim() === "");
     const headerEnd = blankLine < 0 ? lines.length : blankLine;
     const headers = this.parseHeaders(lines.slice(0, headerEnd));
     return {
