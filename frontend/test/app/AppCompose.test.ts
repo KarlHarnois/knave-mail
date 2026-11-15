@@ -7,6 +7,11 @@ class ComposeHarness {
   static sentDraft(app: AppHarness): Draft {
     return app.core.lastArgsFor("send")["draft"] as Draft;
   }
+
+  static async pressWithoutWaiting(app: AppHarness, keys: string): Promise<void> {
+    app.driver.press(keys);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+  }
 }
 
 describe("composer command bar", () => {
@@ -87,6 +92,20 @@ describe("composer", () => {
     await app.press("cAbob@example.com<Esc>:wq<CR>");
     expect(app.status("error")).toBe("send: network: offline");
     expect(app.isVisible('[data-test="composer"]')).toBe(true);
+  });
+
+  test("a late send reply leaves a newer draft open", async () => {
+    const app = await AppHarness.started();
+    await app.press("cAbob@example.com<Esc>");
+    app.core.holdReplies("send");
+    await ComposeHarness.pressWithoutWaiting(app, ":wq<CR>");
+    await ComposeHarness.pressWithoutWaiting(app, ":q!<CR>");
+    await ComposeHarness.pressWithoutWaiting(app, "cAnew draft<Esc>");
+    app.core.releaseReplies();
+    await app.driver.whenIdle();
+    expect(app.isVisible('[data-test="composer"]')).toBe(true);
+    expect(app.composerText()).toContain("new draft");
+    expect(app.status("notice")).toBe("sent");
   });
 
   test(":q warns when the draft is dirty", async () => {

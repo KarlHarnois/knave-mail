@@ -22,6 +22,7 @@ export type ComposePorts = {
 };
 
 type KeptDraft = { text: string; replyTo: string | null };
+type SendingDraft = { editor: VimEditor | null; kept: KeptDraft | null };
 
 const EMPTY_DRAFT: Draft = { to: [], cc: [], subject: "", body: "", replyTo: null };
 const NORMAL = "NORMAL";
@@ -112,14 +113,15 @@ export class ComposeScreen implements Screen, VimExHandler {
       this.ports.status.showError("send: add at least one address on the To: line");
       return;
     }
-    const sent = this.ports.mail.send(this.ports.session.account, draft).then(() => this.finishSending());
+    const sending: SendingDraft = { editor: this.editor, kept: this.kept };
+    const sent = this.ports.mail.send(this.ports.session.account, draft).then(() => this.finishSending(sending));
     this.ports.errors.run(sent);
   }
 
-  private finishSending(): void {
-    this.kept = null;
+  private finishSending(sending: SendingDraft): void {
     this.ports.status.showNotice("sent");
-    this.close();
+    if (this.kept === sending.kept) this.kept = null;
+    if (this.editor === sending.editor) this.close();
     this.ports.errors.run(this.ports.session.reload());
     this.ports.afterSending();
   }
