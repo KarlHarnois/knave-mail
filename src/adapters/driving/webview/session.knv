@@ -11,7 +11,8 @@
                                              relabel-runner
                                              worker-request?)
 
-(use adapters/driving/webview/sync-requests sync-event)
+(use adapters/driving/webview/sync-requests missing-account-reply
+                                            sync-event)
 
 (use adapters/driving/webview/sync-runner start-sync!
                                           sync-runner)
@@ -103,5 +104,4 @@
                    (sync-event (sync-account! client (ref account))
                                (ref account)))))
     ((err _)
-     (send-reply outbox
-                 (answer! client "{\"command\":\"sync\"}")))))
+     (send-reply outbox (missing-account-reply request)))))

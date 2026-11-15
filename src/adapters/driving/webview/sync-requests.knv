@@ -1,9 +1,10 @@
 (use adapters/driving/json/envelope failure-event
+                                    failure-reply request-id
                                     synced-event)
 
 (use domain/mail-error mail-error)
 
-(export sync-event)
+(export missing-account-reply sync-event)
 
 (type sync-event
   (fn ((result unit mail-error) (ref str))
@@ -13,3 +14,7 @@
   (match outcome
     ((ok _) (synced-event account))
     ((err failure) (failure-event account (ref failure)))))
+
+(defn missing-account-reply (request)
+  (failure-reply (ref (request-id request))
+                 (ref (mail-error/usage (str "sync needs an account")))))

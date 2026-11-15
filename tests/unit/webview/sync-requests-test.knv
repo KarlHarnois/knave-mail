@@ -1,0 +1,16 @@
+(use adapters/driving/webview/sync-requests missing-account-reply)
+(use adapters/json/value parse-json)
+(use support/gmail-requests contains?)
+
+(defn reply-to (request-text)
+  (missing-account-reply (ref (unwrap-ok (parse-json request-text)))))
+
+(deftest a-sync-without-an-account-keeps-the-request-id
+  (assert (contains? (ref (reply-to
+                            "{\"id\":4,\"command\":\"sync\",\"args\":{}}"))
+                     "\"id\":4")))
+
+(deftest a-sync-without-an-account-is-a-usage-error
+  (assert (contains? (ref (reply-to
+                            "{\"id\":4,\"command\":\"sync\",\"args\":{}}"))
+                     "\"kind\":\"usage\"")))
