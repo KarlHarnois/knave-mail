@@ -8,6 +8,7 @@ import { ThreadRowRenderer } from "../list/ThreadRowRenderer";
 import { Logger } from "../logging/Logger";
 import { LabelDirectory } from "../mail/LabelDirectory";
 import { MailSession } from "../mail/MailSession";
+import { PendingChanges } from "../mail/PendingChanges";
 import { SyncMonitor } from "../mail/SyncMonitor";
 import { ThreadActions } from "../mail/ThreadActions";
 import { DateLabel } from "../render/DateLabel";
@@ -41,6 +42,7 @@ export class MailServices {
   readonly sync: SyncMonitor;
   readonly editors: VimEditorFactory;
   readonly actions: ThreadActions;
+  private readonly pending = new PendingChanges();
 
   constructor(
     private readonly window: Window,
@@ -56,21 +58,31 @@ export class MailServices {
     this.scheduler = this.createScheduler();
     this.list = this.createThreadList();
     this.labels = new LabelDirectory(this.mail);
-    this.session = new MailSession({ mail: this.mail, list: this.list, labels: this.labels, status: this.status });
+    this.session = this.createSession();
     this.sync = this.createSyncMonitor();
     this.editors = this.createEditors();
-    this.actions = new ThreadActions({
-      mail: this.mail,
-      session: this.session,
-      list: this.list,
-      errors: this.errors,
-      notify: (notice) => this.status.showNotice(notice),
-    });
+    this.actions = this.createThreadActions();
   }
 
   launched(): void {
     this.logger.info(`inbox shown ${Math.round(performance.now())}ms after launch`);
     this.sync.syncOnLaunch();
+  }
+
+  private createSession(): MailSession {
+    const { mail, list, labels, status, pending } = this;
+    return new MailSession({ mail, list, labels, status, pending });
+  }
+
+  private createThreadActions(): ThreadActions {
+    return new ThreadActions({
+      mail: this.mail,
+      session: this.session,
+      list: this.list,
+      errors: this.errors,
+      pending: this.pending,
+      notify: (notice) => this.status.showNotice(notice),
+    });
   }
 
   private createScheduler(): RenderScheduler {

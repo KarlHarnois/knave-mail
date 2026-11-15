@@ -4,6 +4,7 @@ import type { ThreadList } from "../list/ThreadList";
 import type { StatusLine } from "../status/StatusLine";
 import { INBOX, type LabelDirectory, type LabelRef } from "./LabelDirectory";
 import { ListingPages } from "./ListingPages";
+import type { PendingChanges } from "./PendingChanges";
 
 export { THREAD_LIMIT } from "./ListingPages";
 
@@ -14,6 +15,7 @@ export type MailSessionPorts = {
   list: ThreadList;
   labels: LabelDirectory;
   status: StatusLine;
+  pending: PendingChanges;
 };
 
 export class MailSession {
@@ -119,7 +121,7 @@ export class MailSession {
     const summaries = await this.ports.mail.threads(query);
     if (generation !== this.loadGeneration) return null;
     this.pages.record(summaries.length);
-    return summaries;
+    return this.ports.pending.applyTo(summaries, this.label.id);
   }
 
   private indexOfAccount(search: string): number {

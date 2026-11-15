@@ -188,3 +188,16 @@ describe("undo and inbox", () => {
     expect(app.core.lastArgsFor("move-to-inbox")["threadIds"]).toEqual(["t-0", "t-1"]);
   });
 });
+
+describe("label changes in flight", () => {
+  test("a sync reload that lands before the archive is answered keeps the thread hidden", async () => {
+    const app = await AppHarness.started();
+    app.core.holdReplies("archive");
+    app.driver.press("e");
+    app.core.emit({ event: "synced", account: MailFixtures.ADA });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(app.driver.count('[data-thread-id="t-0"]')).toBe(0);
+    app.core.releaseReplies();
+    await app.driver.whenIdle();
+  });
+});

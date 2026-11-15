@@ -13,6 +13,8 @@ export class FakeCore implements Transport {
   private receive: (message: unknown) => void = () => {};
   private readonly handlers = new Map<string, Handler>();
   private readonly failures = new Map<string, CoreError>();
+  private readonly heldCommands = new Set<string>();
+  private readonly heldRequests: Request[] = [];
 
   constructor() {
     this.handlers.set("accounts", () => [{ email: MailFixtures.ADA }, { email: MailFixtures.GRACE }]);
@@ -35,7 +37,8 @@ export class FakeCore implements Transport {
       return;
     }
     this.requests.push(request);
-    setTimeout(() => this.answer(request), 0);
+    if (this.heldCommands.has(request.command)) this.heldRequests.push(request);
+    else setTimeout(() => this.answer(request), 0);
   }
 
   onReceive(handler: (message: unknown) => void): void {
@@ -44,6 +47,15 @@ export class FakeCore implements Transport {
 
   answerWith(command: string, handler: Handler): void {
     this.handlers.set(command, handler);
+  }
+
+  holdReplies(command: string): void {
+    this.heldCommands.add(command);
+  }
+
+  releaseReplies(): void {
+    this.heldCommands.clear();
+    for (const request of this.heldRequests.splice(0)) this.answer(request);
   }
 
   failNext(command: string, error: CoreError): void {

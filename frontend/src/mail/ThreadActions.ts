@@ -5,6 +5,7 @@ import type { ErrorReporter } from "../status/ErrorReporter";
 import { ArchiveRule } from "./ArchiveRule";
 import { INBOX } from "./LabelDirectory";
 import type { MailSession } from "./MailSession";
+import type { PendingChanges } from "./PendingChanges";
 import { UndoHistory } from "./UndoHistory";
 
 export type ThreadActionPorts = {
@@ -12,6 +13,7 @@ export type ThreadActionPorts = {
   session: MailSession;
   list: ThreadList;
   errors: ErrorReporter;
+  pending: PendingChanges;
   notify: (notice: string) => void;
 };
 
@@ -54,6 +56,7 @@ export class ThreadActions {
   undo(): void {
     const reversal = this.history.takeReversal();
     const request = this.ports.mail.modify(reversal.command, reversal.account, reversal.threadIds);
+    this.ports.pending.track(reversal.command, reversal.threadIds, request);
     this.ports.errors.run(request.then(() => this.ports.session.reload()));
   }
 
@@ -134,6 +137,7 @@ export class ThreadActions {
 
   private request(command: ThreadCommand, threadIds: string[]): void {
     const request = this.ports.mail.modify(command, this.ports.session.account, threadIds);
+    this.ports.pending.track(command, threadIds, request);
     this.ports.errors.run(request, () => this.ports.errors.run(this.ports.session.reload()));
   }
 
