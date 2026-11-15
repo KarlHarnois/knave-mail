@@ -3,7 +3,7 @@
 (use domain/mail ->message ->thread message thread)
 (use domain/mail-error mail-error)
 
-(export read-message read-thread relabel-thread
+(export erase-thread read-message read-thread relabel-thread
         write-thread)
 
 (defstruct thread-row
@@ -75,6 +75,9 @@
 (defn relabel-thread (connection account thread-id labels)
   (as-internal (update-thread-labels connection account thread-id labels)))
 
+(defn erase-thread (connection account thread-id)
+  (as-internal (delete-thread-rows connection account thread-id)))
+
 (type message-from
   (fn ((ref message-row)) message))
 
@@ -123,4 +126,11 @@
          (ref str)
          (ref str)
          (vec string))
+      (result unit string))))
+
+(def delete-thread-rows
+  (rust "{0}.unchecked_transaction().and_then(|{!transaction}| {{ for {!statement} in [\"DELETE FROM summaries WHERE account = ?1 AND id = ?2\", \"DELETE FROM threads WHERE account = ?1 AND id = ?2\", \"DELETE FROM messages WHERE account = ?1 AND thread_id = ?2\"] {{ {!transaction}.execute({!statement}, rusqlite::params![{1}, {2}])?; }} {!transaction}.commit() }}).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection)
+         (ref str)
+         (ref str))
       (result unit string))))

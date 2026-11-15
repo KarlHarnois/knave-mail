@@ -2,15 +2,16 @@
 (use domain/mail ->account ->label ->thread-query)
 (use domain/summary summarize)
 
-(use ports/driven/store forget-account! load-accounts
-                        load-labels load-message load-thread
+(use ports/driven/store forget-account! forget-thread!
+                        load-accounts load-labels
+                        load-message load-thread
                         load-threads relabel-stored!
                         save-account! save-labels!
                         save-thread! save-threads! store)
 
 (use support/memory-world sample-thread)
 
-(export finds-messages! forgets-accounts!
+(export finds-messages! forgets-accounts! forgets-threads!
         keeps-accounts-once! keeps-labels-per-account!
         keeps-whole-threads! lists-label-newest-first!
         misses-unknown-threads!
@@ -119,3 +120,15 @@
     (and (empty? (ids kept))
          (empty? (:labels (unwrap (unwrap-ok
                                     (load-thread kept account "t-1"))))))))
+
+(defn forgets-threads! (kept)
+  (let (forgotten (sample-thread "t-1" (vec "INBOX") 100)
+        kept-thread (sample-thread "t-2" (vec "INBOX") 200))
+    (unwrap-ok (save-thread! kept account (ref forgotten)))
+    (unwrap-ok (save-threads! kept account
+                              (ref (vec (summarize (ref forgotten))
+                                        (summarize (ref kept-thread))))))
+    (unwrap-ok (forget-thread! kept account "t-1"))
+    (and (= (ids kept) (vec (str "t-2")))
+         (= (unwrap-ok (load-thread kept account "t-1")) none)
+         (= (unwrap-ok (load-message kept account "m-t-1")) none))))

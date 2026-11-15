@@ -5,7 +5,7 @@
 (use app/mailboxes mailbox-for!)
 (use domain/mail-error error-kind mail-error)
 (use ports/driven/mailbox fetch-changes!)
-(use ports/driven/store save-checkpoint!)
+(use ports/driven/store forget-thread! save-checkpoint!)
 
 (export sync-changes!)
 
@@ -54,9 +54,11 @@
   (match (cache-thread! app account thread-id)
     ((err failure)
      (if (= (error-kind (ref failure)) "not-found")
-       (ok (log-debug (ref (:log app))
-                      "sync"
-                      (str account ": changed thread "
-                           thread-id " no longer exists")))
+       (do
+         (log-debug (ref (:log app))
+                    "sync"
+                    (str account ": changed thread "
+                         thread-id " no longer exists"))
+         (forget-thread! (mut (:store app)) account thread-id))
        (err failure)))
     (done done)))

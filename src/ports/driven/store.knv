@@ -36,6 +36,8 @@
                   (result (option message) mail-error)))
   (save-thread! (fn ((mut self) (ref str) (ref thread))
                   (result unit mail-error)))
+  (forget-thread! (fn ((mut self) (ref str) (ref str))
+                    (result unit mail-error)))
   (load-checkpoint (fn ((ref self) (ref str))
                      (result (option string) mail-error)))
   (save-checkpoint! (fn ((mut self) (ref str) (ref str))

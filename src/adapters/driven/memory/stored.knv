@@ -2,9 +2,10 @@
 (use domain/summary in-label?)
 
 (export ->stored-summary ->stored-thread message-in
-        replace-summaries! replace-thread! stored-summary
-        stored-thread summaries-of summaries-with-ids
-        summary-entry? thread-entry? thread-in)
+        other-summaries other-threads replace-summaries!
+        replace-thread! stored-summary stored-thread
+        summaries-of summaries-with-ids summary-entry?
+        thread-entry? thread-in)
 
 (defstruct stored-summary
   :account string

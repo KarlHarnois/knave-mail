@@ -6,7 +6,8 @@
 (use adapters/driven/memory/shared shared with-shared!)
 (use domain/mail thread)
 
-(export arrive-remotely! expire-remote-history! heal-remote!
+(export arrive-remotely! delete-remotely!
+        expire-remote-history! heal-remote!
         surface-remotely!)
 
 (type arrive-remotely!
@@ -42,3 +43,16 @@
   (with-shared! remote
     (fn (state)
       (push! (mut (:threads state)) surfaced))))
+
+(type delete-remotely!
+  (fn ((ref (shared remote-mail)) (ref str))
+    unit))
+
+(defn delete-remotely! (remote thread-id)
+  (with-shared! remote
+    (fn (state)
+      (set! (:threads state)
+            (collect (map (filter (iter (:threads state))
+                            (fn (kept) (not= (:id kept) thread-id)))
+                          (fn (kept) (clone kept)))))
+      (record-change! state thread-id))))

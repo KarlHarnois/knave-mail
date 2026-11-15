@@ -1,4 +1,6 @@
 (use adapters/driven/memory/stored message-in
+                                   other-summaries
+                                   other-threads
                                    replace-summaries!
                                    replace-thread!
                                    stored-summary
@@ -63,6 +65,12 @@
                 (ok (message-in (ref (:threads kept)) email message-id)))
   (save-thread! (kept email saved)
                 (ok (replace-thread! (mut (:threads kept)) email saved)))
+  (forget-thread!
+    (kept email thread-id)
+    (set! (:summaries kept)
+          (other-summaries (ref (:summaries kept)) email thread-id))
+    (ok (set! (:threads kept)
+              (other-threads (ref (:threads kept)) email thread-id))))
   (load-checkpoint (kept email)
                    (ok (checkpoint-of (ref (:checkpoints kept)) email)))
   (save-checkpoint! (kept email history-id)

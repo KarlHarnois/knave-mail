@@ -3,6 +3,7 @@
 
 (use support/contracts/store-contract finds-messages!
                                       forgets-accounts!
+                                      forgets-threads!
                                       keeps-accounts-once!
                                       keeps-labels-per-account!
                                       keeps-whole-threads!
@@ -33,6 +34,14 @@
 (deftest sqlite-store-forgets-accounts
   (let (kept (sqlite))
     (assert (forgets-accounts! (mut kept)))))
+
+(deftest memory-store-forgets-threads
+  (let (kept (empty-memory-store))
+    (assert (forgets-threads! (mut kept)))))
+
+(deftest sqlite-store-forgets-threads
+  (let (kept (sqlite))
+    (assert (forgets-threads! (mut kept)))))
 
 (deftest memory-store-keeps-labels-per-account
   (let (kept (empty-memory-store))

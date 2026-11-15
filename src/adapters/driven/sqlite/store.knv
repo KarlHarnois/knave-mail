@@ -16,7 +16,8 @@
                                       save-summaries
                                       summary-labels)
 
-(use adapters/driven/sqlite/threads read-message read-thread
+(use adapters/driven/sqlite/threads erase-thread
+                                    read-message read-thread
                                     relabel-thread
                                     write-thread)
 
@@ -60,6 +61,8 @@
                 (read-message (ref (:connection kept)) email message-id))
   (save-thread! (kept email saved)
                 (write-thread (ref (:connection kept)) email saved))
+  (forget-thread! (kept email thread-id)
+                  (erase-thread (ref (:connection kept)) email thread-id))
   (load-checkpoint (kept email)
                    (read-checkpoint (ref (:connection kept)) email))
   (save-checkpoint! (kept email history-id)

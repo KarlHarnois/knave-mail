@@ -13,6 +13,7 @@
                           world-account)
 
 (use support/remote-changes arrive-remotely!
+                            delete-remotely!
                             expire-remote-history!
                             heal-remote! surface-remotely!)
 
@@ -57,6 +58,16 @@
                                  world-account
                                  (ref (vec (str "t-1")))
                                  (ref (archive-change))))
+    (synced! (mut app))
+    (assert (= (listed-ids! (mut app)
+                            (ref (inbox-query)))
+               (vec (str "t-2"))))))
+
+(deftest a-later-sync-drops-threads-deleted-in-gmail
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (delete-remotely! (ref world) "t-1")
     (synced! (mut app))
     (assert (= (listed-ids! (mut app)
                             (ref (inbox-query)))
