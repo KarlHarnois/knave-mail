@@ -43,12 +43,7 @@ Run `knave-mail help` for the commands. Add `--json` for output that scripts and
 
 ### Logs
 
-knave-mail writes a log to `~/.local/state/knave-mail/knave-mail.log`, or to `$XDG_STATE_HOME/knave-mail/knave-mail.log` when `XDG_STATE_HOME` is set. The log records requests, sync steps, timings and errors. It holds no tokens or mail content.
-
-- To log every Gmail request and window command, set `KNAVE_MAIL_LOG=debug`.
-- To log more for one area only, name the area, for example `KNAVE_MAIL_LOG=info,gmail=debug`.
-- Each log line names its area, such as `sync`, `gmail` or `frontend`.
-- To write the log elsewhere, set `KNAVE_MAIL_LOG_FILE` or pass `--log-file`.
+The log is at `~/.local/state/knave-mail/knave-mail.log` and holds no tokens or mail content. Set `KNAVE_MAIL_LOG=debug` to log every request, or `KNAVE_MAIL_LOG_FILE` to write it elsewhere.
 
 ## Develop
 
