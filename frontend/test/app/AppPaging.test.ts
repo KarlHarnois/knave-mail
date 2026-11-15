@@ -49,6 +49,37 @@ describe("loading older threads from Gmail", () => {
     expect(app.selectedThreadId()).toBe("t-99");
   });
 
+  test("a thread archived after its page loaded stays gone after a sync reload", async () => {
+    let threads = MailFixtures.summaries(5);
+    const app = await AppHarness.started((core) => {
+      core.answerWith("threads", () => threads);
+      core.answerWith("thread-page", () => ({ threads: MailFixtures.summaries(5), nextPageToken: "" }));
+    });
+    await app.press("G");
+    await app.press("gge");
+    threads = MailFixtures.summaries(5).slice(1);
+    app.core.emit({ event: "synced", account: MailFixtures.ADA });
+    await app.driver.whenIdle();
+    expect(app.driver.count('[data-thread-id="t-0"]')).toBe(0);
+  });
+
+  test("a thread archived from a loaded page stays gone when the next page loads", async () => {
+    const app = await AppHarness.started((core) => {
+      core.answerWith("threads", () => MailFixtures.summaries(3));
+      core.answerWith("thread-page", (args) =>
+        args["pageToken"] === "" ? OLDER_PAGE : { threads: [MailFixtures.summary(100)], nextPageToken: "" },
+      );
+    });
+    await app.press("G");
+    app.core.holdReplies("thread-page");
+    app.driver.press("Ge");
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    app.core.releaseReplies();
+    await app.driver.whenIdle();
+    expect(app.core.requestsFor("thread-page")).toHaveLength(2);
+    expect(app.driver.count('[data-thread-id="t-99"]')).toBe(0);
+  });
+
   test("gi answers while a page is still loading, and the late page is dropped", async () => {
     const app = await AppHarness.started((core) => {
       core.answerWith("thread-page", () => OLDER_PAGE);

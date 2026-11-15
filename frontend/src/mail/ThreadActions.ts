@@ -30,7 +30,7 @@ export class ThreadActions {
   }
 
   dropArchivedFromInbox(summary: ThreadSummary): void {
-    if (this.archiveRule.isArchived(summary) && this.isInInboxView()) this.ports.list.remove(summary.id);
+    if (this.archiveRule.isArchived(summary) && this.isInInboxView()) this.ports.session.removeThread(summary.id);
   }
 
   toggleArchiveAll(summaries: ThreadSummary[]): void {
@@ -65,7 +65,7 @@ export class ThreadActions {
   }
 
   trashAll(summaries: ThreadSummary[]): void {
-    for (const summary of summaries) this.ports.list.remove(summary.id);
+    for (const summary of summaries) this.ports.session.removeThread(summary.id);
     this.send("trash", summaries);
   }
 
@@ -107,7 +107,7 @@ export class ThreadActions {
   }
 
   private removeFromInbox(summary: ThreadSummary): void {
-    if (this.isInInboxView()) this.ports.list.remove(summary.id);
+    if (this.isInInboxView()) this.ports.session.removeThread(summary.id);
     else this.ports.list.update(this.archivedCopy(summary));
   }
 

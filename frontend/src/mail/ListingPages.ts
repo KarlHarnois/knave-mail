@@ -27,6 +27,12 @@ export class ListingPages {
 
   showBase(summaries: ThreadSummary[]): void {
     this.base = summaries;
+    this.dropLoadedCoveredByBase();
+  }
+
+  forget(threadId: string): void {
+    this.base = this.base.filter((summary) => summary.id !== threadId);
+    this.loaded.delete(threadId);
   }
 
   addPage(summaries: readonly ThreadSummary[], nextToken: string): void {
@@ -39,5 +45,16 @@ export class ListingPages {
     const listed = new Set(this.base.map((summary) => summary.id));
     const older = [...this.loaded.values()].filter((summary) => !listed.has(summary.id));
     return [...this.base, ...older].sort((left, right) => right.date - left.date);
+  }
+
+  private dropLoadedCoveredByBase(): void {
+    const oldestBaseDate = this.oldestBaseDate();
+    const covered = [...this.loaded.values()].filter((summary) => summary.date >= oldestBaseDate);
+    for (const summary of covered) this.loaded.delete(summary.id);
+  }
+
+  private oldestBaseDate(): number {
+    if (this.base.length === 0) return Number.NEGATIVE_INFINITY;
+    return Math.min(...this.base.map((summary) => summary.date));
   }
 }

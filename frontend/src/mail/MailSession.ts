@@ -84,6 +84,11 @@ export class MailSession {
     if (summaries) this.ports.list.refresh(summaries);
   }
 
+  removeThread(threadId: string): void {
+    this.pages.forget(threadId);
+    this.ports.list.remove(threadId);
+  }
+
   async showMore(): Promise<void> {
     if (this.loadingMore || !this.pages.mayHaveMore) return;
     this.loadingMore = true;
