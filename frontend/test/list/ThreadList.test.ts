@@ -150,3 +150,51 @@ describe("ThreadList changes", () => {
     expect(fixture.selectedRow()?.classList.contains("unread")).toBe(true);
   });
 });
+
+describe("screen-relative moves", () => {
+  const selectedId = (fixture: ListFixture) => fixture.selectedRow()?.dataset["threadId"];
+
+  test("H selects the top row on screen, not the first thread", () => {
+    const fixture = new ListFixture(100);
+    fixture.act((list) => list.moveTo(60));
+    fixture.act((list) => list.moveToScreenTop(0));
+    expect(selectedId(fixture)).toBe("t-31");
+  });
+
+  test("H with a count counts rows down from the top of the screen", () => {
+    const fixture = new ListFixture(100);
+    fixture.act((list) => list.moveTo(60));
+    fixture.act((list) => list.moveToScreenTop(2));
+    expect(selectedId(fixture)).toBe("t-33");
+  });
+
+  test("L selects the bottom row on screen, not the last thread", () => {
+    const fixture = new ListFixture(100);
+    fixture.act((list) => list.moveToScreenBottom(0));
+    expect(selectedId(fixture)).toBe("t-29");
+  });
+
+  test("L with a count counts rows up from the bottom of the screen", () => {
+    const fixture = new ListFixture(100);
+    fixture.act((list) => list.moveToScreenBottom(2));
+    expect(selectedId(fixture)).toBe("t-27");
+  });
+
+  test("M selects the middle row on screen", () => {
+    const fixture = new ListFixture(100);
+    fixture.act((list) => list.moveToScreenMiddle());
+    expect(selectedId(fixture)).toBe("t-14");
+  });
+
+  test("M in a list shorter than the screen picks the middle thread", () => {
+    const fixture = new ListFixture(9);
+    fixture.act((list) => list.moveToScreenMiddle());
+    expect(selectedId(fixture)).toBe("t-4");
+  });
+
+  test("a count larger than the screen stops at its edge", () => {
+    const fixture = new ListFixture(100);
+    fixture.act((list) => list.moveToScreenTop(99));
+    expect(selectedId(fixture)).toBe("t-29");
+  });
+});

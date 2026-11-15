@@ -1,5 +1,7 @@
 export type RowRange = { start: number; end: number };
 
+export type ScreenRows = { first: number; last: number };
+
 export class ListWindow {
   constructor(
     readonly rowHeight: number,
@@ -20,6 +22,13 @@ export class ListWindow {
     if (rowTop < scrollTop) return rowTop;
     if (rowBottom > scrollTop + viewportHeight) return Math.max(0, rowBottom - viewportHeight);
     return scrollTop;
+  }
+
+  screenRows(total: number, scrollTop: number, viewportHeight: number): ScreenRows {
+    const lastRow = Math.max(0, total - 1);
+    const first = Math.min(Math.ceil(scrollTop / this.rowHeight), lastRow);
+    const lastOnScreen = Math.floor((scrollTop + viewportHeight) / this.rowHeight) - 1;
+    return { first, last: Math.max(first, Math.min(lastOnScreen, lastRow)) };
   }
 
   rowsPerPage(viewportHeight: number): number {

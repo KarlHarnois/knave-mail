@@ -50,13 +50,25 @@ export class ListScreen implements Screen {
   }
 
   private createHandlers(): ReadonlyMap<ListAction, Handler> {
-    return new Map<ListAction, Handler>([
+    return new Map<ListAction, Handler>([...this.movementHandlers(), ...this.threadHandlers()]);
+  }
+
+  private movementHandlers(): [ListAction, Handler][] {
+    return [
       ["moveDown", (count) => this.downward(() => this.list.moveBy(count ?? 1))],
       ["moveUp", (count) => this.list.moveBy(-(count ?? 1))],
       ["moveToTop", (count) => this.list.moveTo((count ?? 1) - 1)],
       ["moveToBottom", (count) => this.downward(() => this.moveToRow(count))],
+      ["moveToScreenTop", (count) => this.list.moveToScreenTop((count ?? 1) - 1)],
+      ["moveToScreenMiddle", () => this.downward(() => this.list.moveToScreenMiddle())],
+      ["moveToScreenBottom", (count) => this.downward(() => this.list.moveToScreenBottom((count ?? 1) - 1))],
       ["halfPageDown", () => this.downward(() => this.list.halfPageDown())],
       ["halfPageUp", () => this.list.halfPageUp()],
+    ];
+  }
+
+  private threadHandlers(): [ListAction, Handler][] {
+    return [
       ["open", () => this.afterSelection(() => this.withSelected((summary) => this.ports.openThread(summary)))],
       ["search", () => this.afterSelection(() => this.ports.startSearch())],
       ["visualMode", () => this.toggleSelection()],
@@ -67,7 +79,7 @@ export class ListScreen implements Screen {
       ["toggleUnread", () => this.withChosen((summaries) => this.actions.toggleUnreadAll(summaries))],
       ["moveToInbox", () => this.withChosen((summaries) => this.actions.moveToInboxAll(summaries))],
       ["undo", () => this.afterSelection(() => this.actions.undo())],
-    ]);
+    ];
   }
 
   private moveToRow(count: number | null): void {

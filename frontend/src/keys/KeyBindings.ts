@@ -23,6 +23,9 @@ export type ListAction =
   | "moveUp"
   | "moveToTop"
   | "moveToBottom"
+  | "moveToScreenTop"
+  | "moveToScreenMiddle"
+  | "moveToScreenBottom"
   | "halfPageDown"
   | "halfPageUp"
   | "open"
@@ -84,6 +87,9 @@ export const LIST_BINDINGS: ReadonlyArray<readonly [string, ListAction]> = [
   ["<Up>", "moveUp"],
   ["gg", "moveToTop"],
   ["G", "moveToBottom"],
+  ["H", "moveToScreenTop"],
+  ["M", "moveToScreenMiddle"],
+  ["L", "moveToScreenBottom"],
   ["<C-d>", "halfPageDown"],
   ["<C-u>", "halfPageUp"],
   ["l", "open"],

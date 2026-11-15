@@ -1,4 +1,4 @@
-import type { ListWindow, RowRange } from "./ListWindow";
+import type { ListWindow, RowRange, ScreenRows } from "./ListWindow";
 
 const FALLBACK_VIEWPORT_ROWS = 30;
 
@@ -20,6 +20,10 @@ export class ListViewport {
 
   visibleRange(rowCount: number): RowRange {
     return this.listWindow.visibleRange(rowCount, this.scrollTop, this.height);
+  }
+
+  screenRows(rowCount: number): ScreenRows {
+    return this.listWindow.screenRows(rowCount, this.scrollTop, this.height);
   }
 
   reveal(index: number): void {

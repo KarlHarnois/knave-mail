@@ -101,6 +101,21 @@ export class ThreadList {
     this.moveTo(this.summaries.length - 1);
   }
 
+  moveToScreenTop(rowsBelow: number): void {
+    const { first, last } = this.viewport.screenRows(this.length);
+    this.moveTo(Math.min(first + rowsBelow, last));
+  }
+
+  moveToScreenMiddle(): void {
+    const { first, last } = this.viewport.screenRows(this.length);
+    this.moveTo(Math.floor((first + last) / 2));
+  }
+
+  moveToScreenBottom(rowsAbove: number): void {
+    const { first, last } = this.viewport.screenRows(this.length);
+    this.moveTo(Math.max(last - rowsAbove, first));
+  }
+
   halfPageDown(): void {
     this.moveBy(this.viewport.halfPage());
   }
