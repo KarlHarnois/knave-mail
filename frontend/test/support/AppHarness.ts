@@ -6,6 +6,7 @@ import { FakeCore } from "./FakeCore";
 type DriverWindow = Window & { knaveTestDriver?: TestDriverApi };
 
 export class AppHarness {
+  private static readonly REPLY_GRACE_MS = 30;
   readonly core: FakeCore = new FakeCore();
   readonly driver: TestDriverApi;
 
@@ -33,6 +34,11 @@ export class AppHarness {
   async press(keys: string): Promise<void> {
     this.driver.press(keys);
     await this.driver.whenIdle();
+  }
+
+  async pressWithoutWaiting(keys: string): Promise<void> {
+    this.driver.press(keys);
+    await new Promise((resolve) => setTimeout(resolve, AppHarness.REPLY_GRACE_MS));
   }
 
   status(field: string): string {

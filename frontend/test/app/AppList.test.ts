@@ -111,6 +111,27 @@ describe("list locations", () => {
     expect(app.status("error")).toBe(`no label named Nope in ${MailFixtures.ADA}`);
   });
 
+  test("gi pressed while :label looks up its label ends in the inbox", async () => {
+    const app = await AppHarness.started();
+    app.core.holdReplies("labels");
+    await app.pressWithoutWaiting(":label Receipts<CR>");
+    await app.pressWithoutWaiting("gi");
+    app.core.releaseReplies();
+    await app.driver.whenIdle();
+    expect(app.status("label")).toBe("Inbox");
+    expect(app.core.lastArgsFor("threads")["label"]).toBe("INBOX");
+  });
+
+  test("a later :label wins over an earlier one still looking up its label", async () => {
+    const app = await AppHarness.started();
+    app.core.holdReplies("labels");
+    await app.pressWithoutWaiting(":label Receipts<CR>");
+    await app.pressWithoutWaiting(":label all<CR>");
+    app.core.releaseReplies();
+    await app.driver.whenIdle();
+    expect(app.status("label")).toBe("All Mail");
+  });
+
   test(":account switches by email", async () => {
     const app = await AppHarness.started();
     await app.press(`:account ${MailFixtures.GRACE}<CR>`);

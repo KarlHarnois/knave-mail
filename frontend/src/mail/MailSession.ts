@@ -24,6 +24,7 @@ export class MailSession {
   private label: LabelRef = INBOX;
   private query = "";
   private loadGeneration = 0;
+  private navigation = 0;
   private loadingMore = false;
   private readonly pages = new ListingPages();
   private readonly accountListeners: AccountListener[] = [];
@@ -64,7 +65,9 @@ export class MailSession {
   }
 
   async goToLabelNamed(name: string): Promise<void> {
-    await this.goTo(await this.ports.labels.find(this.account, name), "");
+    const navigation = this.startNavigation();
+    const label = await this.ports.labels.find(this.account, name);
+    if (navigation === this.navigation) await this.goTo(label, "");
   }
 
   async goToLabel(label: LabelRef): Promise<void> {
@@ -108,12 +111,17 @@ export class MailSession {
   }
 
   private async goTo(label: LabelRef, query: string): Promise<void> {
+    this.startNavigation();
     this.label = label;
     this.query = query;
     this.pages.startListing();
     this.showLocation();
     const summaries = await this.fetchThreads();
     if (summaries) this.ports.list.show(summaries);
+  }
+
+  private startNavigation(): number {
+    return ++this.navigation;
   }
 
   private async enterAccount(index: number): Promise<void> {
