@@ -116,6 +116,15 @@
     (assert (contains? (ref (shown-page (ref browser)))
                        "Sign-in failed"))))
 
+(deftest a-malformed-escape-fails-the-sign-in-without-a-crash
+  (let (server (consent-server)
+        granting (authorizer-with (ref server)
+                                  (box (browser-answering "/?state=%a\u{e9}x"
+                                                          "code=fake-code"))
+                                  5000))
+    (assert (= (error-kind (ref (unwrap-err (authorize! (mut granting)))))
+               "auth-required"))))
+
 (deftest a-browser-that-never-answers-ends-the-sign-in
   (let (server (consent-server)
         granting (authorizer-with (ref server)

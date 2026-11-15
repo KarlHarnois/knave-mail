@@ -1,0 +1,14 @@
+(use adapters/driven/google-oauth/redirect-query query-field)
+
+(deftest a-query-field-decodes-its-escapes
+  (assert (= (query-field "/?code=caf%C3%A9+au+lait" "code")
+             "café au lait")))
+
+(deftest an-escape-at-the-end-of-a-field-is-decoded
+  (assert (= (query-field "/?code=0A%2F" "code") "0A/")))
+
+(deftest an-invalid-escape-stays-literal
+  (assert (= (query-field "/?state=%zz%4" "state") "%zz%4")))
+
+(deftest an-escape-before-non-ascii-text-stays-literal
+  (assert (= (query-field "/?state=%a\u{e9}x" "state") "%a\u{e9}x")))
