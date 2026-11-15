@@ -11,8 +11,8 @@
 (use support/gmail-world fixture-routes gmail-over route)
 (use support/sample-mail addresses)
 
-(use support/gmail-requests contains? inbox
-                            requests-matching)
+(use support/gmail-requests contains? inbox mime-header
+                            requests-matching sent-mime)
 
 (deftest sends-a-reply-as-raw-mime-in-its-thread
   (let (server (start-fake-gmail (ref (fixture-routes)))
@@ -46,6 +46,25 @@
                                                      :in-reply-to none
                                                      :references (str "")))))
                "t1"))))
+
+(deftest a-sent-message-id-names-the-sender-s-domain
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (unwrap-ok (deliver! (mut gmail)
+                         (ref (->outgoing :from (str "Ada Lovelace <ada@lovelace.test>")
+                                          :to (addresses (vec
+                                                           "grace@example.com"))
+                                          :cc (vec)
+                                          :subject (str "Hello")
+                                          :body (str "Hi")
+                                          :thread-id none
+                                          :in-reply-to none
+                                          :references (str "")))))
+    (let (sent (requests-matching (ref server)
+                                  "POST /gmail/v1/users/me/messages/send")
+          message-id (mime-header (ref (sent-mime (at sent 0)))
+                                  "Message-ID"))
+      (assert (contains? (ref message-id) "@lovelace.test>")))))
 
 (deftest relabels-a-thread-with-added-and-removed-labels
   (let (server (start-fake-gmail (ref (fixture-routes)))
