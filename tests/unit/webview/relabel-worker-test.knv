@@ -10,7 +10,10 @@
 (use adapters/driving/webview/relabel-runner reply-sink
                                              worker-request?)
 
-(use adapters/driving/webview/logged-answers answer-relabels!)
+(use adapters/driving/webview/logged-answers answer-relabels!
+                                             refuse-relabels!)
+
+(use domain/mail-error mail-error)
 (use adapters/driving/webview/window request-inbox)
 (use app/client)
 (use ports/driven/event-log event-log)
@@ -102,3 +105,13 @@
                       (ref sink))
     (assert (mentions? (ref (logged-lines (ref log)))
                        "relabel failed"))))
+
+(deftest a-worker-that-cannot-start-refuses-each-request-by-its-id
+  (let (sink (->collected-replies (share (vec))))
+    (refuse-relabels! (ref (mail-error/auth-required (str "no account")))
+                      (ref (inbox-holding (ref (vec (str archive-t-1)))))
+                      (ref sink))
+    (let (replies (with-shared! (ref (:replies sink))
+                    (fn (replies) (clone replies))))
+      (assert (contains? (at replies 0) "\"id\":7"))
+      (assert (contains? (at replies 0) "\"error\"")))))

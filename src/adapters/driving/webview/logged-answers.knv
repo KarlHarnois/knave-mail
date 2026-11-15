@@ -9,11 +9,17 @@
 (use adapters/driving/webview/window next-request
                                      request-inbox)
 
+(use adapters/driving/json/envelope failure-reply null-id
+                                    request-id)
+
+(use adapters/json/value parse-json)
+(use domain/mail-error mail-error)
 (use domain/results ok->option)
 (use ports/driven/event-log event-log log-debug log-warn)
 (use ports/driving/mail-client list-accounts! mail-client)
 
-(export answer-relabels! answered-and-logged!)
+(export answer-relabels! answered-and-logged!
+        refuse-relabels!)
 
 (type answer-relabels!
   (where ((client mail-client) (sink reply-sink))
@@ -46,6 +52,20 @@
                      (answered-and-logged! client log (ref request) "relabel"))
      (recur client log inbox sink))
     (none (do))))
+
+(defn refuse-relabels! (failure inbox sink)
+  (match (next-request inbox)
+    ((some request)
+     (deliver-reply! sink
+                     (failure-reply (ref (id-of (as-str request)))
+                                    failure))
+     (recur failure inbox sink))
+    (none (do))))
+
+(defn id-of (request-text)
+  (match (parse-json request-text)
+    ((ok request) (request-id (ref request)))
+    ((err _) (null-id))))
 
 (type answered-and-logged!
   (where ((client mail-client))

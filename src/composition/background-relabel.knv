@@ -1,7 +1,8 @@
 (use adapters/driving/webview/relabel-runner ->outbox-sink
                                              relabel-runner)
 
-(use adapters/driving/webview/logged-answers answer-relabels!)
+(use adapters/driving/webview/logged-answers answer-relabels!
+                                             refuse-relabels!)
 
 (use adapters/driving/webview/window reply-outbox
                                      request-inbox)
@@ -51,8 +52,11 @@
       ((err failure)
        (log-warn (ref log)
                  "window"
-                 (str "the label worker could not start, so label changes run inline: "
-                      (error-message (ref failure))))))))
+                 (str "the label worker could not start, so it refuses label changes: "
+                      (error-message (ref failure))))
+       (refuse-relabels! (ref failure)
+                         (ref inbox)
+                         (ref (->outbox-sink outbox)))))))
 
 (def spawn-worker
   (rust "{{ let ({!queue}, {!inbox}) = std::sync::mpsc::channel::<String>(); let {!outbox} = {0}.clone(); let {!job} = {1}; std::thread::spawn(move || {!job}({!inbox}, {!outbox})); {!queue} }}"
