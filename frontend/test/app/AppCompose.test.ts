@@ -87,6 +87,14 @@ describe("composer", () => {
     expect(app.status("mode")).toStartWith("COMPOSE");
   });
 
+  test("a header the composer cannot send stops the send with an error", async () => {
+    const app = await AppHarness.started();
+    await app.press("cAbob@example.com<Esc>oBcc: eve@example.com<Esc>:wq<CR>");
+    expect(app.core.requestsFor("send")).toHaveLength(0);
+    expect(app.status("error")).toContain('unsupported header "Bcc"');
+    expect(app.status("mode")).toStartWith("COMPOSE");
+  });
+
   test("a failed send keeps the composer open", async () => {
     const app = await AppHarness.started((core) => core.failNext("send", { kind: "network", message: "offline" }));
     await app.press("cAbob@example.com<Esc>:wq<CR>");

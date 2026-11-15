@@ -88,7 +88,11 @@ export class ComposeScreen implements Screen, VimExHandler {
   }
 
   writeAndQuit(): void {
-    this.send(this.format.parse(this.text(), this.replyTo));
+    try {
+      this.send(this.format.parse(this.text(), this.replyTo));
+    } catch (error) {
+      this.ports.errors.report(error);
+    }
   }
 
   quit(force: boolean): void {

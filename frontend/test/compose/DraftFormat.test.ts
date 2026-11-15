@@ -78,6 +78,12 @@ describe("DraftFormat.parse", () => {
     expect(format.parse("To: a@example.com\nSubject: s", null).body).toBe("");
   });
 
+  test("a header it cannot send is rejected by name", () => {
+    expect(() => format.parse("To: a@example.com\nBcc: b@example.com\nSubject: Hi\n\nBody", null)).toThrow(
+      'unsupported header "Bcc"',
+    );
+  });
+
   test("carries the replyTo id through", () => {
     expect(format.parse("To: a@example.com\n\n", "m-1").replyTo).toBe("m-1");
   });

@@ -1,11 +1,13 @@
 import type { Draft } from "../bridge/Protocol";
 import { AddressList } from "./AddressList";
+import { UnsupportedHeaderError } from "./UnsupportedHeaderError";
 
 type Headers = Map<string, string>;
 
 const HEADER_LINE = /^([A-Za-z-]+):\s?(.*)$/;
 const CONTINUATION_LINE = /^\s+\S/;
 const HEADER_COUNT = 3;
+const SUPPORTED_HEADERS = new Set(["to", "cc", "subject"]);
 
 export class DraftFormat {
   constructor(private readonly addresses: AddressList = new AddressList()) {}
@@ -51,13 +53,16 @@ export class DraftFormat {
 
   private parseHeaderLine(headers: Headers, line: string, lastName: string): string {
     const header = HEADER_LINE.exec(line);
-    if (header) {
-      const name = (header[1] ?? "").toLowerCase();
-      headers.set(name, (header[2] ?? "").trim());
-      return name;
-    }
+    if (header) return this.addHeader(headers, header[1] ?? "", header[2] ?? "");
     if (lastName && CONTINUATION_LINE.test(line)) this.continueHeader(headers, lastName, line);
     return lastName;
+  }
+
+  private addHeader(headers: Headers, writtenName: string, value: string): string {
+    const name = writtenName.toLowerCase();
+    if (!SUPPORTED_HEADERS.has(name)) throw new UnsupportedHeaderError(writtenName);
+    headers.set(name, value.trim());
+    return name;
   }
 
   private continueHeader(headers: Headers, name: string, line: string): void {
