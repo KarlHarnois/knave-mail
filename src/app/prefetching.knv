@@ -1,8 +1,9 @@
 (use app/mail-app mail-app)
 (use app/mailboxes mailbox-for!)
 (use domain/mail thread-summary)
-(use domain/mail-error mail-error)
+(use domain/mail-error error-message mail-error)
 (use domain/summary message-count)
+(use ports/driven/event-log log-warn)
 (use ports/driven/mailbox fetch-thread!)
 (use ports/driven/store load-thread save-thread!)
 
@@ -15,14 +16,31 @@
        (ref str)
        (ref (vec thread-summary))
        usize)
-    (result unit mail-error)))
+    unit))
 
 (defn prefetch-threads! (app account summaries index)
   (if (>= index (min (len summaries) prefetch-limit))
-    (ok (do))
+    (do)
     (do
-      (try (prefetch-thread! app account (at summaries index)))
+      (prefetch-or-warn! app account (at summaries index))
       (recur app account summaries (+ index 1)))))
+
+(type prefetch-or-warn!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref thread-summary))
+    unit))
+
+(defn prefetch-or-warn! (app account summary)
+  (match (prefetch-thread! app account summary)
+    ((err failure)
+     (log-warn (ref (:log app))
+               "sync"
+               (str account ": skipped downloading thread "
+                    (:id summary)
+                    ": "
+                    (error-message (ref failure)))))
+    ((ok _) (do))))
 
 (type prefetch-thread!
   (fn ((mut mail-app)

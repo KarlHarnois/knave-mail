@@ -53,4 +53,5 @@
                         account
                         (ref summaries)))
     (try (drop-stale-label! app account (ref query) (ref summaries)))
-    (prefetch-threads! app account (ref summaries) 0)))
+    (prefetch-threads! app account (ref summaries) 0)
+    (ok (do))))

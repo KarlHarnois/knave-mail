@@ -1,17 +1,25 @@
 (use adapters/driven/gmail/http-reply http-reply
                                       rate-limited?)
 
-(export http-agent http-get http-get-all http-post-form
-        http-post-json new-agent)
+(export agent-with-timeouts http-agent http-get http-get-all
+        http-post-form http-post-json new-agent)
 
 (deftype http-agent (rust "ureq::Agent"))
 
 (deftype http-response
   (rust "ureq::http::Response<ureq::Body>"))
 
-(def new-agent
-  (rust "ureq::Agent::from(ureq::Agent::config_builder().http_status_as_error(false).timeout_global(Some(std::time::Duration::from_secs(30))).build())"
-    (fn () http-agent)))
+(def connect-timeout-milliseconds 10000)
+
+(def stall-timeout-milliseconds 30000)
+
+(defn new-agent ()
+  (agent-with-timeouts connect-timeout-milliseconds
+                       stall-timeout-milliseconds))
+
+(def agent-with-timeouts
+  (rust "ureq::Agent::from(ureq::Agent::config_builder().http_status_as_error(false).timeout_connect(Some(std::time::Duration::from_millis({0}))).timeout_per_read(Some(std::time::Duration::from_millis({1}))).timeout_per_write(Some(std::time::Duration::from_millis({1}))).build())"
+    (fn (u64 u64) http-agent)))
 
 (type http-get
   (fn ((ref http-agent) (ref str) (ref str))

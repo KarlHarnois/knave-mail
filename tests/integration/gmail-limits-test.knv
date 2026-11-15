@@ -6,6 +6,12 @@
 (use support/gmail-requests requests-matching)
 (use support/truncating-gmail start-truncating-gmail)
 
+(use support/trickling-server start-trickling-server
+                              trickled-body)
+
+(use adapters/driven/gmail/http agent-with-timeouts
+                                http-get)
+
 (use support/gmail-world fixture-routes gmail-over
                          gmail-paced route)
 
@@ -68,3 +74,10 @@
         gmail (gmail-over (ref server)))
     (assert (= (str (error-kind (ref (unwrap-err (fetch-labels! (mut gmail))))))
                "network"))))
+
+(deftest a-slow-answer-that-keeps-arriving-is-read-in-full
+  (let (base (start-trickling-server 60 trickled-body)
+        reply (http-get (ref (agent-with-timeouts 1000 300))
+                        (ref (str base "/gmail/v1/users/me/labels"))
+                        "fake-access"))
+    (assert (= (:body (unwrap-ok reply)) trickled-body))))

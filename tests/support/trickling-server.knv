@@ -1,0 +1,7 @@
+(export start-trickling-server trickled-body)
+
+(def trickled-body "{\"labels\":[]}")
+
+(def start-trickling-server
+  (rust "{{ let {!listener} = std::net::TcpListener::bind(\"127.0.0.1:0\").expect(\"the trickling server binds\"); let {!port} = {!listener}.local_addr().expect(\"a local address\").port(); let {!body} = {1}.to_string(); let {!pause} = std::time::Duration::from_millis({0}); std::thread::spawn(move || for {!stream} in {!listener}.incoming() {{ let Ok(mut {!stream}) = {!stream} else {{ continue }}; let {!body} = {!body}.clone(); std::thread::spawn(move || {{ use std::io::{{BufRead, Write}}; let mut {!reader} = std::io::BufReader::new({!stream}.try_clone().expect(\"a stream clone\")); loop {{ let mut {!header} = String::new(); if {!reader}.read_line(&mut {!header}).unwrap_or(0) == 0 || {!header}.trim().is_empty() {{ break; }} }} let _ = write!({!stream}, \"HTTP/1.1 200 OK\\r\\nContent-Type: application/json\\r\\nContent-Length: {{}}\\r\\nConnection: close\\r\\n\\r\\n\", {!body}.len()); for {!byte} in {!body}.bytes() {{ let _ = {!stream}.flush(); std::thread::sleep({!pause}); let _ = {!stream}.write_all(&[{!byte}]); }} }}); }}); format!(\"http://127.0.0.1:{{}}\", {!port}) }}"
+    (fn (u64 (ref str)) string)))

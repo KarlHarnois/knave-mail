@@ -64,3 +64,13 @@
                                                                world-account
                                                                "t-0")))))
                "network"))))
+
+(deftest a-thread-that-fails-to-download-does-not-abort-the-sync
+  (let (world (remote)
+        app (app-over (ref world)))
+    (fail-remote! (ref world) "fetch-thread")
+    (unwrap-ok (sync-account! (mut app) world-account))
+    (assert (= (len (unwrap-ok (list-threads! (mut app)
+                                              world-account
+                                              (ref (inbox-query)))))
+               2))))
