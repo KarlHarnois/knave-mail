@@ -1,7 +1,7 @@
 import type { Bridge } from "./Bridge";
-import type { Account, Draft, Label, Thread, ThreadCommand, ThreadSummary } from "./Protocol";
+import type { Account, Draft, Label, Thread, ThreadCommand, ThreadPage, ThreadSummary } from "./Protocol";
 
-export type ThreadQuery = { account: string; label: string; query: string; limit: number; fresh: boolean };
+export type ThreadQuery = { account: string; label: string; query: string; limit: number };
 
 export class MailClient {
   constructor(private readonly bridge: Bridge) {}
@@ -16,6 +16,10 @@ export class MailClient {
 
   threads(query: ThreadQuery): Promise<ThreadSummary[]> {
     return this.bridge.request("threads", query);
+  }
+
+  threadPage(query: ThreadQuery, pageToken: string): Promise<ThreadPage> {
+    return this.bridge.request("thread-page", { ...query, pageToken });
   }
 
   thread(account: string, threadId: string): Promise<Thread> {

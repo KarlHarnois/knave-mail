@@ -21,6 +21,7 @@ export class FakeCore implements Transport {
     this.handlers.set("labels", () => MailFixtures.labels());
     this.handlers.set("threads", () => MailFixtures.summaries(50));
     this.handlers.set("thread", () => this.thread);
+    this.handlers.set("thread-page", () => ({ threads: [], nextPageToken: "" }));
     this.handlers.set("reply-draft", () => MailFixtures.replyDraft());
     this.handlers.set("forward-draft", () => ({
       ...MailFixtures.replyDraft(),

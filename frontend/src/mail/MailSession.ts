@@ -1,9 +1,9 @@
-import type { MailClient } from "../bridge/MailClient";
+import type { MailClient, ThreadQuery } from "../bridge/MailClient";
 import type { Account, ThreadSummary } from "../bridge/Protocol";
 import type { ThreadList } from "../list/ThreadList";
 import type { StatusLine } from "../status/StatusLine";
 import { INBOX, type LabelDirectory, type LabelRef } from "./LabelDirectory";
-import { ListingPages } from "./ListingPages";
+import { GMAIL_PAGE, ListingPages, SEARCH_PAGE, THREAD_LIMIT } from "./ListingPages";
 import type { PendingChanges } from "./PendingChanges";
 
 export { THREAD_LIMIT } from "./ListingPages";
@@ -91,18 +91,25 @@ export class MailSession {
   async showMore(): Promise<void> {
     if (this.loadingMore || !this.pages.mayHaveMore) return;
     this.loadingMore = true;
-    this.pages.grow();
     try {
-      await this.reload();
+      await this.loadNextPage();
     } finally {
       this.loadingMore = false;
     }
   }
 
+  private async loadNextPage(): Promise<void> {
+    const generation = this.loadGeneration;
+    const page = await this.ports.mail.threadPage(this.queryOf(GMAIL_PAGE), this.pages.pageToken);
+    if (generation !== this.loadGeneration) return;
+    this.pages.addPage(page.threads, page.nextPageToken);
+    this.ports.list.refresh(this.ports.pending.applyTo(this.pages.listing(), this.label.id));
+  }
+
   private async goTo(label: LabelRef, query: string): Promise<void> {
     this.label = label;
     this.query = query;
-    this.pages.startListing(query);
+    this.pages.startListing();
     this.showLocation();
     const summaries = await this.fetchThreads();
     if (summaries) this.ports.list.show(summaries);
@@ -117,12 +124,14 @@ export class MailSession {
 
   private async fetchThreads(): Promise<ThreadSummary[] | null> {
     const generation = ++this.loadGeneration;
-    const { size: limit, fresh } = this.pages;
-    const query = { account: this.account, label: this.label.id, query: this.query, limit, fresh };
-    const summaries = await this.ports.mail.threads(query);
+    const summaries = await this.ports.mail.threads(this.queryOf(this.query ? SEARCH_PAGE : THREAD_LIMIT));
     if (generation !== this.loadGeneration) return null;
-    this.pages.record(summaries.length);
-    return this.ports.pending.applyTo(summaries, this.label.id);
+    this.pages.showBase(summaries);
+    return this.ports.pending.applyTo(this.pages.listing(), this.label.id);
+  }
+
+  private queryOf(limit: number): ThreadQuery {
+    return { account: this.account, label: this.label.id, query: this.query, limit };
   }
 
   private indexOfAccount(search: string): number {

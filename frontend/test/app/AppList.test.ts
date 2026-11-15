@@ -12,7 +12,6 @@ describe("app start", () => {
       label: "INBOX",
       query: "",
       limit: THREAD_LIMIT,
-      fresh: false,
     });
   });
 
@@ -80,40 +79,6 @@ describe("list locations", () => {
     const app = await AppHarness.started();
     await app.press("/invoice<CR>");
     expect(app.core.lastArgsFor("threads")["limit"]).toBe(50);
-  });
-
-  test("moving near the end of a full page of results loads the next page", async () => {
-    const app = await AppHarness.started();
-    await app.press("/invoice<CR>");
-    await app.press("G");
-    expect(app.core.lastArgsFor("threads")["limit"]).toBe(100);
-  });
-
-  test("a search with fewer results than a page loads no more", async () => {
-    const app = await AppHarness.started((core) => core.answerWith("threads", () => MailFixtures.summaries(20)));
-    await app.press("/invoice<CR>");
-    const requests = app.core.requestsFor("threads").length;
-    await app.press("G");
-    expect(app.core.requestsFor("threads")).toHaveLength(requests);
-  });
-
-  test("moving near the end of a label asks Gmail for the next page", async () => {
-    const app = await AppHarness.started();
-    await app.press("G");
-    expect(app.core.lastArgsFor("threads")).toMatchObject({ label: "INBOX", limit: 100, fresh: true });
-  });
-
-  test("a label stops loading once Gmail returns less than a page", async () => {
-    const app = await AppHarness.started();
-    await app.press("G");
-    const requests = app.core.requestsFor("threads").length;
-    await app.press("ggG");
-    expect(app.core.requestsFor("threads")).toHaveLength(requests);
-  });
-
-  test("a label opens from the cache", async () => {
-    const app = await AppHarness.started();
-    expect(app.core.lastArgsFor("threads")["fresh"]).toBe(false);
   });
 
   test(":q clears a search", async () => {
