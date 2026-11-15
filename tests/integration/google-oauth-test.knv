@@ -1,4 +1,5 @@
 (use adapters/driven/file-credentials/credentials ->file-credentials)
+(use adapters/driven/google-oauth/consent-browser consent-browser)
 (use adapters/driven/gmail/http new-agent)
 
 (use adapters/driven/google-oauth/authorizer ->google-authorizer
@@ -9,7 +10,9 @@
 (use domain/mail-error error-kind)
 (use ports/driven/authorizer authorize!)
 (use ports/driven/credentials load-token)
-(use support/fake-browser ->fake-browser)
+
+(use support/fake-browser ->idle-browser browser-answering
+                          sharing-page shown-page)
 
 (use support/fake-gmail fake-gmail fake-gmail-base
                         requests-seen start-fake-gmail)
@@ -30,16 +33,26 @@
     google-authorizer))
 
 (defn authorizer-over (server credentials-path answer)
+  (->google-authorizer :agent (new-agent)
+                       :settings (settings-over server 5000)
+                       :credentials (box (->file-credentials (str credentials-path)))
+                       :browser (box (browser-answering "" answer))))
+
+(defn authorizer-with (server browser wait)
+  (->google-authorizer :agent (new-agent)
+                       :settings (settings-over server wait)
+                       :credentials (box (->file-credentials (temporary-path
+                                                               "tokens.json")))
+                       :browser browser))
+
+(defn settings-over (server wait)
   (let (base (fake-gmail-base server))
-    (->google-authorizer :agent (new-agent)
-                         :settings (->oauth-settings
-                                     :auth-url (str base "/auth")
-                                     :token-url (str base "/token")
-                                     :api-base (clone base)
-                                     :client-id (str "fake-client")
-                                     :client-secret (str "fake-secret"))
-                         :credentials (box (->file-credentials (str credentials-path)))
-                         :browser (box (->fake-browser (str answer))))))
+    (->oauth-settings :auth-url (str base "/auth")
+                      :token-url (str base "/token")
+                      :api-base (clone base)
+                      :client-id (str "fake-client")
+                      :client-secret (str "fake-secret")
+                      :sign-in-wait-milliseconds wait)))
 
 (deftest consent-names-the-account-from-the-gmail-profile
   (let (server (consent-server)
@@ -82,6 +95,32 @@
         granting (authorizer-over (ref server)
                                   (ref path)
                                   "code=fake-code&wrong-state"))
+    (assert (= (error-kind (ref (unwrap-err (authorize! (mut granting)))))
+               "auth-required"))))
+
+(deftest a-stray-request-does-not-end-the-sign-in
+  (let (server (consent-server)
+        granting (authorizer-with (ref server)
+                                  (box (browser-answering "/favicon.ico"
+                                                          "code=fake-code"))
+                                  5000))
+    (assert (ok? (ref (authorize! (mut granting)))))))
+
+(deftest a-forged-state-shows-an-error-page
+  (let (server (consent-server)
+        browser (browser-answering "" "code=fake-code&wrong-state")
+        granting (authorizer-with (ref server)
+                                  (box (sharing-page (ref browser)))
+                                  5000))
+    (authorize! (mut granting))
+    (assert (contains? (ref (shown-page (ref browser)))
+                       "Sign-in failed"))))
+
+(deftest a-browser-that-never-answers-ends-the-sign-in
+  (let (server (consent-server)
+        granting (authorizer-with (ref server)
+                                  (box (->idle-browser))
+                                  200))
     (assert (= (error-kind (ref (unwrap-err (authorize! (mut granting)))))
                "auth-required"))))
 

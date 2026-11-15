@@ -5,7 +5,10 @@
                                                   open-url!)
 
 (use adapters/driven/google-oauth/loopback bind-loopback
-                                           loopback-port
+                                           loopback-port)
+
+(use adapters/driven/google-oauth/redirect redirect-answer
+                                           reply-to-browser!
                                            wait-for-redirect)
 
 (use adapters/driven/google-oauth/pkce new-pkce-pair
@@ -38,25 +41,45 @@
 
 (defn consented-account! (granting)
   (let (listener (try (as-auth (bind-loopback)))
-        redirect-uri (str "http://127.0.0.1:" (loopback-port (ref listener)))
-        pkce (new-pkce-pair)
-        state (new-state))
+        request (->consent-request :redirect-uri (str "http://127.0.0.1:"
+                                                      (loopback-port (ref listener)))
+                                   :pkce (new-pkce-pair)
+                                   :state (new-state)))
     (try (open-url! (mut (:browser granting))
                     (ref (consent-url (ref (:settings granting))
-                                      (ref redirect-uri)
-                                      (ref pkce)
-                                      (ref state)))))
-    (let (answer (try (as-auth (wait-for-redirect (ref listener)))))
-      (cond
-        ((not (empty? (:error answer)))
-         (err (mail-error/auth-required (str "Google refused consent: "
-                                             (:error answer)))))
-        ((not= (:state answer) state)
-         (err (mail-error/auth-required (str "the sign-in answer did not match this request"))))
-        (else (exchange-code! granting
-                              (ref (:code answer))
-                              (ref redirect-uri)
-                              (ref pkce)))))))
+                                      (ref (:redirect-uri request))
+                                      (ref (:pkce request))
+                                      (ref (:state request))))))
+    (let (redirect (try (as-auth (wait-for-redirect (ref listener)
+                                                    (:sign-in-wait-milliseconds
+                                                      (:settings granting)))))
+          outcome (answered-account! granting
+                                     (ref (:answer redirect))
+                                     (ref request)))
+      (reply-to-browser! redirect outcome))))
+
+(defstruct consent-request
+  :redirect-uri string
+  :pkce pkce-pair
+  :state string)
+
+(type answered-account!
+  (fn ((mut google-authorizer)
+       (ref redirect-answer)
+       (ref consent-request))
+    (result account mail-error)))
+
+(defn answered-account! (granting answer request)
+  (cond
+    ((not (empty? (:error answer)))
+     (err (mail-error/auth-required (str "Google refused consent: "
+                                         (:error answer)))))
+    ((not= (:state answer) (:state request))
+     (err (mail-error/auth-required (str "the sign-in answer did not match this request"))))
+    (else (exchange-code! granting
+                          (ref (:code answer))
+                          (ref (:redirect-uri request))
+                          (ref (:pkce request))))))
 
 (type exchange-code!
   (fn ((mut google-authorizer)

@@ -20,6 +20,8 @@
 
 (def sync-limit 100)
 
+(def sign-in-wait-milliseconds 300000)
+
 (type gmail-app
   (fn ((ref settings) (box event-log))
     (result mail-app mail-error)))
@@ -38,7 +40,8 @@
                            :token-url (clone (:token-url chosen))
                            :api-base (clone (:api-base chosen))
                            :client-id (clone (:client-id chosen))
-                           :client-secret (clone (:client-secret chosen)))
+                           :client-secret (clone (:client-secret chosen))
+                           :sign-in-wait-milliseconds sign-in-wait-milliseconds)
                :credentials (chosen-credentials chosen)
                :browser (box (->system-browser (clone (:browser chosen))))))
         log sync-limit)))

@@ -1,24 +1,37 @@
-(use domain/mail-error mail-error)
-
-(export bind-loopback loopback-listener loopback-port
-        redirect-answer wait-for-redirect)
-
-(defstruct redirect-answer
-  :code string
-  :state string
-  :error string)
+(export answer-browser! bind-loopback browser-connection
+        deadline-after loopback-listener loopback-port
+        next-connection request-target sign-in-deadline)
 
 (deftype loopback-listener (rust "std::net::TcpListener"))
 
+(deftype browser-connection (rust "std::net::TcpStream"))
+
+(deftype sign-in-deadline (rust "std::time::Instant"))
+
 (def bind-loopback
-  (rust "std::net::TcpListener::bind(\"127.0.0.1:0\").map_err(|{!error}| {!error}.to_string())"
+  (rust "std::net::TcpListener::bind(\"127.0.0.1:0\").and_then(|{!listener}| {!listener}.set_nonblocking(true).map(|_| {!listener})).map_err(|{!error}| {!error}.to_string())"
     (fn () (result loopback-listener string))))
 
 (def loopback-port
   (rust "{0}.local_addr().map(|{!address}| {!address}.port()).unwrap_or(0)"
     (fn ((ref loopback-listener)) u16)))
 
-(def wait-for-redirect
-  (rust "{{ use std::io::{{BufRead, Write}}; {0}.accept().map_err(|{!error}| {!error}.to_string()).and_then(|(mut {!stream}, _)| {{ let mut {!line} = String::new(); std::io::BufReader::new(&{!stream}).read_line(&mut {!line}).map_err(|{!error}| {!error}.to_string())?; let {!page} = \"<!doctype html><title>knave-mail</title><p style=\\\"font-family:system-ui\\\">Signed in. You can close this tab.</p>\"; let _ = write!({!stream}, \"HTTP/1.1 200 OK\\r\\nContent-Type: text/html; charset=utf-8\\r\\nContent-Length: {{}}\\r\\nConnection: close\\r\\n\\r\\n{{}}\", {!page}.len(), {!page}); let {!target} = {!line}.split_whitespace().nth(1).unwrap_or(\"\").to_string(); let {!query} = {!target}.split_once('?').map(|(_, {!q})| {!q}.to_string()).unwrap_or_default(); let {!field} = |{!name}: &str| {!query}.split('&').filter_map(|{!pair}| {!pair}.split_once('=')).find(|({!key}, _)| *{!key} == {!name}).map(|(_, {!value})| {!value}.replace('+', \" \")).map(|{!value}| {{ let {!bytes} = {!value}.as_bytes(); let mut {!out} = Vec::new(); let mut {!index} = 0; while {!index} < {!bytes}.len() {{ if {!bytes}[{!index}] == b'%' && {!index} + 2 < {!bytes}.len() + 0 {{ if let Ok({!byte}) = u8::from_str_radix(&{!value}[{!index} + 1..{!index} + 3], 16) {{ {!out}.push({!byte}); {!index} += 3; continue; }} }} {!out}.push({!bytes}[{!index}]); {!index} += 1; }} String::from_utf8_lossy(&{!out}).into_owned() }}).unwrap_or_default(); Ok(crate::adapters::driven::google_oauth::loopback::RedirectAnswer {{ code: {!field}(\"code\"), state: {!field}(\"state\"), error: {!field}(\"error\") }}) }}) }}"
-    (fn ((ref loopback-listener))
-      (result redirect-answer string))))
+(def deadline-after
+  (rust "std::time::Instant::now() + std::time::Duration::from_millis({0})"
+    (fn (u64) sign-in-deadline)))
+
+(def next-connection
+  (rust "loop {{ match {0}.accept() {{ Ok(({!stream}, _)) => break {!stream}.set_nonblocking(false).and_then(|_| {!stream}.set_read_timeout(Some(std::time::Duration::from_secs(10)))).map(|_| {!stream}).map_err(|{!error}| {!error}.to_string()), Err({!error}) if {!error}.kind() != std::io::ErrorKind::WouldBlock => break Err({!error}.to_string()), Err(_) if std::time::Instant::now() >= *{1} => break Err(String::from(\"the browser did not answer in time\")), Err(_) => std::thread::sleep(std::time::Duration::from_millis(20)) }} }}"
+    (fn ((ref loopback-listener) (ref sign-in-deadline))
+      (result browser-connection string))))
+
+(def request-target
+  (rust "{{ use std::io::BufRead; let mut {!line} = String::new(); let _ = std::io::BufReader::new(&*{0}).read_line(&mut {!line}); {!line}.split_whitespace().nth(1).unwrap_or(\"\").to_string() }}"
+    (fn ((ref browser-connection)) string)))
+
+(def answer-browser!
+  (rust "{{ use std::io::Write; let mut {!stream}: &std::net::TcpStream = {0}; let {!page} = {2}; let _ = write!({!stream}, \"HTTP/1.1 {{}}\\r\\nContent-Type: text/html; charset=utf-8\\r\\nContent-Length: {{}}\\r\\nConnection: close\\r\\n\\r\\n{{}}\", {1}, {!page}.len(), {!page}); let _ = {!stream}.shutdown(std::net::Shutdown::Both); }}"
+    (fn ((ref browser-connection)
+         (ref str)
+         (ref str))
+      unit)))

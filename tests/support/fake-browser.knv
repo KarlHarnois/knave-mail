@@ -1,15 +1,43 @@
 (use adapters/driven/google-oauth/consent-browser consent-browser)
 (use domain/mail-error mail-error)
 
-(export ->fake-browser fake-browser)
+(export ->idle-browser browser-answering fake-browser
+        idle-browser sharing-page shown-page)
+
+(deftype shown-page-slot
+  (rust "std::sync::Arc<std::sync::Mutex<Option<std::thread::JoinHandle<String>>>>"))
 
 (defstruct fake-browser
-  :answer string)
+  :stray-path string
+  :answer string
+  :page shown-page-slot)
 
 (impl consent-browser fake-browser
   (open-url! (browser url)
-             (ok (answer-in-background url (ref (:answer browser))))))
+             (ok (answer-in-background url browser))))
+
+(defstruct idle-browser)
+
+(impl consent-browser idle-browser
+  (open-url! (browser url) (ok (do))))
+
+(defn browser-answering (stray-path answer)
+  (->fake-browser :stray-path (str stray-path)
+                  :answer (str answer)
+                  :page (empty-page-slot)))
+
+(def empty-page-slot
+  (rust "std::sync::Arc::new(std::sync::Mutex::new(None))"
+    (fn () shown-page-slot)))
+
+(def sharing-page
+  (rust "crate::support::fake_browser::FakeBrowser {{ stray_path: {0}.stray_path.clone(), answer: {0}.answer.clone(), page: std::sync::Arc::clone(&{0}.page) }}"
+    (fn ((ref fake-browser)) fake-browser)))
+
+(def shown-page
+  (rust "{0}.page.lock().expect(\"the page slot\").take().map(|{!handle}| {!handle}.join().unwrap_or_default()).unwrap_or_default()"
+    (fn ((ref fake-browser)) string)))
 
 (def answer-in-background
-  (rust "{{ let {!url} = {0}.to_string(); let {!answer} = {1}.to_string(); std::thread::spawn(move || {{ let {!field} = |{!name}: &str| {!url}.split_once('?').map(|(_, {!q})| {!q}).unwrap_or(\"\").split('&').filter_map(|{!pair}| {!pair}.split_once('=')).find(|({!key}, _)| *{!key} == {!name}).map(|(_, {!value})| {!value}.to_string()).unwrap_or_default(); let {!redirect} = {!field}(\"redirect_uri\").replace(\"%3A\", \":\").replace(\"%2F\", \"/\"); let {!state} = if {!answer}.contains(\"wrong-state\") {{ String::from(\"forged\") }} else {{ {!field}(\"state\") }}; let {!target} = format!(\"{{}}/?{{}}&state={{}}\", {!redirect}, {!answer}, {!state}); let _ = ureq::get(&{!target}).call(); }}); }}"
-    (fn ((ref str) (ref str)) unit)))
+  (rust "{{ let {!url} = {0}.to_string(); let {!stray} = {1}.stray_path.clone(); let {!answer} = {1}.answer.clone(); let {!handle} = std::thread::spawn(move || {{ use std::io::{{Read, Write}}; let {!field} = |{!name}: &str| {!url}.split_once('?').map(|(_, {!q})| {!q}).unwrap_or(\"\").split('&').filter_map(|{!pair}| {!pair}.split_once('=')).find(|({!key}, _)| *{!key} == {!name}).map(|(_, {!value})| {!value}.to_string()).unwrap_or_default(); let {!redirect} = {!field}(\"redirect_uri\").replace(\"%3A\", \":\").replace(\"%2F\", \"/\"); if !{!stray}.is_empty() {{ if let Ok(mut {!stream}) = std::net::TcpStream::connect({!redirect}.trim_start_matches(\"http://\")) {{ let _ = write!({!stream}, \"GET {{}} HTTP/1.1\\r\\nHost: localhost\\r\\n\\r\\n\", {!stray}); let mut {!ignored} = String::new(); let _ = {!stream}.read_to_string(&mut {!ignored}); }} }} let {!state} = if {!answer}.contains(\"wrong-state\") {{ String::from(\"forged\") }} else {{ {!field}(\"state\") }}; let {!target} = format!(\"{{}}/?{{}}&state={{}}\", {!redirect}, {!answer}, {!state}); ureq::get(&{!target}).call().ok().and_then(|mut {!response}| {!response}.body_mut().read_to_string().ok()).unwrap_or_default() }}); *{1}.page.lock().expect(\"the page slot\") = Some({!handle}); }}"
+    (fn ((ref str) (ref fake-browser)) unit)))

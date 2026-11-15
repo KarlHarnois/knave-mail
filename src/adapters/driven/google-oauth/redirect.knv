@@ -1,0 +1,64 @@
+(use adapters/driven/google-oauth/loopback answer-browser!
+                                           browser-connection
+                                           deadline-after
+                                           loopback-listener
+                                           next-connection
+                                           request-target)
+
+(use adapters/driven/google-oauth/redirect-query query-field)
+(use domain/mail-error mail-error)
+
+(export browser-redirect redirect-answer reply-to-browser!
+        wait-for-redirect)
+
+(defstruct redirect-answer
+  :code string
+  :state string
+  :error string)
+
+(defstruct browser-redirect
+  :answer redirect-answer
+  :connection browser-connection)
+
+(def signed-in-page
+  "<!doctype html><title>knave-mail</title><p style=\"font-family:system-ui\">Signed in. You can close this tab.</p>")
+
+(def failed-page
+  "<!doctype html><title>knave-mail</title><p style=\"font-family:system-ui\">Sign-in failed. Return to knave-mail for details.</p>")
+
+(defn wait-for-redirect (listener wait-milliseconds)
+  (next-redirect listener
+                 (ref (deadline-after wait-milliseconds))))
+
+(defn next-redirect (listener deadline)
+  (let (connection (try (next-connection listener deadline))
+        answer (answer-in (as-str (request-target (ref connection)))))
+    (if (carries-redirect? (ref answer))
+      (ok (->browser-redirect :answer answer :connection connection))
+      (do
+        (answer-browser! (ref connection) "404 Not Found" "")
+        (next-redirect listener deadline)))))
+
+(defn answer-in (target)
+  (->redirect-answer :code (query-field target "code")
+                     :state (query-field target "state")
+                     :error (query-field target "error")))
+
+(type carries-redirect?
+  (fn ((ref redirect-answer)) bool))
+
+(defn carries-redirect? (answer)
+  (not (and (empty? (:code answer))
+            (empty? (:state answer))
+            (empty? (:error answer)))))
+
+(type reply-to-browser!
+  (where (value)
+    (fn (browser-redirect (result value mail-error))
+      (result value mail-error))))
+
+(defn reply-to-browser! (redirect outcome)
+  (answer-browser! (ref (:connection redirect))
+                   "200 OK"
+                   (if (ok? (ref outcome)) signed-in-page failed-page))
+  outcome)

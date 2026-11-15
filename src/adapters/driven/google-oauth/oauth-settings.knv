@@ -11,7 +11,8 @@
   :token-url string
   :api-base string
   :client-id string
-  :client-secret string)
+  :client-secret string
+  :sign-in-wait-milliseconds u64)
 
 (type consent-url
   (fn ((ref oauth-settings)

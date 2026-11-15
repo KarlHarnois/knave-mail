@@ -1,0 +1,5 @@
+(export query-field)
+
+(def query-field
+  (rust "{0}.split_once('?').map(|(_, {!query})| {!query}).unwrap_or(\"\").split('&').filter_map(|{!pair}| {!pair}.split_once('=')).find(|({!key}, _)| *{!key} == {1}).map(|(_, {!value})| {!value}.replace('+', \" \")).map(|{!value}| {{ let {!bytes} = {!value}.as_bytes(); let mut {!out} = Vec::new(); let mut {!index} = 0; while {!index} < {!bytes}.len() {{ if {!bytes}[{!index}] == b'%' && {!index} + 2 < {!bytes}.len() + 0 {{ if let Ok({!byte}) = u8::from_str_radix(&{!value}[{!index} + 1..{!index} + 3], 16) {{ {!out}.push({!byte}); {!index} += 3; continue; }} }} {!out}.push({!bytes}[{!index}]); {!index} += 1; }} String::from_utf8_lossy(&{!out}).into_owned() }}).unwrap_or_default()"
+    (fn ((ref str) (ref str)) string)))
