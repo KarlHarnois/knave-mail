@@ -35,18 +35,33 @@
                                          (ref (:token-url endpoints))
                                          (ref form)))))
     (if (= (:status reply) 200)
-      (let (body (try (as-internal (parse-json (:body reply)))))
-        (set! (:access-token session)
-              (some (try (as-internal (string-field (ref body)
-                                                    "access_token")))))
-        (log-info (ref (:log session))
-                  area
-                  (str "refreshed the access token"))
-        (ok (do)))
-      (do
-        (log-warn (ref (:log session))
-                  area
-                  (str "Google refused the saved sign-in ("
-                       (:status reply)
-                       ")"))
-        (err (mail-error/auth-required (str "Google refused the saved sign-in; run `knave-mail accounts add` again")))))))
+      (keep-access-token! session (ref (:body reply)))
+      (failed-refresh (ref (:log session))
+                       (ref reply)))))
+
+(type keep-access-token!
+  (fn ((mut gmail-session) (ref str))
+    (result unit mail-error)))
+
+(defn keep-access-token! (session body)
+  (let (fields (try (as-internal (parse-json body))))
+    (set! (:access-token session)
+          (some (try (as-internal (string-field (ref fields) "access_token")))))
+    (log-info (ref (:log session))
+              area
+              (str "refreshed the access token"))
+    (ok (do))))
+
+(defn failed-refresh (log reply)
+  (let (status (:status reply))
+    (log-warn log area
+              (str "Google's token endpoint answered " status))
+    (cond
+      ((or (= status 400) (= status 401))
+       (err (mail-error/auth-required (str "Google refused the saved sign-in; run `knave-mail accounts add` again"))))
+      ((or (= status 429) (>= status 500))
+       (err (mail-error/network (str "Google's sign-in service is unavailable ("
+                                     status
+                                     "); try again later"))))
+      (else (err (mail-error/internal (str "Google's token endpoint answered "
+                                           status)))))))

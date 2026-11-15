@@ -91,6 +91,20 @@
     (assert (= (error-kind (ref (unwrap-err (fetch-labels! (mut gmail)))))
                "auth-required"))))
 
+(deftest a-token-endpoint-outage-is-a-network-error
+  (let (server (start-fake-gmail (ref (vec (route "POST /token"
+                                                  "503 tests/fixtures/gmail/empty.json"))))
+        gmail (gmail-over (ref server)))
+    (assert (= (error-kind (ref (unwrap-err (fetch-labels! (mut gmail)))))
+               "network"))))
+
+(deftest a-rate-limited-token-endpoint-is-a-network-error
+  (let (server (start-fake-gmail (ref (vec (route "POST /token"
+                                                  "429 tests/fixtures/gmail/empty.json"))))
+        gmail (gmail-over (ref server)))
+    (assert (= (error-kind (ref (unwrap-err (fetch-labels! (mut gmail)))))
+               "network"))))
+
 (deftest an-unavailable-gmail-is-a-network-error
   (let (server (start-fake-gmail (ref (vec (route "POST /token"
                                                   "200 tests/fixtures/gmail/token.json")
