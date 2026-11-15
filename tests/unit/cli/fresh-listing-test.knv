@@ -1,0 +1,41 @@
+(use adapters/driving/cli/command cli-command)
+
+(use adapters/driving/cli/runner ->cli-request
+                                 run-cli-command!)
+
+(use adapters/driving/cli/text-presenter result-text)
+(use app/client)
+(use support/app-steps synced!)
+(use support/gmail-requests contains?)
+
+(use support/memory-world app-over remote-with sample-thread
+                          world-account)
+
+(use support/remote-changes surface-remotely!)
+
+(defn remote ()
+  (remote-with (vec
+                 (sample-thread "t-1" (vec "INBOX" "UNREAD") 1700000000000))))
+
+(defn listed-with-a-surfaced-thread (fresh)
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (surface-remotely! (ref world)
+                       (sample-thread "t-0" (vec "INBOX") 1600000000000))
+    (result-text
+      (ref (unwrap-ok
+             (run-cli-command!
+               (mut app)
+               (ref (->cli-request
+                      (cli-command/list-threads (str "INBOX") (str "") 10 fresh)
+                      (str world-account)
+                      (str "")
+                      false))))))))
+
+(deftest fresh-lists-threads-the-cache-has-not-seen
+  (assert (contains? (ref (listed-with-a-surfaced-thread true)) "t-0")))
+
+(deftest without-fresh-the-cache-answers
+  (assert (not (contains? (ref (listed-with-a-surfaced-thread false))
+                          "t-0"))))

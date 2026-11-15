@@ -3,14 +3,19 @@
 (use adapters/driving/cli/help usage-text)
 (use domain/label-commands label-change-named)
 (use domain/labels label-change)
-(use domain/mail ->draft ->thread-query draft)
+
+(use domain/mail ->draft ->thread-query draft thread-query
+                 thread-summary)
+
 (use domain/mail-error mail-error)
 
 (use ports/driving/mail-client add-account! draft-forward!
                                draft-reply! draft-reply-all!
-                               list-accounts! list-labels!
-                               list-threads! mail-client
-                               open-thread! relabel-threads!
+                               list-accounts!
+                               list-fresh-threads!
+                               list-labels! list-threads!
+                               mail-client open-thread!
+                               relabel-threads!
                                remove-account! send-draft!
                                sync-account!)
 
@@ -39,12 +44,12 @@
          (ok cli-result/done)))
       (list-labels (ok (cli-result/labels-listed (try (list-labels! client
                                                                     account)))))
-      ((list-threads label query limit)
-       (ok (cli-result/threads-listed (try (list-threads!
-                                             client account
-                                             (ref (->thread-query (clone label)
-                                                                  (clone query)
-                                                                  limit)))))))
+      ((list-threads label query limit fresh)
+       (ok (cli-result/threads-listed
+             (try (threads-for!
+                    client account
+                    (ref (->thread-query (clone label) (clone query) limit))
+                    (deref fresh))))))
       ((show-thread thread-id format)
        (ok (cli-result/thread-shown (try
                                       (open-thread! client account thread-id))
@@ -117,3 +122,16 @@
     ("unread" (str "mark-unread"))
     ("inbox" (str "move-to-inbox"))
     (_ (str word))))
+
+(type threads-for!
+  (where ((client mail-client))
+    (fn ((mut client)
+         (ref str)
+         (ref thread-query)
+         bool)
+      (result (vec thread-summary) mail-error))))
+
+(defn threads-for! (client account query fresh)
+  (if fresh
+    (list-fresh-threads! client account query)
+    (list-threads! client account query)))

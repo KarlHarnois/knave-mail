@@ -19,6 +19,7 @@ Commands:
 Options:
   --json      Print one JSON document with a schema version
   --dry-run   Show the draft of send, reply or forward without sending it
+  --fresh     List threads from Gmail instead of the local cache
 
 Run knave-mail with no command to open the window.
 Exit codes: 0 ok, 1 usage, 2 not found, 3 auth required, 4 network, 5 internal.")

@@ -21,7 +21,10 @@
   add-account
   (remove-account string)
   list-labels
-  (list-threads :label string :query string :limit i64)
+  (list-threads :label string
+                :query string
+                :limit i64
+                :fresh bool)
   (show-thread :thread-id string :format string)
   (send :to (vec string) :cc (vec string) :subject string)
   (reply :message-id string :all bool)
@@ -105,7 +108,8 @@
   (cli-command/list-threads :label label
                             :query query
                             :limit (parsed-limit (value-of parsed "--limit")
-                                                 default-limit)))
+                                                 default-limit)
+                            :fresh (switch? parsed "--fresh")))
 
 (type relabel-command
   (fn ((ref parsed-arguments) string)

@@ -59,7 +59,7 @@ type Draft = {
 |---|---|---|
 | `accounts` | `{}` | `Account[]` |
 | `labels` | `{account}` | `Label[]` |
-| `threads` | `{account, label, query, limit}` | `ThreadSummary[]`, newest first. An empty `query` lists the label. |
+| `threads` | `{account, label, query, limit, fresh?}` | `ThreadSummary[]`, newest first. An empty `query` lists the label from the cache, or from Gmail when `fresh` is true. A search always asks Gmail. |
 | `thread` | `{account, threadId}` | `Thread` |
 | `reply-draft` | `{account, messageId, all}` | `Draft` with recipients, `Re:` subject and the quoted body filled in |
 | `forward-draft` | `{account, messageId}` | `Draft` with `Fwd:` subject and the forwarded body |

@@ -16,17 +16,19 @@
 
 (use adapters/driving/json/relabel-command relabel-command!)
 
-(use adapters/driving/json/value empty-object json-value
-                                 parse-json string-field)
+(use adapters/driving/json/value bool-field empty-object
+                                 json-value parse-json
+                                 string-field)
 
 (use domain/mail-error mail-error)
 
 (use ports/driving/mail-client draft-forward! draft-reply!
                                draft-reply-all!
-                               list-accounts! list-labels!
-                               list-threads! mail-client
-                               open-thread! send-draft!
-                               sync-account!)
+                               list-accounts!
+                               list-fresh-threads!
+                               list-labels! list-threads!
+                               mail-client open-thread!
+                               send-draft! sync-account!)
 
 (export answer! run-command!)
 
@@ -73,12 +75,7 @@
      (ok (labels-json (ref (try (list-labels! client
                                               (ref (try (account-argument
                                                           arguments)))))))))
-    ("threads"
-     (ok (summaries-json (ref (try (list-threads! client
-                                                  (ref (try (account-argument
-                                                              arguments)))
-                                                  (ref (try (thread-query-argument
-                                                              arguments)))))))))
+    ("threads" (threads-listed! client arguments))
     ("thread"
      (ok (thread-json (ref (try (open-thread!
                                   client
@@ -104,6 +101,27 @@
                            (ref (try (account-argument arguments)))))
        (ok (empty-object))))
     (_ (relabel-command! client command arguments))))
+
+(type threads-listed!
+  (where ((client mail-client))
+    (fn ((mut client) (ref json-value))
+      (result json-value mail-error))))
+
+(defn threads-listed! (client arguments)
+  (let (account (try (account-argument arguments))
+        query (try (thread-query-argument arguments)))
+    (ok (summaries-json
+          (ref (try (if (fresh-asked? arguments)
+                      (list-fresh-threads! client (ref account) (ref query))
+                      (list-threads! client (ref account) (ref query)))))))))
+
+(type fresh-asked?
+  (fn ((ref json-value)) bool))
+
+(defn fresh-asked? (arguments)
+  (match (bool-field arguments "fresh")
+    ((ok fresh) fresh)
+    (_ false)))
 
 (type reply-draft!
   (where ((client mail-client))

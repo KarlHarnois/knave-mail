@@ -1,6 +1,7 @@
 (use app/client)
 
-(use ports/driving/mail-client relabel-threads!
+(use ports/driving/mail-client list-fresh-threads!
+                               relabel-threads!
                                sync-account!)
 
 (use domain/labels archive-change)
@@ -14,6 +15,10 @@
 (use support/remote-changes arrive-remotely!
                             expire-remote-history!
                             heal-remote! surface-remotely!)
+
+(defn fresh-ids! (app query)
+  (collect (map (iter (unwrap-ok (list-fresh-threads! app world-account query)))
+             (fn (summary) (clone (:id summary))))))
 
 (defn remote ()
   (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100)
@@ -82,3 +87,25 @@
                (vec (str "t-2")
                     (str "t-1")
                     (str "t-0"))))))
+
+(deftest a-fresh-listing-asks-gmail-for-threads-the-cache-lacks
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (surface-remotely! (ref world)
+                       (sample-thread "t-0" (vec "INBOX") 50))
+    (assert (= (fresh-ids! (mut app)
+                           (ref (inbox-query)))
+               (vec (str "t-2")
+                    (str "t-1")
+                    (str "t-0"))))))
+
+(deftest a-cached-listing-does-not-ask-gmail
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (surface-remotely! (ref world)
+                       (sample-thread "t-0" (vec "INBOX") 50))
+    (assert (= (listed-ids! (mut app)
+                            (ref (inbox-query)))
+               (vec (str "t-2") (str "t-1"))))))

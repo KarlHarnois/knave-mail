@@ -36,7 +36,8 @@
   (result-text (ref (unwrap-ok (ran command "" false)))))
 
 (deftest lists-threads-as-aligned-text
-  (assert (= (text-of (cli-command/list-threads (str "INBOX") (str "") 10))
+  (assert (= (text-of
+               (cli-command/list-threads (str "INBOX") (str "") 10 false))
              "t-1                 2023-11-14 22:13  N  Grace                       Subject of t-1")))
 
 (deftest shows-a-thread-as-text
@@ -118,7 +119,7 @@
                                                      false))))
     (assert (= (listed-count!
                  (mut app)
-                 (cli-command/list-threads (str "INBOX") (str "") 10))
+                 (cli-command/list-threads (str "INBOX") (str "") 10 false))
                1))))
 
 (defn listed-count! (app command)
