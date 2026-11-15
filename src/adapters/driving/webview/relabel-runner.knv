@@ -1,11 +1,16 @@
 (use adapters/driving/webview/window reply-outbox
                                      send-reply)
 
+(use adapters/driving/json/envelope request-arguments)
+
+(use adapters/driving/json/value bool-field json-value
+                                 string-field)
+
 (use domain/label-commands label-change-named)
 
 (export ->inline-relabel ->outbox-sink inline-relabel
-        outbox-sink relabel-command? relabel-runner
-        reply-sink)
+        outbox-sink relabel-runner reply-sink
+        worker-request?)
 
 (deftrait relabel-runner
   (hand-off! (fn ((mut self) (ref str)) bool)))
@@ -25,6 +30,26 @@
 (impl reply-sink outbox-sink
   (deliver-reply! (sink reply)
                   (send-reply (ref (:outbox sink)) reply)))
+
+(type worker-request?
+  (fn ((ref str) (ref json-value)) bool))
+
+(defn worker-request? (command request)
+  (or (relabel-command? command)
+      (= command "thread-page")
+      (and (= command "threads")
+           (gmail-listing? (ref (request-arguments request))))))
+
+(type gmail-listing?
+  (fn ((ref json-value)) bool))
+
+(defn gmail-listing? (arguments)
+  (or (match (string-field arguments "query")
+        ((ok query) (not (empty? query)))
+        (_ false))
+      (match (bool-field arguments "fresh")
+        ((ok fresh) fresh)
+        (_ false))))
 
 (type relabel-command?
   (fn ((ref str)) bool))

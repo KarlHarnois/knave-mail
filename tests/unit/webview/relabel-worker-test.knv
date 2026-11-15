@@ -5,8 +5,10 @@
 (use adapters/driven/memory/shared share shared
                                    with-shared!)
 
-(use adapters/driving/webview/relabel-runner relabel-command?
-                                             reply-sink)
+(use adapters/driving/json/value parse-json)
+
+(use adapters/driving/webview/relabel-runner reply-sink
+                                             worker-request?)
 
 (use adapters/driving/webview/logged-answers answer-relabels!)
 (use adapters/driving/webview/window request-inbox)
@@ -37,11 +39,28 @@
 (defn remote ()
   (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100))))
 
+(defn to-worker? (command arguments)
+  (worker-request? command
+                   (ref (unwrap-ok (parse-json (ref (str "{\"command\":\""
+                                                         command
+                                                         "\",\"args\":"
+                                                         arguments
+                                                         "}")))))))
+
 (deftest label-commands-go-to-the-worker
-  (assert (relabel-command? "archive"))
-  (assert (relabel-command? "mark-unread"))
-  (assert (not (relabel-command? "threads")))
-  (assert (not (relabel-command? "send"))))
+  (assert (to-worker? "archive" "{}"))
+  (assert (to-worker? "mark-unread" "{}")))
+
+(deftest gmail-listings-go-to-the-worker
+  (assert (to-worker? "thread-page" "{}"))
+  (assert (to-worker? "threads" "{\"query\":\"invoice\"}"))
+  (assert (to-worker? "threads" "{\"query\":\"\",\"fresh\":true}")))
+
+(deftest cache-reads-stay-on-the-window-loop
+  (assert (not (to-worker? "threads" "{\"query\":\"\",\"fresh\":false}")))
+  (assert (not (to-worker? "threads" "{\"query\":\"\"}")))
+  (assert (not (to-worker? "thread" "{}")))
+  (assert (not (to-worker? "accounts" "{}"))))
 
 (deftest the-worker-applies-each-queued-label-change
   (let (world (remote)

@@ -10,8 +10,8 @@
 (use adapters/driving/webview/logged-answers answered-and-logged!)
 
 (use adapters/driving/webview/relabel-runner hand-off!
-                                             relabel-command?
-                                             relabel-runner)
+                                             relabel-runner
+                                             worker-request?)
 
 (use adapters/driving/webview/sync-requests sync-event)
 
@@ -78,7 +78,7 @@
        ((ok "zoom") (zoom-to (ref request) outbox))
        ((ok "log") (record-frontend-entry! log (ref request)))
        ((ok command)
-        (when (not (and (relabel-command? (ref command))
+        (when (not (and (worker-request? (ref command) (ref request))
                         (hand-off! relabeler request-text)))
           (send-reply
             outbox
