@@ -17,9 +17,6 @@
            :body (quoted-reply original)
            :reply-to (some (clone (:id original)))))
 
-(type reply-all-draft
-  (fn ((ref message) (ref str)) draft))
-
 (defn reply-all-draft (original own-address)
   (->draft :to (others (ref (everyone-written-to original)) own-address)
            :cc (others (ref (:cc original)) own-address)

@@ -26,10 +26,6 @@
     (log-level/info 2)
     (log-level/debug 3)))
 
-(type log-error
-  (fn ((ref (box event-log)) (ref str) string)
-    unit))
-
 (defn log-error (log area message)
   (record! log
            (ref (->log-entry log-level/error (str area) message))))

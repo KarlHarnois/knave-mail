@@ -50,19 +50,9 @@
   (->label-change (vec (str unread-label))
                   (vec)))
 
-(type unread?
-  (fn ((ref (vec string))) bool))
-
 (defn unread? (labels) (holds? labels unread-label))
 
-(type starred?
-  (fn ((ref (vec string))) bool))
-
 (defn starred? (labels) (holds? labels starred-label))
-
-(type apply-label-change
-  (fn ((ref (vec string)) (ref label-change))
-    (vec string)))
 
 (defn apply-label-change (labels change)
   (with-added (without-removed labels (ref (:removed change)))
@@ -84,10 +74,6 @@
                   (fn (label)
                     (not (holds? removed label))))
                 (fn (label) (clone label)))))
-
-(type with-added
-  (fn ((ref (vec string)) (ref (vec string)))
-    (vec string)))
 
 (defn with-added (labels added)
   (let (missing (without-removed added labels))

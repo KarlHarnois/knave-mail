@@ -10,9 +10,6 @@
 
 (def snippet-length 120)
 
-(type summarize
-  (fn ((ref thread)) thread-summary))
-
 (defn summarize (summarized)
   (let (latest (last-message summarized))
     (->thread-summary :id (clone (:id summarized))
@@ -32,23 +29,13 @@
       (any? (iter (:labels summary))
         (fn (held) (= held label)))))
 
-(type newest-first
-  (fn ((vec thread-summary) (ref thread-query))
-    (vec thread-summary)))
-
 (defn newest-first (summaries query)
   (let (sorted (sorted-by-date-descending summaries))
     (first-few sorted (:limit query))))
 
-(type participants
-  (fn ((ref thread)) string))
-
 (defn participants (summarized)
   (join-with (ref (distinct-senders (ref (:messages summarized))))
              ", "))
-
-(type last-message
-  (fn ((ref thread)) (ref message)))
 
 (defn last-message (summarized)
   (expect (last (:messages summarized))
@@ -66,10 +53,6 @@
   (rust "{0}.split_whitespace().collect::<Vec<_>>().join(\" \").chars().take({1}).collect::<String>()"
     (fn ((ref str) usize) string)))
 
-(type sorted-by-date-descending
-  (fn ((vec thread-summary))
-    (vec thread-summary)))
-
 (defn sorted-by-date-descending (summaries)
   (sort! (mut summaries) newer-first)
   summaries)
@@ -80,8 +63,6 @@
 
 (defn newer-first (left right)
   (comparison (:date right) (:date left)))
-
-(type comparison (fn (i64 i64) i64))
 
 (defn comparison (left right)
   (cond

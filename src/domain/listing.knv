@@ -16,11 +16,6 @@
                            (fn (summary) (= (:id summary) id))))))
                 (fn (id) (clone id)))))
 
-(type in-listed-order
-  (fn ((ref (vec string))
-       (ref (vec thread-summary)))
-    (vec thread-summary)))
-
 (defn in-listed-order (ids known)
   (reduce (iter ids) (vec)
     (fn (ordered id)

@@ -13,14 +13,6 @@
   :log (box event-log)
   :sync-limit i64)
 
-(type new-mail-app
-  (fn ((box store)
-       (box mailbox-provider)
-       (box authorizer)
-       (box event-log)
-       i64)
-    mail-app))
-
 (defn new-mail-app (store provider authorizer log sync-limit)
   (->mail-app :store store
               :mailboxes (->mailboxes provider (vec) (vec))

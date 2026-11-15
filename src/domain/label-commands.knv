@@ -5,9 +5,6 @@
 
 (export label-change-named)
 
-(type label-change-named
-  (fn ((ref str)) (option label-change)))
-
 (defn label-change-named (command)
   (match command
     ("archive" (some (archive-change)))

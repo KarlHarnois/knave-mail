@@ -1,16 +1,8 @@
 (export appended one-of?)
 
-(type one-of?
-  (fn ((ref str) (ref (vec (ref str))))
-    bool))
-
 (defn one-of? (word words)
   (any? (iter words)
     (fn (listed) (= (deref listed) word))))
-
-(type appended
-  (where (item)
-    (fn ((vec item) item) (vec item))))
 
 (defn appended (items item)
   (push! (mut items) item)

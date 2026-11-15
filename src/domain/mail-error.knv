@@ -7,9 +7,6 @@
   (network string)
   (internal string))
 
-(type error-kind
-  (fn ((ref mail-error)) (ref str)))
-
 (defn error-kind (error)
   (match error
     ((usage _) "usage")
