@@ -1,9 +1,12 @@
 (use app/client)
-(use domain/labels archive-change)
-(use support/app-steps inbox-query listed-ids! synced!)
+(use domain/labels archive-change unread-change)
+(use ports/driving/mail-client open-thread!)
 
-(use support/memory-world app-over remote-with
-                          sample-thread)
+(use support/app-steps inbox-query listed-ids! remote-thread
+                       synced!)
+
+(use support/memory-world app-over remote-with sample-thread
+                          world-account)
 
 (use support/remote-changes expire-remote-history!
                             relabel-remotely!)
@@ -22,3 +25,14 @@
     (assert (= (listed-ids! (mut app)
                             (ref (inbox-query)))
                (vec (str "t-2"))))))
+
+(deftest opening-a-thread-marked-unread-while-history-expired-marks-it-read
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (relabel-remotely! (ref world) "t-1" (unread-change))
+    (expire-remote-history! (ref world))
+    (synced! (mut app))
+    (unwrap-ok (open-thread! (mut app) world-account "t-1"))
+    (assert (= (:labels (remote-thread (ref world) "t-1"))
+               (vec (str "INBOX"))))))

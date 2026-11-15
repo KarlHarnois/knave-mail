@@ -9,7 +9,8 @@
                                    summaries-with-ids
                                    thread-in)
 
-(use adapters/driven/memory/stored-labels labels-in
+(use adapters/driven/memory/stored-labels align-thread-labels!
+                                          labels-in
                                           relabel-everywhere!
                                           replace-labels!
                                           stored-labels)
@@ -53,9 +54,10 @@
                 (ok (newest-first (summaries-of (ref (:summaries kept))
                                                 email query)
                                   query)))
-  (save-threads! (kept email summaries)
-                 (ok (replace-summaries! (mut (:summaries kept))
-                                         email summaries)))
+  (save-threads!
+    (kept email summaries)
+    (replace-summaries! (mut (:summaries kept)) email summaries)
+    (ok (align-thread-labels! (mut (:threads kept)) email summaries)))
   (load-summaries-of (kept email ids)
                      (ok (summaries-with-ids (ref (:summaries kept))
                                              email ids)))

@@ -2,12 +2,13 @@
 (use domain/mail ->thread-query)
 (use domain/summary summarize)
 
-(use ports/driven/store load-summaries-of load-threads
-                        relabel-stored! save-threads! store)
+(use ports/driven/store load-summaries-of load-thread
+                        load-threads relabel-stored!
+                        save-thread! save-threads! store)
 
 (use support/memory-world sample-thread)
 
-(export finds-summaries-by-id!
+(export aligns-cached-thread-labels! finds-summaries-by-id!
         relabels-a-summary-without-its-thread!)
 
 (def account "ada@example.com")
@@ -56,3 +57,14 @@
                            (ref (sample-thread "t-1" (vec "INBOX") 100)))))))
   (unwrap-ok (relabel-stored! kept account "t-1" (ref (archive-change))))
   (empty? (ids kept)))
+
+(defn aligns-cached-thread-labels! (kept)
+  (unwrap-ok (save-thread! kept account
+                           (ref (sample-thread "t-1" (vec "INBOX") 100))))
+  (unwrap-ok (save-threads! kept account
+                            (ref (vec (summarize (ref (sample-thread
+                                                        "t-1"
+                                                        (vec "INBOX" "UNREAD")
+                                                        100)))))))
+  (= (unwrap (unwrap-ok (load-thread kept account "t-1")))
+     (sample-thread "t-1" (vec "INBOX" "UNREAD") 100)))

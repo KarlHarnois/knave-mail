@@ -70,7 +70,8 @@
     (result unit mail-error)))
 
 (defn save-summaries (connection account summaries)
-  (as-internal (upsert-summaries connection account summaries)))
+  (try (as-internal (upsert-summaries connection account summaries)))
+  (as-internal (align-thread-labels connection account summaries)))
 
 (type relabel-summary
   (fn ((ref sqlite-connection)
@@ -119,4 +120,11 @@
          (ref str)
          (ref str)
          (vec string))
+      (result unit string))))
+
+(def align-thread-labels
+  (rust "{0}.prepare_cached(\"UPDATE threads SET labels = ?3 WHERE account = ?1 AND id = ?2\").and_then(|mut {!statement}| {2}.iter().try_for_each(|{!summary}| {!statement}.execute(rusqlite::params![{1}, {!summary}.id, serde_json::to_string(&{!summary}.labels).unwrap_or_default()]).map(|_| ()))).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection)
+         (ref str)
+         (ref (vec thread-summary)))
       (result unit string))))

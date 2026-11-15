@@ -6,11 +6,11 @@
                                    thread-entry?)
 
 (use domain/labels label-change)
-(use domain/mail label)
+(use domain/mail label thread thread-summary)
 (use domain/relabel relabeled-summary relabeled-thread)
 
-(export ->stored-labels labels-in relabel-everywhere!
-        replace-labels! stored-labels)
+(export ->stored-labels align-thread-labels! labels-in
+        relabel-everywhere! replace-labels! stored-labels)
 
 (defstruct stored-labels
   :account string
@@ -62,11 +62,35 @@
                                                      change))))))))
 
 (defn relabel-threads! (threads email thread-id change)
+  (update-threads! threads email thread-id
+    (fn (held) (relabeled-thread held change))))
+
+(type align-thread-labels!
+  (fn ((mut (vec stored-thread))
+       (ref str)
+       (ref (vec thread-summary)))
+    unit))
+
+(defn align-thread-labels! (threads email summaries)
+  (for-each (iter summaries)
+    (fn (summary)
+      (update-threads! threads email (ref (:id summary))
+        (fn (held)
+          (assoc (clone held)
+                 :labels (clone (:labels summary))))))))
+
+(type update-threads!
+  (fn ((mut (slice stored-thread))
+       (ref str)
+       (ref str)
+       (fn ((ref thread)) thread))
+    unit))
+
+(defn update-threads! (threads email thread-id updated)
   (for-each (range 0 (len threads))
     (fn (index)
       (let (entry (at threads index))
         (when (thread-entry? entry email thread-id)
           (set! (at threads index)
                 (->stored-thread (clone (:account entry))
-                                 (relabeled-thread (ref (:thread entry))
-                                                   change))))))))
+                                 (updated (ref (:thread entry))))))))))

@@ -11,7 +11,8 @@
                                       misses-unknown-threads!
                                       relabels-threads-and-summaries!)
 
-(use support/contracts/summary-contract finds-summaries-by-id!
+(use support/contracts/summary-contract aligns-cached-thread-labels!
+                                        finds-summaries-by-id!
                                         relabels-a-summary-without-its-thread!)
 
 (use support/temporary temporary-path)
@@ -106,3 +107,11 @@
 (deftest sqlite-store-finds-summaries-by-id
   (let (kept (sqlite))
     (assert (finds-summaries-by-id! (mut kept)))))
+
+(deftest memory-store-aligns-cached-thread-labels-with-saved-summaries
+  (let (kept (empty-memory-store))
+    (assert (aligns-cached-thread-labels! (mut kept)))))
+
+(deftest sqlite-store-aligns-cached-thread-labels-with-saved-summaries
+  (let (kept (sqlite))
+    (assert (aligns-cached-thread-labels! (mut kept)))))
