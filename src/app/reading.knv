@@ -1,18 +1,23 @@
 (use app/mail-app mail-app)
 (use app/mailboxes mailbox-for!)
 (use domain/labels apply-label-change read-change unread?)
-(use domain/mail thread thread-query thread-summary)
+
+(use domain/mail ->summary-page summary-page thread
+                 thread-query thread-summary)
+
 (use domain/mail-error mail-error)
 (use domain/listing ids-without-summary in-listed-order)
 
 (use ports/driven/mailbox fetch-summaries! fetch-thread!
-                          list-thread-ids! relabel!)
+                          list-thread-ids! list-thread-page!
+                          relabel!)
 
 (use ports/driven/store load-summaries-of load-thread
                         load-threads relabel-stored!
                         save-thread! save-threads!)
 
-(export find-threads! listed-threads! read-thread!)
+(export find-threads! listed-page! listed-threads!
+        read-thread!)
 
 (type find-threads!
   (fn ((mut mail-app)
@@ -34,18 +39,39 @@
 (defn listed-threads! (app account query)
   (let (ids (try (list-thread-ids! (try (mailbox-for! (mut (:mailboxes app))
                                                       account))
-                                   query))
-        known (try (load-summaries-of (ref (:store app))
-                                      account
-                                      (ref ids)))
+                                   query)))
+    (summaries-for! app account (ref ids))))
+
+(type listed-page!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref thread-query)
+       (ref str))
+    (result summary-page mail-error)))
+
+(defn listed-page! (app account query page-token)
+  (let (page (try (list-thread-page! (try (mailbox-for! (mut (:mailboxes app))
+                                                        account))
+                                     query page-token)))
+    (ok (->summary-page
+          :summaries (try (summaries-for! app account (ref (:ids page))))
+          :next-token (clone (:next-token page))))))
+
+(type summaries-for!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref (vec string)))
+    (result (vec thread-summary) mail-error)))
+
+(defn summaries-for! (app account ids)
+  (let (known (try (load-summaries-of (ref (:store app)) account ids))
         fetched (try (missing-summaries!
                        app account
-                       (ref (ids-without-summary (ref ids) (ref known))))))
+                       (ref (ids-without-summary ids (ref known))))))
     (try (save-threads! (mut (:store app))
                         account
                         (ref fetched)))
-    (ok (in-listed-order (ref ids)
-                         (ref (concat known fetched))))))
+    (ok (in-listed-order ids (ref (concat known fetched))))))
 
 (type missing-summaries!
   (fn ((mut mail-app)

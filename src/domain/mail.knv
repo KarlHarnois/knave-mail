@@ -1,7 +1,8 @@
 (export ->account ->draft ->label ->mail-changes ->message
-        ->outgoing ->thread ->thread-query ->thread-summary
-        account draft label mail-changes message outgoing
-        thread thread-query thread-summary)
+        ->outgoing ->summary-page ->thread ->thread-page
+        ->thread-query ->thread-summary account draft label
+        mail-changes message outgoing summary-page thread
+        thread-page thread-query thread-summary)
 
 (defstruct account
   :email string)
@@ -50,6 +51,14 @@
   :label string
   :query string
   :limit i64)
+
+(defstruct thread-page
+  :ids (vec string)
+  :next-token string)
+
+(defstruct summary-page
+  :summaries (vec thread-summary)
+  :next-token string)
 
 (defstruct mail-changes
   :thread-ids (vec string)

@@ -1,11 +1,12 @@
 (use adapters/driven/memory/remote-mail remote-mail)
 
-(use domain/mail ->label label thread thread-query
+(use domain/mail ->label ->thread-page ->thread-query label
+                 thread thread-page thread-query
                  thread-summary)
 
 (use domain/summary in-label? newest-first summarize)
 
-(export labelled? labels-of matching-summaries
+(export labelled? labels-of matching-page matching-summaries
         summaries-with-ids thread-position)
 
 (type labels-of
@@ -37,6 +38,47 @@
                             (fn (summary)
                               (in-label? summary (:label query))))))
     (newest-first labelled query)))
+
+(type matching-page
+  (fn ((ref remote-mail)
+       (ref thread-query)
+       (ref str))
+    thread-page))
+
+(defn matching-page (remote query page-token)
+  (let (offset (page-offset page-token)
+        through-next (matching-summaries
+                       remote
+                       (ref (->thread-query
+                              :label (clone (:label query))
+                              :query (clone (:query query))
+                              :limit (+ offset (:limit query) 1))))
+        ids (page-slice (ref (collect (map (iter through-next)
+                                        (fn (summary) (clone (:id summary))))))
+                        offset
+                        (:limit query)))
+    (->thread-page :ids ids
+                   :next-token (if (longer-than? (ref through-next)
+                                                 (+ offset (:limit query)))
+                                 (str (+ offset (:limit query)))
+                                 (str "")))))
+
+(def longer-than?
+  (rust "{0}.len() as i64 > {1}"
+    (fn ((ref (vec thread-summary)) i64)
+      bool)))
+
+(def page-slice
+  (rust "{0}.iter().skip({1} as usize).take({2} as usize).cloned().collect::<Vec<_>>()"
+    (fn ((ref (vec string)) i64 i64)
+      (vec string))))
+
+(type page-offset (fn ((ref str)) i64))
+
+(defn page-offset (page-token)
+  (match (parse page-token)
+    ((ok offset) offset)
+    (_ 0)))
 
 (type summaries-with-ids
   (fn ((ref remote-mail) (ref (vec string)))

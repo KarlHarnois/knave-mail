@@ -5,7 +5,7 @@
 
 (export label-path labels-path message-path modify-body
         modify-path send-body send-path thread-list-path
-        thread-metadata-path thread-path)
+        thread-metadata-path thread-page-path thread-path)
 
 (def users-me "/gmail/v1/users/me")
 
@@ -29,6 +29,16 @@
        (if (empty? (:query query))
          (str "")
          (str "&q=" (url-encoded (:query query))))))
+
+(type thread-page-path
+  (fn ((ref thread-query) (ref str))
+    string))
+
+(defn thread-page-path (query page-token)
+  (str (thread-list-path query)
+       (if (empty? page-token)
+         (str "")
+         (str "&pageToken=" (url-encoded page-token)))))
 
 (type thread-metadata-path
   (fn ((ref str)) string))

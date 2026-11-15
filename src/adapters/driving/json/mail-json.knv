@@ -1,11 +1,11 @@
 (use adapters/driving/json/value json-value)
 (use domain/labels starred? unread?)
 
-(use domain/mail account draft label message thread
-                 thread-summary)
+(use domain/mail account draft label message summary-page
+                 thread thread-summary)
 
 (export accounts-json draft-json labels-json summaries-json
-        thread-json)
+        summary-page-json thread-json)
 
 (def accounts-json
   (rust "serde_json::Value::Array({0}.iter().map(|{!account}| serde_json::json!({{\"email\": {!account}.email}})).collect())"
@@ -14,6 +14,17 @@
 (def labels-json
   (rust "serde_json::Value::Array({0}.iter().map(|{!label}| serde_json::json!({{\"id\": {!label}.id, \"name\": {!label}.name, \"unread\": {!label}.unread}})).collect())"
     (fn ((ref (vec label))) json-value)))
+
+(type summary-page-json
+  (fn ((ref summary-page)) json-value))
+
+(defn summary-page-json (page)
+  (page-object (summaries-json (ref (:summaries page)))
+               (ref (:next-token page))))
+
+(def page-object
+  (rust "serde_json::json!({{\"threads\": {0}, \"nextPageToken\": {1}}})"
+    (fn (json-value (ref str)) json-value)))
 
 (type summaries-json
   (fn ((ref (vec thread-summary)))

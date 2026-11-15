@@ -1,9 +1,12 @@
 (use adapters/driven/gmail/mailbox gmail-mailbox)
 (use domain/mail ->thread-query)
-(use ports/driven/mailbox fetch-summaries! list-thread-ids!)
+
+(use ports/driven/mailbox fetch-summaries! list-thread-ids!
+                          list-thread-page!)
+
 (use support/fake-gmail start-fake-gmail)
 (use support/gmail-requests requests-matching)
-(use support/gmail-world fixture-routes gmail-over)
+(use support/gmail-world fixture-routes gmail-over route)
 
 (def metadata-request "GET /gmail/v1/users/me/threads/t")
 
@@ -24,3 +27,36 @@
                1))
     (assert (= (len (requests-matching (ref server) metadata-request))
                1))))
+
+(def first-page-request
+  "GET /gmail/v1/users/me/threads?maxResults=1&labelIds=INBOX")
+
+(defn paged-routes ()
+  (let (routes (fixture-routes))
+    (push! (mut routes)
+           (route first-page-request
+                  "200 tests/fixtures/gmail/threads-page-1.json"))
+    (push! (mut routes)
+           (route (ref (str first-page-request "&pageToken=p2"))
+                  "200 tests/fixtures/gmail/threads-page-2.json"))
+    routes))
+
+(deftest a-thread-page-returns-gmail-s-next-page-token
+  (let (server (start-fake-gmail (ref (paged-routes)))
+        gmail (gmail-over (ref server))
+        page (unwrap-ok (list-thread-page!
+                          (mut gmail)
+                          (ref (->thread-query (str "INBOX") (str "") 1))
+                          "")))
+    (assert (= (:ids page) (vec (str "t1"))))
+    (assert (= (:next-token page) "p2"))))
+
+(deftest the-next-page-is-asked-for-with-its-token
+  (let (server (start-fake-gmail (ref (paged-routes)))
+        gmail (gmail-over (ref server))
+        page (unwrap-ok (list-thread-page!
+                          (mut gmail)
+                          (ref (->thread-query (str "INBOX") (str "") 1))
+                          "p2")))
+    (assert (= (:ids page) (vec (str "t2"))))
+    (assert (empty? (:next-token page)))))

@@ -1,0 +1,29 @@
+(use adapters/driving/json/arguments account-argument
+                                     thread-query-argument)
+
+(use adapters/driving/json/mail-json summary-page-json)
+
+(use adapters/driving/json/value json-value
+                                 optional-string-field)
+
+(use domain/mail-error mail-error)
+
+(use ports/driving/mail-client list-thread-page!
+                               mail-client)
+
+(export thread-page-command!)
+
+(type thread-page-command!
+  (where ((client mail-client))
+    (fn ((mut client) (ref json-value))
+      (result json-value mail-error))))
+
+(defn thread-page-command! (client arguments)
+  (ok (summary-page-json
+        (ref (try (list-thread-page!
+                    client
+                    (ref (try (account-argument arguments)))
+                    (ref (try (thread-query-argument arguments)))
+                    (ref (unwrap-or (optional-string-field arguments
+                                                           "pageToken")
+                                    (str "")))))))))

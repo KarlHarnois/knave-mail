@@ -1,0 +1,11 @@
+{
+  "threads": [
+    {
+      "id": "t1",
+      "snippet": "",
+      "historyId": "1"
+    }
+  ],
+  "nextPageToken": "p2",
+  "resultSizeEstimate": 2
+}

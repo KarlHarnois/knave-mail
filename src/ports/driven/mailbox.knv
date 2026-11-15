@@ -1,7 +1,7 @@
 (use domain/labels label-change)
 
 (use domain/mail label mail-changes outgoing thread
-                 thread-query thread-summary)
+                 thread-page thread-query thread-summary)
 
 (use domain/mail-error mail-error)
 
@@ -14,6 +14,10 @@
                     (result (vec thread-summary) mail-error)))
   (list-thread-ids! (fn ((mut self) (ref thread-query))
                       (result (vec string) mail-error)))
+  (list-thread-page! (fn ((mut self)
+                          (ref thread-query)
+                          (ref str))
+                       (result thread-page mail-error)))
   (fetch-summaries! (fn ((mut self) (ref (vec string)))
                       (result (vec thread-summary) mail-error)))
   (fetch-thread! (fn ((mut self) (ref str))

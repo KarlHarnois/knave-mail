@@ -60,6 +60,7 @@ type Draft = {
 | `accounts` | `{}` | `Account[]` |
 | `labels` | `{account}` | `Label[]` |
 | `threads` | `{account, label, query, limit, fresh?}` | `ThreadSummary[]`, newest first. An empty `query` lists the label from the cache, or from Gmail when `fresh` is true. A search always asks Gmail. |
+| `thread-page` | `{account, label, query, limit, pageToken}` | `{threads, nextPageToken}`: one page of the label or search from Gmail, newest first. Pass an empty `pageToken` for the first page; an empty `nextPageToken` means there are no more. |
 | `thread` | `{account, threadId}` | `Thread` |
 | `reply-draft` | `{account, messageId, all}` | `Draft` with recipients, `Re:` subject and the quoted body filled in |
 | `forward-draft` | `{account, messageId}` | `Draft` with `Fwd:` subject and the forwarded body |

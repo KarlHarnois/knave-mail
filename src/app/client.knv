@@ -1,5 +1,8 @@
 (use app/mail-app mail-app)
-(use app/reading find-threads! listed-threads! read-thread!)
+
+(use app/reading find-threads! listed-page! listed-threads!
+                 read-thread!)
+
 (use app/preview preview-sync!)
 (use app/syncing sync!)
 
@@ -24,6 +27,8 @@
                  (find-threads! app account query))
   (list-fresh-threads! (app account query)
                        (listed-threads! app account query))
+  (list-thread-page! (app account query page-token)
+                     (listed-page! app account query page-token))
   (open-thread! (app account thread-id)
                 (read-thread! app account thread-id))
   (draft-reply! (app account message-id)

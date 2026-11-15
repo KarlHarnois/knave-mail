@@ -11,6 +11,7 @@
                                     send-path
                                     thread-list-path
                                     thread-metadata-path
+                                    thread-page-path
                                     thread-path)
 
 (use adapters/driven/gmail/history fetched-changes!
@@ -21,9 +22,10 @@
 
 (use adapters/driven/gmail/session-state gmail-session)
 
-(use domain/mail ->thread message thread thread-query
-                 thread-summary)
+(use domain/mail ->thread ->thread-page message thread
+                 thread-page thread-query thread-summary)
 
+(use adapters/driving/json/value optional-string-field)
 (use domain/mail-error mail-error)
 (use ports/driven/mailbox mailbox)
 
@@ -49,6 +51,9 @@
                                    (ref ids))))
   (list-thread-ids! (box query)
                     (listed-thread-ids! (mut (:session box)) query))
+  (list-thread-page! (box query page-token)
+                     (listed-thread-page! (mut (:session box))
+                                          query page-token))
   (fetch-summaries! (box ids)
                     (summaries-of! (mut (:session box)) ids))
   (fetch-thread! (box thread-id)
@@ -76,6 +81,21 @@
 (defn listed-thread-ids! (session query)
   (ok (thread-ids (ref (try (api-get! session
                                       (ref (thread-list-path query))))))))
+
+(type listed-thread-page!
+  (fn ((mut gmail-session)
+       (ref thread-query)
+       (ref str))
+    (result thread-page mail-error)))
+
+(defn listed-thread-page! (session query page-token)
+  (let (listed (try (api-get! session
+                              (ref (thread-page-path query page-token)))))
+    (ok (->thread-page :ids (thread-ids (ref listed))
+                       :next-token (unwrap-or (optional-string-field
+                                                (ref listed)
+                                                "nextPageToken")
+                                              (str ""))))))
 
 (type summaries-of!
   (fn ((mut gmail-session) (ref (vec string)))

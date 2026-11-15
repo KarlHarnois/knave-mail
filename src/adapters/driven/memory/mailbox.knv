@@ -5,6 +5,7 @@
 
 (use adapters/driven/memory/remote-queries labelled?
                                            labels-of
+                                           matching-page
                                            matching-summaries
                                            summaries-with-ids
                                            thread-position)
@@ -39,6 +40,11 @@
                         (ok (collect
                               (map (iter (matching-summaries remote query))
                                 (fn (summary) (clone (:id summary)))))))))
+  (list-thread-page! (box query page-token)
+                     (with-shared! (ref (:remote box))
+                       (fn (remote)
+                         (try (guard remote "list-thread-ids"))
+                         (ok (matching-page remote query page-token)))))
   (fetch-summaries! (box ids)
                     (with-shared! (ref (:remote box))
                       (fn (remote)
