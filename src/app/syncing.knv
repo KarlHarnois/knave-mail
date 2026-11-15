@@ -1,5 +1,6 @@
 (use app/changes sync-changes!)
 (use app/mail-app mail-app)
+(use app/relisting relist-labels!)
 (use ports/driven/event-log log-info log-warn)
 (use app/mailboxes mailbox-for!)
 (use domain/mail ->thread-query thread thread-summary)
@@ -35,7 +36,8 @@
        (log-info (ref (:log app))
                  "sync"
                  (str account ": incremental sync from history " since))
-       (resume-or-restart! app account (ref since)))
+       (try (resume-or-restart! app account (ref since)))
+       (relist-labels! app account (ref synced-labels)))
       (none (log-info (ref (:log app))
                       "sync"
                       (str account ": full sync, no checkpoint yet"))

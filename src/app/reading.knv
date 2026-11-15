@@ -12,7 +12,7 @@
                         load-threads relabel-stored!
                         save-thread! save-threads!)
 
-(export find-threads! read-thread!)
+(export find-threads! listed-threads! read-thread!)
 
 (type find-threads!
   (fn ((mut mail-app)
@@ -23,15 +23,15 @@
 (defn find-threads! (app account query)
   (if (empty? (:query query))
     (load-threads (ref (:store app)) account query)
-    (search-threads! app account query)))
+    (listed-threads! app account query)))
 
-(type search-threads!
+(type listed-threads!
   (fn ((mut mail-app)
        (ref str)
        (ref thread-query))
     (result (vec thread-summary) mail-error)))
 
-(defn search-threads! (app account query)
+(defn listed-threads! (app account query)
   (let (ids (try (list-thread-ids! (try (mailbox-for! (mut (:mailboxes app))
                                                       account))
                                    query))

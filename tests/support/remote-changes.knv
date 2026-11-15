@@ -6,8 +6,8 @@
 (use adapters/driven/memory/shared shared with-shared!)
 (use domain/mail thread)
 
-(export arrive-remotely! expire-remote-history!
-        heal-remote!)
+(export arrive-remotely! expire-remote-history! heal-remote!
+        surface-remotely!)
 
 (type arrive-remotely!
   (fn ((ref (shared remote-mail)) thread)
@@ -33,3 +33,12 @@
 (defn heal-remote! (remote)
   (with-shared! remote
     (fn (state) (fail-when! state none))))
+
+(type surface-remotely!
+  (fn ((ref (shared remote-mail)) thread)
+    unit))
+
+(defn surface-remotely! (remote surfaced)
+  (with-shared! remote
+    (fn (state)
+      (push! (mut (:threads state)) surfaced))))

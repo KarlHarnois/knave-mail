@@ -1,0 +1,23 @@
+(use app/mail-app mail-app)
+(use app/reading listed-threads!)
+(use domain/mail ->thread-query)
+(use domain/mail-error mail-error)
+
+(export relist-labels!)
+
+(type relist-labels!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref (vec (ref str))))
+    (result unit mail-error)))
+
+(defn relist-labels! (app account labels)
+  (loop (index 0)
+    (if (>= index (len labels))
+      (ok (do))
+      (do
+        (try (listed-threads! app account
+                              (ref (->thread-query (str (at labels index))
+                                                   (str "")
+                                                   (:sync-limit app)))))
+        (recur (+ index 1))))))

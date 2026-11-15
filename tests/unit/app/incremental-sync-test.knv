@@ -13,7 +13,7 @@
 
 (use support/remote-changes arrive-remotely!
                             expire-remote-history!
-                            heal-remote!)
+                            heal-remote! surface-remotely!)
 
 (defn remote ()
   (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100)
@@ -69,3 +69,16 @@
     (assert (= (len (listed-ids! (mut app)
                                  (ref (inbox-query))))
                3))))
+
+(deftest a-later-sync-lists-inbox-threads-it-had-never-cached
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (surface-remotely! (ref world)
+                       (sample-thread "t-0" (vec "INBOX") 50))
+    (synced! (mut app))
+    (assert (= (listed-ids! (mut app)
+                            (ref (inbox-query)))
+               (vec (str "t-2")
+                    (str "t-1")
+                    (str "t-0"))))))
