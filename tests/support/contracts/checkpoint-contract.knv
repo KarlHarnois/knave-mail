@@ -14,19 +14,11 @@
 (defn has-no-checkpoint-at-first! (kept)
   (= (unwrap-ok (load-checkpoint kept account)) none))
 
-(type keeps-the-latest-checkpoint!
-  (where ((kept store))
-    (fn ((mut kept)) bool)))
-
 (defn keeps-the-latest-checkpoint! (kept)
   (unwrap-ok (save-checkpoint! kept account "100"))
   (unwrap-ok (save-checkpoint! kept account "250"))
   (= (unwrap-ok (load-checkpoint kept account))
      (some (str "250"))))
-
-(type keeps-checkpoints-per-account!
-  (where ((kept store))
-    (fn ((mut kept)) bool)))
 
 (defn keeps-checkpoints-per-account! (kept)
   (unwrap-ok (save-checkpoint! kept account "100"))

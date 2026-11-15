@@ -4,14 +4,8 @@
 (export contains? inbox mime-header requests-matching
         sent-mime)
 
-(type inbox (fn () thread-query))
-
 (defn inbox ()
   (->thread-query (str "INBOX") (str "") 20))
-
-(type requests-matching
-  (fn ((ref fake-gmail) (ref str))
-    (vec string)))
 
 (defn requests-matching (server prefix)
   (collect (filter (into-iter (requests-seen server))

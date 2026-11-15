@@ -18,32 +18,17 @@
 (defn inbox-query ()
   (->thread-query (str "INBOX") (str "") 50))
 
-(type synced!
-  (fn ((mut mail-app)) unit))
-
 (defn synced! (app)
   (unwrap-ok (sync-account! app world-account)))
-
-(type listed-ids!
-  (fn ((mut mail-app) (ref thread-query))
-    (vec string)))
 
 (defn listed-ids! (app query)
   (collect (map (iter (unwrap-ok (list-threads! app world-account query)))
              (fn (summary) (clone (:id summary))))))
 
-(type fail-remote!
-  (fn ((ref (shared remote-mail)) (ref str))
-    unit))
-
 (defn fail-remote! (remote operation)
   (with-shared! remote
     (fn (state)
       (fail-when! state (some (str operation))))))
-
-(type remote-sent
-  (fn ((ref (shared remote-mail)))
-    (vec outgoing)))
 
 (defn remote-sent (remote)
   (with-shared! remote
@@ -59,10 +44,6 @@
       (clone (unwrap (find (iter (:threads state))
                        (fn (candidate)
                          (= (:id candidate) thread-id))))))))
-
-(type failing-kind
-  (where ((value show))
-    (fn ((result value mail-error)) string)))
 
 (defn failing-kind (outcome)
   (str (error-kind (ref (unwrap-err outcome)))))

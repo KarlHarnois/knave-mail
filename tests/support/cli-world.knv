@@ -14,10 +14,6 @@
 
 (def account "ada@example.com")
 
-(type environment-for
-  (fn ((ref fake-gmail) (ref str) (ref str))
-    (vec (pair string string))))
-
 (defn environment-for (server cache tokens)
   (let (base (fake-gmail-base server))
     (vec (pair (str "KNAVE_MAIL_GMAIL_BASE_URL") (clone base))
@@ -27,22 +23,12 @@
          (pair (str "KNAVE_MAIL_CACHE") (str cache))
          (pair (str "KNAVE_MAIL_CREDENTIALS_FILE") (str tokens)))))
 
-(type signed-in-tokens (fn () string))
-
 (defn signed-in-tokens ()
   (let (path (temporary-path "tokens.json")
         credentials (->file-credentials (clone path)))
     (local saving credentials)
     (unwrap-ok (save-token! (mut saving) account "fake-refresh"))
     path))
-
-(type gmail-cli
-  (fn ((ref fake-gmail)
-       (ref str)
-       (ref str)
-       (vec (ref str))
-       (ref str))
-    binary-output))
 
 (defn gmail-cli (server cache tokens arguments input)
   (let (written (addresses (with-account-flag arguments)))
@@ -59,9 +45,6 @@
   (for-each arguments
     (fn (argument) (push! flagged argument)))
   flagged)
-
-(type last-request
-  (fn ((ref fake-gmail)) string))
 
 (defn last-request (server)
   (local requests (requests-seen server))

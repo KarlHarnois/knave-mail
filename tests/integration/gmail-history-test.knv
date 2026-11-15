@@ -9,9 +9,6 @@
 (def history-from-4000
   "GET /gmail/v1/users/me/history?startHistoryId=4000&maxResults=500")
 
-(type history-routes
-  (fn () (vec (pair string string))))
-
 (defn history-routes ()
   (let (routes (fixture-routes))
     (push! (mut routes)

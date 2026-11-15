@@ -30,10 +30,6 @@
   (collect (map (iter (unwrap-ok (load-threads kept account (ref (inbox)))))
              (fn (summary) (clone (:id summary))))))
 
-(type keeps-accounts-once!
-  (where ((kept store))
-    (fn ((mut kept)) bool)))
-
 (defn keeps-accounts-once! (kept)
   (unwrap-ok (save-account! kept
                             (ref (->account (str account)))))
@@ -42,19 +38,11 @@
   (= (len (unwrap-ok (load-accounts kept)))
      1))
 
-(type forgets-accounts!
-  (where ((kept store))
-    (fn ((mut kept)) bool)))
-
 (defn forgets-accounts! (kept)
   (unwrap-ok (save-account! kept
                             (ref (->account (str account)))))
   (unwrap-ok (forget-account! kept account))
   (empty? (unwrap-ok (load-accounts kept))))
-
-(type keeps-labels-per-account!
-  (where ((kept store))
-    (fn ((mut kept)) bool)))
 
 (defn keeps-labels-per-account! (kept)
   (unwrap-ok (save-labels! kept account
@@ -63,10 +51,6 @@
                            (ref (vec (->label (str "SENT") (str "Sent") 0)))))
   (= (unwrap-ok (load-labels kept account))
      (vec (->label (str "INBOX") (str "Inbox") 3))))
-
-(type lists-label-newest-first!
-  (where ((kept store))
-    (fn ((mut kept)) bool)))
 
 (defn lists-label-newest-first! (kept)
   (unwrap-ok
@@ -78,19 +62,11 @@
   (= (ids kept)
      (vec (str "new") (str "old"))))
 
-(type keeps-whole-threads!
-  (where ((kept store))
-    (fn ((mut kept)) bool)))
-
 (defn keeps-whole-threads! (kept)
   (let (saved (sample-thread "t-1" (vec "INBOX" "UNREAD") 100))
     (unwrap-ok (save-thread! kept account (ref saved)))
     (= (unwrap-ok (load-thread kept account "t-1"))
        (some saved))))
-
-(type finds-messages!
-  (where ((kept store))
-    (fn ((mut kept)) bool)))
 
 (defn finds-messages! (kept)
   (unwrap-ok (save-thread! kept account
@@ -106,10 +82,6 @@
 (defn misses-unknown-threads! (kept)
   (and (= (unwrap-ok (load-thread kept account "t-9")) none)
        (= (unwrap-ok (load-message kept account "m-9")) none)))
-
-(type relabels-threads-and-summaries!
-  (where ((kept store))
-    (fn ((mut kept)) bool)))
 
 (defn relabels-threads-and-summaries! (kept)
   (let (saved (sample-thread "t-1" (vec "INBOX") 100))

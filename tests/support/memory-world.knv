@@ -23,10 +23,6 @@
 
 (def world-account "ada@example.com")
 
-(type sample-thread
-  (fn ((ref str) (vec (ref str)) i64)
-    thread))
-
 (defn sample-thread (id labels date)
   (->thread :id (str id)
             :subject (str "Subject of " id)
@@ -43,9 +39,6 @@
                                       :header-id (str "<m-" id "@example.com>")
                                       :references (str "")))))
 
-(type remote-with
-  (fn ((vec thread)) (shared remote-mail)))
-
 (defn remote-with (threads)
   (share (->remote-mail :threads threads
                         :sent (vec)
@@ -55,10 +48,6 @@
                         :history-id 1
                         :history-floor 0
                         :changes (vec))))
-
-(type app-over
-  (fn ((ref (shared remote-mail)))
-    mail-app))
 
 (defn app-over (remote)
   (app-logging-to remote (new-memory-log)))

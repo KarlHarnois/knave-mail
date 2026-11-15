@@ -63,10 +63,6 @@
                         script)))
     ((err problem) (do (eprintln problem) false))))
 
-(type succeeded
-  (fn ((ref str) bool)
-    (result unit string)))
-
 (defn succeeded (description outcome)
   (if outcome
     (ok (do))

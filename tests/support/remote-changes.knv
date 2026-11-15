@@ -22,15 +22,9 @@
         (push! (mut (:threads state)) arrived)
         (record-change! state (ref thread-id))))))
 
-(type expire-remote-history!
-  (fn ((ref (shared remote-mail))) unit))
-
 (defn expire-remote-history! (remote)
   (with-shared! remote
     (fn (state) (expire-history! state))))
-
-(type heal-remote!
-  (fn ((ref (shared remote-mail))) unit))
 
 (defn heal-remote! (remote)
   (with-shared! remote

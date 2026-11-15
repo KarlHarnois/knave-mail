@@ -19,10 +19,6 @@
 
 (def labels-request "GET /gmail/v1/users/me/labels")
 
-(type routes-answering-labels-with
-  (fn ((ref str))
-    (vec (pair string string))))
-
 (defn routes-answering-labels-with (answer)
   (let (routes (fixture-routes))
     (push! (mut routes) (route labels-request answer))

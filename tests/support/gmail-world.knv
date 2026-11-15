@@ -19,15 +19,8 @@
 
 (def fixtures "tests/fixtures/gmail/")
 
-(type route
-  (fn ((ref str) (ref str))
-    (pair string string)))
-
 (defn route (request answer)
   (pair (str request) (str answer)))
-
-(type fixture-routes
-  (fn () (vec (pair string string))))
 
 (defn fixture-routes ()
   (vec (route "POST /token"
@@ -61,19 +54,10 @@
        (route "POST /gmail/v1/users/me/threads/t1/modify"
               (ref (str "200 " fixtures "empty.json")))))
 
-(type gmail-over
-  (fn ((ref fake-gmail)) gmail-mailbox))
-
 (defn gmail-over (server) (gmail-paced server 0))
-
-(type gmail-paced
-  (fn ((ref fake-gmail) u64) gmail-mailbox))
 
 (defn gmail-paced (server spacing)
   (gmail-built server spacing (new-memory-log)))
-
-(type gmail-logging
-  (fn ((ref fake-gmail) memory-log) gmail-mailbox))
 
 (defn gmail-logging (server log) (gmail-built server 0 log))
 

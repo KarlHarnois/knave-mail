@@ -8,9 +8,6 @@
 (use support/log-lines mentions-none? mentions?)
 (use support/temporary temporary-path)
 
-(type log-lines-of
-  (fn ((ref str)) (vec string)))
-
 (defn log-lines-of (path)
   (match (slurp path)
     ((ok text)

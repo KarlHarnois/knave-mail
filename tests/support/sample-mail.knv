@@ -2,14 +2,9 @@
 
 (export addresses sample-message)
 
-(type addresses
-  (fn ((vec (ref str))) (vec string)))
-
 (defn addresses (written)
   (collect (map (iter written)
              (fn (address) (str address)))))
-
-(type sample-message (fn () message))
 
 (defn sample-message ()
   (->message :id (str "m-1")

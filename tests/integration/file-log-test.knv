@@ -3,8 +3,6 @@
 (use support/gmail-requests contains?)
 (use support/temporary temporary-path)
 
-(type read-file (fn ((ref str)) string))
-
 (defn read-file (path)
   (match (slurp path)
     ((ok text) text)

@@ -21,14 +21,8 @@
 
 (defn output-code (output) (:code output))
 
-(type output-stdout
-  (fn ((ref binary-output)) string))
-
 (defn output-stdout (output)
   (clone (:stdout output)))
-
-(type output-stderr
-  (fn ((ref binary-output)) string))
 
 (defn output-stderr (output)
   (clone (:stderr output)))

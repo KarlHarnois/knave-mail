@@ -15,9 +15,6 @@
   (rust "{0}.ends_with({1})"
     (fn ((ref str) (ref str)) bool)))
 
-(type line-count
-  (fn ((ref str)) (result usize string)))
-
 (defn line-count (path)
   (match (slurp path)
     ((ok text) (ok (count (lines (as-str text)))))
@@ -32,9 +29,6 @@
   (for-each more
     (fn (item) (push! all (clone item))))
   all)
-
-(type on-own-lines
-  (fn ((ref (vec string))) string))
 
 (defn on-own-lines (items)
   (local text (str ""))

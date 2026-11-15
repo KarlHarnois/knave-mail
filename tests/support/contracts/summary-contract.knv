@@ -13,20 +13,12 @@
 
 (def account "ada@example.com")
 
-(type ids
-  (where ((kept store))
-    (fn ((ref kept)) (vec string))))
-
 (defn ids (kept)
   (collect (map (iter (unwrap-ok
                         (load-threads
                           kept account
                           (ref (->thread-query (str "INBOX") (str "") 10)))))
                 (fn (summary) (clone (:id summary))))))
-
-(type finds-summaries-by-id!
-  (where ((kept store))
-    (fn ((mut kept)) bool)))
 
 (defn finds-summaries-by-id! (kept)
   (unwrap-ok
@@ -45,10 +37,6 @@
                                                 (str "t-9"))))))
                    (fn (summary) (clone (:id summary)))))
      (vec (str "t-2"))))
-
-(type relabels-a-summary-without-its-thread!
-  (where ((kept store))
-    (fn ((mut kept)) bool)))
 
 (defn relabels-a-summary-without-its-thread! (kept)
   (unwrap-ok (save-threads!

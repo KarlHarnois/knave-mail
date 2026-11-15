@@ -28,10 +28,6 @@
                            (route "GET /gmail/v1/users/me/profile"
                                   "200 tests/fixtures/gmail/profile.json")))))
 
-(type authorizer-over
-  (fn ((ref fake-gmail) (ref str) (ref str))
-    google-authorizer))
-
 (defn authorizer-over (server credentials-path answer)
   (->google-authorizer :agent (new-agent)
                        :settings (settings-over server 5000)
