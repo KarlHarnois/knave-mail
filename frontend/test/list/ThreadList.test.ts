@@ -132,6 +132,24 @@ describe("ThreadList changes", () => {
     expect(fixture.selectedRow()?.dataset["threadId"]).toBe("t-3");
   });
 
+  test("refresh keeps the selection on the same threads", () => {
+    const fixture = new ListFixture(10);
+    fixture.act((list) => list.moveTo(3));
+    fixture.act((list) => list.startSelection());
+    fixture.act((list) => list.moveBy(1));
+    fixture.act((list) => list.refresh([MailFixtures.summary(-1), ...MailFixtures.summaries(10)]));
+    expect(fixture.list.chosen().map((summary) => summary.id)).toEqual(["t-3", "t-4"]);
+  });
+
+  test("refresh ends the selection when the thread it started on is gone", () => {
+    const fixture = new ListFixture(10);
+    fixture.act((list) => list.moveTo(3));
+    fixture.act((list) => list.startSelection());
+    fixture.act((list) => list.moveBy(1));
+    fixture.act((list) => list.refresh(MailFixtures.summaries(10).filter((summary) => summary.id !== "t-3")));
+    expect(fixture.list.isSelecting).toBe(false);
+  });
+
   test("show resets the cursor to the top", () => {
     const fixture = new ListFixture(10);
     fixture.act((list) => list.moveTo(3));

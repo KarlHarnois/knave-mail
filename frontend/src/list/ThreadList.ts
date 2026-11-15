@@ -1,5 +1,6 @@
 import type { ThreadSummary } from "../bridge/Protocol";
 import type { RenderScheduler } from "../render/RenderScheduler";
+import { KeptSelection } from "./KeptSelection";
 import { ListCursor } from "./ListCursor";
 import { ListPainter } from "./ListPainter";
 import { ListViewport } from "./ListViewport";
@@ -65,10 +66,10 @@ export class ThreadList {
   }
 
   refresh(summaries: ThreadSummary[]): void {
-    const selectedId = this.selected()?.id;
+    const kept = KeptSelection.of(this.summaries, this.cursor);
     this.replaceSummaries(summaries);
-    const keptIndex = summaries.findIndex((summary) => summary.id === selectedId);
-    this.moveTo(keptIndex >= 0 ? keptIndex : this.cursor.index);
+    this.moveTo(kept.cursorIndexIn(summaries) ?? this.cursor.index);
+    kept.restoreAnchor(summaries, this.cursor);
   }
 
   update(summary: ThreadSummary): void {

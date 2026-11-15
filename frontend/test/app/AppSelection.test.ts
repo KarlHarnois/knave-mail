@@ -75,6 +75,17 @@ describe("visual mode", () => {
     await app.press("q");
     expect(app.driver.count(Chosen)).toBe(0);
   });
+
+  test("a sync reload keeps the selection on the same threads", async () => {
+    let threads = MailFixtures.summaries(50);
+    const app = await AppHarness.started((core) => core.answerWith("threads", () => threads));
+    await app.press("5jVj");
+    threads = [MailFixtures.summary(-2), MailFixtures.summary(-1), ...MailFixtures.summaries(50)];
+    app.core.emit({ event: "synced", account: MailFixtures.ADA });
+    await app.driver.whenIdle();
+    await app.press("#");
+    expect(app.core.lastArgsFor("trash")["threadIds"]).toEqual(["t-5", "t-6"]);
+  });
 });
 
 describe("undo and inbox", () => {

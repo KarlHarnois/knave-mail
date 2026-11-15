@@ -23,8 +23,16 @@ export class ListCursor {
     return Math.max(this.anchor ?? this.position, this.position);
   }
 
+  get anchorIndex(): number | null {
+    return this.anchor;
+  }
+
   startSelection(): void {
     this.anchor = this.position;
+  }
+
+  anchorAt(index: number): void {
+    this.anchor = index;
   }
 
   endSelection(): void {
