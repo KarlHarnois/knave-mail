@@ -26,16 +26,9 @@
   (rust "serde_json::json!({{\"threads\": {0}, \"nextPageToken\": {1}}})"
     (fn (json-value (ref str)) json-value)))
 
-(type summaries-json
-  (fn ((ref (vec thread-summary)))
-    json-value))
-
 (defn summaries-json (summaries)
   (json-array (collect (map (iter summaries)
                          (fn (summary) (summary-json summary))))))
-
-(type summary-json
-  (fn ((ref thread-summary)) json-value))
 
 (defn summary-json (summary)
   (summary-object summary

@@ -11,21 +11,14 @@
 
 (def largest-font-size 40)
 
-(type font-family?
-  (fn ((ref str)) bool))
-
 (defn font-family? (value)
   (and (not (empty? value))
        (every? (chars value) font-character?)))
-
-(type font-character? (fn (char) bool))
 
 (defn font-character? (character)
   (or (alphanumeric? character)
       (any? (chars font-punctuation)
         (fn (allowed) (= allowed character)))))
-
-(type font-size? (fn ((ref str)) bool))
 
 (defn font-size? (value)
   (match (the (result u32 _) (parse value))
@@ -34,17 +27,12 @@
           (<= size largest-font-size)))
     ((err _) false)))
 
-(type mode? (fn ((ref str)) bool))
-
 (defn mode? (value)
   (match value
     ("light" true)
     ("dark" true)
     ("system" true)
     (_ false)))
-
-(type dark-mail-setting?
-  (fn ((ref str)) bool))
 
 (defn dark-mail-setting? (value)
   (match value

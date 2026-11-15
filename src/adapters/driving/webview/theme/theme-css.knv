@@ -21,17 +21,12 @@
   :css string
   :warnings (vec string))
 
-(type theme-css (fn ((ref str)) themed))
-
 (defn theme-css (text)
   (match (read-theme-entries text)
     ((ok entries) (declared-css (ref entries)))
     ((err problem)
      (->themed (str "")
                (vec (str "theme.knv: " problem))))))
-
-(type declared-css
-  (fn ((ref (vec theme-entry))) themed))
 
 (defn declared-css (entries)
   (loop (index 0
@@ -48,10 +43,6 @@
                   declarations
                   (appended warnings (str "theme.knv: " problem)))))))))
 
-(type declaration
-  (fn ((ref theme-entry))
-    (result string string)))
-
 (defn declaration (entry)
   (let (section (as-str (:section entry))
         key (as-str (:key entry))
@@ -62,10 +53,6 @@
       ("dark" (color-declaration "dark" key value))
       (_ (err (str "unknown section (" section
                    " ...); use (light ...) or (dark ...)"))))))
-
-(type theme-declaration
-  (fn ((ref str) (ref str))
-    (result string string)))
 
 (defn theme-declaration (key value)
   (match key
@@ -91,10 +78,6 @@
               "unknown key :" key
               "; use :font, :message-font, :font-size, :mode or :dark-mail")))))
 
-(type color-declaration
-  (fn ((ref str) (ref str) (ref str))
-    (result string string)))
-
 (defn color-declaration (mode key value)
   (cond
     ((not (one-of? key (ref color-names)))
@@ -103,17 +86,10 @@
                    (str "--" mode "-" key ": " value)
                    key value))))
 
-(type checked
-  (fn (bool string (ref str) (ref str))
-    (result string string)))
-
 (defn checked (valid written key value)
   (if valid
     (ok written)
     (err (str "`" value "` is not a valid :" key))))
-
-(type mode-declarations
-  (fn ((ref str)) string))
 
 (defn mode-declarations (mode)
   (if (= mode "system")

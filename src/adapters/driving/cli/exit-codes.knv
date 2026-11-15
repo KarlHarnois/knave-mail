@@ -4,9 +4,6 @@
 
 (def success-code 0)
 
-(type exit-code
-  (fn ((ref mail-error)) i32))
-
 (defn exit-code (failure)
   (match failure
     ((usage _) 1)

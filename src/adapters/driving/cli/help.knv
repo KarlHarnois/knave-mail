@@ -24,6 +24,4 @@ Options:
 Run knave-mail with no command to open the window.
 Exit codes: 0 ok, 1 usage, 2 not found, 3 auth required, 4 network, 5 internal.")
 
-(type usage-text (fn () string))
-
 (defn usage-text () (str overview))

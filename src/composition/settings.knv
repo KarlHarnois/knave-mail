@@ -20,9 +20,6 @@
   :log-path string
   :log-level string)
 
-(type settings-from
-  (fn ((ref (vec string))) settings))
-
 (defn settings-from (arguments)
   (->settings
     :backend (option-value arguments "--backend"
@@ -92,14 +89,8 @@
 (defn parse-or-zero (text)
   (unwrap-or (ok->option (parse text)) 0))
 
-(type non-empty
-  (fn (string) (option string)))
-
 (defn non-empty (text)
   (if (empty? text) none (some text)))
-
-(type script-text
-  (fn ((ref str)) string))
 
 (defn script-text (path)
   (if (empty? path)

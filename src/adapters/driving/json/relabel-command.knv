@@ -24,10 +24,6 @@
                            (ref change)))
     (ok (empty-object))))
 
-(type change-named
-  (fn ((ref str))
-    (result label-change mail-error)))
-
 (defn change-named (command)
   (ok-or (label-change-named command)
          (mail-error/usage (str "unknown command `" command "`"))))

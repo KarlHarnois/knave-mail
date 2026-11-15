@@ -113,9 +113,6 @@
          (mail-error/usage (str "unknown command `" word
                                 "`; try `knave-mail help`"))))
 
-(type canonical-command
-  (fn ((ref str)) string))
-
 (defn canonical-command (word)
   (match word
     ("read" (str "mark-read"))

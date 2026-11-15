@@ -2,8 +2,5 @@
 
 (export file-text)
 
-(type file-text
-  (fn ((ref str)) (option string)))
-
 (defn file-text (path)
   (ok->option (slurp path)))

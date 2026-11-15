@@ -4,9 +4,6 @@
 
 (export theme-stylesheet)
 
-(type theme-stylesheet
-  (fn ((ref settings)) string))
-
 (defn theme-stylesheet (chosen)
   (match (file-text (ref (:theme-path chosen)))
     ((some text)

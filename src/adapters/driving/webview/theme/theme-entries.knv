@@ -7,10 +7,6 @@
   :key string
   :value string)
 
-(type read-theme-entries
-  (fn ((ref str))
-    (result (vec theme-entry) string)))
-
 (defn read-theme-entries (text)
   (entries-in (ref (sexp-tokens text))))
 

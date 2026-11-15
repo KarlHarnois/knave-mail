@@ -12,14 +12,8 @@
 
 (def schema-version 1)
 
-(type result-json-text
-  (fn ((ref cli-result)) string))
-
 (defn result-json-text (outcome)
   (document-text schema-version (ref (result-json outcome))))
-
-(type result-json
-  (fn ((ref cli-result)) json-value))
 
 (defn result-json (outcome)
   (match outcome
@@ -32,9 +26,6 @@
      (accounts-json (ref (vec (clone account)))))
     (done (empty-object))
     ((help-shown text) (text-json text))))
-
-(type error-json-text
-  (fn ((ref mail-error)) string))
 
 (defn error-json-text (failure)
   (error-document-text schema-version

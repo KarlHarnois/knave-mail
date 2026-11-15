@@ -4,9 +4,6 @@
 
 (export chosen-log)
 
-(type chosen-log
-  (fn ((ref settings)) (box event-log)))
-
 (defn chosen-log (chosen)
   (the (box event-log)
        (box (open-file-log (ref (:log-path chosen))

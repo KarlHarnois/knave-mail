@@ -21,14 +21,6 @@
 (export answer-relabels! answered-and-logged!
         refuse-relabels!)
 
-(type answer-relabels!
-  (where ((client mail-client) (sink reply-sink))
-    (fn ((mut client)
-         (ref (box event-log))
-         (ref request-inbox)
-         (ref sink))
-      unit)))
-
 (defn answer-relabels! (client log inbox sink)
   (log-debug log "window"
              (str "label worker ready for "
@@ -36,14 +28,6 @@
                                   (vec)))
                   " accounts"))
   (answer-queued-relabels! client log inbox sink))
-
-(type answer-queued-relabels!
-  (where ((client mail-client) (sink reply-sink))
-    (fn ((mut client)
-         (ref (box event-log))
-         (ref request-inbox)
-         (ref sink))
-      unit)))
 
 (defn answer-queued-relabels! (client log inbox sink)
   (match (next-request inbox)

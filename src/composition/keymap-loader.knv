@@ -5,9 +5,6 @@
 
 (export keymap-startup-script)
 
-(type keymap-startup-script
-  (fn ((ref settings)) string))
-
 (defn keymap-startup-script (chosen)
   (match (file-text (ref (:keymap-path chosen)))
     ((some text)

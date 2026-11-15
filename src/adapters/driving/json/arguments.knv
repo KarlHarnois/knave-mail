@@ -9,47 +9,23 @@
         text-argument thread-ids-argument
         thread-query-argument)
 
-(type text-argument
-  (fn ((ref json-value) (ref str))
-    (result string mail-error)))
-
 (defn text-argument (arguments name)
   (as-usage (string-field arguments name)))
-
-(type flag-argument
-  (fn ((ref json-value) (ref str))
-    (result bool mail-error)))
 
 (defn flag-argument (arguments name)
   (as-usage (bool-field arguments name)))
 
-(type account-argument
-  (fn ((ref json-value))
-    (result string mail-error)))
-
 (defn account-argument (arguments)
   (text-argument arguments "account"))
 
-(type thread-ids-argument
-  (fn ((ref json-value))
-    (result (vec string) mail-error)))
-
 (defn thread-ids-argument (arguments)
   (as-usage (string-list-field arguments "threadIds")))
-
-(type thread-query-argument
-  (fn ((ref json-value))
-    (result thread-query mail-error)))
 
 (defn thread-query-argument (arguments)
   (ok (->thread-query :label (try (text-argument arguments "label"))
                       :query (try (text-argument arguments "query"))
                       :limit (try (as-usage (number-field arguments
                                                           "limit"))))))
-
-(type draft-argument
-  (fn ((ref json-value))
-    (result draft mail-error)))
 
 (defn draft-argument (arguments)
   (let (written (try (as-usage (object-field arguments "draft"))))
@@ -58,11 +34,6 @@
                  :subject (try (text-argument (ref written) "subject"))
                  :body (try (text-argument (ref written) "body"))
                  :reply-to (optional-string-field (ref written) "replyTo")))))
-
-(type as-usage
-  (where (value)
-    (fn ((result value string))
-      (result value mail-error))))
 
 (defn as-usage (outcome)
   (map-err outcome

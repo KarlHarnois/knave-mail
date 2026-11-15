@@ -30,23 +30,15 @@
 
 (def memory-backend "memory")
 
-(type launch-cli (fn (settings parsed-arguments) unit))
-
 (defn launch-cli (chosen parsed)
   (if (help-asked? (ref parsed))
     (println (usage-text))
     (run-cli-with-app chosen parsed)))
 
-(type help-asked?
-  (fn ((ref parsed-arguments)) bool))
-
 (defn help-asked? (parsed)
   (match (command-from parsed)
     ((ok help) true)
     (_ false)))
-
-(type run-cli-with-app
-  (fn (settings parsed-arguments) unit))
 
 (defn run-cli-with-app (chosen parsed)
   (let (log (chosen-log (ref chosen))
@@ -73,8 +65,6 @@
                           "ms"))
            (exit code))))
       ((err failure) (fail-with (ref failure))))))
-
-(type launch-window (fn (settings) unit))
 
 (defn launch-window (chosen)
   (let (script (str (keymap-startup-script (ref chosen))
@@ -111,17 +101,10 @@
                                     (ref outbox))))))
             ((err failure) (fail-with (ref failure)))))))))
 
-(type chosen-app
-  (fn ((ref settings) (box event-log))
-    (result mail-app mail-error)))
-
 (defn chosen-app (chosen log)
   (if (= (:backend chosen) memory-backend)
     (ok (memory-app chosen log))
     (gmail-app chosen log)))
-
-(type fail-with
-  (fn ((ref mail-error)) unit))
 
 (defn fail-with (failure)
   (eprintln (str "knave-mail: " (error-message failure)))

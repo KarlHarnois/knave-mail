@@ -116,9 +116,6 @@
                       (list-fresh-threads! client (ref account) (ref query))
                       (list-threads! client (ref account) (ref query)))))))))
 
-(type fresh-asked?
-  (fn ((ref json-value)) bool))
-
 (defn fresh-asked? (arguments)
   (match (bool-field arguments "fresh")
     ((ok fresh) fresh)

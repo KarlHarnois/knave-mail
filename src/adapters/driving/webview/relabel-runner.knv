@@ -28,17 +28,11 @@
   (deliver-reply! (sink reply)
                   (send-reply (ref (:outbox sink)) reply)))
 
-(type worker-request?
-  (fn ((ref str) (ref json-value)) bool))
-
 (defn worker-request? (command request)
   (or (relabel-command? command)
       (= command "thread-page")
       (and (= command "threads")
            (gmail-listing? (ref (request-arguments request))))))
-
-(type gmail-listing?
-  (fn ((ref json-value)) bool))
 
 (defn gmail-listing? (arguments)
   (or (match (string-field arguments "query")
@@ -47,9 +41,6 @@
       (match (bool-field arguments "fresh")
         ((ok fresh) fresh)
         (_ false))))
-
-(type relabel-command?
-  (fn ((ref str)) bool))
 
 (defn relabel-command? (command)
   (match (label-change-named command)

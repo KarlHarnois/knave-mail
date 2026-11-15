@@ -17,11 +17,6 @@
 
 (export run-cli!)
 
-(type run-cli!
-  (where ((client mail-client))
-    (fn ((mut client) (ref parsed-arguments))
-      i32)))
-
 (defn run-cli! (client parsed)
   (match (cli-outcome! client parsed)
     ((ok outcome)
@@ -30,11 +25,6 @@
      (do
        (print-failure parsed (ref failure))
        (exit-code (ref failure))))))
-
-(type cli-outcome!
-  (where ((client mail-client))
-    (fn ((mut client) (ref parsed-arguments))
-      (result cli-result mail-error))))
 
 (defn cli-outcome! (client parsed)
   (let (command (try (command-from parsed))
@@ -47,13 +37,6 @@
                                           :dry-run (switch? parsed
                                                             "--dry-run"))))))
 
-(type chosen-account!
-  (where ((client mail-client))
-    (fn ((mut client)
-         (ref parsed-arguments)
-         (ref cli-command))
-      (result string mail-error))))
-
 (defn chosen-account! (client parsed command)
   (match (value-of parsed "--account")
     ((some email) (ok email))
@@ -61,18 +44,10 @@
             (first-account! client)
             (ok (str ""))))))
 
-(type first-account!
-  (where ((client mail-client))
-    (fn ((mut client))
-      (result string mail-error))))
-
 (defn first-account! (client)
   (match (first (try (list-accounts! client)))
     ((some account) (ok (clone (:email account))))
     (none (err (mail-error/auth-required (str "no account yet; run `knave-mail accounts add`"))))))
-
-(type needs-account?
-  (fn ((ref cli-command)) bool))
 
 (defn needs-account? (command)
   (match command
@@ -82,9 +57,6 @@
     (help false)
     (_ true)))
 
-(type body-for
-  (fn ((ref cli-command)) string))
-
 (defn body-for (command)
   (match command
     ((send _ _ _) (standard-input))
@@ -92,30 +64,18 @@
     ((forward _ _) (standard-input))
     (_ (str ""))))
 
-(type print-result
-  (fn ((ref parsed-arguments) (ref cli-result))
-    unit))
-
 (defn print-result (parsed outcome)
   (if (switch? parsed "--json")
     (println (result-json-text outcome))
     (print-unless-empty (result-text outcome))))
-
-(type print-failure
-  (fn ((ref parsed-arguments) (ref mail-error))
-    unit))
 
 (defn print-failure (parsed failure)
   (if (switch? parsed "--json")
     (eprintln (error-json-text failure))
     (eprintln (str "knave-mail: " (error-message failure)))))
 
-(type print-unless-empty (fn (string) unit))
-
 (defn print-unless-empty (text)
   (unless (empty? text) (println text)))
-
-(type standard-input (fn () string))
 
 (defn standard-input ()
   (match (slurp stdin)

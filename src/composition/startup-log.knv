@@ -4,12 +4,6 @@
 
 (export clock-milliseconds log-started trimmed)
 
-(type log-started
-  (fn ((ref (box event-log))
-       (ref settings)
-       (ref str))
-    unit))
-
 (defn log-started (log chosen mode)
   (log-info log "app"
             (str "knave-mail "
@@ -18,8 +12,6 @@
                  (:backend chosen)
                  ", cache "
                  (:cache-path chosen))))
-
-(type trimmed (fn (string) string))
 
 (defn trimmed (text)
   (str (trim (as-str text))))

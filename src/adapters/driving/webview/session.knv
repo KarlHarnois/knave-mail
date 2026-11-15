@@ -33,18 +33,6 @@
 
 (export serve-requests!)
 
-(type serve-requests!
-  (where ((client mail-client)
-          (runner sync-runner)
-          (relabeler relabel-runner))
-    (fn ((mut client)
-         (mut runner)
-         (mut relabeler)
-         (ref (box event-log))
-         (ref request-inbox)
-         (ref reply-outbox))
-      unit)))
-
 (defn serve-requests! (client runner relabeler log inbox outbox)
   (match (next-request inbox)
     ((some request)

@@ -66,9 +66,6 @@
                      :rate-limit-pause-milliseconds 1000
                      :request-spacing-milliseconds 160))
 
-(type chosen-credentials
-  (fn ((ref settings)) (box credentials)))
-
 (defn chosen-credentials (chosen)
   (if (empty? (:credentials-file chosen))
     (the (box credentials)

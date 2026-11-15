@@ -28,10 +28,6 @@
 
 (def sync-limit 500)
 
-(type memory-app
-  (fn ((ref settings) (box event-log))
-    mail-app))
-
 (defn memory-app (chosen log)
   (let (app (new-mail-app (box (store-with-accounts))
                           (box (->memory-provider (account-emails)
@@ -41,9 +37,6 @@
     (sync-every-account! (mut app) 0)
     app))
 
-(type sync-every-account!
-  (fn ((mut mail-app) usize) unit))
-
 (defn sync-every-account! (app index)
   (when (< index (len seed-accounts))
     (match (sync-account! app (at seed-accounts index))
@@ -51,8 +44,6 @@
       ((err _)
        (eprintln (str "could not sync " (at seed-accounts index)))))
     (recur app (+ index 1))))
-
-(type store-with-accounts (fn () memory-store))
 
 (defn store-with-accounts ()
   (let (store (empty-memory-store))
@@ -63,16 +54,9 @@
                    "the memory store keeps every account")))
     store))
 
-(type account-emails
-  (fn () (vec string)))
-
 (defn account-emails ()
   (collect (map (iter seed-accounts)
              (fn (email) (str email)))))
-
-(type seeded-remotes
-  (fn ((ref settings))
-    (vec (shared remote-mail))))
 
 (defn seeded-remotes (chosen)
   (collect (map (enumerate (iter seed-accounts))
@@ -93,8 +77,6 @@
                         :history-id 1
                         :history-floor 0
                         :changes (vec))))
-
-(type thread-count (fn (usize) i64))
 
 (defn thread-count (position)
   (if (= position 0)

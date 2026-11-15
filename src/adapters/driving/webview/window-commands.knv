@@ -11,27 +11,16 @@
 
 (export empty-object finish-e2e report-e2e-line zoom-to)
 
-(type report-e2e-line
-  (fn ((ref json-value)) unit))
-
 (defn report-e2e-line (request)
   (match (string-field (ref (request-arguments request)) "line")
     ((ok line) (println line))
     ((err problem) (eprintln problem))))
-
-(type finish-e2e
-  (fn ((ref json-value) (ref reply-outbox))
-    unit))
 
 (defn finish-e2e (request outbox)
   (close-window outbox
                 (match (bool-field (ref (request-arguments request)) "passed")
                   ((ok true) 0)
                   (_ 1))))
-
-(type zoom-to
-  (fn ((ref json-value) (ref reply-outbox))
-    unit))
 
 (defn zoom-to (request outbox)
   (zoom-window outbox
@@ -43,9 +32,6 @@
 (def smallest-zoom 0.5)
 
 (def largest-zoom 3.0)
-
-(type zoom-level
-  (fn ((ref json-value)) f64))
 
 (defn zoom-level (arguments)
   (max smallest-zoom

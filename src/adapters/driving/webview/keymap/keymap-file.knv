@@ -33,13 +33,6 @@
       (->keymapped (vec)
                    (vec (str "keymap.knv: the file must be one (keymap ...) form"))))))
 
-(type read-entries
-  (fn ((ref (vec string))
-       usize
-       (vec keymap-entry)
-       (vec string))
-    keymapped))
-
 (defn read-entries (tokens index entries warnings)
   (if (>= (+ index 1) (len tokens))
     (->keymapped entries warnings)
@@ -54,10 +47,6 @@
               (next-entry tokens index)
               entries
               (appended warnings (str "keymap.knv: " problem)))))))
-
-(type entry-at
-  (fn ((ref (vec string)) usize)
-    (result keymap-entry string)))
 
 (defn entry-at (tokens index)
   (let (opening (token-at tokens index)
@@ -79,9 +68,6 @@
                                 (token-text (ref keys))
                                 (token-text (ref action))))))))
 
-(type wrapped-in-keymap?
-  (fn ((ref (vec string))) bool))
-
 (defn wrapped-in-keymap? (tokens)
   (and (>= (len tokens) 3)
        (= (at tokens 0) "(")
@@ -97,9 +83,6 @@
     ((some token) (= token ")"))
     (none false)))
 
-(type balanced?
-  (fn ((ref (vec string))) bool))
-
 (defn balanced? (tokens)
   (= (occurrences tokens "(") (occurrences tokens ")")))
 
@@ -110,9 +93,6 @@
 (defn occurrences (tokens wanted)
   (count (filter (iter tokens)
            (fn (token) (= (deref token) wanted)))))
-
-(type token-at
-  (fn ((ref (vec string)) usize) string))
 
 (defn token-at (tokens index)
   (match (get tokens index)

@@ -6,26 +6,16 @@
         request-arguments request-command request-id
         success-reply sync-progress-event synced-event)
 
-(type request-command
-  (fn ((ref str)) (option string)))
-
 (defn request-command (request-text)
   (match (parse-json request-text)
     ((ok request)
      (ok->option (string-field (ref request) "command")))
     ((err _) none)))
 
-(type failure-reply
-  (fn ((ref json-value) (ref mail-error))
-    string))
-
 (defn failure-reply (id failure)
   (error-reply id
                (error-kind failure)
                (error-message failure)))
-
-(type failure-event
-  (fn ((ref str) (ref mail-error)) string))
 
 (defn failure-event (account failure)
   (sync-failed-event account

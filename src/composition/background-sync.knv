@@ -39,10 +39,6 @@
                        (synced-in-own-app (ref moved-account) progress))))
                  true)))
 
-(type synced-in-own-app
-  (fn ((ref str) (ref reply-outbox))
-    string))
-
 (defn synced-in-own-app (account progress)
   (let (chosen (settings-from (ref (command-line-args)))
         log (chosen-log (ref chosen))
@@ -61,14 +57,6 @@
     (log-outcome (ref log) account (ref outcome) started)
     (sync-event outcome account)))
 
-(type previewed-then-synced!
-  (fn ((mut mail-app)
-       (ref str)
-       (ref reply-outbox)
-       (ref (box event-log))
-       u64)
-    (result unit mail-error)))
-
 (defn previewed-then-synced! (app account progress log started)
   (log-info log "sync"
             (str account ": background sync started"))
@@ -79,13 +67,6 @@
                    (- (clock-milliseconds) started)
                    "ms")))
   (sync-account! app account))
-
-(type log-outcome
-  (fn ((ref (box event-log))
-       (ref str)
-       (ref (result unit mail-error))
-       u64)
-    unit))
 
 (defn log-outcome (log account outcome started)
   (let (elapsed (- (clock-milliseconds) started))
@@ -100,9 +81,6 @@
                       (error-kind failure)
                       ": "
                       (error-message failure)))))))
-
-(type previewed?
-  (fn ((result bool mail-error)) bool))
 
 (defn previewed? (outcome)
   (match outcome

@@ -18,10 +18,6 @@
   :options (vec (pair string string))
   :switches (vec string))
 
-(type parse-arguments
-  (fn ((ref (vec string)))
-    parsed-arguments))
-
 (defn parse-arguments (tokens)
   (loop (index 0
          parsed (->parsed-arguments (vec) (vec) (vec)))
@@ -36,18 +32,10 @@
            (recur (+ index 1) (with-switch parsed token)))
           (else (recur (+ index 1) (with-positional parsed token))))))))
 
-(type positional
-  (fn ((ref parsed-arguments) usize)
-    (option string)))
-
 (defn positional (parsed index)
   (if (< index (len (:positionals parsed)))
     (some (clone (at (:positionals parsed) index)))
     none))
-
-(type rest-positionals
-  (fn ((ref parsed-arguments))
-    (vec string)))
 
 (defn rest-positionals (parsed)
   (loop (index 1
@@ -55,10 +43,6 @@
     (match (positional parsed index)
       ((some word) (recur (+ index 1) (appended words word)))
       (none words))))
-
-(type value-of
-  (fn ((ref parsed-arguments) (ref str))
-    (option string)))
 
 (defn value-of (parsed name)
   (last-value (ref (values-of parsed name))))
@@ -80,25 +64,16 @@
   (any? (iter (:switches parsed))
     (fn (held) (= held name))))
 
-(type with-option
-  (fn (parsed-arguments (ref string) string) parsed-arguments))
-
 (defn with-option (parsed name value)
   (let (options (clone (:options parsed)))
     (push! (mut options)
            (pair (clone name) value))
     (assoc parsed :options options)))
 
-(type with-switch
-  (fn (parsed-arguments (ref string)) parsed-arguments))
-
 (defn with-switch (parsed name)
   (let (switches (clone (:switches parsed)))
     (push! (mut switches) (clone name))
     (assoc parsed :switches switches)))
-
-(type with-positional
-  (fn (parsed-arguments (ref string)) parsed-arguments))
 
 (defn with-positional (parsed token)
   (let (positionals (clone (:positionals parsed)))
@@ -108,9 +83,6 @@
 (def flag?
   (rust "{0}.starts_with(\"--\")"
     (fn ((ref string)) bool)))
-
-(type value-after
-  (fn ((ref (vec string)) usize) string))
 
 (defn value-after (tokens index)
   (match (get tokens (+ index 1))
@@ -130,10 +102,6 @@
 
 (defn value-in (option)
   (let-match ((pair _ value) option) value))
-
-(type last-value
-  (fn ((ref (vec string)))
-    (option string)))
 
 (defn last-value (values)
   (map-some (last values) clone))

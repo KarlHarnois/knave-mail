@@ -28,9 +28,6 @@
                                                                     "message"))
                                           (str "")))))))
 
-(type level-named
-  (fn ((ref str)) log-level))
-
 (defn level-named (name)
   (match name
     ("error" log-level/error)

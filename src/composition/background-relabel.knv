@@ -26,16 +26,10 @@
   (hand-off! (runner request-text)
              (enqueue! (ref (:queue runner)) request-text)))
 
-(type start-background-relabel
-  (fn ((ref reply-outbox)) background-relabel))
-
 (defn start-background-relabel (outbox)
   (->background-relabel (spawn-worker outbox
                           (fn (inbox replies)
                             (relabel-in-own-app inbox replies)))))
-
-(type relabel-in-own-app
-  (fn (request-inbox reply-outbox) unit))
 
 (defn relabel-in-own-app (inbox outbox)
   (let (chosen (settings-from (ref (command-line-args)))
