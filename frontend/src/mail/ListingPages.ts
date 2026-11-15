@@ -3,20 +3,24 @@ export const SEARCH_PAGE = 50;
 
 export class ListingPages {
   private limit = THREAD_LIMIT;
-  private searching = false;
+  private fromGmail = false;
   private listedCount = 0;
 
   get size(): number {
     return this.limit;
   }
 
+  get fresh(): boolean {
+    return this.fromGmail;
+  }
+
   get mayHaveMore(): boolean {
-    return this.searching && this.listedCount >= this.limit;
+    return !this.fromGmail || this.listedCount >= this.limit;
   }
 
   startListing(query: string): void {
-    this.searching = query !== "";
-    this.limit = this.searching ? SEARCH_PAGE : THREAD_LIMIT;
+    this.fromGmail = query !== "";
+    this.limit = this.fromGmail ? SEARCH_PAGE : THREAD_LIMIT;
     this.listedCount = 0;
   }
 
@@ -25,6 +29,7 @@ export class ListingPages {
   }
 
   grow(): void {
-    this.limit += SEARCH_PAGE;
+    this.limit = (this.fromGmail ? this.limit : this.listedCount) + SEARCH_PAGE;
+    this.fromGmail = true;
   }
 }

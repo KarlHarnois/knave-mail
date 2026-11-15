@@ -117,7 +117,8 @@ export class MailSession {
 
   private async fetchThreads(): Promise<ThreadSummary[] | null> {
     const generation = ++this.loadGeneration;
-    const query = { account: this.account, label: this.label.id, query: this.query, limit: this.pages.size };
+    const { size: limit, fresh } = this.pages;
+    const query = { account: this.account, label: this.label.id, query: this.query, limit, fresh };
     const summaries = await this.ports.mail.threads(query);
     if (generation !== this.loadGeneration) return null;
     this.pages.record(summaries.length);

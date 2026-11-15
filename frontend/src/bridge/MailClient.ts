@@ -1,7 +1,7 @@
 import type { Bridge } from "./Bridge";
 import type { Account, Draft, Label, Thread, ThreadCommand, ThreadSummary } from "./Protocol";
 
-export type ThreadQuery = { account: string; label: string; query: string; limit: number };
+export type ThreadQuery = { account: string; label: string; query: string; limit: number; fresh: boolean };
 
 export class MailClient {
   constructor(private readonly bridge: Bridge) {}
