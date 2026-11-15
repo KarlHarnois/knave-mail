@@ -1,3 +1,4 @@
+(use support/gmail-requests contains?)
 (use adapters/driving/webview/theme/theme-css theme-css)
 
 (defn css-of (text)
@@ -22,8 +23,18 @@
              ":root {\n  --light-accent: #0969da;\n  --dark-background: #000000;\n}\n")))
 
 (deftest a-mode-forces-the-color-scheme
-  (assert (= (css-of "(theme :mode \"dark\")")
-             ":root {\n  color-scheme: dark;\n}\n")))
+  (assert (contains? (ref (css-of "(theme :mode \"dark\")"))
+                     ":root {\n  color-scheme: dark;\n")))
+
+(deftest a-forced-mode-maps-each-color-to-its-mode
+  (let (css (css-of "(theme :mode \"dark\")"))
+    (assert (contains? (ref css)
+                       "--background: var(--dark-background);"))
+    (assert (contains? (ref css) "--html-mail: var(--dark-html-mail);"))))
+
+(deftest a-forced-light-mode-maps-colors-to-light
+  (assert (contains? (ref (css-of "(theme :mode \"light\")"))
+                     "--foreground: var(--light-foreground);")))
 
 (deftest system-mode-follows-the-desktop
   (assert (= (css-of "(theme :mode \"system\")")

@@ -8,6 +8,7 @@
                                                  mode?)
 
 (use domain/collections appended one-of?)
+(use domain/text join-with)
 
 (export ->themed theme-css themed)
 
@@ -85,9 +86,7 @@
               (str "--dark-mail: " value)
               key value))
     ("mode"
-     (checked (mode? value)
-              (str "color-scheme: " (scheme-for value))
-              key value))
+     (checked (mode? value) (mode-declarations value) key value))
     (_ (err (str
               "unknown key :" key
               "; use :font, :message-font, :font-size, :mode or :dark-mail")))))
@@ -113,11 +112,18 @@
     (ok written)
     (err (str "`" value "` is not a valid :" key))))
 
-(type scheme-for
-  (fn ((ref str)) (ref str)))
+(type mode-declarations
+  (fn ((ref str)) string))
 
-(defn scheme-for (mode)
-  (if (= mode "system") "light dark" mode))
+(defn mode-declarations (mode)
+  (if (= mode "system")
+    (str "color-scheme: light dark")
+    (str "color-scheme: " mode ";\n  "
+         (join-with (ref (collect
+                           (map (iter color-names)
+                             (fn (name)
+                               (str "--" name ": var(--" mode "-" name ")")))))
+                    ";\n  "))))
 
 (def root-rule
   (rust "if {0}.is_empty() {{ String::new() }} else {{ format!(\":root {{{{\\n  {{}};\\n}}}}\\n\", {0}.join(\";\\n  \")) }}"
