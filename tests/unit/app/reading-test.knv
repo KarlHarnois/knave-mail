@@ -70,6 +70,15 @@
                             1))
                (vec (str "INBOX"))))))
 
+(deftest an-unread-synced-thread-opens-offline-as-stored
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (fail-remote! (ref world) "relabel")
+    (assert (= (:labels (unwrap-ok
+                          (open-thread! (mut app) world-account "t-1")))
+               (vec (str "INBOX") (str "UNREAD"))))))
+
 (deftest a-search-asks-the-remote-mailbox
   (let (world (remote)
         app (app-over (ref world)))

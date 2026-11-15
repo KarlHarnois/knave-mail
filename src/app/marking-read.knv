@@ -1,0 +1,55 @@
+(use app/mail-app mail-app)
+(use app/mailboxes mailbox-for!)
+(use domain/labels apply-label-change read-change)
+(use domain/mail thread)
+(use domain/mail-error error-kind error-message mail-error)
+(use ports/driven/event-log log-warn)
+(use ports/driven/mailbox relabel!)
+(use ports/driven/store relabel-stored!)
+
+(export marked-read!)
+
+(type marked-read!
+  (fn ((mut mail-app) (ref str) thread)
+    thread))
+
+(defn marked-read! (app account opened)
+  (match (mark-thread-read! app account (ref (:id opened)))
+    ((ok _)
+     (assoc opened
+            :labels (apply-label-change (ref (:labels opened))
+                                        (ref (read-change)))))
+    ((err failure)
+     (warn-still-unread! app account
+                         (ref (:id opened))
+                         (ref failure))
+     opened)))
+
+(type warn-still-unread!
+  (fn ((ref mail-app)
+       (ref str)
+       (ref str)
+       (ref mail-error))
+    unit))
+
+(defn warn-still-unread! (app account thread-id failure)
+  (log-warn (ref (:log app))
+            "read"
+            (str account ": could not mark thread "
+                 thread-id " read: "
+                 (error-kind failure)
+                 ": "
+                 (error-message failure))))
+
+(type mark-thread-read!
+  (fn ((mut mail-app) (ref str) (ref str))
+    (result unit mail-error)))
+
+(defn mark-thread-read! (app account thread-id)
+  (let (change (read-change))
+    (try (relabel! (try (mailbox-for! (mut (:mailboxes app)) account))
+                   thread-id
+                   (ref change)))
+    (relabel-stored! (mut (:store app))
+                     account thread-id
+                     (ref change))))

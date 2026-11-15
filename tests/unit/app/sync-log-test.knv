@@ -6,7 +6,7 @@
 (use domain/labels archive-change)
 (use domain/mail ->draft)
 
-(use ports/driving/mail-client preview-account!
+(use ports/driving/mail-client open-thread! preview-account!
                                relabel-threads! send-draft!
                                sync-account!)
 
@@ -98,3 +98,15 @@
                                  (ref (archive-change))))
     (assert (mentions? (ref (logged-lines (ref log)))
                        "labels ada@example.com: +[] -[INBOX] on t-1 t-2"))))
+
+(deftest opening-a-thread-offline-logs-that-it-stays-unread
+  (let (world (remote-with (vec
+                             (sample-thread "t-1" (vec "INBOX" "UNREAD") 100)))
+        log (new-memory-log)
+        app (app-logging-to (ref world)
+                            (same-log (ref log))))
+    (synced! (mut app))
+    (fail-remote! (ref world) "relabel")
+    (unwrap-ok (open-thread! (mut app) world-account "t-1"))
+    (assert (mentions? (ref (logged-lines (ref log)))
+                       "could not mark thread t-1 read"))))

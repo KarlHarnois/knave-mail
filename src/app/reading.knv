@@ -1,6 +1,7 @@
 (use app/mail-app mail-app)
 (use app/mailboxes mailbox-for!)
-(use domain/labels apply-label-change read-change unread?)
+(use app/marking-read marked-read!)
+(use domain/labels unread?)
 
 (use domain/mail ->summary-page summary-page thread
                  thread-query thread-summary)
@@ -9,12 +10,12 @@
 (use domain/listing ids-without-summary in-listed-order)
 
 (use ports/driven/mailbox fetch-summaries! fetch-thread!
-                          list-thread-ids! list-thread-page!
-                          relabel!)
+                          list-thread-ids!
+                          list-thread-page!)
 
 (use ports/driven/store load-summaries-of load-thread
-                        load-threads relabel-stored!
-                        save-thread! save-threads!)
+                        load-threads save-thread!
+                        save-threads!)
 
 (export find-threads! listed-page! listed-threads!
         read-thread!)
@@ -97,7 +98,7 @@
 (defn read-thread! (app account thread-id)
   (let (opened (try (stored-or-fetched-thread! app account thread-id)))
     (if (unread? (ref (:labels opened)))
-      (mark-thread-read! app account opened)
+      (ok (marked-read! app account opened))
       (ok opened))))
 
 (type stored-or-fetched-thread!
@@ -121,20 +122,3 @@
                        account
                        (ref fetched)))
     (ok fetched)))
-
-(type mark-thread-read!
-  (fn ((mut mail-app) (ref str) thread)
-    (result thread mail-error)))
-
-(defn mark-thread-read! (app account opened)
-  (let (change (read-change))
-    (try (relabel! (try (mailbox-for! (mut (:mailboxes app)) account))
-                   (ref (:id opened))
-                   (ref change)))
-    (try (relabel-stored! (mut (:store app))
-                          account
-                          (ref (:id opened))
-                          (ref change)))
-    (ok (assoc opened
-               :labels (apply-label-change (ref (:labels opened))
-                                           (ref change))))))
