@@ -1,3 +1,5 @@
+(use steps step)
+
 (def capped-bun-test
   "if systemd-run --user --scope --quiet true 2>/dev/null; then exec systemd-run --user --scope --quiet -p MemoryMax=3G bun test; else exec bun test; fi")
 
@@ -20,21 +22,3 @@
   (try (step "GUI scenarios" "." "knave"
              (vec (str "task") (str "e2e"))))
   (ok (println "All checks passed.")))
-
-(type step
-  (fn ((ref str)
-       (ref str)
-       (ref str)
-       (vec string))
-    (result unit string)))
-
-(defn step (description directory program arguments)
-  (println "== " description)
-  (if (ran? directory program arguments)
-    (ok (do))
-    (err (str description " failed"))))
-
-(def ran?
-  (rust "std::process::Command::new({1}).args({2}).current_dir({0}).status().map(|{!status}| {!status}.success()).unwrap_or(false)"
-    (fn ((ref str) (ref str) (vec string))
-      bool)))

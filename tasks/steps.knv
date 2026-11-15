@@ -1,0 +1,19 @@
+(export step)
+
+(type step
+  (fn ((ref str)
+       (ref str)
+       (ref str)
+       (vec string))
+    (result unit string)))
+
+(defn step (description directory program arguments)
+  (println "== " description)
+  (if (ran? directory program arguments)
+    (ok (do))
+    (err (str description " failed"))))
+
+(def ran?
+  (rust "std::process::Command::new({1}).args({2}).current_dir({0}).status().map(|{!status}| {!status}.success()).unwrap_or(false)"
+    (fn ((ref str) (ref str) (vec string))
+      bool)))
