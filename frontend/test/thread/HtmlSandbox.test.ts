@@ -18,6 +18,21 @@ class PolicyReader {
   }
 }
 
+class FrameDocument {
+  static of(srcdoc: string): Document {
+    return new DOMParser().parseFromString(srcdoc, "text/html");
+  }
+
+  static mailMetaCount(srcdoc: string): number {
+    const metas = [...FrameDocument.of(srcdoc).querySelectorAll("meta[http-equiv]")];
+    return metas.filter((meta) => meta.getAttribute("http-equiv") !== "Content-Security-Policy").length;
+  }
+
+  static count(srcdoc: string, selector: string): number {
+    return FrameDocument.of(srcdoc).querySelectorAll(selector).length;
+  }
+}
+
 describe("HtmlSandbox.srcdoc", () => {
   test("puts the CSP meta in the head before the message", () => {
     const srcdoc = sandbox.srcdoc("<p>Hello</p>", false);
@@ -52,6 +67,43 @@ describe("HtmlSandbox.srcdoc", () => {
     expect(sandbox.srcdoc("<table><tr><td>cell</td></tr></table>", false)).toContain(
       "<body><table><tr><td>cell</td></tr></table></body>",
     );
+  });
+});
+
+describe("navigation from mail HTML", () => {
+  const refresh = '<META HTTP-EQUIV="Refresh" CONTENT="0;url=data:text/html,<script>alert(1)</script>">';
+
+  test("a meta refresh in darkened mail is removed", () => {
+    const srcdoc = sandbox.srcdoc(`<p>Hi</p>${refresh}`, false, DARK.colors());
+    expect(FrameDocument.mailMetaCount(srcdoc)).toBe(0);
+    expect(FrameDocument.of(srcdoc).body.textContent).toBe("Hi");
+  });
+
+  test("a meta refresh in light mail is removed", () => {
+    expect(FrameDocument.mailMetaCount(sandbox.srcdoc(refresh, false))).toBe(0);
+  });
+
+  test("a quoted > before http-equiv does not hide the meta", () => {
+    const hidden = '<meta content="a>b" http-equiv=refresh>';
+    expect(FrameDocument.mailMetaCount(sandbox.srcdoc(hidden, false, DARK.colors()))).toBe(0);
+  });
+
+  test("a meta hidden in noscript markup cannot appear when scripts run", () => {
+    const smuggled =
+      '<noscript><p title="</noscript><meta http-equiv=refresh content=0;url=https://evil.test>"></noscript>';
+    expect(sandbox.srcdoc(smuggled, false, DARK.colors())).not.toContain("http-equiv=refresh");
+  });
+
+  test("preloading links are removed", () => {
+    const rels = ["prefetch", "dns-prefetch", "preconnect", "preload"];
+    const links = rels.map((rel) => `<link rel="${rel.toUpperCase()}" href="https://tracker.test/">`).join("");
+    expect(FrameDocument.count(sandbox.srcdoc(`${links}<p>Hi</p>`, false), "link")).toBe(0);
+  });
+
+  test("the policy blocks forms and base URL changes", () => {
+    const policy = PolicyReader.of(sandbox.srcdoc("", false, DARK.colors()));
+    expect(PolicyReader.directive(policy, "form-action")).toBe("form-action 'none'");
+    expect(PolicyReader.directive(policy, "base-uri")).toBe("base-uri 'none'");
   });
 });
 

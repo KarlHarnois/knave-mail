@@ -1,5 +1,6 @@
 import type { MailColors } from "../darkmail/MailDarkening";
 import { type MailFontSource, SYSTEM_MAIL_FONT } from "./MailFont";
+import { MailHtmlCleaner } from "./MailHtmlCleaner";
 
 const BLOCKED_IMAGE_SOURCES = "data: cid:";
 const ALLOWED_IMAGE_SOURCES = "data: cid: https: http:";
@@ -14,6 +15,9 @@ const BASE_STYLE = [
 ].join("");
 
 export class HtmlSandbox {
+  private readonly staticFrameCleaner = MailHtmlCleaner.forStaticFrame();
+  private readonly scriptedFrameCleaner = MailHtmlCleaner.forScriptedFrame();
+
   constructor(
     private readonly newNonce: () => string = () => crypto.randomUUID().replaceAll("-", ""),
     private readonly fonts: MailFontSource = SYSTEM_MAIL_FONT,
@@ -46,7 +50,12 @@ export class HtmlSandbox {
       `<style>${BASE_STYLE}${this.fontStyle()}</style>`,
       darkening && nonce ? this.darkReaderScripts(darkening, nonce) : "",
     ].join("");
-    return `<!doctype html><html><head>${head}</head><body>${html}</body></html>`;
+    const body = this.cleanerFor(darkening).clean(html);
+    return `<!doctype html><html><head>${head}</head><body>${body}</body></html>`;
+  }
+
+  private cleanerFor(darkening: MailColors | null): MailHtmlCleaner {
+    return darkening ? this.scriptedFrameCleaner : this.staticFrameCleaner;
   }
 
   private fontStyle(): string {
