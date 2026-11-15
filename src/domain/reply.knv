@@ -87,9 +87,15 @@
                     (not (address-of? address own-address))))
                 (fn (address) (clone address)))))
 
-(def address-of?
-  (rust "{0}.to_lowercase().contains(&{1}.to_lowercase())"
-    (fn ((ref str) (ref str)) bool)))
+(type address-of?
+  (fn ((ref str) (ref str)) bool))
+
+(defn address-of? (written own-address)
+  (= (bare-address written) (bare-address own-address)))
+
+(def bare-address
+  (rust "{0}.rsplit_once('<').and_then(|(_, {!bracketed})| {!bracketed}.split_once('>')).map(|({!inside}, _)| {!inside}).unwrap_or({0}).trim().to_lowercase()"
+    (fn ((ref str)) string)))
 
 (def insert-first!
   (rust "{0}.insert(0, {1})"

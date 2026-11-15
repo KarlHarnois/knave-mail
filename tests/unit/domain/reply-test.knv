@@ -34,6 +34,16 @@
   (assert (= (:cc (reply-all-draft (ref (sample-message)) own-address))
              (addresses (vec "edsger@example.com")))))
 
+(deftest a-reply-all-keeps-addresses-that-merely-contain-the-own-address
+  (let (original (assoc (sample-message)
+                        :from (str "Jo Ada <joada@example.com>")
+                        :to (addresses (vec "ada@example.com"
+                                            "leeada@example.com"))
+                        :cc (vec)))
+    (assert (= (:to (reply-all-draft (ref original) own-address))
+               (addresses (vec "Jo Ada <joada@example.com>"
+                               "leeada@example.com"))))))
+
 (deftest a-forward-has-no-recipients
   (assert (empty? (:to (forward-draft (ref (sample-message)))))))
 
