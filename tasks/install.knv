@@ -1,0 +1,16 @@
+(use steps step)
+
+(def install-binary
+  "install -Dm755 target/knave/knave-mail/knave-mail \"$HOME/.local/bin/knave-mail\"")
+
+(deftask install ()
+  "Builds the frontend and the release binary, then installs knave-mail to ~/.local/bin."
+  (try (step "frontend dependencies" "frontend" "bun"
+             (vec (str "install") (str "--frozen-lockfile"))))
+  (try (step "frontend build" "frontend" "bun"
+             (vec (str "run") (str "build"))))
+  (try (step "knave build --release" "." "knave"
+             (vec (str "build") (str "--release"))))
+  (try (step "install to ~/.local/bin" "." "sh"
+             (vec (str "-c") (str install-binary))))
+  (ok (println "Installed knave-mail to ~/.local/bin/knave-mail.")))

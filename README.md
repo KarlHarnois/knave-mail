@@ -7,17 +7,16 @@ A fast, keyboard-driven Gmail client for vim users, written in [Knave](https://g
 
 ## Use
 
-Run `direnv allow` once to load the [Nix](https://nixos.org/download/) dev shell, then build:
+Run `direnv allow` once to load the [Nix](https://nixos.org/download/) dev shell, then build and install to `~/.local/bin`:
 
 ```sh
-(cd frontend && bun install && bun run build)
-knave build
+knave task install
 ```
 
 Try it on fake mail:
 
 ```sh
-target/knave/knave-mail/knave-mail --backend memory
+knave-mail --backend memory
 ```
 
 Press `?` in the window for every key.
