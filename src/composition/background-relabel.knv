@@ -23,7 +23,7 @@
 
 (impl relabel-runner background-relabel
   (hand-off! (runner request-text)
-             (enqueued? (ref (:queue runner)) request-text)))
+             (enqueue! (ref (:queue runner)) request-text)))
 
 (type start-background-relabel
   (fn ((ref reply-outbox)) background-relabel))
@@ -60,7 +60,7 @@
          (fn-once (request-inbox reply-outbox) unit))
       relabel-queue)))
 
-(def enqueued?
+(def enqueue!
   (rust "{0}.send({1}.to_string()).is_ok()"
     (fn ((ref relabel-queue) (ref str))
       bool)))
