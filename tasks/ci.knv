@@ -1,24 +1,44 @@
-(use steps step)
+(use steps ->command run!)
 
 (def capped-bun-test
   "if systemd-run --user --scope --quiet true 2>/dev/null; then exec systemd-run --user --scope --quiet -p MemoryMax=3G bun test; else exec bun test; fi")
 
 (deftask ci ()
   "Runs every check in order: formatting, file lengths, the frontend, the build, the knave tests and the GUI scenarios."
-  (try (step "knave fmt --check" "." "knave"
-             (vec (str "fmt") (str "--check"))))
-  (try (step "file lengths" "." "knave"
-             (vec (str "task") (str "check-file-lengths"))))
-  (try (step "frontend lint" "frontend" "bun"
-             (vec (str "run") (str "lint"))))
-  (try (step "frontend typecheck" "frontend" "bun"
-             (vec (str "run") (str "typecheck"))))
-  (try (step "frontend tests" "frontend" "sh"
-             (vec (str "-c") (str capped-bun-test))))
-  (try (step "frontend build" "frontend" "bun"
-             (vec (str "run") (str "build"))))
-  (try (step "knave build" "." "knave" (vec (str "build"))))
-  (try (step "knave tests" "." "knave" (vec (str "test"))))
-  (try (step "GUI scenarios" "." "knave"
-             (vec (str "task") (str "e2e"))))
+  (try (run! (->command :desc (str "knave fmt --check")
+                        :dir (str ".")
+                        :cmd (str "knave")
+                        :args (vec (str "fmt") (str "--check")))))
+  (try (run! (->command :desc (str "file lengths")
+                        :dir (str ".")
+                        :cmd (str "knave")
+                        :args (vec (str "task") (str "check-file-lengths")))))
+  (try (run! (->command :desc (str "frontend lint")
+                        :dir (str "frontend")
+                        :cmd (str "bun")
+                        :args (vec (str "run") (str "lint")))))
+  (try (run! (->command :desc (str "frontend typecheck")
+                        :dir (str "frontend")
+                        :cmd (str "bun")
+                        :args (vec (str "run") (str "typecheck")))))
+  (try (run! (->command :desc (str "frontend tests")
+                        :dir (str "frontend")
+                        :cmd (str "sh")
+                        :args (vec (str "-c") (str capped-bun-test)))))
+  (try (run! (->command :desc (str "frontend build")
+                        :dir (str "frontend")
+                        :cmd (str "bun")
+                        :args (vec (str "run") (str "build")))))
+  (try (run! (->command :desc (str "knave build")
+                        :dir (str ".")
+                        :cmd (str "knave")
+                        :args (vec (str "build")))))
+  (try (run! (->command :desc (str "knave tests")
+                        :dir (str ".")
+                        :cmd (str "knave")
+                        :args (vec (str "test")))))
+  (try (run! (->command :desc (str "GUI scenarios")
+                        :dir (str ".")
+                        :cmd (str "knave")
+                        :args (vec (str "task") (str "e2e")))))
   (ok (println "All checks passed.")))

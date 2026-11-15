@@ -1,17 +1,18 @@
-(export step)
+(export ->command command run!)
 
-(type step
-  (fn ((ref str)
-       (ref str)
-       (ref str)
-       (vec string))
-    (result unit string)))
+(defstruct command
+  :desc string
+  :dir string
+  :cmd string
+  :args (vec string))
 
-(defn step (description directory program arguments)
-  (println "== " description)
-  (if (ran? directory program arguments)
+(defn run! (step)
+  (println "== " (:desc step))
+  (if (ran? (ref (:dir step))
+            (ref (:cmd step))
+            (clone (:args step)))
     (ok (do))
-    (err (str description " failed"))))
+    (err (str (:desc step) " failed"))))
 
 (def ran?
   (rust "std::process::Command::new({1}).args({2}).current_dir({0}).status().map(|{!status}| {!status}.success()).unwrap_or(false)"
