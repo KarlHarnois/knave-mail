@@ -1,0 +1,9 @@
+(use adapters/driving/json/commands answer!)
+(use adapters/driving/webview/window-client window-client)
+(use app/mail-app mail-app)
+(use ports/driving/mail-syncer sync-account!)
+
+(impl window-client mail-app
+  (answer-request! (app request-text)
+                   (answer! app request-text))
+  (sync-mail! (app account) (sync-account! app account)))

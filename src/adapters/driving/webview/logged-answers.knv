@@ -1,4 +1,5 @@
-(use adapters/driving/json/commands answer!)
+(use adapters/driving/webview/window-client answer-request!
+                                            window-client)
 
 (use adapters/driving/webview/relabel-runner deliver-reply!
                                              reply-sink)
@@ -16,7 +17,7 @@
 (use domain/mail-error mail-error)
 (use domain/results ok->option)
 (use ports/driven/event-log event-log log-debug log-warn)
-(use ports/driving/mail-client list-accounts! mail-client)
+(use ports/driving/account-book account-book list-accounts!)
 
 (export answer-relabels! answered-and-logged!
         refuse-relabels!)
@@ -52,7 +53,7 @@
     ((err _) (null-id))))
 
 (type answered-and-logged!
-  (where ((client mail-client))
+  (where ((client window-client))
     (fn ((mut client)
          (ref (box event-log))
          (ref str)
@@ -61,7 +62,7 @@
 
 (defn answered-and-logged! (client log request-text command)
   (let (started (clock-milliseconds)
-        reply (answer! client request-text)
+        reply (answer-request! client request-text)
         elapsed (- (clock-milliseconds) started))
     (match (reply-error (ref reply))
       ((some problem)

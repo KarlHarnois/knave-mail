@@ -1,4 +1,6 @@
-(use adapters/driving/json/commands answer!)
+(use adapters/driving/webview/window-client answer-request!
+                                            sync-mail!
+                                            window-client)
 
 (use adapters/driving/json/envelope request-arguments
                                     request-id
@@ -29,7 +31,6 @@
 
 (use adapters/driving/webview/request-log record-frontend-entry!)
 (use ports/driven/event-log event-log)
-(use ports/driving/mail-client mail-client sync-account!)
 
 (export serve-requests!)
 
@@ -43,7 +44,7 @@
     (none (do))))
 
 (type handle-request!
-  (where ((client mail-client)
+  (where ((client window-client)
           (runner sync-runner)
           (relabeler relabel-runner))
     (fn ((mut client)
@@ -70,11 +71,12 @@
           (send-reply
             outbox
             (answered-and-logged! client log request-text (ref command)))))
-       (_ (send-reply outbox (answer! client request-text)))))
-    ((err _) (send-reply outbox (answer! client request-text)))))
+       (_ (send-reply outbox (answer-request! client request-text)))))
+    ((err _)
+     (send-reply outbox (answer-request! client request-text)))))
 
 (type start-requested-sync!
-  (where ((client mail-client) (runner sync-runner))
+  (where ((client window-client) (runner sync-runner))
     (fn ((mut client)
          (mut runner)
          (ref json-value)
@@ -89,7 +91,7 @@
                                 (ref (empty-object))))
      (when (not (start-sync! runner (ref account) outbox))
        (send-reply outbox
-                   (sync-event (sync-account! client (ref account))
+                   (sync-event (sync-mail! client (ref account))
                                (ref account)))))
     ((err _)
      (send-reply outbox (missing-account-reply request)))))
