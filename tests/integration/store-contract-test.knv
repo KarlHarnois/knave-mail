@@ -21,97 +21,97 @@
   (unwrap-ok (open-sqlite-store (ref (temporary-path "cache.sqlite3")))))
 
 (deftest memory-store-keeps-accounts-once
-  (let (kept (empty-memory-store))
-    (assert (keeps-accounts-once! (mut kept)))))
+  (let (cache (empty-memory-store))
+    (assert (keeps-accounts-once! (mut cache)))))
 
 (deftest sqlite-store-keeps-accounts-once
-  (let (kept (sqlite))
-    (assert (keeps-accounts-once! (mut kept)))))
+  (let (cache (sqlite))
+    (assert (keeps-accounts-once! (mut cache)))))
 
 (deftest memory-store-forgets-accounts
-  (let (kept (empty-memory-store))
-    (assert (forgets-accounts! (mut kept)))))
+  (let (cache (empty-memory-store))
+    (assert (forgets-accounts! (mut cache)))))
 
 (deftest sqlite-store-forgets-accounts
-  (let (kept (sqlite))
-    (assert (forgets-accounts! (mut kept)))))
+  (let (cache (sqlite))
+    (assert (forgets-accounts! (mut cache)))))
 
 (deftest memory-store-forgets-threads
-  (let (kept (empty-memory-store))
-    (assert (forgets-threads! (mut kept)))))
+  (let (cache (empty-memory-store))
+    (assert (forgets-threads! (mut cache)))))
 
 (deftest sqlite-store-forgets-threads
-  (let (kept (sqlite))
-    (assert (forgets-threads! (mut kept)))))
+  (let (cache (sqlite))
+    (assert (forgets-threads! (mut cache)))))
 
 (deftest memory-store-keeps-labels-per-account
-  (let (kept (empty-memory-store))
-    (assert (keeps-labels-per-account! (mut kept)))))
+  (let (cache (empty-memory-store))
+    (assert (keeps-labels-per-account! (mut cache)))))
 
 (deftest sqlite-store-keeps-labels-per-account
-  (let (kept (sqlite))
-    (assert (keeps-labels-per-account! (mut kept)))))
+  (let (cache (sqlite))
+    (assert (keeps-labels-per-account! (mut cache)))))
 
 (deftest memory-store-lists-a-label-newest-first
-  (let (kept (empty-memory-store))
-    (assert (lists-label-newest-first! (mut kept)))))
+  (let (cache (empty-memory-store))
+    (assert (lists-label-newest-first! (mut cache)))))
 
 (deftest sqlite-store-lists-a-label-newest-first
-  (let (kept (sqlite))
-    (assert (lists-label-newest-first! (mut kept)))))
+  (let (cache (sqlite))
+    (assert (lists-label-newest-first! (mut cache)))))
 
 (deftest memory-store-keeps-whole-threads
-  (let (kept (empty-memory-store))
-    (assert (keeps-whole-threads! (mut kept)))))
+  (let (cache (empty-memory-store))
+    (assert (keeps-whole-threads! (mut cache)))))
 
 (deftest sqlite-store-keeps-whole-threads
-  (let (kept (sqlite))
-    (assert (keeps-whole-threads! (mut kept)))))
+  (let (cache (sqlite))
+    (assert (keeps-whole-threads! (mut cache)))))
 
 (deftest memory-store-finds-messages
-  (let (kept (empty-memory-store))
-    (assert (finds-messages! (mut kept)))))
+  (let (cache (empty-memory-store))
+    (assert (finds-messages! (mut cache)))))
 
 (deftest sqlite-store-finds-messages
-  (let (kept (sqlite))
-    (assert (finds-messages! (mut kept)))))
+  (let (cache (sqlite))
+    (assert (finds-messages! (mut cache)))))
 
 (deftest memory-store-misses-unknown-threads
-  (let (kept (empty-memory-store))
-    (assert (misses-unknown-threads! (mut kept)))))
+  (let (cache (empty-memory-store))
+    (assert (misses-unknown-threads! (mut cache)))))
 
 (deftest sqlite-store-misses-unknown-threads
-  (let (kept (sqlite))
-    (assert (misses-unknown-threads! (mut kept)))))
+  (let (cache (sqlite))
+    (assert (misses-unknown-threads! (mut cache)))))
 
 (deftest memory-store-relabels-threads-and-summaries
-  (let (kept (empty-memory-store))
-    (assert (relabels-threads-and-summaries! (mut kept)))))
+  (let (cache (empty-memory-store))
+    (assert (relabels-threads-and-summaries! (mut cache)))))
 
 (deftest sqlite-store-relabels-threads-and-summaries
-  (let (kept (sqlite))
-    (assert (relabels-threads-and-summaries! (mut kept)))))
+  (let (cache (sqlite))
+    (assert (relabels-threads-and-summaries! (mut cache)))))
 
 (deftest memory-store-relabels-a-summary-without-its-thread
-  (let (kept (empty-memory-store))
-    (assert (relabels-a-summary-without-its-thread! (mut kept)))))
+  (let (cache (empty-memory-store))
+    (assert (relabels-a-summary-without-its-thread! (mut cache)))))
 
 (deftest sqlite-store-relabels-a-summary-without-its-thread
-  (let (kept (sqlite))
-    (assert (relabels-a-summary-without-its-thread! (mut kept)))))
+  (let (cache (sqlite))
+    (assert (relabels-a-summary-without-its-thread! (mut cache)))))
 
 (deftest memory-store-finds-summaries-by-id
-  (let (kept (empty-memory-store))
-    (assert (finds-summaries-by-id! (mut kept)))))
+  (let (cache (empty-memory-store))
+    (assert (finds-summaries-by-id! (mut cache)))))
 
 (deftest sqlite-store-finds-summaries-by-id
-  (let (kept (sqlite))
-    (assert (finds-summaries-by-id! (mut kept)))))
+  (let (cache (sqlite))
+    (assert (finds-summaries-by-id! (mut cache)))))
 
 (deftest memory-store-aligns-cached-thread-labels-with-saved-summaries
-  (let (kept (empty-memory-store))
-    (assert (aligns-cached-thread-labels! (mut kept)))))
+  (let (cache (empty-memory-store))
+    (assert (aligns-cached-thread-labels! (mut cache)))))
 
 (deftest sqlite-store-aligns-cached-thread-labels-with-saved-summaries
-  (let (kept (sqlite))
-    (assert (aligns-cached-thread-labels! (mut kept)))))
+  (let (cache (sqlite))
+    (assert (aligns-cached-thread-labels! (mut cache)))))

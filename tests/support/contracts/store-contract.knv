@@ -23,84 +23,84 @@
   (->thread-query (str "INBOX") (str "") 10))
 
 (type ids
-  (where ((kept store))
-    (fn ((ref kept)) (vec string))))
+  (where ((cache store))
+    (fn ((ref cache)) (vec string))))
 
-(defn ids (kept)
-  (collect (map (iter (unwrap-ok (load-threads kept account (ref (inbox)))))
+(defn ids (cache)
+  (collect (map (iter (unwrap-ok (load-threads cache account (ref (inbox)))))
              (fn (summary) (clone (:id summary))))))
 
-(defn keeps-accounts-once! (kept)
-  (unwrap-ok (save-account! kept
+(defn keeps-accounts-once! (cache)
+  (unwrap-ok (save-account! cache
                             (ref (->account (str account)))))
-  (unwrap-ok (save-account! kept
+  (unwrap-ok (save-account! cache
                             (ref (->account (str account)))))
-  (= (len (unwrap-ok (load-accounts kept)))
+  (= (len (unwrap-ok (load-accounts cache)))
      1))
 
-(defn forgets-accounts! (kept)
-  (unwrap-ok (save-account! kept
+(defn forgets-accounts! (cache)
+  (unwrap-ok (save-account! cache
                             (ref (->account (str account)))))
-  (unwrap-ok (forget-account! kept account))
-  (empty? (unwrap-ok (load-accounts kept))))
+  (unwrap-ok (forget-account! cache account))
+  (empty? (unwrap-ok (load-accounts cache))))
 
-(defn keeps-labels-per-account! (kept)
-  (unwrap-ok (save-labels! kept account
+(defn keeps-labels-per-account! (cache)
+  (unwrap-ok (save-labels! cache account
                            (ref (vec (->label (str "INBOX") (str "Inbox") 3)))))
-  (unwrap-ok (save-labels! kept "other@example.com"
+  (unwrap-ok (save-labels! cache "other@example.com"
                            (ref (vec (->label (str "SENT") (str "Sent") 0)))))
-  (= (unwrap-ok (load-labels kept account))
+  (= (unwrap-ok (load-labels cache account))
      (vec (->label (str "INBOX") (str "Inbox") 3))))
 
-(defn lists-label-newest-first! (kept)
+(defn lists-label-newest-first! (cache)
   (unwrap-ok
     (save-threads!
-      kept account
+      cache account
       (ref (vec (summarize (ref (sample-thread "old" (vec "INBOX") 100)))
                 (summarize (ref (sample-thread "new" (vec "INBOX") 300)))
                 (summarize (ref (sample-thread "other" (vec "SENT") 200)))))))
-  (= (ids kept)
+  (= (ids cache)
      (vec (str "new") (str "old"))))
 
-(defn keeps-whole-threads! (kept)
+(defn keeps-whole-threads! (cache)
   (let (saved (sample-thread "t-1" (vec "INBOX" "UNREAD") 100))
-    (unwrap-ok (save-thread! kept account (ref saved)))
-    (= (unwrap-ok (load-thread kept account "t-1"))
+    (unwrap-ok (save-thread! cache account (ref saved)))
+    (= (unwrap-ok (load-thread cache account "t-1"))
        (some saved))))
 
-(defn finds-messages! (kept)
-  (unwrap-ok (save-thread! kept account
+(defn finds-messages! (cache)
+  (unwrap-ok (save-thread! cache account
                            (ref (sample-thread "t-1" (vec "INBOX") 100))))
-  (= (map-some (unwrap-ok (load-message kept account "m-t-1"))
+  (= (map-some (unwrap-ok (load-message cache account "m-t-1"))
        (fn (found) (clone (:text found))))
      (some (str "Body of t-1"))))
 
 (type misses-unknown-threads!
-  (where ((kept store))
-    (fn ((mut kept)) bool)))
+  (where ((cache store))
+    (fn ((mut cache)) bool)))
 
-(defn misses-unknown-threads! (kept)
-  (and (= (unwrap-ok (load-thread kept account "t-9")) none)
-       (= (unwrap-ok (load-message kept account "m-9")) none)))
+(defn misses-unknown-threads! (cache)
+  (and (= (unwrap-ok (load-thread cache account "t-9")) none)
+       (= (unwrap-ok (load-message cache account "m-9")) none)))
 
-(defn relabels-threads-and-summaries! (kept)
+(defn relabels-threads-and-summaries! (cache)
   (let (saved (sample-thread "t-1" (vec "INBOX") 100))
-    (unwrap-ok (save-thread! kept account (ref saved)))
-    (unwrap-ok (save-threads! kept account
+    (unwrap-ok (save-thread! cache account (ref saved)))
+    (unwrap-ok (save-threads! cache account
                               (ref (vec (summarize (ref saved))))))
-    (unwrap-ok (relabel-stored! kept account "t-1" (ref (archive-change))))
-    (and (empty? (ids kept))
+    (unwrap-ok (relabel-stored! cache account "t-1" (ref (archive-change))))
+    (and (empty? (ids cache))
          (empty? (:labels (unwrap (unwrap-ok
-                                    (load-thread kept account "t-1"))))))))
+                                    (load-thread cache account "t-1"))))))))
 
-(defn forgets-threads! (kept)
+(defn forgets-threads! (cache)
   (let (forgotten (sample-thread "t-1" (vec "INBOX") 100)
         kept-thread (sample-thread "t-2" (vec "INBOX") 200))
-    (unwrap-ok (save-thread! kept account (ref forgotten)))
-    (unwrap-ok (save-threads! kept account
+    (unwrap-ok (save-thread! cache account (ref forgotten)))
+    (unwrap-ok (save-threads! cache account
                               (ref (vec (summarize (ref forgotten))
                                         (summarize (ref kept-thread))))))
-    (unwrap-ok (forget-thread! kept account "t-1"))
-    (and (= (ids kept) (vec (str "t-2")))
-         (= (unwrap-ok (load-thread kept account "t-1")) none)
-         (= (unwrap-ok (load-message kept account "m-t-1")) none))))
+    (unwrap-ok (forget-thread! cache account "t-1"))
+    (and (= (ids cache) (vec (str "t-2")))
+         (= (unwrap-ok (load-thread cache account "t-1")) none)
+         (= (unwrap-ok (load-message cache account "m-t-1")) none))))

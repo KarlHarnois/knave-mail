@@ -22,13 +22,13 @@
               :levels (parse-level-spec levels)))
 
 (impl event-log file-log
-  (record! (kept entry)
-    (when (allows? (ref (:levels kept)) entry)
-      (append-line (ref (:path kept))
+  (record! (log entry)
+    (when (allows? (ref (:levels log)) entry)
+      (append-line (ref (:path log))
                    (ref (log-line entry)))))
 
-  (share-log (kept)
-    (the (box event-log) (box (clone kept)))))
+  (share-log (log)
+    (the (box event-log) (box (clone log)))))
 
 (defn log-line (entry)
   (str (utc-timestamp)

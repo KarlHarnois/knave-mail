@@ -8,20 +8,20 @@
 (def account "ada@example.com")
 
 (type has-no-checkpoint-at-first!
-  (where ((kept store))
-    (fn ((mut kept)) bool)))
+  (where ((cache store))
+    (fn ((mut cache)) bool)))
 
-(defn has-no-checkpoint-at-first! (kept)
-  (= (unwrap-ok (load-checkpoint kept account)) none))
+(defn has-no-checkpoint-at-first! (cache)
+  (= (unwrap-ok (load-checkpoint cache account)) none))
 
-(defn keeps-the-latest-checkpoint! (kept)
-  (unwrap-ok (save-checkpoint! kept account "100"))
-  (unwrap-ok (save-checkpoint! kept account "250"))
-  (= (unwrap-ok (load-checkpoint kept account))
+(defn keeps-the-latest-checkpoint! (cache)
+  (unwrap-ok (save-checkpoint! cache account "100"))
+  (unwrap-ok (save-checkpoint! cache account "250"))
+  (= (unwrap-ok (load-checkpoint cache account))
      (some (str "250"))))
 
-(defn keeps-checkpoints-per-account! (kept)
-  (unwrap-ok (save-checkpoint! kept account "100"))
-  (unwrap-ok (save-checkpoint! kept "other@example.com" "900"))
-  (= (unwrap-ok (load-checkpoint kept account))
+(defn keeps-checkpoints-per-account! (cache)
+  (unwrap-ok (save-checkpoint! cache account "100"))
+  (unwrap-ok (save-checkpoint! cache "other@example.com" "900"))
+  (= (unwrap-ok (load-checkpoint cache account))
      (some (str "100"))))

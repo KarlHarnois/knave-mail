@@ -48,8 +48,9 @@
     (fn (state)
       (set! (:threads state)
             (collect (map (filter (iter (:threads state))
-                            (fn (kept) (not= (:id kept) thread-id)))
-                          (fn (kept) (clone kept)))))
+                            (fn (thread)
+                              (not= (:id thread) thread-id)))
+                          (fn (thread) (clone thread)))))
       (record-change! state thread-id))))
 
 (type relabel-remotely!

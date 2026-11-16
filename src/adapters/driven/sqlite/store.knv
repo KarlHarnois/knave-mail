@@ -34,50 +34,52 @@
   (ok (->sqlite-store (try (open-database path)))))
 
 (impl store sqlite-store
-  (load-accounts (kept)
-    (read-accounts (ref (:connection kept))))
+  (load-accounts (cache)
+    (read-accounts (ref (:connection cache))))
 
-  (save-account! (kept added)
-    (write-account (ref (:connection kept)) added))
+  (save-account! (cache added)
+    (write-account (ref (:connection cache)) added))
 
-  (forget-account! (kept email)
-    (erase-account (ref (:connection kept)) email))
+  (forget-account! (cache email)
+    (erase-account (ref (:connection cache)) email))
 
-  (load-labels (kept email)
-    (read-labels (ref (:connection kept)) email))
+  (load-labels (cache email)
+    (read-labels (ref (:connection cache)) email))
 
-  (save-labels! (kept email labels)
-    (write-labels (ref (:connection kept)) email labels))
+  (save-labels! (cache email labels)
+    (write-labels (ref (:connection cache)) email labels))
 
-  (load-threads (kept email query)
-    (read-summaries (ref (:connection kept)) email query))
+  (load-threads (cache email query)
+    (read-summaries (ref (:connection cache)) email query))
 
-  (save-threads! (kept email summaries)
-    (write-summaries (ref (:connection kept)) email summaries))
+  (save-threads! (cache email summaries)
+    (write-summaries (ref (:connection cache)) email summaries))
 
-  (load-summaries-of (kept email ids)
-    (read-summaries-with-ids (ref (:connection kept)) email ids))
+  (load-summaries-of (cache email ids)
+    (read-summaries-with-ids (ref (:connection cache))
+                             email ids))
 
-  (load-thread (kept email thread-id)
-    (read-thread (ref (:connection kept)) email thread-id))
+  (load-thread (cache email thread-id)
+    (read-thread (ref (:connection cache)) email thread-id))
 
-  (load-message (kept email message-id)
-    (read-message (ref (:connection kept)) email message-id))
+  (load-message (cache email message-id)
+    (read-message (ref (:connection cache)) email message-id))
 
-  (save-thread! (kept email saved)
-    (write-thread (ref (:connection kept)) email saved))
+  (save-thread! (cache email saved)
+    (write-thread (ref (:connection cache)) email saved))
 
-  (forget-thread! (kept email thread-id)
-    (erase-thread (ref (:connection kept)) email thread-id))
+  (forget-thread! (cache email thread-id)
+    (erase-thread (ref (:connection cache)) email thread-id))
 
-  (load-checkpoint (kept email)
-    (read-checkpoint (ref (:connection kept)) email))
+  (load-checkpoint (cache email)
+    (read-checkpoint (ref (:connection cache)) email))
 
-  (save-checkpoint! (kept email history-id)
-    (write-checkpoint (ref (:connection kept)) email history-id))
+  (save-checkpoint! (cache email history-id)
+    (write-checkpoint (ref (:connection cache))
+                      email history-id))
 
-  (relabel-stored! (kept email thread-id change)
-    (relabel-everywhere (ref (:connection kept))
+  (relabel-stored! (cache email thread-id change)
+    (relabel-everywhere (ref (:connection cache))
                         email thread-id change)))
 
 (defn relabel-everywhere (connection email thread-id change)

@@ -13,46 +13,46 @@
 
 (def account "ada@example.com")
 
-(defn ids (kept)
+(defn ids (cache)
   (collect (map (iter (unwrap-ok
                         (load-threads
-                          kept account
+                          cache account
                           (ref (->thread-query (str "INBOX") (str "") 10)))))
                 (fn (summary) (clone (:id summary))))))
 
-(defn finds-summaries-by-id! (kept)
+(defn finds-summaries-by-id! (cache)
   (unwrap-ok
     (save-threads!
-      kept account
+      cache account
       (ref (vec (summarize (ref (sample-thread "t-1" (vec "INBOX") 100)))
                 (summarize (ref (sample-thread "t-2" (vec "INBOX") 200)))))))
   (unwrap-ok (save-threads!
-               kept "other@example.com"
+               cache "other@example.com"
                (ref (vec (summarize
                            (ref (sample-thread "t-3" (vec "INBOX") 300)))))))
   (= (collect (map (iter (unwrap-ok (load-summaries-of
-                                      kept account
+                                      cache account
                                       (ref (vec (str "t-2")
                                                 (str "t-3")
                                                 (str "t-9"))))))
                    (fn (summary) (clone (:id summary)))))
      (vec (str "t-2"))))
 
-(defn relabels-a-summary-without-its-thread! (kept)
+(defn relabels-a-summary-without-its-thread! (cache)
   (unwrap-ok (save-threads!
-               kept account
+               cache account
                (ref (vec (summarize
                            (ref (sample-thread "t-1" (vec "INBOX") 100)))))))
-  (unwrap-ok (relabel-stored! kept account "t-1" (ref (archive-change))))
-  (empty? (ids kept)))
+  (unwrap-ok (relabel-stored! cache account "t-1" (ref (archive-change))))
+  (empty? (ids cache)))
 
-(defn aligns-cached-thread-labels! (kept)
-  (unwrap-ok (save-thread! kept account
+(defn aligns-cached-thread-labels! (cache)
+  (unwrap-ok (save-thread! cache account
                            (ref (sample-thread "t-1" (vec "INBOX") 100))))
-  (unwrap-ok (save-threads! kept account
+  (unwrap-ok (save-threads! cache account
                             (ref (vec (summarize (ref (sample-thread
                                                         "t-1"
                                                         (vec "INBOX" "UNREAD")
                                                         100)))))))
-  (= (unwrap (unwrap-ok (load-thread kept account "t-1")))
+  (= (unwrap (unwrap-ok (load-thread cache account "t-1")))
      (sample-thread "t-1" (vec "INBOX" "UNREAD") 100)))
