@@ -10,8 +10,8 @@
 (use domain/listing ids-without-summary in-listed-order)
 
 (use ports/driven/mailbox fetch-summaries! fetch-thread!
-                          list-thread-ids!
-                          list-thread-page!)
+                          fetch-thread-ids!
+                          fetch-thread-page!)
 
 (use ports/driven/store load-summaries-of load-thread
                         load-threads save-thread!
@@ -38,9 +38,9 @@
     (result (vec thread-summary) mail-error)))
 
 (defn listed-threads! (app account query)
-  (let (ids (try (list-thread-ids! (try (mailbox-for! (mut (:mailboxes app))
-                                                      account))
-                                   query)))
+  (let (ids (try (fetch-thread-ids! (try (mailbox-for! (mut (:mailboxes app))
+                                                       account))
+                                    query)))
     (summaries-for! app account (ref ids))))
 
 (type listed-page!
@@ -51,9 +51,9 @@
     (result summary-page mail-error)))
 
 (defn listed-page! (app account query page-token)
-  (let (page (try (list-thread-page! (try (mailbox-for! (mut (:mailboxes app))
-                                                        account))
-                                     query page-token)))
+  (let (page (try (fetch-thread-page! (try (mailbox-for! (mut (:mailboxes app))
+                                                         account))
+                                      query page-token)))
     (ok (->summary-page
           :summaries (try (summaries-for! app account (ref (:ids page))))
           :next-token (clone (:next-token page))))))

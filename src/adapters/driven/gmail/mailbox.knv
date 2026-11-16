@@ -52,10 +52,10 @@
       (summaries-of! (mut (:session box))
                      (ref ids))))
 
-  (list-thread-ids! (box query)
+  (fetch-thread-ids! (box query)
     (listed-thread-ids! (mut (:session box)) query))
 
-  (list-thread-page! (box query page-token)
+  (fetch-thread-page! (box query page-token)
     (listed-thread-page! (mut (:session box)) query page-token))
 
   (fetch-summaries! (box ids)

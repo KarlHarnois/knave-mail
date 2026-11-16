@@ -1,8 +1,8 @@
 (use adapters/driven/gmail/mailbox gmail-mailbox)
 (use domain/mail ->thread-query)
 
-(use ports/driven/mailbox fetch-summaries! list-thread-ids!
-                          list-thread-page!)
+(use ports/driven/mailbox fetch-summaries! fetch-thread-ids!
+                          fetch-thread-page!)
 
 (use support/fake-gmail start-fake-gmail)
 (use support/gmail-requests requests-matching)
@@ -13,7 +13,7 @@
 (deftest listing-thread-ids-reads-no-thread
   (let (server (start-fake-gmail (ref (fixture-routes)))
         gmail (gmail-over (ref server)))
-    (assert (= (unwrap-ok (list-thread-ids!
+    (assert (= (unwrap-ok (fetch-thread-ids!
                             (mut gmail)
                             (ref (->thread-query (str "INBOX") (str "") 20))))
                (vec (str "t1") (str "t2"))))
@@ -44,7 +44,7 @@
 (deftest a-thread-page-returns-gmail-s-next-page-token
   (let (server (start-fake-gmail (ref (paged-routes)))
         gmail (gmail-over (ref server))
-        page (unwrap-ok (list-thread-page!
+        page (unwrap-ok (fetch-thread-page!
                           (mut gmail)
                           (ref (->thread-query (str "INBOX") (str "") 1))
                           "")))
@@ -54,7 +54,7 @@
 (deftest the-next-page-is-asked-for-with-its-token
   (let (server (start-fake-gmail (ref (paged-routes)))
         gmail (gmail-over (ref server))
-        page (unwrap-ok (list-thread-page!
+        page (unwrap-ok (fetch-thread-page!
                           (mut gmail)
                           (ref (->thread-query (str "INBOX") (str "") 1))
                           "p2")))
