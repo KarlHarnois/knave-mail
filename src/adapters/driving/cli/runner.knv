@@ -2,8 +2,7 @@
 (use adapters/driving/cli/cli-result cli-result)
 (use adapters/driving/cli/command cli-command)
 (use adapters/driving/cli/help usage-text)
-(use domain/label-commands label-change-named)
-(use domain/labels label-change)
+(use adapters/driving/cli/label-words change-named)
 
 (use domain/mail ->draft ->message-ref ->thread-query draft
                  thread-query thread-summary)
@@ -116,22 +115,6 @@
 (defn with-written-body (drafted written)
   (let (body (str written (:body drafted)))
     (assoc drafted :body body)))
-
-(type change-named
-  (fn ((ref str))
-    (result label-change mail-error)))
-
-(defn change-named (word)
-  (ok-or (label-change-named (ref (canonical-command word)))
-         (mail-error/usage (str "unknown command `" word
-                                "`; try `knave-mail help`"))))
-
-(defn canonical-command (word)
-  (match word
-    ("read" (str "mark-read"))
-    ("unread" (str "mark-unread"))
-    ("inbox" (str "move-to-inbox"))
-    (_ (str word))))
 
 (type threads-for!
   (where ((client mail-reader))

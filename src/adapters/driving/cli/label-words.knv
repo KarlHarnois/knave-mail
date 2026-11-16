@@ -1,0 +1,21 @@
+(use domain/label-commands label-change-named)
+(use domain/labels label-change)
+(use domain/mail-error mail-error)
+
+(export change-named)
+
+(type change-named
+  (fn ((ref str))
+    (result label-change mail-error)))
+
+(defn change-named (word)
+  (ok-or (label-change-named (ref (canonical-command word)))
+         (mail-error/usage (str "unknown command `" word
+                                "`; try `knave-mail help`"))))
+
+(defn canonical-command (word)
+  (match word
+    ("read" (str "mark-read"))
+    ("unread" (str "mark-unread"))
+    ("inbox" (str "move-to-inbox"))
+    (_ (str word))))
