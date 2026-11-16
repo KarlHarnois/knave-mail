@@ -1,0 +1,81 @@
+(use domain/mail-error error-kind error-message)
+(use domain/text join-with)
+(use ports/driven/event-log log-debug log-info log-warn)
+
+(export log-changes! log-full-sync-done!
+        log-full-sync-started! log-history-expired!
+        log-incremental-sync-started! log-preview!
+        log-relabel! log-sent-but-uncached!
+        log-skipped-prefetch! log-still-unread!
+        log-vanished-thread!)
+
+(def sync-area "sync")
+
+(defn log-incremental-sync-started! (log account since)
+  (log-info log sync-area
+            (str account ": incremental sync from history " since)))
+
+(defn log-full-sync-started! (log account)
+  (log-info log sync-area
+            (str account ": full sync, no checkpoint yet")))
+
+(defn log-history-expired! (log account since)
+  (log-warn log sync-area
+            (str account ": history " since
+                 " expired, running a full sync")))
+
+(defn log-full-sync-done! (log account history-id)
+  (log-info log sync-area
+            (str account ": full sync done at history " history-id)))
+
+(defn log-changes! (log account changes)
+  (log-info log sync-area
+            (str account ": "
+                 (len (:thread-ids changes))
+                 " threads changed, now at history "
+                 (:history-id changes)))
+  (log-debug log sync-area
+             (str account ": changed threads "
+                  (join-with (ref (:thread-ids changes)) " "))))
+
+(defn log-vanished-thread! (log account thread-id)
+  (log-debug log sync-area
+             (str account ": changed thread " thread-id
+                  " no longer exists")))
+
+(defn log-skipped-prefetch! (log account thread-id failure)
+  (log-warn log sync-area
+            (str account ": skipped downloading thread "
+                 thread-id ": "
+                 (error-message failure))))
+
+(defn log-preview! (log account summaries)
+  (log-info log sync-area
+            (str account ": preview listed "
+                 (len summaries)
+                 " inbox threads")))
+
+(defn log-sent-but-uncached! (log account thread-id failure)
+  (log-warn log "send"
+            (str account ": sent into thread " thread-id
+                 ", but caching it failed: "
+                 (error-kind failure)
+                 ": "
+                 (error-message failure))))
+
+(defn log-relabel! (log account thread-ids change)
+  (log-info log "labels"
+            (str account ": +["
+                 (join-with (ref (:added change)) ",")
+                 "] -["
+                 (join-with (ref (:removed change)) ",")
+                 "] on "
+                 (join-with thread-ids " "))))
+
+(defn log-still-unread! (log account thread-id failure)
+  (log-warn log "read"
+            (str account ": could not mark thread "
+                 thread-id " read: "
+                 (error-kind failure)
+                 ": "
+                 (error-message failure))))

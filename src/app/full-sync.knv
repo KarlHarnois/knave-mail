@@ -1,3 +1,4 @@
+(use app/activity-log log-full-sync-done!)
 (use domain/collections try-for-each)
 (use app/mail-app mail-app)
 (use app/mailboxes mailbox-for!)
@@ -5,7 +6,6 @@
 (use app/stale-labels drop-stale-label!)
 (use domain/mail ->thread-query)
 (use domain/mail-error mail-error)
-(use ports/driven/event-log log-info)
 (use ports/driven/mailbox fetch-history-id! fetch-threads!)
 (use ports/driven/store save-checkpoint! save-threads!)
 
@@ -22,9 +22,7 @@
                           (try (mailbox-for! (mut (:mailboxes app)) account)))))
     (try (try-for-each (iter synced-labels)
            (fn (label) (sync-label! app account label))))
-    (log-info (ref (:log app))
-              "sync"
-              (str account ": full sync done at history " history-id))
+    (log-full-sync-done! (ref (:log app)) account history-id)
     (save-checkpoint! (mut (:store app))
                       account
                       (ref history-id))))

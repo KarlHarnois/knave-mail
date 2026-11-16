@@ -1,8 +1,11 @@
+(use app/activity-log log-full-sync-started!
+                      log-history-expired!
+                      log-incremental-sync-started!)
+
 (use app/changes sync-changes!)
 (use app/full-sync full-sync! synced-labels)
 (use app/mail-app mail-app)
 (use app/relisting relist-labels!)
-(use ports/driven/event-log log-info log-warn)
 (use app/mailboxes mailbox-for!)
 (use domain/mail-error error-kind mail-error)
 (use ports/driven/mailbox fetch-labels!)
@@ -22,14 +25,11 @@
                        (ref labels)))
     (match (try (load-checkpoint (ref (:store app)) account))
       ((some since)
-       (log-info (ref (:log app))
-                 "sync"
-                 (str account ": incremental sync from history " since))
+       (log-incremental-sync-started! (ref (:log app))
+                                      account since)
        (try (resume-or-restart! app account (ref since)))
        (relist-labels! app account (ref synced-labels)))
-      (none (log-info (ref (:log app))
-                      "sync"
-                      (str account ": full sync, no checkpoint yet"))
+      (none (log-full-sync-started! (ref (:log app)) account)
             (full-sync! app account)))))
 
 (type resume-or-restart!
@@ -41,10 +41,7 @@
     ((err failure)
      (if (= (error-kind (ref failure)) "not-found")
        (do
-         (log-warn (ref (:log app))
-                   "sync"
-                   (str account ": history " since
-                        " expired, running a full sync"))
+         (log-history-expired! (ref (:log app)) account since)
          (full-sync! app account))
        (err failure)))
     (done done)))

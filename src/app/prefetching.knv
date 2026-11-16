@@ -1,9 +1,9 @@
+(use app/activity-log log-skipped-prefetch!)
 (use app/mail-app mail-app)
 (use app/mailboxes mailbox-for!)
 (use domain/mail thread-summary)
-(use domain/mail-error error-message mail-error)
+(use domain/mail-error mail-error)
 (use domain/summary message-count)
-(use ports/driven/event-log log-warn)
 (use ports/driven/mailbox fetch-thread!)
 (use ports/driven/store load-thread save-thread!)
 
@@ -30,12 +30,10 @@
 (defn prefetch-or-warn! (app account summary)
   (match (prefetch-thread! app account summary)
     ((err failure)
-     (log-warn (ref (:log app))
-               "sync"
-               (str account ": skipped downloading thread "
-                    (:id summary)
-                    ": "
-                    (error-message (ref failure)))))
+     (log-skipped-prefetch! (ref (:log app))
+                            account
+                            (ref (:id summary))
+                            (ref failure)))
     ((ok _) (do))))
 
 (type prefetch-thread!

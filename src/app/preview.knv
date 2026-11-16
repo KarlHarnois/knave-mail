@@ -1,5 +1,5 @@
+(use app/activity-log log-preview!)
 (use app/mail-app mail-app)
-(use ports/driven/event-log log-info)
 (use app/mailboxes mailbox-for!)
 (use domain/mail ->thread-query)
 (use domain/mail-error mail-error)
@@ -28,11 +28,9 @@
         summaries (try (fetch-threads! (try (mailbox-for! (mut (:mailboxes app))
                                                           account))
                                        (ref query))))
-    (log-info (ref (:log app))
-              "sync"
-              (str account ": preview listed "
-                   (len summaries)
-                   " inbox threads"))
+    (log-preview! (ref (:log app))
+                  account
+                  (ref summaries))
     (save-threads! (mut (:store app))
                    account
                    (ref summaries))))
