@@ -1,3 +1,5 @@
+(use domain/labels label-id system-label)
+
 (use adapters/driven/memory/seed-specials html-newsletter
                                           long-thread
                                           unicode-thread)
@@ -64,11 +66,13 @@
                                :references (str ""))))))
 
 (defn labels-for (index)
-  (let (labels (vec (str (if (< index 150) "INBOX" "Archive"))))
+  (let (labels (vec (if (< index 150)
+                      (label-id system-label/inbox)
+                      (str "Archive"))))
     (when (= (rem index 3) 0)
-      (push! (mut labels) (str "UNREAD")))
+      (push! (mut labels) (label-id system-label/unread)))
     (when (= (rem index 7) 0)
-      (push! (mut labels) (str "STARRED")))
+      (push! (mut labels) (label-id system-label/starred)))
     (when (= (rem index 5) 0)
       (push! (mut labels) (str "Receipts")))
     labels))

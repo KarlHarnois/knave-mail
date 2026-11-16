@@ -1,3 +1,4 @@
+(use domain/labels label-id system-label)
 (use domain/mail ->message ->thread message thread)
 
 (export html-newsletter long-thread unicode-thread)
@@ -15,7 +16,8 @@
                                     :html (some (str "<html><head><style>body{font-family:Georgia,serif;background:#fdf6e3;color:#333}h1{color:#b58900}.card{border:1px solid #ddd;padding:12px;margin:8px 0}</style></head><body><h1>This week in compilers</h1><img src=\"https://example.com/banner.png\" alt=\"banner\" width=\"600\"><div class=\"card\"><h2>Tail calls</h2><p>Why your Lisp needs them.</p><a href=\"https://example.com/tail-calls\">Read more</a></div><div class=\"card\"><h2>Register allocation</h2><p>Graph colouring, explained.</p></div><table><tr><td>Left</td><td>Right</td></tr></table></body></html>"))
                                     :header-id (str "<newsletter@example.com>")
                                     :references (str ""))
-                         (vec (str "INBOX") (str "UNREAD"))))
+                         (vec (label-id system-label/inbox)
+                              (label-id system-label/unread))))
 
 (defn unicode-thread (account date)
   (single-message-thread account
@@ -31,12 +33,13 @@
                                     :html none
                                     :header-id (str "<unicode@example.jp>")
                                     :references (str ""))
-                         (vec (str "INBOX") (str "STARRED"))))
+                         (vec (label-id system-label/inbox)
+                              (label-id system-label/starred))))
 
 (defn long-thread (account date)
   (->thread :id (str "long")
             :subject (str "Re: The never-ending design thread")
-            :labels (vec (str "INBOX"))
+            :labels (vec (label-id system-label/inbox))
             :messages (collect (map (range 0 12)
                                  (fn (index)
                                    (long-thread-message account date index))))))

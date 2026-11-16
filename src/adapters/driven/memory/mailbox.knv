@@ -11,7 +11,7 @@
                                            thread-position)
 
 (use adapters/driven/memory/shared shared with-shared!)
-(use domain/labels label-change)
+(use domain/labels label-change label-id system-label)
 (use domain/mail ->thread message outgoing thread)
 (use domain/mail-error mail-error)
 (use domain/relabel relabeled-thread)
@@ -119,7 +119,7 @@
       (none (push! (mut (:threads remote))
                    (->thread :id (clone thread-id)
                              :subject (clone (:subject sent))
-                             :labels (vec (str "SENT"))
+                             :labels (vec (label-id system-label/sent))
                              :messages (vec message)))))
     thread-id))
 
@@ -133,9 +133,9 @@
 (defn with-sent-message (held sent)
   (local updated (clone held))
   (push! (mut (:messages updated)) sent)
-  (unless (labelled? held "SENT")
+  (unless (labelled? held (as-str (label-id system-label/sent)))
     (push! (mut (:labels updated))
-           (str "SENT")))
+           (label-id system-label/sent)))
   updated)
 
 (def now-milliseconds

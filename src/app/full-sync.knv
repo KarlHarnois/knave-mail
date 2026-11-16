@@ -1,3 +1,4 @@
+(use domain/labels label-id system-label)
 (use app/activity-log log-full-sync-done!)
 (use domain/collections try-for-each)
 (use app/mail-app mail-app)
@@ -11,7 +12,9 @@
 
 (export full-sync! synced-labels)
 
-(def synced-labels (vec "INBOX" "STARRED" "SENT"))
+(def synced-labels
+  (vec system-label/inbox system-label/starred
+       system-label/sent))
 
 (type full-sync!
   (fn ((mut mail-app) (ref str))
@@ -28,11 +31,13 @@
                       (ref history-id))))
 
 (type sync-label!
-  (fn ((mut mail-app) (ref str) (ref str))
+  (fn ((mut mail-app)
+       (ref str)
+       (ref system-label))
     (result unit mail-error)))
 
 (defn sync-label! (app account label)
-  (let (query (->thread-query (str label)
+  (let (query (->thread-query (label-id label)
                               (str "")
                               (:sync-limit app))
         summaries (try (fetch-threads! (try (mailbox-for! (mut (:mailboxes app))

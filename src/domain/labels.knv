@@ -1,15 +1,23 @@
 (export ->label-change apply-label-change archive-change
-        inbox-change inbox-label label-change label-removal
-        read-change star-change starred? trash-change
-        unread-change unread? unstar-change untrash-change)
+        inbox-change label-change label-id label-removal
+        read-change star-change starred? system-label
+        trash-change unread-change unread? unstar-change
+        untrash-change)
 
-(def inbox-label "INBOX")
+(defenum system-label
+  inbox
+  unread
+  starred
+  sent
+  trash)
 
-(def unread-label "UNREAD")
-
-(def starred-label "STARRED")
-
-(def trash-label "TRASH")
+(defn label-id (label)
+  (str (match label
+         (inbox "INBOX")
+         (unread "UNREAD")
+         (starred "STARRED")
+         (sent "SENT")
+         (trash "TRASH"))))
 
 (defstruct label-change
   :added (vec string)
@@ -17,42 +25,44 @@
 
 (defn archive-change ()
   (->label-change (vec)
-                  (vec (str inbox-label))))
+                  (vec (label-id system-label/inbox))))
 
 (defn trash-change ()
-  (->label-change (vec (str trash-label))
-                  (vec (str inbox-label))))
+  (->label-change (vec (label-id system-label/trash))
+                  (vec (label-id system-label/inbox))))
 
 (defn inbox-change ()
-  (->label-change (vec (str inbox-label))
+  (->label-change (vec (label-id system-label/inbox))
                   (vec)))
 
 (defn untrash-change ()
-  (->label-change (vec (str inbox-label))
-                  (vec (str trash-label))))
+  (->label-change (vec (label-id system-label/inbox))
+                  (vec (label-id system-label/trash))))
 
 (defn star-change ()
-  (->label-change (vec (str starred-label))
+  (->label-change (vec (label-id system-label/starred))
                   (vec)))
 
 (defn unstar-change ()
   (->label-change (vec)
-                  (vec (str starred-label))))
+                  (vec (label-id system-label/starred))))
 
 (defn read-change ()
   (->label-change (vec)
-                  (vec (str unread-label))))
+                  (vec (label-id system-label/unread))))
 
 (defn label-removal (label)
   (->label-change (vec) (vec (str label))))
 
 (defn unread-change ()
-  (->label-change (vec (str unread-label))
+  (->label-change (vec (label-id system-label/unread))
                   (vec)))
 
-(defn unread? (labels) (holds? labels unread-label))
+(defn unread? (labels)
+  (holds? labels (as-str (label-id system-label/unread))))
 
-(defn starred? (labels) (holds? labels starred-label))
+(defn starred? (labels)
+  (holds? labels (as-str (label-id system-label/starred))))
 
 (defn apply-label-change (labels change)
   (with-added (without-removed labels (ref (:removed change)))

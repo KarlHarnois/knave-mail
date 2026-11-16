@@ -1,3 +1,4 @@
+(use domain/labels label-id system-label)
 (use adapters/driven/memory/remote-mail remote-mail)
 
 (use domain/mail ->label ->thread-page ->thread-query label
@@ -127,7 +128,8 @@
         unread))))
 
 (defn unread-in? (held name)
-  (and (labelled? held name) (labelled? held "UNREAD")))
+  (and (labelled? held name)
+       (labelled? held (as-str (label-id system-label/unread)))))
 
 (type labelled?
   (fn ((ref thread) (ref str)) bool))

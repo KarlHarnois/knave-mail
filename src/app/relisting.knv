@@ -1,3 +1,4 @@
+(use domain/labels label-id system-label)
 (use domain/collections try-for-each)
 (use app/mail-app mail-app)
 (use app/reading listed-threads!)
@@ -9,13 +10,13 @@
 (type relist-labels!
   (fn ((mut mail-app)
        (ref str)
-       (ref (vec (ref str))))
+       (ref (vec system-label)))
     (result unit mail-error)))
 
 (defn relist-labels! (app account labels)
   (try-for-each (iter labels)
     (fn (label)
-      (let (query (->thread-query (str label)
+      (let (query (->thread-query (label-id label)
                                   (str "")
                                   (:sync-limit app)))
         (map-ok (listed-threads! app account (ref query))

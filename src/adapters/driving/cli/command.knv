@@ -1,3 +1,5 @@
+(use domain/labels label-id system-label)
+
 (use adapters/driving/cli/arguments parsed-arguments
                                     positional
                                     rest-positionals switch?
@@ -77,7 +79,8 @@
   (match action
     ("list"
      (ok (thread-listing parsed
-                         (unwrap-or (value-of parsed "--label") (str "INBOX"))
+                         (unwrap-or (value-of parsed "--label")
+                                    (label-id system-label/inbox))
                          (unwrap-or (value-of parsed "--query") (str "")))))
     ("show"
      (ok (cli-command/show-thread
