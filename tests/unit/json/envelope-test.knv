@@ -5,6 +5,8 @@
                                     synced-event)
 
 (use domain/mail-error mail-error)
+(use app/client/account-book)
+(use ports/driving/account-book add-account!)
 (use support/app-steps synced!)
 
 (use support/memory-world app-over remote-with
@@ -30,6 +32,26 @@
 (deftest drafts-a-reply-to-everyone
   (assert (= (answered "{\"id\":3,\"command\":\"reply-draft\",\"args\":{\"account\":\"ada@example.com\",\"messageId\":\"m-t-1\",\"all\":true}}")
              "{\"id\":3,\"ok\":{\"body\":\"\\n\\nGrace <grace@example.com> wrote:\\n> Body of t-1\",\"cc\":[],\"replyTo\":\"m-t-1\",\"subject\":\"Re: Subject of t-1\",\"to\":[\"Grace <grace@example.com>\"]}}")))
+
+(deftest lists-the-added-accounts
+  (let (world (remote)
+        app (app-over (ref world)))
+    (unwrap-ok (add-account! (mut app)))
+    (assert (= (answer! (mut app)
+                        "{\"id\":11,\"command\":\"accounts\",\"args\":{}}")
+               "{\"id\":11,\"ok\":[{\"email\":\"new@example.com\"}]}"))))
+
+(deftest pages-through-the-threads-of-a-label
+  (assert (= (answered "{\"id\":12,\"command\":\"thread-page\",\"args\":{\"account\":\"ada@example.com\",\"label\":\"INBOX\",\"query\":\"\",\"limit\":10,\"pageToken\":\"\"}}")
+             "{\"id\":12,\"ok\":{\"nextPageToken\":\"\",\"threads\":[{\"date\":100,\"id\":\"t-1\",\"labels\":[\"INBOX\",\"UNREAD\"],\"messageCount\":1,\"participants\":\"Grace\",\"snippet\":\"Body of t-1\",\"starred\":false,\"subject\":\"Subject of t-1\",\"unread\":true}]}}")))
+
+(deftest drafts-a-reply-to-the-sender-alone
+  (assert (= (answered "{\"id\":13,\"command\":\"reply-draft\",\"args\":{\"account\":\"ada@example.com\",\"messageId\":\"m-t-1\"}}")
+             "{\"id\":13,\"ok\":{\"body\":\"\\n\\nGrace <grace@example.com> wrote:\\n> Body of t-1\",\"cc\":[],\"replyTo\":\"m-t-1\",\"subject\":\"Re: Subject of t-1\",\"to\":[\"Grace <grace@example.com>\"]}}")))
+
+(deftest drafts-a-forward-with-no-recipient
+  (assert (= (answered "{\"id\":14,\"command\":\"forward-draft\",\"args\":{\"account\":\"ada@example.com\",\"messageId\":\"m-t-1\"}}")
+             "{\"id\":14,\"ok\":{\"body\":\"\\n\\n---------- Forwarded message ----------\\nFrom: Grace <grace@example.com>\\nSubject: Subject of t-1\\nTo: ada@example.com\\n\\nBody of t-1\",\"cc\":[],\"replyTo\":null,\"subject\":\"Fwd: Subject of t-1\",\"to\":[]}}")))
 
 (deftest sends-a-draft
   (assert (= (answered "{\"id\":4,\"command\":\"send\",\"args\":{\"account\":\"ada@example.com\",\"draft\":{\"to\":[\"a@example.com\"],\"cc\":[],\"subject\":\"Hi\",\"body\":\"Hello\",\"replyTo\":null}}}")
