@@ -41,18 +41,45 @@
   (rust "{{ let mut {!response} = {0}; let {!status} = {!response}.status().as_u16(); {!response}.body_mut().with_config().limit(64 * 1024 * 1024).read_to_string().map(|{!body}| crate::adapters::driven::gmail::http_reply::HttpReply {{ status: {!status}, body: {!body}, retries: {1} }}).map_err(|{!error}| format!(\"the answer was cut short: {{}}\", {!error})) }}"
     (fn (http-response u32) (result http-reply string))))
 
-(defn http-get-all (agent urls token pause spacing)
-  (get-all-replies agent urls token pause spacing reply-from
-                   rate-limited?))
+(def batch-size 8)
 
-(def get-all-replies
-  (rust "{{ let ({!agent}, {!urls}, {!token}, {!pause}, {!spacing}, {!reply_from}, {!rate_limited}) = ({0}, {1}, {2}, {3}, {4}, {5}, {6}); let {!fetch} = &|{!url}: &String| {{ let mut {!attempt} = 0u32; loop {{ let {!outcome} = {!agent}.get({!url}).header(\"Authorization\", &format!(\"Bearer {{}}\", {!token})).call().map_err(|{!error}| {!error}.to_string()).and_then(|{!response}| {!reply_from}({!response}, {!attempt})); let {!limited} = matches!(&{!outcome}, Ok({!reply}) if {!rate_limited}({!reply})); if !{!limited} || {!attempt} >= 6 {{ break {!outcome}; }} std::thread::sleep(std::time::Duration::from_millis({!pause} << {!attempt})); {!attempt} += 1; }} }}; let mut {!replies} = Vec::with_capacity({!urls}.len()); for {!chunk} in {!urls}.chunks(8) {{ let {!started} = std::time::Instant::now(); std::thread::scope(|{!scope}| {{ let {!handles}: Vec<_> = {!chunk}.iter().map(|{!url}| {!scope}.spawn(move || {!fetch}({!url}))).collect(); for {!handle} in {!handles} {{ {!replies}.push({!handle}.join().unwrap_or_else(|_| Err(String::from(\"a request thread panicked\")))); }} }}); let {!budget} = std::time::Duration::from_millis({!spacing} * {!chunk}.len() as u64); if let Some({!rest}) = {!budget}.checked_sub({!started}.elapsed()) {{ std::thread::sleep({!rest}); }} }} {!replies} }}"
-    (fn ((ref http-agent)
-         (ref (vec string))
-         (ref str)
-         u64 u64
-         (fn (http-response u32) (result http-reply string))
-         (fn ((ref http-reply)) bool))
+(def most-retries 6)
+
+(defn http-get-all (agent urls token pause spacing)
+  (in-paced-batches urls batch-size spacing
+    (fn (url)
+      (get-with-retries agent (as-str url) token pause 0))))
+
+(defn get-with-retries (agent url token pause attempt)
+  (let (outcome (then-ok (get-response agent url token)
+                  (fn (response) (reply-from response attempt))))
+    (if (retry? (ref outcome) attempt)
+      (do
+        (sleep-milliseconds (doubled pause attempt))
+        (recur agent url token pause (+ attempt 1)))
+      outcome)))
+
+(defn retry? (outcome attempt)
+  (match outcome
+    ((ok reply)
+     (and (rate-limited? reply) (< attempt most-retries)))
+    ((err _) false)))
+
+(defn doubled (milliseconds times)
+  (if (= times 0)
+    milliseconds
+    (recur (* milliseconds 2) (- times 1))))
+
+(def sleep-milliseconds
+  (rust "std::thread::sleep(std::time::Duration::from_millis({0}))"
+    (fn (u64) unit)))
+
+(def in-paced-batches
+  (rust "{{ let ({!urls}, {!size}, {!spacing}, {!fetch}) = ({0}, {1}, {2}, &{3}); let mut {!replies} = Vec::with_capacity({!urls}.len()); for {!batch} in {!urls}.chunks({!size}) {{ let {!started} = std::time::Instant::now(); std::thread::scope(|{!scope}| {{ let {!handles}: Vec<_> = {!batch}.iter().map(|{!url}| {!scope}.spawn(move || {!fetch}({!url}))).collect(); for {!handle} in {!handles} {{ {!replies}.push({!handle}.join().unwrap_or_else(|_| Err(String::from(\"a request thread panicked\")))); }} }}); if let Some({!rest}) = std::time::Duration::from_millis({!spacing} * {!batch}.len() as u64).checked_sub({!started}.elapsed()) {{ std::thread::sleep({!rest}); }} }} {!replies} }}"
+    (fn ((ref (vec string))
+         usize u64
+         (fn ((ref string))
+           (result http-reply string)))
       (vec (result http-reply string)))))
 
 (type http-post-json
