@@ -4,18 +4,18 @@
 (use ports/driven/mailbox-provider connect-mailbox!
                                    mailbox-provider)
 
-(export ->mailboxes mailbox-for! mailboxes)
+(export ->mailboxes mailboxes open-mailbox!)
 
 (defstruct mailboxes
   :provider (box mailbox-provider)
   :emails (vec string)
   :opened (vec (box mailbox)))
 
-(type mailbox-for!
+(type open-mailbox!
   (fn ((mut mailboxes) (ref str))
     (result (mut (box mailbox)) mail-error)))
 
-(defn mailbox-for! (all email)
+(defn open-mailbox! (all email)
   (match (position-of (ref (:emails all)) email)
     ((some index) (ok (opened-at! all index)))
     (none (do

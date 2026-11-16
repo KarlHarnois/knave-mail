@@ -1,5 +1,5 @@
 (use app/mail-app mail-app)
-(use app/mailboxes mailbox-for!)
+(use app/mailboxes open-mailbox!)
 (use app/marking-read marked-read!)
 (use domain/labels unread?)
 
@@ -38,8 +38,8 @@
     (result (vec thread-summary) mail-error)))
 
 (defn listed-threads! (app account query)
-  (let (ids (try (fetch-thread-ids! (try (mailbox-for! (mut (:mailboxes app))
-                                                       account))
+  (let (ids (try (fetch-thread-ids! (try (open-mailbox! (mut (:mailboxes app))
+                                                        account))
                                     query)))
     (summaries-for! app account (ref ids))))
 
@@ -51,8 +51,8 @@
     (result summary-page mail-error)))
 
 (defn listed-page! (app account query page-token)
-  (let (page (try (fetch-thread-page! (try (mailbox-for! (mut (:mailboxes app))
-                                                         account))
+  (let (page (try (fetch-thread-page! (try (open-mailbox! (mut (:mailboxes app))
+                                                          account))
                                       query page-token)))
     (ok (->summary-page
           :summaries (try (summaries-for! app account (ref (:ids page))))
@@ -83,7 +83,7 @@
 (defn missing-summaries! (app account ids)
   (if (empty? ids)
     (ok (vec))
-    (fetch-summaries! (try (mailbox-for! (mut (:mailboxes app)) account))
+    (fetch-summaries! (try (open-mailbox! (mut (:mailboxes app)) account))
                       ids)))
 
 (def concat
@@ -115,8 +115,8 @@
     (result thread mail-error)))
 
 (defn fetch-and-store-thread! (app account thread-id)
-  (let (fetched (try (fetch-thread! (try (mailbox-for! (mut (:mailboxes app))
-                                                       account))
+  (let (fetched (try (fetch-thread! (try (open-mailbox! (mut (:mailboxes app))
+                                                        account))
                                     thread-id)))
     (try (save-thread! (mut (:store app))
                        account

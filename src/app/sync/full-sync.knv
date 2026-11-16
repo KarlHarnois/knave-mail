@@ -3,7 +3,7 @@
 (use app/activity-log log-full-sync-done!)
 (use domain/collections try-for-each)
 (use app/mail-app mail-app)
-(use app/mailboxes mailbox-for!)
+(use app/mailboxes open-mailbox!)
 (use app/sync/prefetching prefetch-threads!)
 (use app/sync/stale-labels drop-stale-label!)
 (use domain/mail ->thread-query)
@@ -22,8 +22,9 @@
     (result unit mail-error)))
 
 (defn full-sync! (app account)
-  (let (history-id (try (fetch-history-id!
-                          (try (mailbox-for! (mut (:mailboxes app)) account)))))
+  (let (history-id (try (fetch-history-id! (try (open-mailbox! (mut (:mailboxes
+                                                                      app))
+                                                               account)))))
     (try (try-for-each (iter synced-labels)
            (fn (label) (sync-label! app account label))))
     (log-full-sync-done! (ref (:log app)) account history-id)
@@ -41,9 +42,9 @@
   (let (query (->thread-query (label-scope/only (label-id label))
                               (str "")
                               (:sync-limit app))
-        summaries (try (fetch-threads! (try (mailbox-for! (mut (:mailboxes app))
-                                                          account))
-                                       (ref query))))
+        summaries (try (fetch-threads!
+                         (try (open-mailbox! (mut (:mailboxes app)) account))
+                         (ref query))))
     (try (save-threads! (mut (:store app))
                         account
                         (ref summaries)))

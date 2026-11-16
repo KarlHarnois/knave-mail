@@ -1,6 +1,6 @@
 (use app/activity-log log-skipped-prefetch!)
 (use app/mail-app mail-app)
-(use app/mailboxes mailbox-for!)
+(use app/mailboxes open-mailbox!)
 (use domain/mail thread-summary)
 (use domain/mail-error mail-error)
 (use domain/summary message-count)
@@ -45,8 +45,8 @@
 (defn prefetch-thread! (app account summary)
   (if (try (stored-in-full? app account summary))
     (ok (do))
-    (let (fetched (try (fetch-thread! (try (mailbox-for! (mut (:mailboxes app))
-                                                         account))
+    (let (fetched (try (fetch-thread! (try (open-mailbox! (mut (:mailboxes app))
+                                                          account))
                                       (ref (:id summary)))))
       (save-thread! (mut (:store app))
                     account

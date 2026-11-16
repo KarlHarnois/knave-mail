@@ -2,7 +2,7 @@
 (use domain/collections try-for-each)
 (use app/caching cache-thread!)
 (use app/mail-app mail-app)
-(use app/mailboxes mailbox-for!)
+(use app/mailboxes open-mailbox!)
 (use domain/mail-error error-kind mail-error)
 (use ports/driven/mailbox fetch-changes!)
 (use ports/driven/store forget-thread! save-checkpoint!)
@@ -14,8 +14,8 @@
     (result unit mail-error)))
 
 (defn sync-changes! (app account since)
-  (let (changes (try (fetch-changes! (try (mailbox-for! (mut (:mailboxes app))
-                                                        account))
+  (let (changes (try (fetch-changes! (try (open-mailbox! (mut (:mailboxes app))
+                                                         account))
                                      since)))
     (log-changes! (ref (:log app))
                   account

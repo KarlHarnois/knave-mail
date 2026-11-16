@@ -3,7 +3,7 @@
                       log-incremental-sync-started!)
 
 (use app/mail-app mail-app)
-(use app/mailboxes mailbox-for!)
+(use app/mailboxes open-mailbox!)
 (use app/sync/changes sync-changes!)
 (use app/sync/full-sync full-sync! synced-labels)
 (use app/sync/preview list-newest-inbox!)
@@ -29,8 +29,8 @@
     (result unit mail-error)))
 
 (defn refresh-labels! (app account)
-  (let (labels (try (fetch-labels! (try (mailbox-for! (mut (:mailboxes app))
-                                                      account)))))
+  (let (labels (try (fetch-labels! (try (open-mailbox! (mut (:mailboxes app))
+                                                       account)))))
     (save-labels! (mut (:store app))
                   account
                   (ref labels))))

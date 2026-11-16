@@ -2,7 +2,7 @@
 (use domain/labels label-id system-label)
 (use app/activity-log log-preview!)
 (use app/mail-app mail-app)
-(use app/mailboxes mailbox-for!)
+(use app/mailboxes open-mailbox!)
 (use domain/mail ->thread-query)
 (use domain/mail-error mail-error)
 (use ports/driven/mailbox fetch-threads!)
@@ -20,9 +20,9 @@
   (let (query (->thread-query (label-scope/only (label-id system-label/inbox))
                               (str "")
                               preview-limit)
-        summaries (try (fetch-threads! (try (mailbox-for! (mut (:mailboxes app))
-                                                          account))
-                                       (ref query))))
+        summaries (try (fetch-threads!
+                         (try (open-mailbox! (mut (:mailboxes app)) account))
+                         (ref query))))
     (log-preview! (ref (:log app))
                   account
                   (ref summaries))
