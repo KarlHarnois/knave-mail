@@ -34,6 +34,7 @@
 (use ports/driving/mail-writer draft! mail-writer
                                send-draft!)
 
+(use domain/mail ->message-ref)
 (use domain/reply draft-kind)
 (use ports/driving/mail-syncer mail-syncer sync-account!)
 
@@ -116,11 +117,10 @@
       (result json-value mail-error))))
 
 (defn draft-command! (client arguments kind)
-  (ok (draft-json (ref (try (draft! client
-                                    (ref (try (account-argument arguments)))
-                                    (ref (try (text-argument arguments
-                                                             "messageId")))
-                                    kind))))))
+  (let (message (->message-ref :account (try (account-argument arguments))
+                               :message-id (try (text-argument arguments
+                                                               "messageId"))))
+    (ok (draft-json (ref (try (draft! client (ref message) kind)))))))
 
 (defn reply-kind (arguments)
   (match (flag-argument arguments "all")

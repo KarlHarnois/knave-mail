@@ -1,11 +1,16 @@
 (export ->account ->draft ->label ->mail-changes ->message
-        ->outgoing ->summary-page ->thread ->thread-page
-        ->thread-query ->thread-summary account draft label
-        mail-changes message outgoing summary-page thread
-        thread-page thread-query thread-summary)
+        ->message-ref ->outgoing ->summary-page ->thread
+        ->thread-page ->thread-query ->thread-summary
+        account draft label mail-changes message message-ref
+        outgoing summary-page thread thread-page
+        thread-query thread-summary)
 
 (defstruct account
   :email string)
+
+(defstruct message-ref
+  :account string
+  :message-id string)
 
 (defstruct label
   :id string

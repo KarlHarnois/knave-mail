@@ -3,7 +3,10 @@
 (use ports/driving/mail-writer mail-writer)
 
 (impl mail-writer mail-app
-  (draft! (app account message-id kind)
-          (compose-draft app account message-id kind))
+  (draft! (app message kind)
+          (compose-draft app
+                         (ref (:account message))
+                         (ref (:message-id message))
+                         kind))
   (send-draft! (app account written)
                (send! app account written)))

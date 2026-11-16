@@ -5,8 +5,8 @@
 (use domain/label-commands label-change-named)
 (use domain/labels label-change)
 
-(use domain/mail ->draft ->thread-query draft thread-query
-                 thread-summary)
+(use domain/mail ->draft ->message-ref ->thread-query draft
+                 thread-query thread-summary)
 
 (use domain/mail-error mail-error)
 
@@ -71,14 +71,16 @@
                                   (clone (:body request))
                                   none)))
       ((reply message-id all)
-       (let (drafted (try (draft! client account message-id
+       (let (drafted (try (draft! client
+                                  (ref (message-in account message-id))
                                   (if (deref all)
                                     draft-kind/reply-all
                                     draft-kind/reply))))
          (deliver-or-show! client request
                            (with-written-body drafted (ref (:body request))))))
       ((forward message-id to)
-       (let (drafted (try (draft! client account message-id
+       (let (drafted (try (draft! client
+                                  (ref (message-in account message-id))
                                   draft-kind/forward)))
          (deliver-or-show! client request
                            (assoc (with-written-body drafted
@@ -142,3 +144,7 @@
 (defn threads-for! (client account query fresh)
   (list-threads! client account query
                  (if fresh freshness/fresh freshness/cached)))
+
+(defn message-in (account message-id)
+  (->message-ref :account (str account)
+                 :message-id (str message-id)))

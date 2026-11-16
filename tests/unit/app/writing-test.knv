@@ -8,7 +8,7 @@
 
 (use support/app-steps fail-remote! failing-kind inbox-query
                        listed-ids! remote-sent remote-thread
-                       synced!)
+                       synced! world-message)
 
 (use support/memory-world app-over remote-with sample-thread
                           world-account)
@@ -30,9 +30,9 @@
   (let (world (remote)
         app (app-over (ref world)))
     (synced! (mut app))
-    (assert (= (:subject
-                 (unwrap-ok
-                   (draft! (mut app) world-account "m-t-1" draft-kind/reply)))
+    (assert (= (:subject (unwrap-ok (draft! (mut app)
+                                            (ref (world-message "m-t-1"))
+                                            draft-kind/reply)))
                "Re: Subject of t-1"))))
 
 (deftest a-reply-all-draft-leaves-out-the-account-address
@@ -40,7 +40,7 @@
         app (app-over (ref world)))
     (synced! (mut app))
     (assert (= (:to (unwrap-ok (draft! (mut app)
-                                       world-account "m-t-1"
+                                       (ref (world-message "m-t-1"))
                                        draft-kind/reply-all)))
                (addresses (vec "Grace <grace@example.com>"))))))
 
@@ -48,16 +48,17 @@
   (let (world (remote)
         app (app-over (ref world)))
     (synced! (mut app))
-    (assert (= (:subject
-                 (unwrap-ok
-                   (draft! (mut app) world-account "m-t-2" draft-kind/forward)))
+    (assert (= (:subject (unwrap-ok (draft! (mut app)
+                                            (ref (world-message "m-t-2"))
+                                            draft-kind/forward)))
                "Fwd: Subject of t-2"))))
 
 (deftest drafting-a-reply-to-an-unknown-message-is-not-found
   (let (world (remote)
         app (app-over (ref world)))
-    (assert (= (failing-kind
-                 (draft! (mut app) world-account "m-9" draft-kind/reply))
+    (assert (= (failing-kind (draft! (mut app)
+                                     (ref (world-message "m-9"))
+                                     draft-kind/reply))
                "not-found"))))
 
 (deftest sending-a-new-draft-delivers-it-from-the-account

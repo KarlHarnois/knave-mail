@@ -1,14 +1,11 @@
-(use domain/mail draft)
+(use domain/mail draft message-ref)
 (use domain/reply draft-kind)
 (use domain/mail-error mail-error)
 
 (export mail-writer)
 
 (deftrait mail-writer
-  (draft! (fn ((mut self)
-               (ref str)
-               (ref str)
-               draft-kind)
+  (draft! (fn ((mut self) (ref message-ref) draft-kind)
             (result draft mail-error)))
   (send-draft! (fn ((mut self) (ref str) (ref draft))
                  (result unit mail-error))))
