@@ -2,7 +2,7 @@
   description = "knave-mail, a fast keyboard-driven email client";
 
   inputs = {
-    knave.url = "github:knave-lang/knave/v0.14.23";
+    knave.url = "github:knave-lang/knave/v0.15.0";
     nixpkgs.follows = "knave/nixpkgs";
   };
 

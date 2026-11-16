@@ -21,16 +21,16 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1794447429,
-        "narHash": "sha256-pL49fyhURUYCtycb/BIXmTzUAYEw31AopKRbWeZCrb4=",
+        "lastModified": 1794588960,
+        "narHash": "sha256-Ee53Ctr6OCJioc7jlbF9MvijLLzbJfVKCjV3Rm5MtJs=",
         "owner": "knave-lang",
         "repo": "knave",
-        "rev": "058a4f3dbfd689b492087bece346a6f3e853a282",
+        "rev": "46b91cc1350d9360a125665bf17ab86a0bc5a84c",
         "type": "github"
       },
       "original": {
         "owner": "knave-lang",
-        "ref": "v0.14.23",
+        "ref": "v0.15.0",
         "repo": "knave",
         "type": "github"
       }
