@@ -1,3 +1,4 @@
+(use domain/label-scope label-scope)
 (use domain/freshness freshness)
 (use domain/mail ->thread-query)
 (use ports/driving/mail-reader list-threads! open-thread!)
@@ -88,19 +89,21 @@
 (deftest a-search-asks-the-remote-mailbox
   (let (world (remote)
         app (app-over (ref world)))
-    (assert (= (listed-ids! (mut app)
-                            (ref (->thread-query (str "ALL") (str "t-3") 50)))
+    (assert (= (listed-ids!
+                 (mut app)
+                 (ref (->thread-query label-scope/all-mail (str "t-3") 50)))
                (vec (str "t-3"))))))
 
 (deftest a-failed-search-reports-a-network-error
   (let (world (remote)
         app (app-over (ref world)))
     (fail-remote! (ref world) "list-thread-ids")
-    (assert (= (failing-kind (list-threads!
-                               (mut app)
-                               world-account
-                               (ref (->thread-query (str "ALL") (str "t") 50))
-                               freshness/cached))
+    (assert (= (failing-kind
+                 (list-threads!
+                   (mut app)
+                   world-account
+                   (ref (->thread-query label-scope/all-mail (str "t") 50))
+                   freshness/cached))
                "network"))))
 
 (deftest a-label-lists-only-its-threads
@@ -108,15 +111,19 @@
         app (app-over (ref world)))
     (synced! (mut app))
     (assert (= (listed-ids! (mut app)
-                            (ref (->thread-query (str "STARRED") (str "") 50)))
+                            (ref (->thread-query (label-scope/only (str
+                                                                     "STARRED"))
+                                                 (str "")
+                                                 50)))
                (the (vec string) (vec))))))
 
 (deftest all-mail-lists-every-synced-thread
   (let (world (remote)
         app (app-over (ref world)))
     (synced! (mut app))
-    (assert (= (listed-ids! (mut app)
-                            (ref (->thread-query (str "ALL") (str "") 50)))
+    (assert (= (listed-ids!
+                 (mut app)
+                 (ref (->thread-query label-scope/all-mail (str "") 50)))
                (vec (str "t-2") (str "t-1"))))))
 
 (deftest a-listing-stops-at-its-limit
@@ -124,5 +131,8 @@
         app (app-over (ref world)))
     (synced! (mut app))
     (assert (= (listed-ids! (mut app)
-                            (ref (->thread-query (str "INBOX") (str "") 1)))
+                            (ref (->thread-query (label-scope/only (str
+                                                                     "INBOX"))
+                                                 (str "")
+                                                 1)))
                (vec (str "t-2"))))))

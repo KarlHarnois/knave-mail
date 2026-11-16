@@ -1,0 +1,17 @@
+(export label-of label-scope scope-named)
+
+(defenum label-scope
+  all-mail
+  (only string))
+
+(def all-mail-name "ALL")
+
+(defn scope-named (name)
+  (if (= name all-mail-name)
+    label-scope/all-mail
+    (label-scope/only (str name))))
+
+(defn label-of (scope)
+  (match scope
+    (all-mail none)
+    ((only label) (some (clone label)))))

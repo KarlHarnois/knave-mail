@@ -1,3 +1,4 @@
+(use domain/label-scope label-scope)
 (use adapters/driven/gmail/mailbox gmail-mailbox)
 (use domain/labels archive-change)
 (use domain/mail ->outgoing ->thread-query)
@@ -40,7 +41,7 @@
   (let (server (start-fake-gmail (ref (fixture-routes)))
         gmail (gmail-over (ref server)))
     (unwrap-ok (fetch-threads! (mut gmail)
-                               (ref (->thread-query (str "INBOX")
+                               (ref (->thread-query (label-scope/only (str "INBOX"))
                                                     (str "from:grace is:unread")
                                                     20))))
     (assert (= (len (requests-matching (ref server)
@@ -50,8 +51,9 @@
 (deftest all-mail-lists-without-a-label
   (let (server (start-fake-gmail (ref (fixture-routes)))
         gmail (gmail-over (ref server)))
-    (unwrap-ok (fetch-threads! (mut gmail)
-                               (ref (->thread-query (str "ALL") (str "") 5))))
+    (unwrap-ok (fetch-threads!
+                 (mut gmail)
+                 (ref (->thread-query label-scope/all-mail (str "") 5))))
     (assert (= (len (requests-matching
                       (ref server)
                       "GET /gmail/v1/users/me/threads?maxResults=5\n"))

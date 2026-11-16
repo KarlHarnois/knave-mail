@@ -1,3 +1,4 @@
+(use domain/label-scope label-of label-scope)
 (use domain/collections try-for-each)
 (use app/mail-app mail-app)
 (use domain/labels label-removal)
@@ -21,18 +22,20 @@
     (if (empty? stale)
       (ok (do))
       (do
-        (try (unlabel-threads! app account (ref stale) (:label query)))
+        (try (unlabel-threads! app account
+                               (ref stale)
+                               (ref (:scope query))))
         (recur app account query listed)))))
 
 (type unlabel-threads!
   (fn ((mut mail-app)
        (ref str)
        (ref (vec string))
-       (ref str))
+       (ref label-scope))
     (result unit mail-error)))
 
-(defn unlabel-threads! (app account thread-ids label)
-  (let (removal (label-removal label))
+(defn unlabel-threads! (app account thread-ids scope)
+  (let (removal (label-removal (as-str (unwrap-or (label-of scope) (str "")))))
     (try-for-each (iter thread-ids)
       (fn (thread-id)
         (relabel-stored! (mut (:store app))

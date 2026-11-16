@@ -1,3 +1,4 @@
+(use domain/label-scope label-of)
 (use adapters/driven/sqlite/connection sqlite-connection)
 (use adapters/driven/sqlite/rows as-internal)
 (use adapters/driven/sqlite/threads set-thread-labels)
@@ -27,7 +28,7 @@
   "SELECT labels FROM summaries WHERE account = ?1 AND id = ?2")
 
 (def select-summaries-in-label
-  "SELECT id, subject, participants, snippet, date, labels, message_count FROM summaries WHERE account = ?1 AND (?2 = 'ALL' OR EXISTS (SELECT 1 FROM json_each(summaries.labels) WHERE value = ?2)) ORDER BY date DESC LIMIT ?3")
+  "SELECT id, subject, participants, snippet, date, labels, message_count FROM summaries WHERE account = ?1 AND (?2 IS NULL OR EXISTS (SELECT 1 FROM json_each(summaries.labels) WHERE value = ?2)) ORDER BY date DESC LIMIT ?3")
 
 (def upsert-summary
   "INSERT OR REPLACE INTO summaries (account, id, subject, participants, snippet, date, labels, message_count) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)")
@@ -36,11 +37,11 @@
   "UPDATE summaries SET labels = ?3 WHERE account = ?1 AND id = ?2")
 
 (defn read-summaries (connection account query)
-  (let (rows (try (as-internal (summary-rows connection
-                                             account
-                                             (:label query)
-                                             (:limit query)
-                                             select-summaries-in-label))))
+  (let (rows (try (as-internal (summary-rows
+                                 connection account
+                                 (ref (label-of (ref (:scope query))))
+                                 (:limit query)
+                                 select-summaries-in-label))))
     (ok (collect (map (iter rows)
                    (fn (row) (summary-from row)))))))
 
@@ -101,7 +102,7 @@
   (rust "{0}.prepare_cached({4}).and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{1}, {2}, {3}], |{!row}| Ok(SummaryRow {{ id: {!row}.get(0)?, subject: {!row}.get(1)?, participants: {!row}.get(2)?, snippet: {!row}.get(3)?, date: {!row}.get(4)?, labels: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(5)?).unwrap_or_default(), message_count: {!row}.get(6)? }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection)
          (ref str)
-         (ref str)
+         (ref (option string))
          i64
          (ref str))
       (result (vec summary-row) string))))

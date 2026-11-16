@@ -1,3 +1,4 @@
+(use domain/label-scope label-scope)
 (use domain/labels label-id system-label)
 
 (use adapters/driving/cli/arguments parsed-arguments
@@ -23,7 +24,7 @@
   add-account
   (remove-account string)
   list-labels
-  (list-threads :label string
+  (list-threads :scope label-scope
                 :query string
                 :limit i64
                 :fresh bool)
@@ -47,7 +48,8 @@
       ("accounts" (accounts-command parsed (ref topic)))
       ("labels" (ok cli-command/list-labels))
       ("threads" (threads-command parsed (ref topic)))
-      ("search" (ok (thread-listing parsed (str "ALL") topic)))
+      ("search"
+       (ok (thread-listing parsed label-scope/all-mail topic)))
       ("send"
        (ok (cli-command/send :to (values-of parsed "--to")
                              :cc (values-of parsed "--cc")
@@ -79,8 +81,9 @@
   (match action
     ("list"
      (ok (thread-listing parsed
-                         (unwrap-or (value-of parsed "--label")
-                                    (label-id system-label/inbox))
+                         (label-scope/only (unwrap-or
+                                             (value-of parsed "--label")
+                                             (label-id system-label/inbox)))
                          (unwrap-or (value-of parsed "--query") (str "")))))
     ("show"
      (ok (cli-command/show-thread
@@ -89,8 +92,8 @@
            :format (unwrap-or (value-of parsed "--format") (str "text")))))
     (_ (err (unknown-action "threads" action)))))
 
-(defn thread-listing (parsed label query)
-  (cli-command/list-threads :label label
+(defn thread-listing (parsed scope query)
+  (cli-command/list-threads :scope scope
                             :query query
                             :limit (parsed-limit (value-of parsed "--limit")
                                                  default-limit)

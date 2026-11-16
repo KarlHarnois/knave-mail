@@ -5,7 +5,7 @@
                  thread thread-page thread-query
                  thread-summary)
 
-(use domain/summary in-label? newest-first summarize)
+(use domain/summary in-scope? newest-first summarize)
 
 (export labelled? labels-of matching-page matching-summaries
         summaries-with-ids thread-position)
@@ -37,7 +37,7 @@
                                 (fn (matched) (summarize matched))))
         labelled (collect (filter (into-iter summaries)
                             (fn (summary)
-                              (in-label? summary (:label query))))))
+                              (in-scope? summary (ref (:scope query)))))))
     (newest-first labelled query)))
 
 (type matching-page
@@ -51,7 +51,7 @@
         through-next (matching-summaries
                        remote
                        (ref (->thread-query
-                              :label (clone (:label query))
+                              :scope (clone (:scope query))
                               :query (clone (:query query))
                               :limit (+ offset (:limit query) 1))))
         ids (page-slice (ref (collect (map (iter through-next)

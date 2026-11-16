@@ -1,3 +1,4 @@
+(use domain/label-scope label-scope)
 (use app/client/mail-writer)
 (use domain/mail ->draft ->thread-query)
 (use ports/driving/mail-reader open-thread!)
@@ -22,7 +23,9 @@
            :reply-to reply-to))
 
 (defn sent-query ()
-  (->thread-query (str "SENT") (str "") 50))
+  (->thread-query (label-scope/only (str "SENT"))
+                  (str "")
+                  50))
 
 (deftest a-sent-message-is-listed-under-sent-without-a-sync
   (let (world (remote)

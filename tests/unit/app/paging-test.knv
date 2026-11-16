@@ -1,3 +1,4 @@
+(use domain/label-scope label-scope)
 (use domain/mail ->thread-query summary-page)
 (use ports/driving/mail-reader list-thread-page!)
 (use support/app-steps fail-remote! synced!)
@@ -11,7 +12,9 @@
                     (sample-thread "t-3" (vec "INBOX") 300))))
 
 (defn inbox-page (size)
-  (->thread-query (str "INBOX") (str "") size))
+  (->thread-query (label-scope/only (str "INBOX"))
+                  (str "")
+                  size))
 
 (type ids-of
   (fn ((ref summary-page)) (vec string)))

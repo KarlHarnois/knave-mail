@@ -1,5 +1,5 @@
 (use domain/mail message thread thread-query thread-summary)
-(use domain/summary in-label?)
+(use domain/summary in-scope?)
 
 (export ->stored-summary ->stored-thread message-in
         other-summaries other-threads replace-summaries!
@@ -25,8 +25,8 @@
   (collect (map (filter (iter stored)
                   (fn (entry)
                     (and (= (:account entry) email)
-                         (in-label? (ref (:summary entry))
-                                    (:label query)))))
+                         (in-scope? (ref (:summary entry))
+                                    (ref (:scope query))))))
                 (fn (entry) (clone (:summary entry))))))
 
 (type replace-summaries!

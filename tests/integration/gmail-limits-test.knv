@@ -1,3 +1,4 @@
+(use domain/label-scope label-scope)
 (use adapters/driven/gmail/mailbox gmail-mailbox)
 (use domain/mail-error error-kind)
 (use domain/mail ->thread-query)
@@ -60,7 +61,9 @@
 (deftest reads-are-spaced-to-stay-under-the-rate-limit
   (let (server (start-fake-gmail (ref (fixture-routes)))
         gmail (gmail-paced (ref server) 100)
-        query (->thread-query (str "INBOX") (str "") 20)
+        query (->thread-query (label-scope/only (str "INBOX"))
+                              (str "")
+                              20)
         started (clock-milliseconds))
     (unwrap-ok (fetch-threads! (mut gmail) (ref query)))
     (assert (>= (- (clock-milliseconds) started) 300))))

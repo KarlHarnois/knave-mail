@@ -1,3 +1,4 @@
+(use domain/label-scope label-scope)
 (use domain/labels label-id system-label)
 (use app/activity-log log-preview!)
 (use app/mail-app mail-app)
@@ -16,7 +17,7 @@
     (result unit mail-error)))
 
 (defn list-newest-inbox! (app account)
-  (let (query (->thread-query (label-id system-label/inbox)
+  (let (query (->thread-query (label-scope/only (label-id system-label/inbox))
                               (str "")
                               preview-limit)
         summaries (try (fetch-threads! (try (mailbox-for! (mut (:mailboxes app))

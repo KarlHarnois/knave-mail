@@ -1,6 +1,6 @@
 (use domain/labels label-change)
 (use domain/mail outgoing thread-query)
-(use domain/summary all-mail-label)
+(use domain/label-scope label-of)
 (use adapters/url url-encoded)
 
 (export label-path labels-path message-path modify-body
@@ -20,12 +20,15 @@
 (defn thread-list-path (query)
   (str users-me "/threads?maxResults="
        (:limit query)
-       (if (= (:label query) all-mail-label)
-         (str "")
-         (str "&labelIds=" (url-encoded (:label query))))
+       (label-filter (ref (:scope query)))
        (if (empty? (:query query))
          (str "")
          (str "&q=" (url-encoded (:query query))))))
+
+(defn label-filter (scope)
+  (match (label-of scope)
+    ((some label) (str "&labelIds=" (url-encoded (ref label))))
+    (none (str ""))))
 
 (defn thread-page-path (query page-token)
   (str (thread-list-path query)

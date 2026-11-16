@@ -1,3 +1,5 @@
+(use domain/label-scope scope-named)
+
 (use adapters/json/value bool-field json-value number-field
                          object-field optional-string-field
                          string-field string-list-field)
@@ -28,10 +30,11 @@
   (as-usage (string-list-field arguments "threadIds")))
 
 (defn thread-query-argument (arguments)
-  (ok (->thread-query :label (try (text-argument arguments "label"))
-                      :query (try (text-argument arguments "query"))
-                      :limit (try (as-usage (number-field arguments
-                                                          "limit"))))))
+  (ok (->thread-query
+        :scope (scope-named (as-str (ref (try (text-argument arguments
+                                                             "label")))))
+        :query (try (text-argument arguments "query"))
+        :limit (try (as-usage (number-field arguments "limit"))))))
 
 (defn draft-argument (arguments)
   (let (written (try (as-usage (object-field arguments "draft"))))

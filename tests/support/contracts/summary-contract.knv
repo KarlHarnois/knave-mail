@@ -1,3 +1,4 @@
+(use domain/label-scope label-scope)
 (use domain/labels archive-change)
 (use domain/mail ->thread-query)
 (use domain/summary summarize)
@@ -14,10 +15,11 @@
 (def account "ada@example.com")
 
 (defn ids (cache)
-  (collect (map (iter (unwrap-ok
-                        (load-threads
-                          cache account
-                          (ref (->thread-query (str "INBOX") (str "") 10)))))
+  (collect (map (iter (unwrap-ok (load-threads cache account
+                                               (ref (->thread-query (label-scope/only
+                                                                      (str "INBOX"))
+                                                                    (str "")
+                                                                    10)))))
                 (fn (summary) (clone (:id summary))))))
 
 (defn finds-summaries-by-id! (cache)

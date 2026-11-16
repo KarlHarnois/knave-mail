@@ -1,3 +1,4 @@
+(use domain/label-scope label-scope)
 (use domain/mail ->thread-query)
 (use ports/driving/mail-reader list-threads!)
 (use support/app-steps fail-remote! listed-ids! synced!)
@@ -12,7 +13,7 @@
                     (sample-thread "t-2" (vec "INBOX") 200))))
 
 (defn search-for (text limit)
-  (->thread-query (str "ALL") (str text) limit))
+  (->thread-query label-scope/all-mail (str text) limit))
 
 (deftest a-search-reuses-summaries-already-in-the-cache
   (let (world (remote)

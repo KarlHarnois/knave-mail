@@ -1,3 +1,5 @@
+(use domain/label-scope label-scope)
+
 (use adapters/driving/cli/arguments parse-arguments switch?
                                     value-of)
 
@@ -53,19 +55,21 @@
 
 (deftest threads-list-defaults-to-the-inbox
   (assert (= (command (vec "threads" "list"))
-             (cli-command/list-threads (str "INBOX") (str "") 50 false))))
+             (cli-command/list-threads (label-scope/only (str "INBOX"))
+                                       (str "")
+                                       50 false))))
 
 (deftest threads-list-reads-its-label-query-and-limit
   (assert (= (command (vec "threads" "list" "--label"
                            "STARRED" "--query" "lunch"
                            "--limit" "5"))
-             (cli-command/list-threads (str "STARRED")
+             (cli-command/list-threads (label-scope/only (str "STARRED"))
                                        (str "lunch")
                                        5 false))))
 
 (deftest search-looks-in-all-mail
   (assert (= (command (vec "search" "from:alan"))
-             (cli-command/list-threads (str "ALL")
+             (cli-command/list-threads label-scope/all-mail
                                        (str "from:alan")
                                        50 false))))
 
@@ -117,4 +121,6 @@
 
 (deftest fresh-lists-threads-from-gmail
   (assert (= (command (vec "threads" "list" "--fresh"))
-             (cli-command/list-threads (str "INBOX") (str "") 50 true))))
+             (cli-command/list-threads (label-scope/only (str "INBOX"))
+                                       (str "")
+                                       50 true))))

@@ -1,3 +1,4 @@
+(use domain/label-scope label-scope)
 (use app/client/mail-writer)
 (use adapters/driving/cli/command cli-command)
 
@@ -23,15 +24,16 @@
     (synced! (mut app))
     (surface-remotely! (ref world)
                        (sample-thread "t-0" (vec "INBOX") 1600000000000))
-    (result-text
-      (ref (unwrap-ok
-             (run-cli-command!
-               (mut app)
-               (ref (->cli-request
-                      (cli-command/list-threads (str "INBOX") (str "") 10 fresh)
-                      (str world-account)
-                      (str "")
-                      false))))))))
+    (result-text (ref (unwrap-ok (run-cli-command!
+                                   (mut app)
+                                   (ref (->cli-request (cli-command/list-threads
+                                                         (label-scope/only (str "INBOX"))
+                                                         (str "")
+                                                         10
+                                                         fresh)
+                                                       (str world-account)
+                                                       (str "")
+                                                       false))))))))
 
 (deftest fresh-lists-threads-the-cache-has-not-seen
   (assert (contains? (ref (listed-with-a-surfaced-thread true)) "t-0")))

@@ -1,3 +1,4 @@
+(use domain/label-scope label-scope)
 (use domain/labels label-id system-label)
 (use domain/collections try-for-each)
 (use app/mail-app mail-app)
@@ -16,7 +17,7 @@
 (defn relist-labels! (app account labels)
   (try-for-each (iter labels)
     (fn (label)
-      (let (query (->thread-query (label-id label)
+      (let (query (->thread-query (label-scope/only (label-id label))
                                   (str "")
                                   (:sync-limit app)))
         (map-ok (listed-threads! app account (ref query))

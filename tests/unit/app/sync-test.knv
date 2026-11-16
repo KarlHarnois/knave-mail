@@ -1,3 +1,4 @@
+(use domain/label-scope label-scope)
 (use domain/freshness freshness)
 (use domain/mail ->thread-query)
 (use app/sync/prefetching prefetch-limit)
@@ -13,7 +14,9 @@
                           world-account)
 
 (defn inbox-query ()
-  (->thread-query (str "INBOX") (str "") 50))
+  (->thread-query (label-scope/only (str "INBOX"))
+                  (str "")
+                  50))
 
 (defn remote ()
   (remote-with (vec (sample-thread "t-1" (vec "INBOX" "UNREAD") 100)

@@ -53,11 +53,11 @@
          (ok cli-result/done)))
       (list-labels (ok (cli-result/labels-listed (try (list-labels! client
                                                                     account)))))
-      ((list-threads label query limit fresh)
+      ((list-threads scope query limit fresh)
        (ok (cli-result/threads-listed
              (try (threads-for!
                     client account
-                    (ref (->thread-query (clone label) (clone query) limit))
+                    (ref (->thread-query (clone scope) (clone query) limit))
                     (deref fresh))))))
       ((show-thread thread-id format)
        (ok (cli-result/thread-shown

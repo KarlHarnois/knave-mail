@@ -1,3 +1,4 @@
+(use domain/label-scope label-scope)
 (use domain/freshness freshness)
 
 (use adapters/driven/memory/remote-mail fail-when!
@@ -20,7 +21,9 @@
         synced!)
 
 (defn inbox-query ()
-  (->thread-query (str "INBOX") (str "") 50))
+  (->thread-query (label-scope/only (str "INBOX"))
+                  (str "")
+                  50))
 
 (defn ada-message (message-id)
   (->message-ref :account (str world-account)

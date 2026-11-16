@@ -1,3 +1,4 @@
+(use domain/label-scope label-scope)
 (use domain/labels label-id system-label)
 (use app/activity-log log-full-sync-done!)
 (use domain/collections try-for-each)
@@ -37,7 +38,7 @@
     (result unit mail-error)))
 
 (defn sync-label! (app account label)
-  (let (query (->thread-query (label-id label)
+  (let (query (->thread-query (label-scope/only (label-id label))
                               (str "")
                               (:sync-limit app))
         summaries (try (fetch-threads! (try (mailbox-for! (mut (:mailboxes app))

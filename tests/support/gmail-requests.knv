@@ -1,3 +1,4 @@
+(use domain/label-scope label-scope)
 (use domain/mail ->thread-query thread-query)
 (use support/fake-gmail fake-gmail requests-seen)
 
@@ -5,7 +6,9 @@
         sent-mime)
 
 (defn inbox ()
-  (->thread-query (str "INBOX") (str "") 20))
+  (->thread-query (label-scope/only (str "INBOX"))
+                  (str "")
+                  20))
 
 (defn requests-matching (server prefix)
   (collect (filter (into-iter (requests-seen server))

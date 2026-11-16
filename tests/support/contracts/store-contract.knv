@@ -1,3 +1,4 @@
+(use domain/label-scope label-scope)
 (use domain/labels archive-change)
 (use domain/mail ->account ->label ->thread-query)
 (use domain/summary summarize)
@@ -20,7 +21,9 @@
 (def account "ada@example.com")
 
 (defn inbox ()
-  (->thread-query (str "INBOX") (str "") 10))
+  (->thread-query (label-scope/only (str "INBOX"))
+                  (str "")
+                  10))
 
 (type ids
   (where ((cache store))

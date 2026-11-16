@@ -1,3 +1,5 @@
+(use domain/label-scope label-scope)
+
 (export ->account ->draft ->label ->mail-changes ->message
         ->message-ref ->outgoing ->summary-page ->thread
         ->thread-page ->thread-query ->thread-ref
@@ -57,7 +59,7 @@
   :reply-to (option string))
 
 (defstruct thread-query
-  :label string
+  :scope label-scope
   :query string
   :limit i64)
 
