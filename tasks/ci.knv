@@ -1,14 +1,25 @@
 (use steps ->command run!)
 
+(def lint-tasks
+  "for task in tasks/*.knv; do knave lint --color never \"$task\" || exit 1; done")
+
 (def capped-bun-test
   "if systemd-run --user --scope --quiet true 2>/dev/null; then exec systemd-run --user --scope --quiet -p MemoryMax=3G bun test; else exec bun test; fi")
 
 (deftask ci ()
-  "Runs every check in order: formatting, file lengths, the frontend, the build, the knave tests and the GUI scenarios."
+  "Runs every check in order: formatting, lint, file lengths, the frontend, the build, the knave tests and the GUI scenarios."
   (try (run! (->command :desc "knave fmt --check"
                         :dir "."
                         :cmd "knave"
                         :args (vec "fmt" "--check"))))
+  (try (run! (->command :desc "knave lint"
+                        :dir "."
+                        :cmd "knave"
+                        :args (vec "lint" "--color" "never"))))
+  (try (run! (->command :desc "knave lint tasks"
+                        :dir "."
+                        :cmd "sh"
+                        :args (vec "-c" lint-tasks))))
   (try (run! (->command :desc "file lengths"
                         :dir "."
                         :cmd "knave"
