@@ -1,6 +1,6 @@
 (use domain/freshness freshness)
 (use domain/mail ->thread-query)
-(use app/prefetching prefetch-limit)
+(use app/sync/prefetching prefetch-limit)
 (use domain/mail-error error-kind)
 
 (use ports/driving/mail-reader list-labels! list-threads!

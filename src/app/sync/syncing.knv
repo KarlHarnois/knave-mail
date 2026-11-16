@@ -2,10 +2,10 @@
                       log-history-expired!
                       log-incremental-sync-started!)
 
-(use app/changes sync-changes!)
-(use app/full-sync full-sync! synced-labels)
+(use app/sync/changes sync-changes!)
+(use app/sync/full-sync full-sync! synced-labels)
 (use app/mail-app mail-app)
-(use app/relisting relist-labels!)
+(use app/sync/relisting relist-labels!)
 (use app/mailboxes mailbox-for!)
 (use domain/mail-error error-kind mail-error)
 (use ports/driven/mailbox fetch-labels!)
