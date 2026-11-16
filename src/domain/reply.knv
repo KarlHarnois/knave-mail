@@ -1,7 +1,19 @@
 (use domain/mail ->draft draft message)
 (use domain/text join-with prefixed-ignoring-case? quoted)
 
-(export forward-draft reply-all-draft reply-draft)
+(export draft-for draft-kind forward-draft reply-all-draft
+        reply-draft)
+
+(defenum draft-kind
+  reply
+  reply-all
+  forward)
+
+(defn draft-for (kind original own-address)
+  (match kind
+    (reply (reply-draft original))
+    (reply-all (reply-all-draft original own-address))
+    (forward (forward-draft original))))
 
 (def reply-prefix "Re: ")
 

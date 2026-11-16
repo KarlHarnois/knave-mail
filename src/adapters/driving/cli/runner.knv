@@ -17,9 +17,10 @@
                                list-labels! list-threads!
                                mail-reader open-thread!)
 
-(use ports/driving/mail-writer draft-forward! draft-reply!
-                               draft-reply-all! mail-writer
+(use ports/driving/mail-writer draft! mail-writer
                                send-draft!)
+
+(use domain/reply draft-kind)
 
 (use ports/driving/mail-labeler mail-labeler
                                 relabel-threads!)
@@ -70,13 +71,15 @@
                                   (clone (:body request))
                                   none)))
       ((reply message-id all)
-       (let (drafted (try (if (deref all)
-                            (draft-reply-all! client account message-id)
-                            (draft-reply! client account message-id))))
+       (let (drafted (try (draft! client account message-id
+                                  (if (deref all)
+                                    draft-kind/reply-all
+                                    draft-kind/reply))))
          (deliver-or-show! client request
                            (with-written-body drafted (ref (:body request))))))
       ((forward message-id to)
-       (let (drafted (try (draft-forward! client account message-id)))
+       (let (drafted (try (draft! client account message-id
+                                  draft-kind/forward)))
          (deliver-or-show! client request
                            (assoc (with-written-body drafted
                                                      (ref (:body request)))

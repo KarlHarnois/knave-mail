@@ -3,7 +3,7 @@
 (use domain/labels label-change)
 (use domain/mail draft message)
 (use domain/outgoing new-outgoing reply-outgoing)
-(use domain/reply forward-draft reply-all-draft reply-draft)
+(use domain/reply draft-for draft-kind)
 (use app/caching cache-thread!)
 (use domain/mail-error error-kind error-message mail-error)
 (use domain/text join-with)
@@ -11,30 +11,19 @@
 (use ports/driven/mailbox deliver! relabel!)
 (use ports/driven/store load-message relabel-stored!)
 
-(export compose-forward compose-reply compose-reply-all
-        relabel-each! send!)
+(export compose-draft relabel-each! send!)
 
-(type compose-reply
-  (fn ((ref mail-app) (ref str) (ref str))
+(type compose-draft
+  (fn ((ref mail-app)
+       (ref str)
+       (ref str)
+       draft-kind)
     (result draft mail-error)))
 
-(defn compose-reply (app account message-id)
-  (ok (reply-draft (ref (try (stored-message app account message-id))))))
-
-(type compose-reply-all
-  (fn ((ref mail-app) (ref str) (ref str))
-    (result draft mail-error)))
-
-(defn compose-reply-all (app account message-id)
-  (ok (reply-all-draft (ref (try (stored-message app account message-id)))
-                       account)))
-
-(type compose-forward
-  (fn ((ref mail-app) (ref str) (ref str))
-    (result draft mail-error)))
-
-(defn compose-forward (app account message-id)
-  (ok (forward-draft (ref (try (stored-message app account message-id))))))
+(defn compose-draft (app account message-id kind)
+  (ok (draft-for kind
+                 (ref (try (stored-message app account message-id)))
+                 account)))
 
 (type send!
   (fn ((mut mail-app) (ref str) (ref draft))

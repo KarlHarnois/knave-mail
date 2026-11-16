@@ -31,10 +31,10 @@
 (use ports/driving/mail-reader list-labels! mail-reader
                                open-thread!)
 
-(use ports/driving/mail-writer draft-forward! draft-reply!
-                               draft-reply-all! mail-writer
+(use ports/driving/mail-writer draft! mail-writer
                                send-draft!)
 
+(use domain/reply draft-kind)
 (use ports/driving/mail-syncer mail-syncer sync-account!)
 
 (export answer! run-command!)
@@ -93,13 +93,10 @@
                                   (ref (try (account-argument arguments)))
                                   (ref (try (text-argument arguments
                                                            "threadId")))))))))
-    ("reply-draft" (reply-draft! client arguments))
+    ("reply-draft"
+     (draft-command! client arguments (reply-kind arguments)))
     ("forward-draft"
-     (ok (draft-json (ref (try (draft-forward!
-                                 client
-                                 (ref (try (account-argument arguments)))
-                                 (ref (try (text-argument arguments
-                                                          "messageId")))))))))
+     (draft-command! client arguments draft-kind/forward))
     ("send"
      (do
        (try (send-draft! client
@@ -113,19 +110,22 @@
        (ok (empty-object))))
     (_ (relabel-command! client command arguments))))
 
-(type reply-draft!
+(type draft-command!
   (where ((client mail-writer))
-    (fn ((mut client) (ref json-value))
+    (fn ((mut client) (ref json-value) draft-kind)
       (result json-value mail-error))))
 
-(defn reply-draft! (client arguments)
-  (let (account (try (account-argument arguments))
-        message-id (try (text-argument arguments "messageId")))
-    (ok (draft-json
-          (ref (try
-                 (if (try (flag-argument arguments "all"))
-                   (draft-reply-all! client (ref account) (ref message-id))
-                   (draft-reply! client (ref account) (ref message-id)))))))))
+(defn draft-command! (client arguments kind)
+  (ok (draft-json (ref (try (draft! client
+                                    (ref (try (account-argument arguments)))
+                                    (ref (try (text-argument arguments
+                                                             "messageId")))
+                                    kind))))))
+
+(defn reply-kind (arguments)
+  (match (flag-argument arguments "all")
+    ((ok true) draft-kind/reply-all)
+    (_ draft-kind/reply)))
 
 (type relabel-command!
   (where ((client mail-labeler))
