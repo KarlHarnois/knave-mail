@@ -12,7 +12,7 @@
   :remotes (vec (shared remote-mail)))
 
 (impl mailbox-provider memory-provider
-  (open-mailbox! (provider email)
+  (connect-mailbox! (provider email)
     (match (email-position (ref (:emails provider)) email)
       ((some index)
        (ok (the (box mailbox)

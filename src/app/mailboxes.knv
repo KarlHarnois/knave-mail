@@ -1,8 +1,8 @@
 (use domain/mail-error mail-error)
 (use ports/driven/mailbox mailbox)
 
-(use ports/driven/mailbox-provider mailbox-provider
-                                   open-mailbox!)
+(use ports/driven/mailbox-provider connect-mailbox!
+                                   mailbox-provider)
 
 (export ->mailboxes mailbox-for! mailboxes)
 
@@ -20,7 +20,7 @@
     ((some index) (ok (opened-at! all index)))
     (none (do
             (local opened
-              (try (open-mailbox! (mut (:provider all)) email)))
+              (try (connect-mailbox! (mut (:provider all)) email)))
             (push! (mut (:emails all)) (str email))
             (push! (mut (:opened all)) opened)
             (ok (last-opened! all))))))
