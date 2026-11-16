@@ -1,6 +1,5 @@
 (use app/mail-app mail-app)
-(use app/sync/preview preview-sync!)
-(use app/sync/syncing sync!)
+(use app/sync/syncing preview-sync! sync!)
 (use ports/driving/mail-syncer mail-syncer)
 
 (impl mail-syncer mail-app

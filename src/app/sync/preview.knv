@@ -5,20 +5,11 @@
 (use domain/mail ->thread-query)
 (use domain/mail-error mail-error)
 (use ports/driven/mailbox fetch-threads!)
-(use ports/driven/store load-checkpoint save-threads!)
+(use ports/driven/store save-threads!)
 
-(export preview-limit preview-sync!)
+(export list-newest-inbox! preview-limit)
 
 (def preview-limit 25)
-
-(type preview-sync!
-  (fn ((mut mail-app) (ref str))
-    (result bool mail-error)))
-
-(defn preview-sync! (app account)
-  (match (try (load-checkpoint (ref (:store app)) account))
-    ((some _) (ok false))
-    (none (try (list-newest-inbox! app account)) (ok true))))
 
 (type list-newest-inbox!
   (fn ((mut mail-app) (ref str))
