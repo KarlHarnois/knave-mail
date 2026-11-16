@@ -10,11 +10,11 @@
 (use adapters/driven/sqlite/connection open-database
                                        sqlite-connection)
 
-(use adapters/driven/sqlite/summaries load-summaries
-                                      load-summaries-with-ids
+(use adapters/driven/sqlite/summaries read-summaries
+                                      read-summaries-with-ids
+                                      read-summary-labels
                                       relabel-summary
-                                      save-summaries
-                                      summary-labels)
+                                      write-summaries)
 
 (use adapters/driven/sqlite/threads erase-thread
                                     read-message read-thread
@@ -50,13 +50,13 @@
     (write-labels (ref (:connection kept)) email labels))
 
   (load-threads (kept email query)
-    (load-summaries (ref (:connection kept)) email query))
+    (read-summaries (ref (:connection kept)) email query))
 
   (save-threads! (kept email summaries)
-    (save-summaries (ref (:connection kept)) email summaries))
+    (write-summaries (ref (:connection kept)) email summaries))
 
   (load-summaries-of (kept email ids)
-    (load-summaries-with-ids (ref (:connection kept)) email ids))
+    (read-summaries-with-ids (ref (:connection kept)) email ids))
 
   (load-thread (kept email thread-id)
     (read-thread (ref (:connection kept)) email thread-id))
@@ -86,7 +86,7 @@
      (try (relabel-thread connection email thread-id
                           (apply-label-change (ref (:labels stored)) change))))
     (none (do)))
-  (match (try (summary-labels connection email thread-id))
+  (match (try (read-summary-labels connection email thread-id))
     ((some labels)
      (relabel-summary connection email thread-id
                       (apply-label-change (ref labels) change)))

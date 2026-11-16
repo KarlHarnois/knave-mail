@@ -8,8 +8,8 @@
 
 (use domain/mail-error mail-error)
 
-(export load-summaries load-summaries-with-ids
-        relabel-summary save-summaries summary-labels)
+(export read-summaries read-summaries-with-ids
+        read-summary-labels relabel-summary write-summaries)
 
 (defstruct summary-row
   :id string
@@ -35,7 +35,7 @@
 (def set-summary-labels
   "UPDATE summaries SET labels = ?3 WHERE account = ?1 AND id = ?2")
 
-(defn load-summaries (connection account query)
+(defn read-summaries (connection account query)
   (let (rows (try (as-internal (summary-rows connection
                                              account
                                              (:label query)
@@ -44,7 +44,7 @@
     (ok (collect (map (iter rows)
                    (fn (row) (summary-from row)))))))
 
-(defn load-summaries-with-ids (connection account ids)
+(defn read-summaries-with-ids (connection account ids)
   (let (rows (try (as-internal (summary-rows-with-ids
                                  connection account ids
                                  select-summaries-with-ids))))
@@ -71,7 +71,7 @@
                     :labels (clone (:labels row))
                     :message-count (:message-count row)))
 
-(defn save-summaries (connection account summaries)
+(defn write-summaries (connection account summaries)
   (try (as-internal (upsert-summaries connection account
                                       summaries
                                       upsert-summary)))
@@ -84,7 +84,7 @@
                                       thread-id labels
                                       set-summary-labels)))
 
-(defn summary-labels (connection account thread-id)
+(defn read-summary-labels (connection account thread-id)
   (as-internal (stored-summary-labels connection account
                                       thread-id
                                       select-summary-labels)))
