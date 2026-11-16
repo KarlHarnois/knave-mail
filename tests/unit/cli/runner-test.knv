@@ -9,7 +9,6 @@
 
 (use adapters/driving/cli/text-presenter result-text)
 (use adapters/driving/cli/exit-codes exit-code)
-(use app/client)
 (use domain/mail-error mail-error)
 (use support/app-steps remote-sent synced!)
 

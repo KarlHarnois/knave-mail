@@ -1,6 +1,5 @@
-(use app/client)
 (use domain/mail ->thread-query)
-(use ports/driving/mail-client list-threads! open-thread!)
+(use ports/driving/mail-reader list-threads! open-thread!)
 
 (use support/app-steps fail-remote! failing-kind inbox-query
                        listed-ids! remote-thread synced!)

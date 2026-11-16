@@ -1,6 +1,7 @@
-(use app/client)
+(use app/client/mail-syncer)
+(use app/client/mail-reader)
 (use domain/labels archive-change unread-change)
-(use ports/driving/mail-client open-thread!)
+(use ports/driving/mail-reader open-thread!)
 
 (use support/app-steps inbox-query listed-ids! remote-thread
                        synced!)

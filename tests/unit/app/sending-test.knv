@@ -1,6 +1,7 @@
-(use app/client)
+(use app/client/mail-writer)
 (use domain/mail ->draft ->thread-query)
-(use ports/driving/mail-client open-thread! send-draft!)
+(use ports/driving/mail-reader open-thread!)
+(use ports/driving/mail-writer send-draft!)
 
 (use support/app-steps fail-remote! listed-ids! remote-sent
                        remote-thread synced!)

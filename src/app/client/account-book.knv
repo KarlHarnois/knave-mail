@@ -1,0 +1,26 @@
+(use app/mail-app mail-app)
+(use domain/mail account)
+(use domain/mail-error mail-error)
+(use ports/driven/authorizer authorize!)
+
+(use ports/driven/store forget-account! load-accounts
+                        save-account!)
+
+(use ports/driving/account-book account-book)
+
+(impl account-book mail-app
+  (list-accounts! (app)
+                  (load-accounts (ref (:store app))))
+  (add-account! (app) (add-authorized-account! app))
+  (remove-account! (app account)
+                   (forget-account! (mut (:store app)) account)))
+
+(type add-authorized-account!
+  (fn ((mut mail-app))
+    (result account mail-error)))
+
+(defn add-authorized-account! (app)
+  (let (authorized (try (authorize! (mut (:authorizer app)))))
+    (try (save-account! (mut (:store app))
+                        (ref authorized)))
+    (ok authorized)))

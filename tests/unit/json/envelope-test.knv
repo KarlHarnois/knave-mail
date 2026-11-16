@@ -4,7 +4,6 @@
                                     request-command
                                     synced-event)
 
-(use app/client)
 (use domain/mail-error mail-error)
 (use support/app-steps synced!)
 

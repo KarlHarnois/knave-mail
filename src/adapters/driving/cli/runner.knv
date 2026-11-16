@@ -9,15 +9,22 @@
 
 (use domain/mail-error mail-error)
 
-(use ports/driving/mail-client add-account! draft-forward!
-                               draft-reply! draft-reply-all!
-                               list-accounts!
-                               list-fresh-threads!
+(use ports/driving/account-book account-book add-account!
+                                list-accounts!
+                                remove-account!)
+
+(use ports/driving/mail-reader list-fresh-threads!
                                list-labels! list-threads!
-                               mail-client open-thread!
-                               relabel-threads!
-                               remove-account! send-draft!
-                               sync-account!)
+                               mail-reader open-thread!)
+
+(use ports/driving/mail-writer draft-forward! draft-reply!
+                               draft-reply-all! mail-writer
+                               send-draft!)
+
+(use ports/driving/mail-labeler mail-labeler
+                                relabel-threads!)
+
+(use ports/driving/mail-syncer mail-syncer sync-account!)
 
 (export ->cli-request cli-request run-cli-command!)
 
@@ -28,7 +35,8 @@
   :dry-run bool)
 
 (type run-cli-command!
-  (where ((client mail-client))
+  (where ((client account-book mail-reader mail-writer
+                  mail-labeler mail-syncer))
     (fn ((mut client) (ref cli-request))
       (result cli-result mail-error))))
 
@@ -84,7 +92,7 @@
       (help (ok (cli-result/help-shown (usage-text)))))))
 
 (type deliver-or-show!
-  (where ((client mail-client))
+  (where ((client mail-writer))
     (fn ((mut client) (ref cli-request) draft)
       (result cli-result mail-error))))
 
@@ -121,7 +129,7 @@
     (_ (str word))))
 
 (type threads-for!
-  (where ((client mail-client))
+  (where ((client mail-reader))
     (fn ((mut client)
          (ref str)
          (ref thread-query)

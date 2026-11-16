@@ -1,0 +1,11 @@
+(use domain/labels label-change)
+(use domain/mail-error mail-error)
+
+(export mail-labeler)
+
+(deftrait mail-labeler
+  (relabel-threads! (fn ((mut self)
+                         (ref str)
+                         (ref (vec string))
+                         (ref label-change))
+                      (result unit mail-error))))

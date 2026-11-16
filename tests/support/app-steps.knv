@@ -2,14 +2,14 @@
                                         remote-mail)
 
 (use adapters/driven/memory/shared shared with-shared!)
-(use app/client)
 (use app/mail-app mail-app)
 
 (use domain/mail ->thread-query outgoing thread thread-query
                  thread-summary)
 
 (use domain/mail-error error-kind mail-error)
-(use ports/driving/mail-client list-threads! sync-account!)
+(use ports/driving/mail-reader list-threads!)
+(use ports/driving/mail-syncer sync-account!)
 (use support/memory-world world-account)
 
 (export fail-remote! failing-kind inbox-query listed-ids!

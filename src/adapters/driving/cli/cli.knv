@@ -13,7 +13,7 @@
 
 (use adapters/driving/cli/text-presenter result-text)
 (use domain/mail-error error-message mail-error)
-(use ports/driving/mail-client list-accounts! mail-client)
+(use ports/driving/account-book account-book list-accounts!)
 
 (export run-cli!)
 

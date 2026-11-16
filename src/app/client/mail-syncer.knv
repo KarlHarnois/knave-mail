@@ -1,0 +1,8 @@
+(use app/mail-app mail-app)
+(use app/preview preview-sync!)
+(use app/syncing sync!)
+(use ports/driving/mail-syncer mail-syncer)
+
+(impl mail-syncer mail-app
+  (sync-account! (app account) (sync! app account))
+  (preview-account! (app account) (preview-sync! app account)))

@@ -1,11 +1,11 @@
-(use app/client)
 (use domain/mail ->thread-query)
 (use app/prefetching prefetch-limit)
 (use domain/mail-error error-kind)
 
-(use ports/driving/mail-client list-labels! list-threads!
-                               open-thread! sync-account!)
+(use ports/driving/mail-reader list-labels! list-threads!
+                               open-thread!)
 
+(use ports/driving/mail-syncer sync-account!)
 (use support/app-steps fail-remote!)
 
 (use support/memory-world app-over remote-with sample-thread

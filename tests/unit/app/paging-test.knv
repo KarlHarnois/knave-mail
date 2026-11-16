@@ -1,6 +1,5 @@
-(use app/client)
 (use domain/mail ->thread-query summary-page)
-(use ports/driving/mail-client list-thread-page!)
+(use ports/driving/mail-reader list-thread-page!)
 (use support/app-steps fail-remote! synced!)
 
 (use support/memory-world app-over remote-with sample-thread

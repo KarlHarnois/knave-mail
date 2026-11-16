@@ -1,3 +1,4 @@
+(use app/client/mail-syncer)
 (use adapters/driving/json/envelope sync-progress-event)
 (use adapters/driving/webview/sync-requests sync-event)
 
@@ -7,7 +8,6 @@
 (use adapters/driving/webview/window reply-outbox
                                      send-reply)
 
-(use app/client)
 (use app/mail-app mail-app)
 (use composition/gmail-backend gmail-app)
 (use composition/logging chosen-log)
@@ -18,7 +18,7 @@
 
 (use composition/settings settings-from)
 
-(use ports/driving/mail-client preview-account!
+(use ports/driving/mail-syncer preview-account!
                                sync-account!)
 
 (use adapters/clock clock-milliseconds)

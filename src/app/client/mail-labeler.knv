@@ -1,0 +1,7 @@
+(use app/mail-app mail-app)
+(use app/writing relabel-each!)
+(use ports/driving/mail-labeler mail-labeler)
+
+(impl mail-labeler mail-app
+  (relabel-threads! (app account thread-ids change)
+                    (relabel-each! app account thread-ids change)))

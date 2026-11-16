@@ -1,3 +1,5 @@
+(use composition/window-client)
+
 (use adapters/driven/memory/memory-log logged-lines
                                        new-memory-log
                                        same-log)
@@ -15,8 +17,6 @@
 
 (use domain/mail-error mail-error)
 (use adapters/driving/webview/window request-inbox)
-(use app/client)
-(use composition/window-client)
 (use ports/driven/event-log event-log)
 (use support/app-steps remote-thread synced!)
 (use support/gmail-requests contains?)

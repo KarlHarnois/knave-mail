@@ -1,3 +1,10 @@
+(use composition/window-client)
+(use app/client/mail-writer)
+(use app/client/mail-syncer)
+(use app/client/mail-reader)
+(use app/client/mail-labeler)
+(use app/client/account-book)
+
 (use adapters/driving/cli/arguments parsed-arguments
                                     positional)
 
@@ -8,8 +15,6 @@
 (use adapters/driving/webview/session serve-requests!)
 (use adapters/driving/webview/sync-runner ->inline-sync)
 (use adapters/driving/webview/window open-window)
-(use app/client)
-(use composition/window-client)
 (use app/mail-app mail-app)
 (use adapters/driving/webview/relabel-runner ->inline-relabel)
 (use composition/background-relabel start-background-relabel)

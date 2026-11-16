@@ -5,13 +5,13 @@
 (use adapters/json/value bool-field json-value)
 (use domain/mail-error mail-error)
 
-(use ports/driving/mail-client list-fresh-threads!
-                               list-threads! mail-client)
+(use ports/driving/mail-reader list-fresh-threads!
+                               list-threads! mail-reader)
 
 (export threads-listed!)
 
 (type threads-listed!
-  (where ((client mail-client))
+  (where ((client mail-reader))
     (fn ((mut client) (ref json-value))
       (result json-value mail-error))))
 

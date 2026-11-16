@@ -1,9 +1,8 @@
-(use app/client)
-
-(use ports/driving/mail-client list-fresh-threads!
-                               relabel-threads!
-                               sync-account!)
-
+(use app/client/mail-labeler)
+(use app/client/mail-syncer)
+(use ports/driving/mail-reader list-fresh-threads!)
+(use ports/driving/mail-labeler relabel-threads!)
+(use ports/driving/mail-syncer sync-account!)
 (use domain/labels archive-change)
 
 (use support/app-steps fail-remote! inbox-query listed-ids!

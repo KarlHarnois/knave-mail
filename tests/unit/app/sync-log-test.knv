@@ -1,13 +1,17 @@
+(use app/client/mail-writer)
+(use app/client/mail-labeler)
+
 (use adapters/driven/memory/memory-log logged-lines
                                        new-memory-log
                                        same-log)
 
-(use app/client)
 (use domain/labels archive-change)
 (use domain/mail ->draft)
+(use ports/driving/mail-reader open-thread!)
+(use ports/driving/mail-writer send-draft!)
+(use ports/driving/mail-labeler relabel-threads!)
 
-(use ports/driving/mail-client open-thread! preview-account!
-                               relabel-threads! send-draft!
+(use ports/driving/mail-syncer preview-account!
                                sync-account!)
 
 (use support/app-steps fail-remote! synced!)
