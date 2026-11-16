@@ -30,14 +30,14 @@
 
 (impl sync-runner background-sync
   (start-sync! (runner account outbox)
-               (let (owned-account (str account))
-                 (set! (:started runner)
-                       (+ (:started runner) 1))
-                 (run-in-background outbox
-                   (fn (progress)
-                     (let (moved-account owned-account)
-                       (synced-in-own-app (ref moved-account) progress))))
-                 true)))
+    (let (owned-account (str account))
+      (set! (:started runner)
+            (+ (:started runner) 1))
+      (run-in-background outbox
+        (fn (progress)
+          (let (moved-account owned-account)
+            (synced-in-own-app (ref moved-account) progress))))
+      true)))
 
 (defn synced-in-own-app (account progress)
   (let (chosen (settings-from (ref (command-line-args)))

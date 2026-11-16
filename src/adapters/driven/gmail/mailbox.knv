@@ -38,43 +38,49 @@
 
 (impl mailbox gmail-mailbox
   (fetch-labels! (box)
-                 (let (listed (try (api-get! (mut (:session box))
-                                             (ref (labels-path))))
-                       paths (collect (map (iter (label-ids (ref listed)))
-                                        (fn (id) (label-path id))))
-                       details (try (api-get-all! (mut (:session box))
-                                                  (ref paths))))
-                   (ok (collect (map (iter details)
-                                  (fn (detail) (label-from detail)))))))
+    (let (listed (try (api-get! (mut (:session box))
+                                (ref (labels-path))))
+          paths (collect (map (iter (label-ids (ref listed)))
+                           (fn (id) (label-path id))))
+          details (try (api-get-all! (mut (:session box))
+                                     (ref paths))))
+      (ok (collect (map (iter details)
+                     (fn (detail) (label-from detail)))))))
+
   (fetch-threads! (box query)
-                  (let (ids (try (listed-thread-ids! (mut (:session box))
-                                                     query)))
-                    (summaries-of! (mut (:session box))
-                                   (ref ids))))
+    (let (ids (try (listed-thread-ids! (mut (:session box)) query)))
+      (summaries-of! (mut (:session box))
+                     (ref ids))))
+
   (list-thread-ids! (box query)
-                    (listed-thread-ids! (mut (:session box)) query))
+    (listed-thread-ids! (mut (:session box)) query))
+
   (list-thread-page! (box query page-token)
-                     (listed-thread-page! (mut (:session box))
-                                          query page-token))
+    (listed-thread-page! (mut (:session box)) query page-token))
+
   (fetch-summaries! (box ids)
-                    (summaries-of! (mut (:session box)) ids))
+    (summaries-of! (mut (:session box)) ids))
+
   (fetch-thread! (box thread-id)
-                 (fetched-thread! (mut (:session box)) thread-id))
+    (fetched-thread! (mut (:session box)) thread-id))
+
   (fetch-history-id! (box)
-                     (fetched-history-id! (mut (:session box))))
+    (fetched-history-id! (mut (:session box))))
+
   (fetch-changes! (box since)
-                  (fetched-changes! (mut (:session box)) since))
+    (fetched-changes! (mut (:session box)) since))
+
   (deliver! (box sent)
-            (ok (sent-thread-id (ref (try (api-post! (mut (:session box))
-                                                     (ref (send-path))
-                                                     (ref (send-body
-                                                            sent))))))))
+    (ok (sent-thread-id (ref (try (api-post! (mut (:session box))
+                                             (ref (send-path))
+                                             (ref (send-body sent))))))))
+
   (relabel! (box thread-id change)
-            (do
-              (try (api-post! (mut (:session box))
-                              (ref (modify-path thread-id))
-                              (ref (modify-body change))))
-              (ok (do)))))
+    (do
+      (try (api-post! (mut (:session box))
+                      (ref (modify-path thread-id))
+                      (ref (modify-body change))))
+      (ok (do)))))
 
 (defn listed-thread-ids! (session query)
   (ok (thread-ids (ref (try (api-get! session

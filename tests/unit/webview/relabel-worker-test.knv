@@ -30,8 +30,8 @@
 
 (impl reply-sink collected-replies
   (deliver-reply! (sink reply)
-                  (with-shared! (ref (:replies sink))
-                    (fn (replies) (push! replies reply)))))
+    (with-shared! (ref (:replies sink))
+      (fn (replies) (push! replies reply)))))
 
 (def inbox-holding
   (rust "{{ let ({!sender}, {!inbox}) = std::sync::mpsc::channel::<String>(); for {!request} in {0}.iter() {{ {!sender}.send({!request}.clone()).expect(\"the inbox is open\"); }} {!inbox} }}"

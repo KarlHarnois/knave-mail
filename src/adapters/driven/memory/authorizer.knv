@@ -9,6 +9,5 @@
 
 (impl authorizer memory-authorizer
   (authorize! (granting)
-              (ok-or (pop! (mut (:granted granting)))
-                     (mail-error/auth-required (str
-                                                 "consent was not granted")))))
+    (ok-or (pop! (mut (:granted granting)))
+           (mail-error/auth-required (str "consent was not granted")))))

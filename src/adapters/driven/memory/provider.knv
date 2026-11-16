@@ -13,13 +13,12 @@
 
 (impl mailbox-provider memory-provider
   (open-mailbox! (provider email)
-                 (match (email-position (ref (:emails provider)) email)
-                   ((some index)
-                    (ok (the (box mailbox)
-                             (box (->memory-mailbox
-                                    (handle (at (:remotes provider) index)))))))
-                   (none (err (mail-error/auth-required (str "no account "
-                                                             email)))))))
+    (match (email-position (ref (:emails provider)) email)
+      ((some index)
+       (ok (the (box mailbox)
+                (box (->memory-mailbox (handle (at (:remotes provider)
+                                                   index)))))))
+      (none (err (mail-error/auth-required (str "no account " email)))))))
 
 (defn email-position (emails email)
   (map-some (find (enumerate (iter emails))

@@ -37,53 +37,61 @@
 
 (impl store memory-store
   (load-accounts (kept)
-                 (ok (clone (:accounts kept))))
+    (ok (clone (:accounts kept))))
+
   (save-account! (kept added)
-                 (ok (when (not (account-kept? (ref (:accounts kept))
-                                               (ref (:email added))))
-                       (push! (mut (:accounts kept))
-                              (clone added)))))
+    (ok (when (not (account-kept? (ref (:accounts kept))
+                                  (ref (:email added))))
+          (push! (mut (:accounts kept))
+                 (clone added)))))
+
   (forget-account! (kept email)
-                   (ok (set! (:accounts kept)
-                             (accounts-without (ref (:accounts kept)) email))))
+    (ok (set! (:accounts kept)
+              (accounts-without (ref (:accounts kept)) email))))
+
   (load-labels (kept email)
-               (ok (labels-in (ref (:labels kept)) email)))
+    (ok (labels-in (ref (:labels kept)) email)))
+
   (save-labels! (kept email labels)
-                (ok (replace-labels! (mut (:labels kept)) email labels)))
+    (ok (replace-labels! (mut (:labels kept)) email labels)))
+
   (load-threads (kept email query)
-                (ok (newest-first (summaries-of (ref (:summaries kept))
-                                                email query)
-                                  query)))
-  (save-threads!
-    (kept email summaries)
+    (ok (newest-first (summaries-of (ref (:summaries kept)) email query)
+                      query)))
+
+  (save-threads! (kept email summaries)
     (replace-summaries! (mut (:summaries kept)) email summaries)
     (ok (align-thread-labels! (mut (:threads kept)) email summaries)))
+
   (load-summaries-of (kept email ids)
-                     (ok (summaries-with-ids (ref (:summaries kept))
-                                             email ids)))
+    (ok (summaries-with-ids (ref (:summaries kept)) email ids)))
+
   (load-thread (kept email thread-id)
-               (ok (thread-in (ref (:threads kept)) email thread-id)))
+    (ok (thread-in (ref (:threads kept)) email thread-id)))
+
   (load-message (kept email message-id)
-                (ok (message-in (ref (:threads kept)) email message-id)))
+    (ok (message-in (ref (:threads kept)) email message-id)))
+
   (save-thread! (kept email saved)
-                (ok (replace-thread! (mut (:threads kept)) email saved)))
-  (forget-thread!
-    (kept email thread-id)
+    (ok (replace-thread! (mut (:threads kept)) email saved)))
+
+  (forget-thread! (kept email thread-id)
     (set! (:summaries kept)
           (other-summaries (ref (:summaries kept)) email thread-id))
     (ok (set! (:threads kept)
               (other-threads (ref (:threads kept)) email thread-id))))
+
   (load-checkpoint (kept email)
-                   (ok (checkpoint-of (ref (:checkpoints kept)) email)))
+    (ok (checkpoint-of (ref (:checkpoints kept)) email)))
+
   (save-checkpoint! (kept email history-id)
-                    (ok (replace-checkpoint! (mut (:checkpoints kept))
-                                             email
-                                             history-id)))
+    (ok (replace-checkpoint! (mut (:checkpoints kept))
+                             email history-id)))
+
   (relabel-stored! (kept email thread-id change)
-                   (ok (relabel-everywhere! (mut (:summaries kept))
-                                            (mut (:threads kept))
-                                            email thread-id
-                                            change))))
+    (ok (relabel-everywhere! (mut (:summaries kept))
+                             (mut (:threads kept))
+                             email thread-id change))))
 
 (defn checkpoint-of (checkpoints email)
   (map-some (find (iter checkpoints)

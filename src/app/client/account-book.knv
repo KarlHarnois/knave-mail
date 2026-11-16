@@ -10,10 +10,12 @@
 
 (impl account-book mail-app
   (list-accounts! (app)
-                  (load-accounts (ref (:store app))))
+    (load-accounts (ref (:store app))))
+
   (add-account! (app) (add-authorized-account! app))
+
   (remove-account! (app account)
-                   (forget-account! (mut (:store app)) account)))
+    (forget-account! (mut (:store app)) account)))
 
 (type add-authorized-account!
   (fn ((mut mail-app))

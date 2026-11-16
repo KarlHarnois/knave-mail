@@ -14,7 +14,7 @@
 
 (impl consent-browser fake-browser
   (open-url! (browser url)
-             (ok (answer-in-background url browser))))
+    (ok (answer-in-background url browser))))
 
 (defstruct idle-browser)
 

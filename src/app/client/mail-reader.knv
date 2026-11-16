@@ -9,14 +9,17 @@
 
 (impl mail-reader mail-app
   (list-labels! (app account)
-                (load-labels (ref (:store app)) account))
+    (load-labels (ref (:store app)) account))
+
   (list-threads! (app account query from)
-                 (match from
-                   (cached (find-threads! app account query))
-                   (fresh (listed-threads! app account query))))
+    (match from
+      (cached (find-threads! app account query))
+      (fresh (listed-threads! app account query))))
+
   (list-thread-page! (app account query page-token)
-                     (listed-page! app account query page-token))
+    (listed-page! app account query page-token))
+
   (open-thread! (app opened)
-                (read-thread! app
-                              (ref (:account opened))
-                              (ref (:thread-id opened)))))
+    (read-thread! app
+                  (ref (:account opened))
+                  (ref (:thread-id opened)))))

@@ -23,11 +23,12 @@
 
 (impl event-log file-log
   (record! (kept entry)
-           (when (allows? (ref (:levels kept)) entry)
-             (append-line (ref (:path kept))
-                          (ref (log-line entry)))))
+    (when (allows? (ref (:levels kept)) entry)
+      (append-line (ref (:path kept))
+                   (ref (log-line entry)))))
+
   (share-log (kept)
-             (the (box event-log) (box (clone kept)))))
+    (the (box event-log) (box (clone kept)))))
 
 (defn log-line (entry)
   (str (utc-timestamp)

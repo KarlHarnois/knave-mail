@@ -4,9 +4,10 @@
 
 (impl mail-writer mail-app
   (draft! (app message kind)
-          (compose-draft app
-                         (ref (:account message))
-                         (ref (:message-id message))
-                         kind))
+    (compose-draft app
+                   (ref (:account message))
+                   (ref (:message-id message))
+                   kind))
+
   (send-draft! (app account written)
-               (send! app account written)))
+    (send! app account written)))

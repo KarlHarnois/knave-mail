@@ -26,7 +26,7 @@
 
 (impl reply-sink outbox-sink
   (deliver-reply! (sink reply)
-                  (send-reply (ref (:outbox sink)) reply)))
+    (send-reply (ref (:outbox sink)) reply)))
 
 (defn worker-request? (command request)
   (or (relabel-command? command)

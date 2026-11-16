@@ -14,12 +14,13 @@
 
 (impl event-log memory-log
   (record! (kept entry)
-           (with-shared! (ref (:entries kept))
-             (fn (entries)
-               (push! entries (clone entry)))))
+    (with-shared! (ref (:entries kept))
+      (fn (entries)
+        (push! entries (clone entry)))))
+
   (share-log (kept)
-             (the (box event-log)
-                  (box (same-log kept)))))
+    (the (box event-log)
+         (box (same-log kept)))))
 
 (type same-log
   (fn ((ref memory-log)) memory-log))

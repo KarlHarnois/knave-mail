@@ -4,4 +4,4 @@
 
 (impl mail-labeler mail-app
   (relabel-threads! (app account thread-ids change)
-                    (relabel-each! app account thread-ids change)))
+    (relabel-each! app account thread-ids change)))

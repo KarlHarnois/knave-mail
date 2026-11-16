@@ -5,4 +5,5 @@
 
 (impl mail-syncer mail-app
   (sync-account! (app account) (sync! app account))
+
   (preview-account! (app account) (preview-sync! app account)))
