@@ -1,0 +1,86 @@
+(use adapters/driven/gmail/codec text-at)
+
+(use adapters/json/value array-field empty-object json-value
+                         object-field string-list-field)
+
+(use domain/collections appended-once)
+(use domain/mail ->thread-summary thread-summary)
+(use domain/results ok->option)
+(use domain/text join-with replaced trimmed-of)
+
+(export summary-from thread-labels)
+
+(defn summary-from (thread)
+  (let (messages (array-field thread "messages"))
+    (->thread-summary :id (text-at thread "id")
+                      :subject (subject-of (ref messages))
+                      :participants (join-with (ref (senders (ref messages)))
+                                               ", ")
+                      :snippet (snippet-of (ref messages))
+                      :date (date-of (ref messages))
+                      :labels (thread-labels thread)
+                      :message-count (as-count (len messages)))))
+
+(defn subject-of (messages)
+  (match (first messages)
+    ((some earliest) (header-of earliest "Subject"))
+    (none (str ""))))
+
+(defn snippet-of (messages)
+  (match (last messages)
+    ((some latest) (unescaped (text-at latest "snippet")))
+    (none (str ""))))
+
+(defn date-of (messages)
+  (match (last messages)
+    ((some latest) (internal-date latest))
+    (none 0)))
+
+(defn senders (messages)
+  (reduce (iter messages) (vec)
+    (fn (names message)
+      (appended-once names
+                     (sender-name (as-str (header-of message "From")))))))
+
+(defn sender-name (from)
+  (let (name (trimmed-of (trim (unwrap-or (find (split from "<") (fn (_) true))
+                                          ""))
+                         "\""))
+    (if (empty? name) (trimmed-of from "<>") name)))
+
+(defn header-of (message name)
+  (match (find (array-field (ref (payload-of message)) "headers")
+           (fn (entry)
+             (= (lower-case (as-str (text-at entry "name")))
+                (lower-case name))))
+    ((some entry) (text-at entry "value"))
+    (none (str ""))))
+
+(defn payload-of (message)
+  (unwrap-or (ok->option (object-field message "payload"))
+             (empty-object)))
+
+(defn unescaped (snippet)
+  (replaced (replaced (replaced (replaced (replaced snippet "&#39;" "'")
+                                          "&quot;" "\"")
+                                "&amp;" "&")
+                      "&lt;" "<")
+            "&gt;" ">"))
+
+(defn internal-date (message)
+  (unwrap-or (ok->option (parse (as-str (text-at message "internalDate"))))
+             0))
+
+(defn thread-labels (thread)
+  (reduce (array-field thread "messages") (vec)
+    (fn (labels message)
+      (reduce (labels-on message) labels
+        (fn (found label)
+          (appended-once found (clone label)))))))
+
+(defn labels-on (message)
+  (unwrap-or (ok->option (string-list-field message "labelIds"))
+             (vec)))
+
+(def as-count
+  (rust "{0} as i64" (fn (usize) i64)))
