@@ -1,7 +1,7 @@
 (use domain/labels label-change)
 
-(use domain/mail account label message thread thread-query
-                 thread-summary)
+(use domain/mail account label message message-ref thread
+                 thread-query thread-ref thread-summary)
 
 (use domain/mail-error mail-error)
 
@@ -30,20 +30,19 @@
                           (ref str)
                           (ref (vec string)))
                        (result (vec thread-summary) mail-error)))
-  (load-thread (fn ((ref self) (ref str) (ref str))
+  (load-thread (fn ((ref self) (ref thread-ref))
                  (result (option thread) mail-error)))
-  (load-message (fn ((ref self) (ref str) (ref str))
+  (load-message (fn ((ref self) (ref message-ref))
                   (result (option message) mail-error)))
   (save-thread! (fn ((mut self) (ref str) (ref thread))
                   (result unit mail-error)))
-  (forget-thread! (fn ((mut self) (ref str) (ref str))
+  (forget-thread! (fn ((mut self) (ref thread-ref))
                     (result unit mail-error)))
   (load-checkpoint (fn ((ref self) (ref str))
                      (result (option string) mail-error)))
   (save-checkpoint! (fn ((mut self) (ref str) (ref str))
                       (result unit mail-error)))
   (relabel-stored! (fn ((mut self)
-                        (ref str)
-                        (ref str)
+                        (ref thread-ref)
                         (ref label-change))
                      (result unit mail-error))))

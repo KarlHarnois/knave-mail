@@ -3,7 +3,7 @@
 (use app/mail-app mail-app)
 (use domain/labels label-removal)
 (use domain/listing missing-from-listing)
-(use domain/mail thread-query thread-summary)
+(use domain/mail ->thread-ref thread-query thread-summary)
 (use domain/mail-error mail-error)
 (use ports/driven/store load-threads relabel-stored!)
 
@@ -39,5 +39,6 @@
     (try-for-each (iter thread-ids)
       (fn (thread-id)
         (relabel-stored! (mut (:store app))
-                         account thread-id
+                         (ref (->thread-ref :account (str account)
+                                            :thread-id (str thread-id)))
                          (ref removal))))))

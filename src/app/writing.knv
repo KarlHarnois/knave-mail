@@ -3,7 +3,7 @@
 (use app/mail-app mail-app)
 (use app/mailboxes open-mailbox!)
 (use domain/labels label-change)
-(use domain/mail draft message)
+(use domain/mail ->message-ref ->thread-ref draft message)
 (use domain/outgoing new-outgoing reply-outgoing)
 (use domain/reply draft-for draft-kind)
 (use app/caching cache-thread!)
@@ -77,12 +77,16 @@
   (try (relabel! (try (open-mailbox! (mut (:mailboxes app)) account))
                  thread-id change))
   (relabel-stored! (mut (:store app))
-                   account thread-id change))
+                   (ref (->thread-ref :account (str account)
+                                      :thread-id (str thread-id)))
+                   change))
 
 (type stored-message
   (fn ((ref mail-app) (ref str) (ref str))
     (result message mail-error)))
 
 (defn stored-message (app account message-id)
-  (ok-or (try (load-message (ref (:store app)) account message-id))
+  (ok-or (try (load-message (ref (:store app))
+                            (ref (->message-ref :account (str account)
+                                                :message-id (str message-id)))))
          (mail-error/not-found (str "no message " message-id " in " account))))

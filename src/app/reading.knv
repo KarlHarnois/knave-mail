@@ -3,8 +3,8 @@
 (use app/marking-read marked-read!)
 (use domain/labels unread?)
 
-(use domain/mail ->summary-page summary-page thread
-                 thread-query thread-summary)
+(use domain/mail ->summary-page ->thread-ref summary-page
+                 thread thread-query thread-summary)
 
 (use domain/mail-error mail-error)
 (use domain/listing ids-without-summary in-listed-order)
@@ -106,7 +106,9 @@
     (result thread mail-error)))
 
 (defn stored-or-fetched-thread! (app account thread-id)
-  (match (try (load-thread (ref (:store app)) account thread-id))
+  (match (try (load-thread (ref (:store app))
+                           (ref (->thread-ref :account (str account)
+                                              :thread-id (str thread-id)))))
     ((some stored) (ok stored))
     (none (fetch-and-store-thread! app account thread-id))))
 

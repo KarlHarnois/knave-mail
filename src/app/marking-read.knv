@@ -2,7 +2,7 @@
 (use app/mail-app mail-app)
 (use app/mailboxes open-mailbox!)
 (use domain/labels apply-label-change read-change)
-(use domain/mail thread)
+(use domain/mail ->thread-ref thread)
 (use domain/mail-error mail-error)
 (use ports/driven/mailbox relabel!)
 (use ports/driven/store relabel-stored!)
@@ -46,5 +46,6 @@
                    thread-id
                    (ref change)))
     (relabel-stored! (mut (:store app))
-                     account thread-id
+                     (ref (->thread-ref :account (str account)
+                                        :thread-id (str thread-id)))
                      (ref change))))

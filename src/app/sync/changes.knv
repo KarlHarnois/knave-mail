@@ -1,3 +1,4 @@
+(use domain/mail ->thread-ref)
 (use app/activity-log log-changes! log-vanished-thread!)
 (use domain/collections try-for-each)
 (use app/caching cache-thread!)
@@ -36,6 +37,8 @@
      (if (= (error-kind (ref failure)) "not-found")
        (do
          (log-vanished-thread! (ref (:log app)) account thread-id)
-         (forget-thread! (mut (:store app)) account thread-id))
+         (forget-thread! (mut (:store app))
+                         (ref (->thread-ref :account (str account)
+                                            :thread-id (str thread-id)))))
        (err failure)))
     (done done)))

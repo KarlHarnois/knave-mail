@@ -1,6 +1,6 @@
 (use domain/label-scope label-scope)
 (use domain/labels archive-change)
-(use domain/mail ->thread-query)
+(use domain/mail ->thread-query ->thread-ref)
 (use domain/summary summarize)
 
 (use ports/driven/store load-summaries-of load-thread
@@ -13,6 +13,10 @@
         relabels-a-summary-without-its-thread!)
 
 (def account "ada@example.com")
+
+(defn thread-of (thread-id)
+  (->thread-ref :account (str account)
+                :thread-id (str thread-id)))
 
 (defn ids (cache)
   (collect (map (iter (unwrap-ok (load-threads cache account
@@ -45,7 +49,9 @@
                cache account
                (ref (vec (summarize
                            (ref (sample-thread "t-1" (vec "INBOX") 100)))))))
-  (unwrap-ok (relabel-stored! cache account "t-1" (ref (archive-change))))
+  (unwrap-ok (relabel-stored! cache
+                              (ref (thread-of "t-1"))
+                              (ref (archive-change))))
   (empty? (ids cache)))
 
 (defn aligns-cached-thread-labels! (cache)
@@ -56,5 +62,5 @@
                                                         "t-1"
                                                         (vec "INBOX" "UNREAD")
                                                         100)))))))
-  (= (unwrap (unwrap-ok (load-thread cache account "t-1")))
+  (= (unwrap (unwrap-ok (load-thread cache (ref (thread-of "t-1")))))
      (sample-thread "t-1" (vec "INBOX" "UNREAD") 100)))

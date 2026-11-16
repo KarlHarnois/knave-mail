@@ -59,17 +59,23 @@
     (read-summaries-with-ids (ref (:connection cache))
                              email ids))
 
-  (load-thread (cache email thread-id)
-    (read-thread (ref (:connection cache)) email thread-id))
+  (load-thread (cache wanted)
+    (read-thread (ref (:connection cache))
+                 (as-str (:account wanted))
+                 (as-str (:thread-id wanted))))
 
-  (load-message (cache email message-id)
-    (read-message (ref (:connection cache)) email message-id))
+  (load-message (cache wanted)
+    (read-message (ref (:connection cache))
+                  (as-str (:account wanted))
+                  (as-str (:message-id wanted))))
 
   (save-thread! (cache email saved)
     (write-thread (ref (:connection cache)) email saved))
 
-  (forget-thread! (cache email thread-id)
-    (erase-thread (ref (:connection cache)) email thread-id))
+  (forget-thread! (cache forgotten)
+    (erase-thread (ref (:connection cache))
+                  (as-str (:account forgotten))
+                  (as-str (:thread-id forgotten))))
 
   (load-checkpoint (cache email)
     (read-checkpoint (ref (:connection cache)) email))
@@ -78,9 +84,11 @@
     (write-checkpoint (ref (:connection cache))
                       email history-id))
 
-  (relabel-stored! (cache email thread-id change)
+  (relabel-stored! (cache relabeled change)
     (relabel-everywhere (ref (:connection cache))
-                        email thread-id change)))
+                        (as-str (:account relabeled))
+                        (as-str (:thread-id relabeled))
+                        change)))
 
 (defn relabel-everywhere (connection email thread-id change)
   (match (try (read-thread connection email thread-id))

@@ -1,7 +1,7 @@
 (use app/activity-log log-skipped-prefetch!)
 (use app/mail-app mail-app)
 (use app/mailboxes open-mailbox!)
-(use domain/mail thread-summary)
+(use domain/mail ->thread-ref thread-summary)
 (use domain/mail-error mail-error)
 (use domain/summary message-count)
 (use ports/driven/mailbox fetch-thread!)
@@ -60,8 +60,9 @@
 
 (defn stored-in-full? (app account summary)
   (match (try (load-thread (ref (:store app))
-                           account
-                           (ref (:id summary))))
+                           (ref (->thread-ref :account (str account)
+                                              :thread-id (clone (:id
+                                                                  summary))))))
     ((some stored)
      (ok (= (message-count (ref stored))
             (:message-count summary))))
