@@ -4,8 +4,9 @@
 (use adapters/driving/cli/help usage-text)
 (use adapters/driving/cli/label-words change-named)
 
-(use domain/mail ->draft ->message-ref ->thread-query draft
-                 thread-query thread-summary)
+(use domain/mail ->draft ->message-ref ->thread-query
+                 ->thread-ref draft thread-query
+                 thread-summary)
 
 (use domain/mail-error mail-error)
 
@@ -59,9 +60,9 @@
                     (ref (->thread-query (clone label) (clone query) limit))
                     (deref fresh))))))
       ((show-thread thread-id format)
-       (ok (cli-result/thread-shown (try
-                                      (open-thread! client account thread-id))
-                                    (clone format))))
+       (ok (cli-result/thread-shown
+             (try (open-thread! client (ref (thread-in account thread-id))))
+             (clone format))))
       ((send to cc subject)
        (deliver-or-show! client request
                          (->draft (clone to)
@@ -131,3 +132,7 @@
 (defn message-in (account message-id)
   (->message-ref :account (str account)
                  :message-id (str message-id)))
+
+(defn thread-in (account thread-id)
+  (->thread-ref :account (str account)
+                :thread-id (str thread-id)))

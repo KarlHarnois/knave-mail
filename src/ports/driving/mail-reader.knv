@@ -1,7 +1,7 @@
 (use domain/freshness freshness)
 
 (use domain/mail label summary-page thread thread-query
-                 thread-summary)
+                 thread-ref thread-summary)
 
 (use domain/mail-error mail-error)
 
@@ -20,5 +20,5 @@
                           (ref thread-query)
                           (ref str))
                        (result summary-page mail-error)))
-  (open-thread! (fn ((mut self) (ref str) (ref str))
+  (open-thread! (fn ((mut self) (ref thread-ref))
                   (result thread mail-error))))

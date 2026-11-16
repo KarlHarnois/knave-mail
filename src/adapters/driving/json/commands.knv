@@ -8,6 +8,7 @@
                                      draft-argument
                                      flag-argument
                                      text-argument
+                                     thread-argument
                                      thread-ids-argument)
 
 (use adapters/driving/json/mail-json accounts-json
@@ -89,11 +90,9 @@
     ("threads" (threads-listed! client arguments))
     ("thread-page" (thread-page-command! client arguments))
     ("thread"
-     (ok (thread-json (ref (try (open-thread!
-                                  client
-                                  (ref (try (account-argument arguments)))
-                                  (ref (try (text-argument arguments
-                                                           "threadId")))))))))
+     (ok (thread-json (ref (try (open-thread! client
+                                              (ref (try (thread-argument
+                                                          arguments)))))))))
     ("reply-draft"
      (draft-command! client arguments (reply-kind arguments)))
     ("forward-draft"

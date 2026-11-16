@@ -4,7 +4,7 @@
 (use ports/driving/mail-writer send-draft!)
 
 (use support/app-steps fail-remote! listed-ids! remote-sent
-                       remote-thread synced!)
+                       remote-thread synced! world-thread)
 
 (use support/memory-world app-over remote-with sample-thread
                           world-account)
@@ -41,8 +41,9 @@
     (unwrap-ok (send-draft! (mut app)
                             world-account
                             (ref (draft-to-alan (some (str "m-t-1"))))))
-    (assert (= (len (:messages (unwrap-ok
-                                 (open-thread! (mut app) world-account "t-1"))))
+    (assert (= (len (:messages (unwrap-ok (open-thread! (mut app)
+                                                        (ref (world-thread
+                                                               "t-1"))))))
                2))))
 
 (deftest a-reply-labels-its-thread-sent

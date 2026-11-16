@@ -14,7 +14,7 @@
 (use ports/driving/mail-syncer preview-account!
                                sync-account!)
 
-(use support/app-steps fail-remote! synced!)
+(use support/app-steps fail-remote! synced! world-thread)
 (use support/log-lines mentions?)
 
 (use support/memory-world app-logging-to remote-with
@@ -111,6 +111,7 @@
                             (same-log (ref log))))
     (synced! (mut app))
     (fail-remote! (ref world) "relabel")
-    (unwrap-ok (open-thread! (mut app) world-account "t-1"))
+    (unwrap-ok (open-thread! (mut app)
+                             (ref (world-thread "t-1"))))
     (assert (mentions? (ref (logged-lines (ref log)))
                        "could not mark thread t-1 read"))))

@@ -6,8 +6,9 @@
 (use adapters/driven/memory/shared shared with-shared!)
 (use app/mail-app mail-app)
 
-(use domain/mail ->message-ref ->thread-query outgoing
-                 thread thread-query thread-summary)
+(use domain/mail ->message-ref ->thread-query ->thread-ref
+                 outgoing thread thread-query
+                 thread-summary)
 
 (use domain/mail-error error-kind mail-error)
 (use ports/driving/mail-reader list-threads!)
@@ -15,7 +16,8 @@
 (use support/memory-world world-account)
 
 (export fail-remote! failing-kind inbox-query listed-ids!
-        remote-sent remote-thread synced! world-message)
+        remote-sent remote-thread synced! world-message
+        world-thread)
 
 (defn inbox-query ()
   (->thread-query (str "INBOX") (str "") 50))
@@ -23,6 +25,10 @@
 (defn world-message (message-id)
   (->message-ref :account (str world-account)
                  :message-id (str message-id)))
+
+(defn world-thread (thread-id)
+  (->thread-ref :account (str world-account)
+                :thread-id (str thread-id)))
 
 (defn synced! (app)
   (unwrap-ok (sync-account! app world-account)))

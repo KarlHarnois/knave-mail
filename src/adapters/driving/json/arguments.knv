@@ -2,11 +2,13 @@
                          object-field optional-string-field
                          string-field string-list-field)
 
-(use domain/mail ->draft ->thread-query draft thread-query)
+(use domain/mail ->draft ->thread-query ->thread-ref draft
+                 thread-query)
+
 (use domain/mail-error mail-error)
 
 (export account-argument draft-argument flag-argument
-        text-argument thread-ids-argument
+        text-argument thread-argument thread-ids-argument
         thread-query-argument)
 
 (defn text-argument (arguments name)
@@ -17,6 +19,10 @@
 
 (defn account-argument (arguments)
   (text-argument arguments "account"))
+
+(defn thread-argument (arguments)
+  (ok (->thread-ref :account (try (account-argument arguments))
+                    :thread-id (try (text-argument arguments "threadId")))))
 
 (defn thread-ids-argument (arguments)
   (as-usage (string-list-field arguments "threadIds")))

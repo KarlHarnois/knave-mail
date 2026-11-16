@@ -16,5 +16,7 @@
                    (fresh (listed-threads! app account query))))
   (list-thread-page! (app account query page-token)
                      (listed-page! app account query page-token))
-  (open-thread! (app account thread-id)
-                (read-thread! app account thread-id)))
+  (open-thread! (app opened)
+                (read-thread! app
+                              (ref (:account opened))
+                              (ref (:thread-id opened)))))
