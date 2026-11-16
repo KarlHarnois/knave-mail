@@ -1,3 +1,4 @@
+(use domain/collections try-for-each)
 (use app/activity-log log-relabel! log-sent-but-uncached!)
 (use app/mail-app mail-app)
 (use app/mailboxes mailbox-for!)
@@ -62,12 +63,8 @@
 
 (defn relabel-each! (app account thread-ids change)
   (log-relabel! (ref (:log app)) account thread-ids change)
-  (loop (index 0)
-    (if (>= index (len thread-ids))
-      (ok (do))
-      (do
-        (try (relabel-one! app account (at thread-ids index) change))
-        (recur (+ index 1))))))
+  (try-for-each (iter thread-ids)
+    (fn (thread-id) (relabel-one! app account thread-id change))))
 
 (type relabel-one!
   (fn ((mut mail-app)

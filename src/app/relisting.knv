@@ -1,3 +1,4 @@
+(use domain/collections try-for-each)
 (use app/mail-app mail-app)
 (use app/reading listed-threads!)
 (use domain/mail ->thread-query)
@@ -12,12 +13,10 @@
     (result unit mail-error)))
 
 (defn relist-labels! (app account labels)
-  (loop (index 0)
-    (if (>= index (len labels))
-      (ok (do))
-      (do
-        (try (listed-threads! app account
-                              (ref (->thread-query (str (at labels index))
-                                                   (str "")
-                                                   (:sync-limit app)))))
-        (recur (+ index 1))))))
+  (try-for-each (iter labels)
+    (fn (label)
+      (let (query (->thread-query (str label)
+                                  (str "")
+                                  (:sync-limit app)))
+        (map-ok (listed-threads! app account (ref query))
+          (fn (_) (do)))))))
