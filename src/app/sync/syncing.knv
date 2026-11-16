@@ -2,11 +2,11 @@
                       log-history-expired!
                       log-incremental-sync-started!)
 
+(use app/mail-app mail-app)
+(use app/mailboxes mailbox-for!)
 (use app/sync/changes sync-changes!)
 (use app/sync/full-sync full-sync! synced-labels)
-(use app/mail-app mail-app)
 (use app/sync/relisting relist-labels!)
-(use app/mailboxes mailbox-for!)
 (use domain/mail-error error-kind mail-error)
 (use ports/driven/mailbox fetch-labels!)
 (use ports/driven/store load-checkpoint save-labels!)
@@ -18,30 +18,53 @@
     (result unit mail-error)))
 
 (defn sync! (app account)
+  (try (refresh-labels! app account))
+  (match (try (load-checkpoint (ref (:store app)) account))
+    ((some since) (incremental-sync! app account (ref since)))
+    (none (first-full-sync! app account))))
+
+(type refresh-labels!
+  (fn ((mut mail-app) (ref str))
+    (result unit mail-error)))
+
+(defn refresh-labels! (app account)
   (let (labels (try (fetch-labels! (try (mailbox-for! (mut (:mailboxes app))
                                                       account)))))
-    (try (save-labels! (mut (:store app))
-                       account
-                       (ref labels)))
-    (match (try (load-checkpoint (ref (:store app)) account))
-      ((some since)
-       (log-incremental-sync-started! (ref (:log app))
-                                      account since)
-       (try (resume-or-restart! app account (ref since)))
-       (relist-labels! app account (ref synced-labels)))
-      (none (log-full-sync-started! (ref (:log app)) account)
-            (full-sync! app account)))))
+    (save-labels! (mut (:store app))
+                  account
+                  (ref labels))))
 
-(type resume-or-restart!
+(type first-full-sync!
+  (fn ((mut mail-app) (ref str))
+    (result unit mail-error)))
+
+(defn first-full-sync! (app account)
+  (log-full-sync-started! (ref (:log app)) account)
+  (full-sync! app account))
+
+(type incremental-sync!
   (fn ((mut mail-app) (ref str) (ref str))
     (result unit mail-error)))
 
-(defn resume-or-restart! (app account since)
+(defn incremental-sync! (app account since)
+  (log-incremental-sync-started! (ref (:log app))
+                                 account since)
+  (try (apply-changes-or-full-sync! app account since))
+  (relist-labels! app account (ref synced-labels)))
+
+(type apply-changes-or-full-sync!
+  (fn ((mut mail-app) (ref str) (ref str))
+    (result unit mail-error)))
+
+(defn apply-changes-or-full-sync! (app account since)
   (match (sync-changes! app account since)
     ((err failure)
-     (if (= (error-kind (ref failure)) "not-found")
+     (if (history-expired? (ref failure))
        (do
          (log-history-expired! (ref (:log app)) account since)
          (full-sync! app account))
        (err failure)))
     (done done)))
+
+(defn history-expired? (failure)
+  (= (error-kind failure) "not-found"))
