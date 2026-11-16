@@ -84,15 +84,15 @@
     ("accounts"
      (ok (accounts-json (ref (try (list-accounts! client))))))
     ("labels"
-     (ok (labels-json (ref (try (list-labels! client
-                                              (ref (try (account-argument
-                                                          arguments)))))))))
+     (let (account (try (account-argument arguments))
+           labels (try (list-labels! client (ref account))))
+       (ok (labels-json (ref labels)))))
     ("threads" (threads-listed! client arguments))
     ("thread-page" (thread-page-command! client arguments))
     ("thread"
-     (ok (thread-json (ref (try (open-thread! client
-                                              (ref (try (thread-argument
-                                                          arguments)))))))))
+     (let (wanted (try (thread-argument arguments))
+           opened (try (open-thread! client (ref wanted))))
+       (ok (thread-json (ref opened)))))
     ("reply-draft"
      (draft-command! client arguments (reply-kind arguments)))
     ("forward-draft"

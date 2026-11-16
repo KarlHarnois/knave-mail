@@ -17,12 +17,12 @@
 
 (defn threads-listed! (client arguments)
   (let (account (try (account-argument arguments))
-        query (try (thread-query-argument arguments)))
-    (ok (summaries-json (ref (try (list-threads! client
-                                                 (ref account)
-                                                 (ref query)
-                                                 (asked-freshness
-                                                   arguments))))))))
+        query (try (thread-query-argument arguments))
+        threads (try (list-threads! client
+                                    (ref account)
+                                    (ref query)
+                                    (asked-freshness arguments))))
+    (ok (summaries-json (ref threads)))))
 
 (defn asked-freshness (arguments)
   (match (bool-field arguments "fresh")

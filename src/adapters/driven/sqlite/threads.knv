@@ -48,25 +48,25 @@
   (match (try (as-internal
                 (thread-row-of connection account thread-id select-thread)))
     ((some row)
-     (let (messages (try (as-internal (message-rows connection
-                                                    select-thread-messages
-                                                    account
-                                                    thread-id))))
+     (let (messages (try (thread-messages connection account thread-id)))
        (ok (some (->thread :id (str thread-id)
                            :subject (clone (:subject row))
                            :labels (clone (:labels row))
-                           :messages (collect (map (iter messages)
-                                                (fn (message-row)
-                                                  (message-from
-                                                    message-row)))))))))
+                           :messages messages)))))
     (none (ok none))))
 
+(defn thread-messages (connection account thread-id)
+  (let (rows (try (as-internal (message-rows connection
+                                             select-thread-messages
+                                             account
+                                             thread-id))))
+    (ok (collect (map (iter rows) message-from)))))
+
 (defn read-message (connection account message-id)
-  (ok (map-some (first (try (as-internal (message-rows connection
-                                                       select-message
-                                                       account
-                                                       message-id))))
-                (fn (row) (message-from row)))))
+  (let (rows (try (as-internal (message-rows
+                                 connection select-message
+                                 account message-id))))
+    (ok (map-some (first rows) message-from))))
 
 (defn write-thread (connection account saved)
   (as-internal (replace-thread-rows

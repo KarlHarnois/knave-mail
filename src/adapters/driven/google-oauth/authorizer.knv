@@ -41,22 +41,25 @@
 
 (defn consented-account! (granting)
   (let (listener (try (as-auth (bind-loopback)))
-        request (->consent-request :redirect-uri (str "http://127.0.0.1:"
-                                                      (loopback-port (ref listener)))
-                                   :pkce (new-pkce-pair)
-                                   :state (new-state)))
+        request (consent-request-on (ref listener))
+        url (consent-url (ref (:settings granting))
+                         (ref (:redirect-uri request))
+                         (ref (:pkce request))
+                         (ref (:state request))))
     (try (open-url! (mut (:browser granting))
-                    (ref (consent-url (ref (:settings granting))
-                                      (ref (:redirect-uri request))
-                                      (ref (:pkce request))
-                                      (ref (:state request))))))
-    (let (redirect (try (as-auth (wait-for-redirect (ref listener)
-                                                    (:sign-in-wait-milliseconds
-                                                      (:settings granting)))))
+                    (ref url)))
+    (let (wait (:sign-in-wait-milliseconds (:settings granting))
+          redirect (try (as-auth (wait-for-redirect (ref listener) wait)))
           outcome (answered-account! granting
                                      (ref (:answer redirect))
                                      (ref request)))
       (reply-to-browser! redirect outcome))))
+
+(defn consent-request-on (listener)
+  (->consent-request :redirect-uri (str "http://127.0.0.1:"
+                                        (loopback-port listener))
+                     :pkce (new-pkce-pair)
+                     :state (new-state)))
 
 (defstruct consent-request
   :redirect-uri string
