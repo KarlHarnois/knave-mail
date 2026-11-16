@@ -5,7 +5,7 @@
 
 (use domain/collections appended-once)
 (use domain/mail ->thread-summary thread-summary)
-(use domain/results ok->option)
+(use domain/results unwrap-ok-or)
 (use domain/text join-with replaced trimmed-of)
 
 (export summary-from thread-labels)
@@ -57,8 +57,8 @@
     (none (str ""))))
 
 (defn payload-of (message)
-  (unwrap-or (ok->option (object-field message "payload"))
-             (empty-object)))
+  (unwrap-ok-or (object-field message "payload")
+                (empty-object)))
 
 (defn unescaped (snippet)
   (replaced (replaced (replaced (replaced (replaced snippet "&#39;" "'")
@@ -68,8 +68,8 @@
             "&gt;" ">"))
 
 (defn internal-date (message)
-  (unwrap-or (ok->option (parse (as-str (text-at message "internalDate"))))
-             0))
+  (unwrap-ok-or (parse (as-str (text-at message "internalDate")))
+                0))
 
 (defn thread-labels (thread)
   (reduce (array-field thread "messages") (vec)
@@ -79,8 +79,7 @@
           (appended-once found (clone label)))))))
 
 (defn labels-on (message)
-  (unwrap-or (ok->option (string-list-field message "labelIds"))
-             (vec)))
+  (unwrap-ok-or (string-list-field message "labelIds") (vec)))
 
 (def as-count
   (rust "{0} as i64" (fn (usize) i64)))

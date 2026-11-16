@@ -15,7 +15,7 @@
 
 (use adapters/json/value parse-json)
 (use domain/mail-error mail-error)
-(use domain/results ok->option)
+(use domain/results unwrap-ok-or)
 (use ports/driven/event-log event-log log-debug log-warn)
 (use ports/driving/account-book account-book list-accounts!)
 
@@ -25,8 +25,7 @@
 (defn answer-relabels! (client log inbox sink)
   (log-debug log "window"
              (str "label worker ready for "
-                  (len (unwrap-or (ok->option (list-accounts! client))
-                                  (vec)))
+                  (len (unwrap-ok-or (list-accounts! client) (vec)))
                   " accounts"))
   (answer-queued-relabels! client log inbox sink))
 

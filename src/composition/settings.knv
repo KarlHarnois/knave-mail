@@ -1,4 +1,4 @@
-(use domain/results ok->option)
+(use domain/results unwrap-ok-or)
 
 (export ->settings settings settings-from)
 
@@ -87,7 +87,7 @@
   (fn ((ref str)) u64))
 
 (defn parse-or-zero (text)
-  (unwrap-or (ok->option (parse text)) 0))
+  (unwrap-ok-or (parse text) 0))
 
 (defn non-empty (text)
   (if (empty? text) none (some text)))

@@ -1,6 +1,11 @@
-(export ok->option)
+(export ok->option unwrap-ok-or)
 
 (defn ok->option (outcome)
   (match outcome
     ((ok value) (some value))
     ((err _) none)))
+
+(defn unwrap-ok-or (outcome fallback)
+  (match outcome
+    ((ok value) value)
+    ((err _) fallback)))

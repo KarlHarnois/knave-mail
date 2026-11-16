@@ -1,7 +1,7 @@
 (use adapters/driving/json/commands answer!)
 (use adapters/driving/json/envelope request-arguments)
 (use adapters/json/value json-value string-field)
-(use domain/results ok->option)
+(use domain/results unwrap-ok-or)
 
 (use ports/driven/event-log ->log-entry event-log log-level
                             record!)
@@ -18,15 +18,13 @@
 (defn record-frontend-entry! (log request)
   (let (arguments (request-arguments request))
     (record! log
-             (ref (->log-entry (level-named (ref (unwrap-or (ok->option (string-field
-                                                                          (ref arguments)
-                                                                          "level"))
-                                                            (str "info"))))
-                               (str "frontend")
-                               (unwrap-or (ok->option (string-field (ref
-                                                                      arguments)
-                                                                    "message"))
-                                          (str "")))))))
+             (ref (->log-entry
+                    (level-named (ref (unwrap-ok-or
+                                        (string-field (ref arguments) "level")
+                                        (str "info"))))
+                    (str "frontend")
+                    (unwrap-ok-or (string-field (ref arguments) "message")
+                                  (str "")))))))
 
 (defn level-named (name)
   (match name

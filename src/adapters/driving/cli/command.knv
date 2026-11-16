@@ -5,7 +5,7 @@
 
 (use domain/collections one-of?)
 (use domain/mail-error mail-error)
-(use domain/results ok->option)
+(use domain/results unwrap-ok-or)
 
 (export cli-command cli-command-word? command-from)
 
@@ -108,6 +108,5 @@
 (defn parsed-limit (text fallback)
   (match text
     ((some digits)
-     (unwrap-or (ok->option (parse (as-str digits)))
-                fallback))
+     (unwrap-ok-or (parse (as-str digits)) fallback))
     (none fallback)))
