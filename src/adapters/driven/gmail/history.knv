@@ -1,6 +1,10 @@
 (use adapters/driven/gmail/session api-get!)
 (use adapters/driven/gmail/session-state gmail-session)
-(use adapters/json/value json-value optional-string-field)
+
+(use adapters/json/value array-field json-value
+                         optional-string-field)
+
+(use domain/collections appended-once)
 (use domain/mail ->mail-changes mail-changes)
 (use domain/mail-error mail-error)
 
@@ -44,7 +48,12 @@
   (rust "{0}.get(\"historyId\").map(|{!value}| {!value}.as_str().map(str::to_string).unwrap_or_else(|| {!value}.to_string())).unwrap_or_default()"
     (fn ((ref json-value)) string)))
 
-(def with-changed-threads
-  (rust "{{ let mut {!ids} = {0}; for {!entry} in {1}.get(\"history\").and_then(|{!value}| {!value}.as_array()).into_iter().flatten() {{ for {!message} in {!entry}.get(\"messages\").and_then(|{!value}| {!value}.as_array()).into_iter().flatten() {{ if let Some({!thread}) = {!message}.get(\"threadId\").and_then(|{!value}| {!value}.as_str()) {{ if !{!ids}.iter().any(|{!known}| {!known} == {!thread}) {{ {!ids}.push({!thread}.to_string()); }} }} }} }} {!ids} }}"
-    (fn ((vec string) (ref json-value))
-      (vec string))))
+(defn with-changed-threads (thread-ids page)
+  (reduce (array-field page "history") thread-ids
+    (fn (found entry)
+      (reduce (array-field entry "messages") found with-thread-of))))
+
+(defn with-thread-of (found message)
+  (match (optional-string-field message "threadId")
+    ((some thread-id) (appended-once found thread-id))
+    (none found)))

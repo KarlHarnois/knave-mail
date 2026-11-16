@@ -2,7 +2,7 @@
                          optional-string-field
                          string-list-field)
 
-(use domain/collections appended)
+(use domain/collections appended appended-once)
 (use domain/results ok->option)
 
 (use domain/mail ->label ->message ->thread-summary label
@@ -77,18 +77,13 @@
 (defn thread-labels (thread)
   (reduce (array-field thread "messages") (vec)
     (fn (labels message)
-      (reduce (labels-on message) labels with-new-label))))
+      (reduce (labels-on message) labels
+        (fn (found label)
+          (appended-once found (clone label)))))))
 
 (defn labels-on (message)
   (unwrap-or (ok->option (string-list-field message "labelIds"))
              (vec)))
-
-(defn with-new-label (labels label)
-  (if (any? (iter labels)
-        (fn (known)
-          (= (as-str known) (as-str label))))
-    labels
-    (appended labels (clone label))))
 
 (defn sent-thread-id (reply) (text-at reply "threadId"))
 

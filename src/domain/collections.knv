@@ -1,4 +1,4 @@
-(export appended one-of?)
+(export appended appended-once one-of?)
 
 (defn one-of? (word words)
   (any? (iter words)
@@ -7,3 +7,10 @@
 (defn appended (items item)
   (push! (mut items) item)
   items)
+
+(defn appended-once (items item)
+  (if (any? (iter items)
+        (fn (known)
+          (= (as-str known) (as-str item))))
+    items
+    (appended items item)))
