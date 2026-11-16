@@ -1,3 +1,4 @@
+(use domain/freshness freshness)
 (use app/mail-app mail-app)
 
 (use app/reading find-threads! listed-page! listed-threads!
@@ -9,10 +10,10 @@
 (impl mail-reader mail-app
   (list-labels! (app account)
                 (load-labels (ref (:store app)) account))
-  (list-threads! (app account query)
-                 (find-threads! app account query))
-  (list-fresh-threads! (app account query)
-                       (listed-threads! app account query))
+  (list-threads! (app account query from)
+                 (match from
+                   (cached (find-threads! app account query))
+                   (fresh (listed-threads! app account query))))
   (list-thread-page! (app account query page-token)
                      (listed-page! app account query page-token))
   (open-thread! (app account thread-id)

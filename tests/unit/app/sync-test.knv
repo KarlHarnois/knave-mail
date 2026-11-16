@@ -1,3 +1,4 @@
+(use domain/freshness freshness)
 (use domain/mail ->thread-query)
 (use app/prefetching prefetch-limit)
 (use domain/mail-error error-kind)
@@ -23,14 +24,16 @@
   (let (app (app-over (ref (remote))))
     (assert (empty? (unwrap-ok (list-threads! (mut app)
                                               world-account
-                                              (ref (inbox-query))))))))
+                                              (ref (inbox-query))
+                                              freshness/cached))))))
 
 (deftest a-sync-lists-inbox-threads-newest-first
   (let (app (app-over (ref (remote))))
     (unwrap-ok (sync-account! (mut app) world-account))
     (assert (= (collect (map (iter (unwrap-ok (list-threads! (mut app)
                                                              world-account
-                                                             (ref (inbox-query)))))
+                                                             (ref (inbox-query))
+                                                             freshness/cached)))
                              (fn (summary) (clone (:id summary)))))
                (vec (str "t-2") (str "t-1"))))))
 
@@ -72,5 +75,6 @@
     (unwrap-ok (sync-account! (mut app) world-account))
     (assert (= (len (unwrap-ok (list-threads! (mut app)
                                               world-account
-                                              (ref (inbox-query)))))
+                                              (ref (inbox-query))
+                                              freshness/cached)))
                2))))

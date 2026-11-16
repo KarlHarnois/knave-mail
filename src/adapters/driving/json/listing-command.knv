@@ -1,12 +1,12 @@
+(use domain/freshness freshness)
+
 (use adapters/driving/json/arguments account-argument
                                      thread-query-argument)
 
 (use adapters/driving/json/mail-json summaries-json)
 (use adapters/json/value bool-field json-value)
 (use domain/mail-error mail-error)
-
-(use ports/driving/mail-reader list-fresh-threads!
-                               list-threads! mail-reader)
+(use ports/driving/mail-reader list-threads! mail-reader)
 
 (export threads-listed!)
 
@@ -18,12 +18,13 @@
 (defn threads-listed! (client arguments)
   (let (account (try (account-argument arguments))
         query (try (thread-query-argument arguments)))
-    (ok (summaries-json
-          (ref (try (if (fresh-asked? arguments)
-                      (list-fresh-threads! client (ref account) (ref query))
-                      (list-threads! client (ref account) (ref query)))))))))
+    (ok (summaries-json (ref (try (list-threads! client
+                                                 (ref account)
+                                                 (ref query)
+                                                 (asked-freshness
+                                                   arguments))))))))
 
-(defn fresh-asked? (arguments)
+(defn asked-freshness (arguments)
   (match (bool-field arguments "fresh")
-    ((ok fresh) fresh)
-    (_ false)))
+    ((ok true) freshness/fresh)
+    (_ freshness/cached)))

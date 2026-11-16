@@ -1,3 +1,4 @@
+(use domain/freshness freshness)
 (use adapters/driving/cli/cli-result cli-result)
 (use adapters/driving/cli/command cli-command)
 (use adapters/driving/cli/help usage-text)
@@ -13,8 +14,7 @@
                                 list-accounts!
                                 remove-account!)
 
-(use ports/driving/mail-reader list-fresh-threads!
-                               list-labels! list-threads!
+(use ports/driving/mail-reader list-labels! list-threads!
                                mail-reader open-thread!)
 
 (use ports/driving/mail-writer draft! mail-writer
@@ -140,6 +140,5 @@
       (result (vec thread-summary) mail-error))))
 
 (defn threads-for! (client account query fresh)
-  (if fresh
-    (list-fresh-threads! client account query)
-    (list-threads! client account query)))
+  (list-threads! client account query
+                 (if fresh freshness/fresh freshness/cached)))

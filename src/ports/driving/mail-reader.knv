@@ -1,3 +1,5 @@
+(use domain/freshness freshness)
+
 (use domain/mail label summary-page thread thread-query
                  thread-summary)
 
@@ -10,12 +12,9 @@
                   (result (vec label) mail-error)))
   (list-threads! (fn ((mut self)
                       (ref str)
-                      (ref thread-query))
+                      (ref thread-query)
+                      freshness)
                    (result (vec thread-summary) mail-error)))
-  (list-fresh-threads! (fn ((mut self)
-                            (ref str)
-                            (ref thread-query))
-                         (result (vec thread-summary) mail-error)))
   (list-thread-page! (fn ((mut self)
                           (ref str)
                           (ref thread-query)

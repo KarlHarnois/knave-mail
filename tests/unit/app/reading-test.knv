@@ -1,3 +1,4 @@
+(use domain/freshness freshness)
 (use domain/mail ->thread-query)
 (use ports/driving/mail-reader list-threads! open-thread!)
 
@@ -65,7 +66,8 @@
     (unwrap-ok (open-thread! (mut app) world-account "t-1"))
     (assert (= (:labels (at (unwrap-ok (list-threads! (mut app)
                                                       world-account
-                                                      (ref (inbox-query))))
+                                                      (ref (inbox-query))
+                                                      freshness/cached))
                             1))
                (vec (str "INBOX"))))))
 
@@ -92,7 +94,8 @@
     (assert (= (failing-kind (list-threads!
                                (mut app)
                                world-account
-                               (ref (->thread-query (str "ALL") (str "t") 50))))
+                               (ref (->thread-query (str "ALL") (str "t") 50))
+                               freshness/cached))
                "network"))))
 
 (deftest a-label-lists-only-its-threads

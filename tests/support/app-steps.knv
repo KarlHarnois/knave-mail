@@ -1,3 +1,5 @@
+(use domain/freshness freshness)
+
 (use adapters/driven/memory/remote-mail fail-when!
                                         remote-mail)
 
@@ -22,8 +24,10 @@
   (unwrap-ok (sync-account! app world-account)))
 
 (defn listed-ids! (app query)
-  (collect (map (iter (unwrap-ok (list-threads! app world-account query)))
-             (fn (summary) (clone (:id summary))))))
+  (collect (map (iter (unwrap-ok (list-threads!
+                                   app world-account query
+                                   freshness/cached)))
+                (fn (summary) (clone (:id summary))))))
 
 (defn fail-remote! (remote operation)
   (with-shared! remote
