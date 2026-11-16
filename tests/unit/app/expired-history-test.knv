@@ -3,8 +3,8 @@
 (use domain/labels archive-change unread-change)
 (use ports/driving/mail-reader open-thread!)
 
-(use support/app-steps inbox-query listed-ids! remote-thread
-                       synced! world-thread)
+(use support/app-steps ada-thread inbox-query listed-ids!
+                       remote-thread synced!)
 
 (use support/memory-world app-over remote-with sample-thread
                           world-account)
@@ -35,6 +35,6 @@
     (expire-remote-history! (ref world))
     (synced! (mut app))
     (unwrap-ok (open-thread! (mut app)
-                             (ref (world-thread "t-1"))))
+                             (ref (ada-thread "t-1"))))
     (assert (= (:labels (remote-thread (ref world) "t-1"))
                (vec (str "INBOX"))))))

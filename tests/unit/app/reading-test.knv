@@ -2,9 +2,9 @@
 (use domain/mail ->thread-query)
 (use ports/driving/mail-reader list-threads! open-thread!)
 
-(use support/app-steps fail-remote! failing-kind inbox-query
-                       listed-ids! remote-thread synced!
-                       world-thread)
+(use support/app-steps ada-thread fail-remote! failing-kind
+                       inbox-query listed-ids! remote-thread
+                       synced!)
 
 (use support/memory-world app-over remote-with sample-thread
                           world-account)
@@ -19,7 +19,7 @@
         app (app-over (ref world)))
     (synced! (mut app))
     (assert (= (:text (at (:messages (unwrap-ok (open-thread! (mut app)
-                                                              (ref (world-thread
+                                                              (ref (ada-thread
                                                                      "t-2")))))
                           0))
                "Body of t-2"))))
@@ -28,7 +28,7 @@
   (let (world (remote)
         app (app-over (ref world)))
     (assert (= (:subject (unwrap-ok (open-thread! (mut app)
-                                                  (ref (world-thread "t-3")))))
+                                                  (ref (ada-thread "t-3")))))
                "Subject of t-3"))))
 
 (deftest opening-a-synced-thread-needs-no-network
@@ -37,13 +37,13 @@
     (synced! (mut app))
     (fail-remote! (ref world) "fetch-thread")
     (assert (ok? (open-thread! (mut app)
-                               (ref (world-thread "t-2")))))))
+                               (ref (ada-thread "t-2")))))))
 
 (deftest opening-an-unknown-thread-is-not-found
   (let (world (remote)
         app (app-over (ref world)))
     (assert (= (failing-kind (open-thread! (mut app)
-                                           (ref (world-thread "t-9"))))
+                                           (ref (ada-thread "t-9"))))
                "not-found"))))
 
 (deftest opening-an-unread-thread-marks-it-read
@@ -51,7 +51,7 @@
         app (app-over (ref world)))
     (synced! (mut app))
     (assert (= (:labels (unwrap-ok (open-thread! (mut app)
-                                                 (ref (world-thread "t-1")))))
+                                                 (ref (ada-thread "t-1")))))
                (vec (str "INBOX"))))))
 
 (deftest opening-an-unread-thread-marks-it-read-remotely
@@ -59,7 +59,7 @@
         app (app-over (ref world)))
     (synced! (mut app))
     (unwrap-ok (open-thread! (mut app)
-                             (ref (world-thread "t-1"))))
+                             (ref (ada-thread "t-1"))))
     (assert (= (:labels (remote-thread (ref world) "t-1"))
                (vec (str "INBOX"))))))
 
@@ -68,7 +68,7 @@
         app (app-over (ref world)))
     (synced! (mut app))
     (unwrap-ok (open-thread! (mut app)
-                             (ref (world-thread "t-1"))))
+                             (ref (ada-thread "t-1"))))
     (assert (= (:labels (at (unwrap-ok (list-threads! (mut app)
                                                       world-account
                                                       (ref (inbox-query))
@@ -82,7 +82,7 @@
     (synced! (mut app))
     (fail-remote! (ref world) "relabel")
     (assert (= (:labels (unwrap-ok (open-thread! (mut app)
-                                                 (ref (world-thread "t-1")))))
+                                                 (ref (ada-thread "t-1")))))
                (vec (str "INBOX") (str "UNREAD"))))))
 
 (deftest a-search-asks-the-remote-mailbox

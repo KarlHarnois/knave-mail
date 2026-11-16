@@ -15,18 +15,18 @@
 (use ports/driving/mail-syncer sync-account!)
 (use support/memory-world world-account)
 
-(export fail-remote! failing-kind inbox-query listed-ids!
-        remote-sent remote-thread synced! world-message
-        world-thread)
+(export ada-message ada-thread fail-remote! failing-kind
+        inbox-query listed-ids! remote-sent remote-thread
+        synced!)
 
 (defn inbox-query ()
   (->thread-query (str "INBOX") (str "") 50))
 
-(defn world-message (message-id)
+(defn ada-message (message-id)
   (->message-ref :account (str world-account)
                  :message-id (str message-id)))
 
-(defn world-thread (thread-id)
+(defn ada-thread (thread-id)
   (->thread-ref :account (str world-account)
                 :thread-id (str thread-id)))
 

@@ -7,7 +7,7 @@
                                open-thread!)
 
 (use ports/driving/mail-syncer sync-account!)
-(use support/app-steps fail-remote! world-thread)
+(use support/app-steps ada-thread fail-remote!)
 
 (use support/memory-world app-over remote-with sample-thread
                           world-account)
@@ -53,9 +53,9 @@
     (unwrap-ok (sync-account! (mut app) world-account))
     (fail-remote! (ref world) "fetch-thread")
     (assert (= (:subject (unwrap-ok (open-thread! (mut app)
-                                                  (ref (world-thread (str "t-"
-                                                                          (+ prefetch-limit
-                                                                             4)))))))
+                                                  (ref (ada-thread (str "t-"
+                                                                        (+ prefetch-limit
+                                                                           4)))))))
                (str "Subject of t-" (+ prefetch-limit 4))))))
 
 (deftest a-sync-leaves-older-threads-to-download-when-opened
@@ -64,8 +64,7 @@
     (unwrap-ok (sync-account! (mut app) world-account))
     (fail-remote! (ref world) "fetch-thread")
     (assert (= (str (error-kind (ref (unwrap-err (open-thread! (mut app)
-                                                               (ref (world-thread
-                                                                      "t-0")))))))
+                                                               (ref (ada-thread "t-0")))))))
                "network"))))
 
 (deftest a-thread-that-fails-to-download-does-not-abort-the-sync

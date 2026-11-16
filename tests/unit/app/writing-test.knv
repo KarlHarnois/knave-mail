@@ -6,9 +6,9 @@
 (use domain/reply draft-kind)
 (use ports/driving/mail-labeler relabel-threads!)
 
-(use support/app-steps fail-remote! failing-kind inbox-query
-                       listed-ids! remote-sent remote-thread
-                       synced! world-message)
+(use support/app-steps ada-message fail-remote! failing-kind
+                       inbox-query listed-ids! remote-sent
+                       remote-thread synced!)
 
 (use support/memory-world app-over remote-with sample-thread
                           world-account)
@@ -31,7 +31,7 @@
         app (app-over (ref world)))
     (synced! (mut app))
     (assert (= (:subject (unwrap-ok (draft! (mut app)
-                                            (ref (world-message "m-t-1"))
+                                            (ref (ada-message "m-t-1"))
                                             draft-kind/reply)))
                "Re: Subject of t-1"))))
 
@@ -40,7 +40,7 @@
         app (app-over (ref world)))
     (synced! (mut app))
     (assert (= (:to (unwrap-ok (draft! (mut app)
-                                       (ref (world-message "m-t-1"))
+                                       (ref (ada-message "m-t-1"))
                                        draft-kind/reply-all)))
                (addresses (vec "Grace <grace@example.com>"))))))
 
@@ -49,7 +49,7 @@
         app (app-over (ref world)))
     (synced! (mut app))
     (assert (= (:subject (unwrap-ok (draft! (mut app)
-                                            (ref (world-message "m-t-2"))
+                                            (ref (ada-message "m-t-2"))
                                             draft-kind/forward)))
                "Fwd: Subject of t-2"))))
 
@@ -57,7 +57,7 @@
   (let (world (remote)
         app (app-over (ref world)))
     (assert (= (failing-kind (draft! (mut app)
-                                     (ref (world-message "m-9"))
+                                     (ref (ada-message "m-9"))
                                      draft-kind/reply))
                "not-found"))))
 

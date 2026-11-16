@@ -3,8 +3,8 @@
 (use ports/driving/mail-reader open-thread!)
 (use ports/driving/mail-writer send-draft!)
 
-(use support/app-steps fail-remote! listed-ids! remote-sent
-                       remote-thread synced! world-thread)
+(use support/app-steps ada-thread fail-remote! listed-ids!
+                       remote-sent remote-thread synced!)
 
 (use support/memory-world app-over remote-with sample-thread
                           world-account)
@@ -42,7 +42,7 @@
                             world-account
                             (ref (draft-to-alan (some (str "m-t-1"))))))
     (assert (= (len (:messages (unwrap-ok (open-thread! (mut app)
-                                                        (ref (world-thread
+                                                        (ref (ada-thread
                                                                "t-1"))))))
                2))))
 
