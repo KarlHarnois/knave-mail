@@ -10,8 +10,8 @@
 (use adapters/driven/google-oauth/consent-browser ->system-browser)
 (use adapters/driven/keyring/credentials ->keyring-credentials)
 (use adapters/driven/sqlite/store open-sqlite-store)
-(use app/mail-app mail-app new-mail-app)
-(use ports/driven/event-log event-log share-log)
+(use app/mail-app new-mail-app)
+(use ports/driven/event-log share-log)
 (use composition/settings settings)
 (use domain/mail-error mail-error)
 (use ports/driven/credentials credentials)
@@ -21,10 +21,6 @@
 (def sync-limit 100)
 
 (def sign-in-wait-milliseconds 300000)
-
-(type gmail-app
-  (fn ((ref settings) (box event-log))
-    (result mail-app mail-error)))
 
 (defn gmail-app (chosen log)
   (try (check-client chosen))
