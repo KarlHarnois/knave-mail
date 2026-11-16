@@ -1,4 +1,4 @@
-(export appended appended-once one-of?)
+(export appended appended-once one-of? try-for-each)
 
 (defn one-of? (word words)
   (any? (iter words)
@@ -14,3 +14,10 @@
           (= (as-str known) (as-str item))))
     items
     (appended items item)))
+
+(def try-for-each
+  (rust "{0}.try_for_each({1})"
+    (where (item failure)
+      (fn ((iterator item)
+           (fn-mut (item) (result unit failure)))
+        (result unit failure)))))

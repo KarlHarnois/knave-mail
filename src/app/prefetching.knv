@@ -14,16 +14,12 @@
 (type prefetch-threads!
   (fn ((mut mail-app)
        (ref str)
-       (ref (vec thread-summary))
-       usize)
+       (ref (vec thread-summary)))
     unit))
 
-(defn prefetch-threads! (app account summaries index)
-  (if (>= index (min (len summaries) prefetch-limit))
-    (do)
-    (do
-      (prefetch-or-warn! app account (at summaries index))
-      (recur app account summaries (+ index 1)))))
+(defn prefetch-threads! (app account summaries)
+  (for-each (take (iter summaries) prefetch-limit)
+    (fn (summary) (prefetch-or-warn! app account summary))))
 
 (type prefetch-or-warn!
   (fn ((mut mail-app)

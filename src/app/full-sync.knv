@@ -1,3 +1,4 @@
+(use domain/collections try-for-each)
 (use app/mail-app mail-app)
 (use app/mailboxes mailbox-for!)
 (use app/prefetching prefetch-threads!)
@@ -19,24 +20,14 @@
 (defn full-sync! (app account)
   (let (history-id (try (fetch-history-id!
                           (try (mailbox-for! (mut (:mailboxes app)) account)))))
-    (try (sync-labels! app account 0))
+    (try (try-for-each (iter synced-labels)
+           (fn (label) (sync-label! app account label))))
     (log-info (ref (:log app))
               "sync"
               (str account ": full sync done at history " history-id))
     (save-checkpoint! (mut (:store app))
                       account
                       (ref history-id))))
-
-(type sync-labels!
-  (fn ((mut mail-app) (ref str) usize)
-    (result unit mail-error)))
-
-(defn sync-labels! (app account index)
-  (if (>= index (len synced-labels))
-    (ok (do))
-    (do
-      (try (sync-label! app account (at synced-labels index)))
-      (recur app account (+ index 1)))))
 
 (type sync-label!
   (fn ((mut mail-app) (ref str) (ref str))
@@ -53,5 +44,5 @@
                         account
                         (ref summaries)))
     (try (drop-stale-label! app account (ref query) (ref summaries)))
-    (prefetch-threads! app account (ref summaries) 0)
+    (prefetch-threads! app account (ref summaries))
     (ok (do))))

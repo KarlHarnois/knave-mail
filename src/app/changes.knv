@@ -1,3 +1,4 @@
+(use domain/collections try-for-each)
 (use app/caching cache-thread!)
 (use app/mail-app mail-app)
 (use domain/text join-with)
@@ -27,24 +28,11 @@
                "sync"
                (str account ": changed threads "
                     (join-with (ref (:thread-ids changes)) " ")))
-    (try (refresh-threads! app account (ref (:thread-ids changes)) 0))
+    (try (try-for-each (iter (:thread-ids changes))
+           (fn (thread-id) (refresh-thread! app account thread-id))))
     (save-checkpoint! (mut (:store app))
                       account
                       (ref (:history-id changes)))))
-
-(type refresh-threads!
-  (fn ((mut mail-app)
-       (ref str)
-       (ref (vec string))
-       usize)
-    (result unit mail-error)))
-
-(defn refresh-threads! (app account thread-ids index)
-  (if (>= index (len thread-ids))
-    (ok (do))
-    (do
-      (try (refresh-thread! app account (at thread-ids index)))
-      (recur app account thread-ids (+ index 1)))))
 
 (type refresh-thread!
   (fn ((mut mail-app) (ref str) (ref str))

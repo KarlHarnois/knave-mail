@@ -1,3 +1,4 @@
+(use domain/collections try-for-each)
 (use app/mail-app mail-app)
 (use domain/labels label-removal)
 (use domain/listing missing-from-listing)
@@ -32,12 +33,8 @@
 
 (defn unlabel-threads! (app account thread-ids label)
   (let (removal (label-removal label))
-    (loop (index 0)
-      (if (>= index (len thread-ids))
-        (ok (do))
-        (do
-          (try (relabel-stored! (mut (:store app))
-                                account
-                                (at thread-ids index)
-                                (ref removal)))
-          (recur (+ index 1)))))))
+    (try-for-each (iter thread-ids)
+      (fn (thread-id)
+        (relabel-stored! (mut (:store app))
+                         account thread-id
+                         (ref removal))))))
