@@ -7,12 +7,8 @@
 (use adapters/driving/webview/window reply-outbox
                                      request-inbox)
 
-(use app/client/account-book)
+(use app/client)
 (use composition/window-client)
-(use app/client/mail-reader)
-(use app/client/mail-writer)
-(use app/client/mail-labeler)
-(use app/client/mail-syncer)
 (use composition/gmail-backend gmail-app)
 (use composition/logging chosen-log)
 (use composition/settings settings-from)

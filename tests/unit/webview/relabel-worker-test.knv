@@ -15,12 +15,8 @@
 
 (use domain/mail-error mail-error)
 (use adapters/driving/webview/window request-inbox)
-(use app/client/account-book)
+(use app/client)
 (use composition/window-client)
-(use app/client/mail-reader)
-(use app/client/mail-writer)
-(use app/client/mail-labeler)
-(use app/client/mail-syncer)
 (use ports/driven/event-log event-log)
 (use support/app-steps remote-thread synced!)
 (use support/gmail-requests contains?)

@@ -17,7 +17,7 @@
 (use domain/mail-error mail-error)
 (use domain/results ok->option)
 (use ports/driven/event-log event-log log-debug log-warn)
-(use ports/driving/account-book account-book list-accounts!)
+(use ports/driving/mail-client list-accounts! mail-client)
 
 (export answer-relabels! answered-and-logged!
         refuse-relabels!)
