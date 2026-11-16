@@ -1,5 +1,6 @@
 (use adapters/driven/sqlite/connection sqlite-connection)
 (use adapters/driven/sqlite/rows as-internal)
+(use adapters/driven/sqlite/statements execute-all)
 (use domain/mail ->account ->label account label)
 (use domain/mail-error mail-error)
 
@@ -11,19 +12,45 @@
   :name string
   :unread i64)
 
+(def select-emails
+  "SELECT email FROM accounts ORDER BY rowid")
+
+(def insert-account
+  "INSERT OR IGNORE INTO accounts (email) VALUES (?1)")
+
+(def account-erasures
+  (vec "DELETE FROM accounts WHERE email = ?1"
+       "DELETE FROM labels WHERE account = ?1"
+       "DELETE FROM summaries WHERE account = ?1"
+       "DELETE FROM threads WHERE account = ?1"
+       "DELETE FROM messages WHERE account = ?1"
+       "DELETE FROM checkpoints WHERE account = ?1"))
+
+(def select-labels
+  "SELECT id, name, unread FROM labels WHERE account = ?1 ORDER BY name")
+
+(def delete-labels "DELETE FROM labels WHERE account = ?1")
+
+(def insert-label
+  "INSERT INTO labels (account, id, name, unread) VALUES (?1, ?2, ?3, ?4)")
+
 (defn read-accounts (connection)
-  (let (emails (try (as-internal (account-emails connection))))
+  (let (emails (try (as-internal (account-emails connection select-emails))))
     (ok (collect (map (iter emails)
                    (fn (email) (->account (clone email))))))))
 
 (defn write-account (connection saved)
-  (as-internal (insert-account connection (ref (:email saved)))))
+  (as-internal (execute-all connection
+                            (ref (vec insert-account))
+                            (ref (vec (as-str (:email saved)))))))
 
 (defn erase-account (connection email)
-  (as-internal (delete-account connection email)))
+  (as-internal (execute-all connection
+                            (ref account-erasures)
+                            (ref (vec email)))))
 
 (defn read-labels (connection account)
-  (let (rows (try (as-internal (label-rows connection account))))
+  (let (rows (try (as-internal (label-rows connection select-labels account))))
     (ok (collect (map (iter rows)
                    (fn (row)
                      (->label (clone (:id row))
@@ -31,31 +58,27 @@
                               (:unread row))))))))
 
 (defn write-labels (connection account labels)
-  (as-internal (replace-labels connection account labels)))
+  (as-internal (replace-labels connection delete-labels
+                               insert-label account
+                               labels)))
 
 (def account-emails
-  (rust "{0}.prepare_cached(\"SELECT email FROM accounts ORDER BY rowid\").and_then(|mut {!statement}| {!statement}.query_map([], |{!row}| {!row}.get::<_, String>(0)).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
-    (fn ((ref sqlite-connection))
+  (rust "{0}.prepare_cached({1}).and_then(|mut {!statement}| {!statement}.query_map([], |{!row}| {!row}.get::<_, String>(0)).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection) (ref str))
       (result (vec string) string))))
 
-(def insert-account
-  (rust "{0}.execute(\"INSERT OR IGNORE INTO accounts (email) VALUES (?1)\", [{1}]).map(|_| ()).map_err(|{!error}| {!error}.to_string())"
-    (fn ((ref sqlite-connection) (ref str))
-      (result unit string))))
-
-(def delete-account
-  (rust "[\"accounts WHERE email\", \"labels WHERE account\", \"summaries WHERE account\", \"threads WHERE account\", \"messages WHERE account\", \"checkpoints WHERE account\"].iter().try_for_each(|{!table}| {0}.execute(&format!(\"DELETE FROM {{}} = ?1\", {!table}), [{1}]).map(|_| ())).map_err(|{!error}| {!error}.to_string())"
-    (fn ((ref sqlite-connection) (ref str))
-      (result unit string))))
-
 (def label-rows
-  (rust "{0}.prepare_cached(\"SELECT id, name, unread FROM labels WHERE account = ?1 ORDER BY name\").and_then(|mut {!statement}| {!statement}.query_map([{1}], |{!row}| Ok(LabelRow {{ id: {!row}.get(0)?, name: {!row}.get(1)?, unread: {!row}.get(2)? }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
-    (fn ((ref sqlite-connection) (ref str))
+  (rust "{0}.prepare_cached({1}).and_then(|mut {!statement}| {!statement}.query_map([{2}], |{!row}| Ok(LabelRow {{ id: {!row}.get(0)?, name: {!row}.get(1)?, unread: {!row}.get(2)? }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection)
+         (ref str)
+         (ref str))
       (result (vec label-row) string))))
 
 (def replace-labels
-  (rust "{0}.unchecked_transaction().and_then(|{!transaction}| {{ {!transaction}.execute(\"DELETE FROM labels WHERE account = ?1\", [{1}])?; for {!label} in {2}.iter() {{ {!transaction}.execute(\"INSERT INTO labels (account, id, name, unread) VALUES (?1, ?2, ?3, ?4)\", rusqlite::params![{1}, {!label}.id, {!label}.name, {!label}.unread])?; }} {!transaction}.commit() }}).map_err(|{!error}| {!error}.to_string())"
+  (rust "{0}.unchecked_transaction().and_then(|{!transaction}| {{ {!transaction}.execute({1}, [{3}])?; for {!label} in {4}.iter() {{ {!transaction}.execute({2}, rusqlite::params![{3}, {!label}.id, {!label}.name, {!label}.unread])?; }} {!transaction}.commit() }}).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection)
+         (ref str)
+         (ref str)
          (ref str)
          (ref (vec label)))
       (result unit string))))

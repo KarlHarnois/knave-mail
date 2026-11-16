@@ -1,10 +1,11 @@
 (use adapters/driven/sqlite/connection sqlite-connection)
 (use adapters/driven/sqlite/rows as-internal)
+(use adapters/driven/sqlite/statements execute-all)
 (use domain/mail ->message ->thread message thread)
 (use domain/mail-error mail-error)
 
 (export erase-thread read-message read-thread relabel-thread
-        write-thread)
+        set-thread-labels write-thread)
 
 (defstruct thread-row
   :subject string
@@ -23,12 +24,34 @@
   :header-id string
   :references string)
 
+(def thread-erasures
+  (vec "DELETE FROM summaries WHERE account = ?1 AND id = ?2"
+       "DELETE FROM threads WHERE account = ?1 AND id = ?2"
+       "DELETE FROM messages WHERE account = ?1 AND thread_id = ?2"))
+
+(def select-thread
+  "SELECT subject, labels FROM threads WHERE account = ?1 AND id = ?2")
+
+(def set-thread-labels
+  "UPDATE threads SET labels = ?3 WHERE account = ?1 AND id = ?2")
+
+(def insert-thread
+  "INSERT OR REPLACE INTO threads (account, id, subject, labels) VALUES (?1, ?2, ?3, ?4)")
+
+(def delete-thread-messages
+  "DELETE FROM messages WHERE account = ?1 AND thread_id = ?2")
+
+(def insert-message
+  "INSERT OR REPLACE INTO messages (account, id, thread_id, position, sender, recipients, copied, subject, date, text, html, header_id, refs) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)")
+
 (defn read-thread (connection account thread-id)
-  (match (try (as-internal (thread-row-of connection account thread-id)))
+  (match (try (as-internal
+                (thread-row-of connection account thread-id select-thread)))
     ((some row)
-     (let (messages (try
-                      (as-internal
-                        (message-rows connection by-thread account thread-id))))
+     (let (messages (try (as-internal (message-rows connection
+                                                    select-thread-messages
+                                                    account
+                                                    thread-id))))
        (ok (some (->thread :id (str thread-id)
                            :subject (clone (:subject row))
                            :labels (clone (:labels row))
@@ -39,19 +62,26 @@
     (none (ok none))))
 
 (defn read-message (connection account message-id)
-  (ok (map-some (first (try
-                         (as-internal
-                           (message-rows connection by-id account message-id))))
+  (ok (map-some (first (try (as-internal (message-rows connection
+                                                       select-message
+                                                       account
+                                                       message-id))))
                 (fn (row) (message-from row)))))
 
 (defn write-thread (connection account saved)
-  (as-internal (replace-thread-rows connection account saved)))
+  (as-internal (replace-thread-rows
+                 connection account saved insert-thread
+                 delete-thread-messages insert-message)))
 
 (defn relabel-thread (connection account thread-id labels)
-  (as-internal (update-thread-labels connection account thread-id labels)))
+  (as-internal (update-thread-labels connection account
+                                     thread-id labels
+                                     set-thread-labels)))
 
 (defn erase-thread (connection account thread-id)
-  (as-internal (delete-thread-rows connection account thread-id)))
+  (as-internal (execute-all connection
+                            (ref thread-erasures)
+                            (ref (vec account thread-id)))))
 
 (type message-from
   (fn ((ref message-row)) message))
@@ -69,19 +99,22 @@
              :header-id (clone (:header-id row))
              :references (clone (:references row))))
 
-(def by-thread "thread_id = ?2 ORDER BY position")
+(def select-thread-messages
+  "SELECT id, thread_id, sender, recipients, copied, subject, date, text, html, header_id, refs FROM messages WHERE account = ?1 AND thread_id = ?2 ORDER BY position")
 
-(def by-id "id = ?2")
+(def select-message
+  "SELECT id, thread_id, sender, recipients, copied, subject, date, text, html, header_id, refs FROM messages WHERE account = ?1 AND id = ?2")
 
 (def thread-row-of
-  (rust "{0}.prepare_cached(\"SELECT subject, labels FROM threads WHERE account = ?1 AND id = ?2\").and_then(|mut {!statement}| {!statement}.query_row(rusqlite::params![{1}, {2}], |{!row}| Ok(ThreadRow {{ subject: {!row}.get(0)?, labels: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(1)?).unwrap_or_default() }})).map(Some).or_else(|{!error}| if {!error} == rusqlite::Error::QueryReturnedNoRows {{ Ok(None) }} else {{ Err({!error}) }})).map_err(|{!error}| {!error}.to_string())"
+  (rust "{0}.prepare_cached({3}).and_then(|mut {!statement}| {!statement}.query_row(rusqlite::params![{1}, {2}], |{!row}| Ok(ThreadRow {{ subject: {!row}.get(0)?, labels: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(1)?).unwrap_or_default() }})).map(Some).or_else(|{!error}| if {!error} == rusqlite::Error::QueryReturnedNoRows {{ Ok(None) }} else {{ Err({!error}) }})).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection)
+         (ref str)
          (ref str)
          (ref str))
       (result (option thread-row) string))))
 
 (def message-rows
-  (rust "{0}.prepare_cached(&format!(\"SELECT id, thread_id, sender, recipients, copied, subject, date, text, html, header_id, refs FROM messages WHERE account = ?1 AND {{}}\", {1})).and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{2}, {3}], |{!row}| Ok(MessageRow {{ id: {!row}.get(0)?, thread_id: {!row}.get(1)?, from: {!row}.get(2)?, to: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(3)?).unwrap_or_default(), cc: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(4)?).unwrap_or_default(), subject: {!row}.get(5)?, date: {!row}.get(6)?, text: {!row}.get(7)?, html: {!row}.get(8)?, header_id: {!row}.get(9)?, references: {!row}.get(10)? }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
+  (rust "{0}.prepare_cached({1}).and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{2}, {3}], |{!row}| Ok(MessageRow {{ id: {!row}.get(0)?, thread_id: {!row}.get(1)?, from: {!row}.get(2)?, to: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(3)?).unwrap_or_default(), cc: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(4)?).unwrap_or_default(), subject: {!row}.get(5)?, date: {!row}.get(6)?, text: {!row}.get(7)?, html: {!row}.get(8)?, header_id: {!row}.get(9)?, references: {!row}.get(10)? }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection)
          (ref str)
          (ref str)
@@ -89,23 +122,20 @@
       (result (vec message-row) string))))
 
 (def replace-thread-rows
-  (rust "{0}.unchecked_transaction().and_then(|{!transaction}| {{ {!transaction}.execute(\"INSERT OR REPLACE INTO threads (account, id, subject, labels) VALUES (?1, ?2, ?3, ?4)\", rusqlite::params![{1}, {2}.id, {2}.subject, serde_json::to_string(&{2}.labels).unwrap_or_default()])?; {!transaction}.execute(\"DELETE FROM messages WHERE account = ?1 AND thread_id = ?2\", rusqlite::params![{1}, {2}.id])?; for ({!position}, {!message}) in {2}.messages.iter().enumerate() {{ {!transaction}.execute(\"INSERT OR REPLACE INTO messages (account, id, thread_id, position, sender, recipients, copied, subject, date, text, html, header_id, refs) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)\", rusqlite::params![{1}, {!message}.id, {!message}.thread_id, {!position} as i64, {!message}.from, serde_json::to_string(&{!message}.to).unwrap_or_default(), serde_json::to_string(&{!message}.cc).unwrap_or_default(), {!message}.subject, {!message}.date, {!message}.text, {!message}.html, {!message}.header_id, {!message}.references])?; }} {!transaction}.commit() }}).map_err(|{!error}| {!error}.to_string())"
+  (rust "{0}.unchecked_transaction().and_then(|{!transaction}| {{ {!transaction}.execute({3}, rusqlite::params![{1}, {2}.id, {2}.subject, serde_json::to_string(&{2}.labels).unwrap_or_default()])?; {!transaction}.execute({4}, rusqlite::params![{1}, {2}.id])?; for ({!position}, {!message}) in {2}.messages.iter().enumerate() {{ {!transaction}.execute({5}, rusqlite::params![{1}, {!message}.id, {!message}.thread_id, {!position} as i64, {!message}.from, serde_json::to_string(&{!message}.to).unwrap_or_default(), serde_json::to_string(&{!message}.cc).unwrap_or_default(), {!message}.subject, {!message}.date, {!message}.text, {!message}.html, {!message}.header_id, {!message}.references])?; }} {!transaction}.commit() }}).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection)
          (ref str)
-         (ref thread))
+         (ref thread)
+         (ref str)
+         (ref str)
+         (ref str))
       (result unit string))))
 
 (def update-thread-labels
-  (rust "{0}.execute(\"UPDATE threads SET labels = ?3 WHERE account = ?1 AND id = ?2\", rusqlite::params![{1}, {2}, serde_json::to_string(&{3}).unwrap_or_default()]).map(|_| ()).map_err(|{!error}| {!error}.to_string())"
+  (rust "{0}.execute({4}, rusqlite::params![{1}, {2}, serde_json::to_string(&{3}).unwrap_or_default()]).map(|_| ()).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection)
          (ref str)
          (ref str)
-         (vec string))
-      (result unit string))))
-
-(def delete-thread-rows
-  (rust "{0}.unchecked_transaction().and_then(|{!transaction}| {{ for {!statement} in [\"DELETE FROM summaries WHERE account = ?1 AND id = ?2\", \"DELETE FROM threads WHERE account = ?1 AND id = ?2\", \"DELETE FROM messages WHERE account = ?1 AND thread_id = ?2\"] {{ {!transaction}.execute({!statement}, rusqlite::params![{1}, {2}])?; }} {!transaction}.commit() }}).map_err(|{!error}| {!error}.to_string())"
-    (fn ((ref sqlite-connection)
-         (ref str)
+         (vec string)
          (ref str))
       (result unit string))))

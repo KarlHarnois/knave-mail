@@ -1,0 +1,10 @@
+(use adapters/driven/sqlite/connection sqlite-connection)
+
+(export execute-all)
+
+(def execute-all
+  (rust "{0}.unchecked_transaction().and_then(|{!transaction}| {{ for {!statement} in {1}.iter() {{ {!transaction}.execute({!statement}, rusqlite::params_from_iter({2}.iter()))?; }} {!transaction}.commit() }}).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection)
+         (ref (vec (ref str)))
+         (ref (vec (ref str))))
+      (result unit string))))
