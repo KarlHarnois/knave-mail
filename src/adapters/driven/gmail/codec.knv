@@ -1,5 +1,9 @@
-(use adapters/json/value json-value number-field
-                         optional-string-field)
+(use adapters/json/value array-field json-value number-field
+                         optional-string-field
+                         string-list-field)
+
+(use domain/collections appended)
+(use domain/results ok->option)
 
 (use domain/mail ->label ->message ->thread-summary label
                  message thread-summary)
@@ -28,18 +32,10 @@
   :header-id string
   :references string)
 
-(def label-ids
-  (rust "{0}.get(\"labels\").and_then(|{!labels}| {!labels}.as_array()).map(|{!labels}| {!labels}.iter().filter_map(|{!label}| {!label}.get(\"id\").and_then(|{!id}| {!id}.as_str()).map(str::to_string)).collect::<Vec<_>>()).unwrap_or_default()"
-    (fn ((ref json-value)) (vec string))))
-
 (defn label-from (details)
   (->label :id (text-at details "id")
            :name (text-at details "name")
            :unread (number-at details "threadsUnread")))
-
-(def thread-ids
-  (rust "{0}.get(\"threads\").and_then(|{!threads}| {!threads}.as_array()).map(|{!threads}| {!threads}.iter().filter_map(|{!thread}| {!thread}.get(\"id\").and_then(|{!id}| {!id}.as_str()).map(str::to_string)).collect::<Vec<_>>()).unwrap_or_default()"
-    (fn ((ref json-value)) (vec string))))
 
 (defn summary-from (thread)
   (let (parts (summary-parts-of thread))
@@ -50,14 +46,6 @@
                       :date (:date parts)
                       :labels (clone (:labels parts))
                       :message-count (:message-count parts))))
-
-(def message-ids
-  (rust "{0}.get(\"messages\").and_then(|{!messages}| {!messages}.as_array()).map(|{!messages}| {!messages}.iter().filter_map(|{!message}| {!message}.get(\"id\").and_then(|{!id}| {!id}.as_str()).map(str::to_string)).collect::<Vec<_>>()).unwrap_or_default()"
-    (fn ((ref json-value)) (vec string))))
-
-(def thread-labels
-  (rust "{0}.get(\"messages\").and_then(|{!messages}| {!messages}.as_array()).map(|{!messages}| {!messages}.iter().flat_map(|{!message}| {!message}.get(\"labelIds\").and_then(|{!ids}| {!ids}.as_array()).cloned().unwrap_or_default()).filter_map(|{!id}| {!id}.as_str().map(str::to_string)).fold(Vec::<String>::new(), |mut {!all}, {!id}| {{ if !{!all}.contains(&{!id}) {{ {!all}.push({!id}); }} {!all} }})).unwrap_or_default()"
-    (fn ((ref json-value)) (vec string))))
 
 (defn message-from-raw (raw-message thread-id)
   (let (parts (message-parts-of raw-message))
@@ -72,6 +60,35 @@
                :html (clone (:html parts))
                :header-id (clone (:header-id parts))
                :references (clone (:references parts)))))
+
+(defn label-ids (reply) (ids-in reply "labels"))
+
+(defn thread-ids (reply) (ids-in reply "threads"))
+
+(defn message-ids (thread) (ids-in thread "messages"))
+
+(defn ids-in (reply list-name)
+  (reduce (array-field reply list-name) (vec)
+    (fn (ids entry)
+      (match (optional-string-field entry "id")
+        ((some id) (appended ids id))
+        (none ids)))))
+
+(defn thread-labels (thread)
+  (reduce (array-field thread "messages") (vec)
+    (fn (labels message)
+      (reduce (labels-on message) labels with-new-label))))
+
+(defn labels-on (message)
+  (unwrap-or (ok->option (string-list-field message "labelIds"))
+             (vec)))
+
+(defn with-new-label (labels label)
+  (if (any? (iter labels)
+        (fn (known)
+          (= (as-str known) (as-str label))))
+    labels
+    (appended labels (clone label))))
 
 (defn sent-thread-id (reply) (text-at reply "threadId"))
 
