@@ -1,8 +1,9 @@
 (use domain/collections appended-once as-count)
 (use domain/labels ->label-change label-change)
 
-(export ->mail-changes ->message-relabel history-change
-        mail-changes message-relabel relabeled-only-ids)
+(export ->mail-changes ->message-relabel echoed?
+        history-change mail-changes message-relabel
+        relabeled-only-ids)
 
 (defstruct message-relabel
   :thread-id string
@@ -28,6 +29,25 @@
       (some (->label-change :added (added-labels (ref mine))
                             :removed (removed-labels (ref mine))))
       none)))
+
+(type echoed?
+  (fn ((ref mail-changes)
+       (ref str)
+       (ref (vec string)))
+    bool))
+
+(defn echoed? (changes thread-id labels)
+  (let (mine (of-thread (ref (:relabels changes)) thread-id)
+        added (added-labels (ref mine))
+        removed (removed-labels (ref mine)))
+    (and (not (empty? mine))
+         (every? (iter added)
+           (fn (label)
+             (and (contains? labels (clone label))
+                  (not (contains? (ref removed) (clone label))))))
+         (every? (iter removed)
+           (fn (label)
+             (not (contains? labels (clone label))))))))
 
 (defn settled? (relabels message-count)
   (let (added (added-labels relabels)

@@ -1,8 +1,8 @@
-(use domain/history ->mail-changes ->message-relabel
+(use domain/history ->mail-changes ->message-relabel echoed?
                     history-change relabeled-only-ids)
 
-(use domain/labels ->label-change archive-change read-change
-                   star-change)
+(use domain/labels ->label-change archive-change
+                   inbox-change read-change star-change)
 
 (defn relabel (thread-id message-id change)
   (->message-relabel :thread-id (str thread-id)
@@ -51,3 +51,24 @@
                                 (vec (relabel "t1" "m1" (archive-change))
                                      (relabel "t2" "m2" (archive-change))))))
              (vec (str "t2")))))
+
+(deftest an-archive-the-cache-already-shows-is-an-echo
+  (assert (echoed? (ref (changes-of (vec)
+                                    (vec (relabel "t" "m1" (archive-change)))))
+                   "t"
+                   (ref (vec (str "UNREAD"))))))
+
+(deftest an-archive-the-cache-does-not-show-is-not-an-echo
+  (assert (not (echoed? (ref (changes-of
+                               (vec)
+                               (vec (relabel "t" "m1" (archive-change)))))
+                        "t"
+                        (ref (vec (str "INBOX")))))))
+
+(deftest a-label-added-and-removed-is-never-an-echo
+  (assert (not (echoed? (ref (changes-of (vec)
+                                         (vec
+                                           (relabel "t" "m1" (archive-change))
+                                           (relabel "t" "m2" (inbox-change)))))
+                        "t"
+                        (ref (vec (str "INBOX")))))))

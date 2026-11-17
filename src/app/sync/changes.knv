@@ -3,12 +3,14 @@
 (use app/activity-log log-changes! log-gmail-relabel!
                       log-vanished-thread!)
 
-(use domain/collections appended-once try-for-each)
+(use domain/collections try-for-each)
 (use app/caching cache-thread!)
 (use app/mail-app mail-app)
+(use domain/history relabeled-only-ids)
 
-(use domain/history history-change mail-changes
-                    relabeled-only-ids)
+(use app/sync/history-selection not-echoed
+                                settled-by-history
+                                with-unsettled)
 
 (use domain/labels label-change)
 (use domain/mail-error error-kind mail-error)
@@ -42,8 +44,9 @@
                                        (ref (relabeled-only-ids (ref
                                                                   changes)))))
         settled (settled-by-history (ref changes) (ref cached))
+        unechoed (not-echoed (ref changes) (ref cached))
         downloads (with-unsettled (clone (:refetch changes))
-                                  (ref cached)
+                                  (ref unechoed)
                                   (ref settled)))
     (try (try-for-each (iter settled)
            (fn (relabel) (relabel-from-history! app account relabel))))
@@ -57,6 +60,7 @@
                   account
                   (as-str (:history-id changes))
                   (len settled)
+                  (- (len cached) (len unechoed))
                   (ref (try (load-pending-downloads (ref (:store app))
                                                     account))))
     (ok (do))))
@@ -72,40 +76,6 @@
         (try (refresh-thread! app account thread-id))
         (forget-pending-download! (mut (:store app))
                                   account thread-id)))))
-
-(type settled-by-history
-  (fn ((ref mail-changes)
-       (ref (vec thread-summary)))
-    (vec (pair string label-change))))
-
-(defn settled-by-history (changes cached)
-  (reduce (iter cached) (vec)
-    (fn (settled summary)
-      (match (history-change changes
-                             (as-str (:id summary))
-                             (:message-count summary))
-        ((some change)
-         (do
-           (push! (mut settled)
-                  (pair (clone (:id summary)) change))
-           settled))
-        (none settled)))))
-
-(type with-unsettled
-  (fn ((vec string)
-       (ref (vec thread-summary))
-       (ref (vec (pair string label-change))))
-    (vec string)))
-
-(defn with-unsettled (downloads cached settled)
-  (reduce (iter cached) downloads
-    (fn (found summary)
-      (if (any? (iter settled)
-            (fn (relabel)
-              (let-match ((pair thread-id _) relabel)
-                (= thread-id (:id summary)))))
-        found
-        (appended-once found (clone (:id summary)))))))
 
 (type relabel-from-history!
   (fn ((mut mail-app)

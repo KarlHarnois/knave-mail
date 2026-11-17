@@ -1,0 +1,53 @@
+(use domain/collections appended-once)
+(use domain/history echoed? history-change mail-changes)
+(use domain/labels label-change)
+(use domain/mail thread-summary)
+
+(export not-echoed settled-by-history with-unsettled)
+
+(type settled-by-history
+  (fn ((ref mail-changes)
+       (ref (vec thread-summary)))
+    (vec (pair string label-change))))
+
+(defn settled-by-history (changes cached)
+  (reduce (iter cached) (vec)
+    (fn (settled summary)
+      (match (history-change changes
+                             (as-str (:id summary))
+                             (:message-count summary))
+        ((some change)
+         (do
+           (push! (mut settled)
+                  (pair (clone (:id summary)) change))
+           settled))
+        (none settled)))))
+
+(type not-echoed
+  (fn ((ref mail-changes)
+       (ref (vec thread-summary)))
+    (vec thread-summary)))
+
+(defn not-echoed (changes cached)
+  (collect (map (filter (iter cached)
+                  (fn (summary)
+                    (not (echoed? changes
+                                  (as-str (:id summary))
+                                  (ref (:labels summary))))))
+                (fn (summary) (clone summary)))))
+
+(type with-unsettled
+  (fn ((vec string)
+       (ref (vec thread-summary))
+       (ref (vec (pair string label-change))))
+    (vec string)))
+
+(defn with-unsettled (downloads cached settled)
+  (reduce (iter cached) downloads
+    (fn (found summary)
+      (if (any? (iter settled)
+            (fn (relabel)
+              (let-match ((pair thread-id _) relabel)
+                (= thread-id (:id summary)))))
+        found
+        (appended-once found (clone (:id summary)))))))

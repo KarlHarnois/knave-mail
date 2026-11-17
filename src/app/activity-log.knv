@@ -59,13 +59,14 @@
   (log-info log sync-area
             (str account ": full sync done at history " history-id)))
 
-(defn log-changes! (log account history-id relabeled downloads)
+(defn log-changes! (log account history-id relabeled matched downloads)
   (log-info log sync-area
             (str account ": " relabeled
                  " threads relabeled from history, "
                  (len downloads)
                  " threads to download, now at history "
-                 history-id))
+                 history-id ", " matched
+                 " already matched the cache"))
   (log-debug log sync-area
              (str account ": threads to download " (join downloads " "))))
 
