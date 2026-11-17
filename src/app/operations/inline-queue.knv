@@ -1,0 +1,44 @@
+(use app/mailboxes ->mailboxes)
+
+(use app/operations/runner ->operation-runner attempt-once!
+                           attempt-outcome new-operation!
+                           operation-runner)
+
+(use domain/mail-error mail-error)
+(use domain/operation operation-result)
+(use domain/operation-schedule ->scheduled scheduled)
+(use ports/driven/clock clock pause!)
+(use ports/driven/event-log event-log)
+(use ports/driven/mailbox-provider mailbox-provider)
+(use ports/driven/operation-queue operation-queue)
+
+(export ->inline-queue inline-queue new-inline-queue)
+
+(defstruct inline-queue
+  :runner operation-runner)
+
+(defn new-inline-queue (provider clock log)
+  (->inline-queue :runner (->operation-runner
+                            :mailboxes (->mailboxes provider (vec) (vec))
+                            :clock clock
+                            :log log)))
+
+(impl operation-queue inline-queue
+  (submit! (queue account kind rank)
+    (let (queued (new-operation! (ref (:runner queue)) account kind rank))
+      (run-to-end! (mut (:runner queue))
+                   (->scheduled :operation queued :attempt 1 :not-before 0)))))
+
+(type run-to-end!
+  (fn ((mut operation-runner) scheduled)
+    (result operation-result mail-error)))
+
+(defn run-to-end! (runner entry)
+  (match (attempt-once! runner (ref entry))
+    ((finished outcome) (ok outcome))
+    ((retry-after delay)
+     (do
+       (pause! (ref (:clock runner)) delay)
+       (recur runner
+              (assoc entry :attempt (+ (:attempt entry) 1)))))
+    ((failed failure) (err failure))))

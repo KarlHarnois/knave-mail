@@ -9,7 +9,13 @@
                                      send-reply)
 
 (use app/mail-app mail-app)
+
+(use adapters/driven/threaded-queue share-sender
+                                    submission-sender
+                                    threaded-operations)
+
 (use composition/gmail-backend gmail-app)
+(use domain/operation priority)
 (use composition/logging chosen-log)
 (use domain/mail-error error-kind error-message mail-error)
 
@@ -26,25 +32,29 @@
 (export ->background-sync background-sync)
 
 (defstruct background-sync
-  :started i64)
+  :executor submission-sender)
 
 (impl sync-runner background-sync
   (start-sync! (runner account outbox)
-    (let (owned-account (str account))
-      (set! (:started runner)
-            (+ (:started runner) 1))
+    (let (owned-account (str account)
+          executor (share-sender (ref (:executor runner))))
       (run-in-background outbox
         (fn (progress)
-          (let (moved-account owned-account)
-            (synced-in-own-app (ref moved-account) progress))))
+          (let (moved-account owned-account
+                moved-executor executor)
+            (synced-in-own-app (ref moved-account)
+                               progress
+                               (ref moved-executor)))))
       true)))
 
-(defn synced-in-own-app (account progress)
+(defn synced-in-own-app (account progress executor)
   (let (chosen (settings-from (ref (command-line-args)))
         log (chosen-log (ref chosen))
         started (clock-milliseconds)
         outcome (match (gmail-app (ref chosen)
-                                  (share-log (ref log)))
+                                  (share-log (ref log))
+                                  (threaded-operations executor)
+                                  priority/background)
                   ((ok app)
                    (do
                      (local syncing app)

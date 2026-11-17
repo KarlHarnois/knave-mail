@@ -2,7 +2,7 @@
 (use domain/labels label-change)
 (use domain/mail thread-query)
 (use domain/mail-error error-kind error-message mail-error)
-(use domain/operation operation operation-kind)
+(use domain/operation operation operation-kind priority)
 (use domain/operation-policy operation-policy policy-of)
 (use domain/text join-with)
 (use ports/driven/event-log log-debug log-info log-warn)
@@ -16,8 +16,14 @@
 (defn log-queued! (log queued)
   (log-debug log operations-area
              (line-of queued
-                      (with-target "queued"
+                      (with-target (str "queued, "
+                                        (rank-name (:priority queued)))
                                    (target-of (ref (:kind queued)))))))
+
+(defn rank-name (rank)
+  (match rank
+    (interactive (str "interactive"))
+    (background (str "background"))))
 
 (defn log-batch-queued! (log account name count)
   (log-info log operations-area

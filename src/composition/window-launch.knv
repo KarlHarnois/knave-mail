@@ -1,0 +1,96 @@
+(use composition/window-client)
+(use app/client/mail-writer)
+(use app/client/mail-syncer)
+(use app/client/mail-reader)
+(use app/client/mail-labeler)
+(use app/client/account-book)
+
+(use adapters/driven/threaded-queue share-sender
+                                    threaded-operations)
+
+(use adapters/driving/webview/relabel-runner ->inline-relabel)
+(use adapters/driving/webview/session serve-requests!)
+(use adapters/driving/webview/start-account-script start-account-script)
+(use adapters/driving/webview/sync-runner ->inline-sync)
+
+(use adapters/driving/webview/window open-window
+                                     reply-outbox
+                                     request-inbox)
+
+(use composition/background-relabel start-background-relabel)
+(use composition/background-sync ->background-sync)
+(use composition/gmail-backend gmail-app)
+(use composition/keymap-loader keymap-startup-script)
+(use composition/launch fail-with memory-backend)
+(use composition/logging chosen-log)
+(use composition/memory-backend memory-app)
+(use composition/operation-executor start-gmail-executor)
+(use composition/settings settings)
+(use composition/startup-log log-started)
+(use composition/theme-file theme-stylesheet)
+(use domain/operation priority)
+(use ports/driven/event-log event-log share-log)
+
+(export launch-window)
+
+(defn launch-window (chosen)
+  (let (script (str (keymap-startup-script (ref chosen))
+                    (start-account-script (ref (:start-account chosen)))
+                    (:e2e-script chosen))
+        stylesheet (theme-stylesheet (ref chosen)))
+    (open-window "knave-mail" (ref script) (ref stylesheet)
+      (fn (inbox outbox)
+        (let (owned chosen
+              log (chosen-log (ref owned)))
+          (log-started (ref log) (ref owned) "window")
+          (if (= (:backend owned) memory-backend)
+            (serve-memory-window! (ref owned)
+                                  (ref log)
+                                  (ref inbox)
+                                  (ref outbox))
+            (serve-gmail-window! (ref owned)
+                                 (ref log)
+                                 (ref inbox)
+                                 (ref outbox))))))))
+
+(type serve-memory-window!
+  (fn ((ref settings)
+       (ref (box event-log))
+       (ref request-inbox)
+       (ref reply-outbox))
+    unit))
+
+(defn serve-memory-window! (chosen log inbox outbox)
+  (local running (memory-app chosen (share-log log)))
+  (local runner (->inline-sync 0))
+  (local relabeler (->inline-relabel 0))
+  (serve-requests! (mut running)
+                   (mut runner)
+                   (mut relabeler)
+                   log inbox outbox))
+
+(type serve-gmail-window!
+  (fn ((ref settings)
+       (ref (box event-log))
+       (ref request-inbox)
+       (ref reply-outbox))
+    unit))
+
+(defn serve-gmail-window! (chosen log inbox outbox)
+  (let (executor (start-gmail-executor (clone chosen)))
+    (match (gmail-app chosen
+                      (share-log log)
+                      (threaded-operations (ref executor))
+                      priority/interactive)
+      ((ok app)
+       (do
+         (local running app)
+         (local runner
+           (->background-sync (share-sender (ref executor))))
+         (local relabeler
+           (start-background-relabel outbox (ref executor)))
+         (serve-requests! (mut running)
+                          (mut runner)
+                          (mut relabeler)
+                          log inbox outbox)))
+      ((err failure) (fail-with (ref failure))))))

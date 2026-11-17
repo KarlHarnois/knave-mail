@@ -10,7 +10,11 @@
 (use adapters/driving/webview/window reply-outbox
                                      request-inbox)
 
+(use adapters/driven/threaded-queue share-sender
+                                    threaded-operations)
+
 (use composition/gmail-backend gmail-app)
+(use domain/operation priority)
 (use composition/logging chosen-log)
 (use composition/settings settings-from)
 (use domain/mail-error error-message)
@@ -28,16 +32,21 @@
   (hand-off! (runner request-text)
     (enqueue! (ref (:queue runner)) request-text)))
 
-(defn start-background-relabel (outbox)
-  (->background-relabel (spawn-worker outbox
-                          (fn (inbox replies)
-                            (relabel-in-own-app inbox replies)))))
+(defn start-background-relabel (outbox executor)
+  (let (shared (share-sender executor))
+    (->background-relabel
+      (spawn-worker outbox
+        (fn (inbox replies)
+          (let (moved-executor shared)
+            (relabel-in-own-app inbox replies (ref moved-executor))))))))
 
-(defn relabel-in-own-app (inbox outbox)
+(defn relabel-in-own-app (inbox outbox executor)
   (let (chosen (settings-from (ref (command-line-args)))
         log (chosen-log (ref chosen)))
     (match (gmail-app (ref chosen)
-                      (share-log (ref log)))
+                      (share-log (ref log))
+                      (threaded-operations executor)
+                      priority/interactive)
       ((ok app)
        (do
          (local running app)

@@ -1,0 +1,96 @@
+(use app/mailboxes mailboxes)
+(use app/operations/performing performed!)
+
+(use app/operations/operation-log log-failed! log-finished!
+                                  log-gave-up! log-queued!
+                                  log-started! log-waiting!)
+
+(use domain/mail-error mail-error)
+
+(use domain/operation ->operation operation operation-kind
+                      operation-result priority)
+
+(use domain/operation-policy next-step policy-of retryable?
+                             step-after-failure)
+
+(use domain/operation-schedule scheduled)
+(use ports/driven/clock clock now-milliseconds)
+(use ports/driven/event-log event-log)
+
+(export ->operation-runner attempt-once! attempt-outcome
+        new-operation! operation-runner)
+
+(defstruct operation-runner
+  :mailboxes mailboxes
+  :clock (box clock)
+  :log (box event-log))
+
+(defenum attempt-outcome
+  (finished operation-result)
+  (retry-after i64)
+  (failed mail-error))
+
+(type new-operation!
+  (fn ((ref operation-runner) (ref str) operation-kind priority)
+    operation))
+
+(defn new-operation! (runner account kind rank)
+  (let (queued (->operation :id (next-operation-id)
+                            :account (str account)
+                            :kind kind
+                            :priority rank
+                            :queued-at (now-milliseconds (ref (:clock
+                                                                runner)))))
+    (log-queued! (ref (:log runner))
+                 (ref queued))
+    queued))
+
+(type attempt-once!
+  (fn ((mut operation-runner) (ref scheduled))
+    attempt-outcome))
+
+(defn attempt-once! (runner entry)
+  (let (queued (ref (:operation entry))
+        attempt (:attempt entry)
+        policy (policy-of (ref (:kind queued)))
+        started (now-milliseconds (ref (:clock runner))))
+    (log-started! (ref (:log runner))
+                  queued
+                  (ref policy)
+                  attempt
+                  (- started (:queued-at queued)))
+    (match (performed! (mut (:mailboxes runner)) queued)
+      ((ok outcome)
+       (do
+         (log-finished! (ref (:log runner))
+                        queued attempt
+                        (- (now-milliseconds (ref (:clock runner)))
+                           started)
+                        (- (now-milliseconds (ref (:clock runner)))
+                           (:queued-at queued)))
+         (attempt-outcome/finished outcome)))
+      ((err failure)
+       (match (step-after-failure attempt (ref policy) (ref failure))
+         ((retry-after delay)
+          (do
+            (log-waiting! (ref (:log runner))
+                          queued
+                          (ref failure)
+                          (+ attempt 1)
+                          delay)
+            (attempt-outcome/retry-after delay)))
+         (stop (do
+                 (if (retryable? (ref policy) (ref failure))
+                   (log-gave-up! (ref (:log runner))
+                                 queued
+                                 (ref failure)
+                                 attempt)
+                   (log-failed! (ref (:log runner))
+                                queued
+                                (ref failure)
+                                attempt))
+                 (attempt-outcome/failed failure))))))))
+
+(def next-operation-id
+  (rust "{{ static NEXT: std::sync::atomic::AtomicI64 = std::sync::atomic::AtomicI64::new(1); NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed) }}"
+    (fn () i64)))

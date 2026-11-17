@@ -115,9 +115,8 @@
                                  (ref (archive-change))))
     (assert (mentions? (ref (logged-lines (ref log)))
                        "relabel ada@example.com: queued 2"))
-    (assert (mentions?
-              (ref (logged-lines (ref log)))
-              "relabel ada@example.com: queued, thread t-2 +[] -[INBOX]"))))
+    (assert (mentions? (ref (logged-lines (ref log)))
+                       "relabel ada@example.com: queued, interactive, thread t-2 +[] -[INBOX]"))))
 
 (deftest opening-a-thread-offline-logs-that-it-stays-unread
   (let (world (remote-with (vec

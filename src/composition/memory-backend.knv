@@ -15,7 +15,10 @@
 
 (use adapters/driven/system-clock ->system-clock)
 (use app/mail-app mail-app new-mail-app)
-(use ports/driven/event-log event-log)
+(use app/operations/inline-queue new-inline-queue)
+(use domain/operation priority)
+(use ports/driven/event-log event-log share-log)
+(use ports/driven/operation-queue operation-queue)
 (use composition/settings settings)
 (use domain/mail ->account)
 (use ports/driven/store save-account!)
@@ -31,11 +34,14 @@
 
 (defn memory-app (chosen log)
   (let (app (new-mail-app (box (store-with-accounts))
-                          (box (->memory-provider (account-emails)
-                                                  (seeded-remotes chosen)))
+                          (the (box operation-queue)
+                               (box (new-inline-queue (box (->memory-provider (account-emails)
+                                                                              (seeded-remotes
+                                                                                chosen)))
+                                                      (box (->system-clock))
+                                                      (share-log (ref log)))))
                           (box (->memory-authorizer (vec)))
-                          log
-                          (box (->system-clock))
+                          log priority/interactive
                           sync-limit))
     (sync-every-account! (mut app))
     app))

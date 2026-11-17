@@ -1,9 +1,8 @@
-(use app/mail-app mail-app)
-(use app/mailboxes open-mailbox!)
-(use domain/history mail-changes)
-(use domain/mail label thread thread-page thread-summary)
+(use app/mailboxes mailboxes open-mailbox!)
 (use domain/mail-error mail-error)
-(use domain/operation operation operation-kind)
+
+(use domain/operation operation operation-kind
+                      operation-result)
 
 (use ports/driven/mailbox deliver! fetch-changes!
                           fetch-history-id! fetch-labels!
@@ -12,26 +11,14 @@
                           fetch-thread-page! fetch-threads!
                           mailbox relabel!)
 
-(export operation-result performed!)
-
-(defenum operation-result
-  (labels-fetched (vec label))
-  (summaries-fetched (vec thread-summary))
-  (ids-fetched (vec string))
-  (page-fetched thread-page)
-  (thread-fetched thread)
-  (history-id-fetched string)
-  (history-fetched mail-changes)
-  (delivered string)
-  relabeled)
+(export performed!)
 
 (type performed!
-  (fn ((mut mail-app) (ref operation))
+  (fn ((mut mailboxes) (ref operation))
     (result operation-result mail-error)))
 
-(defn performed! (app operation)
-  (perform! (try (open-mailbox! (mut (:mailboxes app))
-                                (as-str (:account operation))))
+(defn performed! (opened operation)
+  (perform! (try (open-mailbox! opened (as-str (:account operation))))
             (ref (:kind operation))))
 
 (type perform!

@@ -1,0 +1,46 @@
+(use adapters/driven/threaded-queue threaded-operations)
+(use composition/operation-executor start-gmail-executor)
+(use composition/settings settings settings-from)
+
+(use domain/operation operation-kind operation-result
+                      priority)
+
+(use ports/driven/operation-queue submit!)
+(use support/cli-world signed-in-tokens)
+
+(use support/fake-gmail fake-gmail fake-gmail-base
+                        start-fake-gmail)
+
+(use support/gmail-world fixture-routes)
+(use support/temporary temporary-path)
+
+(type settings-over
+  (fn ((ref fake-gmail) string) settings))
+
+(defn settings-over (server tokens)
+  (let (base (fake-gmail-base server))
+    (settings-from (ref (vec (str "--gmail-base-url")
+                             (clone base)
+                             (str "--token-url")
+                             (str base "/token")
+                             (str "--client-id")
+                             (str "fake-client")
+                             (str "--client-secret")
+                             (str "fake-secret")
+                             (str "--credentials-file")
+                             tokens
+                             (str "--log-file")
+                             (temporary-path "executor.log"))))))
+
+(deftest the-executor-answers-an-operation-submitted-from-another-thread
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        executor (start-gmail-executor (settings-over (ref server)
+                                                      (signed-in-tokens)))
+        queue (threaded-operations (ref executor)))
+    (local asking queue)
+    (assert (match (submit! (mut asking)
+                            "ada@example.com"
+                            operation-kind/fetch-labels
+                            priority/interactive)
+              ((ok (labels-fetched labels)) (not (empty? labels)))
+              (_ false)))))

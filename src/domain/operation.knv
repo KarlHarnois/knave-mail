@@ -1,8 +1,12 @@
+(use domain/history mail-changes)
 (use domain/labels label-change)
-(use domain/mail outgoing thread-query)
+
+(use domain/mail label outgoing thread thread-page
+                 thread-query thread-summary)
 
 (export ->operation ->page-request ->relabel-work operation
-        operation-kind page-request relabel-work)
+        operation-kind operation-result page-request
+        priority relabel-work)
 
 (defstruct page-request
   :listing thread-query
@@ -24,8 +28,24 @@
   (send outgoing)
   (relabel relabel-work))
 
+(defenum priority
+  interactive
+  background)
+
 (defstruct operation
   :id i64
   :account string
   :kind operation-kind
+  :priority priority
   :queued-at i64)
+
+(defenum operation-result
+  (labels-fetched (vec label))
+  (summaries-fetched (vec thread-summary))
+  (ids-fetched (vec string))
+  (page-fetched thread-page)
+  (thread-fetched thread)
+  (history-id-fetched string)
+  (history-fetched mail-changes)
+  (delivered string)
+  relabeled)

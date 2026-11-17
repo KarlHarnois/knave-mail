@@ -1,0 +1,44 @@
+(use domain/operation ->operation operation-kind priority)
+
+(use domain/operation-schedule ->scheduled next-ready
+                               wait-until-due)
+
+(defn entry (id rank not-before)
+  (->scheduled :operation (->operation :id id
+                                       :account (str "ada@example.com")
+                                       :kind operation-kind/fetch-labels
+                                       :priority rank
+                                       :queued-at 0)
+               :attempt 1
+               :not-before not-before))
+
+(deftest the-oldest-due-operation-runs-first
+  (assert (= (next-ready (ref (vec (entry 1 priority/background 0)
+                                   (entry 2 priority/background 0)))
+                         100)
+             (some 0))))
+
+(deftest an-interactive-operation-runs-before-background-ones
+  (assert (= (next-ready (ref (vec (entry 1 priority/background 0)
+                                   (entry 2 priority/interactive 0)))
+                         100)
+             (some 1))))
+
+(deftest an-operation-waiting-to-retry-is-skipped
+  (assert (= (next-ready (ref (vec (entry 1 priority/interactive 500)
+                                   (entry 2 priority/background 0)))
+                         100)
+             (some 1))))
+
+(deftest nothing-is-ready-while-everything-waits
+  (assert (none? (next-ready (ref (vec (entry 1 priority/interactive 500)))
+                             100))))
+
+(deftest the-executor-sleeps-until-the-soonest-retry
+  (assert (= (wait-until-due (ref (vec (entry 1 priority/interactive 500)
+                                       (entry 2 priority/background 300)))
+                             100)
+             (some 200))))
+
+(deftest an-empty-queue-waits-for-new-work
+  (assert (none? (wait-until-due (ref (vec)) 100))))

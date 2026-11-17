@@ -1,6 +1,7 @@
 (use adapters/driving/cli/arguments parse-arguments)
 (use adapters/driving/cli/command cli-command-word?)
-(use composition/launch launch-cli launch-window)
+(use composition/launch launch-cli)
+(use composition/window-launch launch-window)
 (use composition/settings settings-from)
 
 (defn main ()

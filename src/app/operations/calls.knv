@@ -1,6 +1,5 @@
 (use app/mail-app mail-app)
-(use app/operations/performing operation-result)
-(use app/operations/running run-operation!)
+(use ports/driven/operation-queue submit!)
 (use domain/history mail-changes)
 (use domain/labels label-change)
 
@@ -10,7 +9,7 @@
 (use domain/mail-error mail-error)
 
 (use domain/operation ->page-request ->relabel-work
-                      operation-kind)
+                      operation-kind operation-result)
 
 (export delivered! fetched-changes! fetched-history-id!
         fetched-labels! fetched-summaries! fetched-thread!
@@ -132,6 +131,15 @@
                                                 :change (clone change)))))
     (relabeled (ok (do)))
     (_ (unexpected "relabel"))))
+
+(type run-operation!
+  (fn ((mut mail-app) (ref str) operation-kind)
+    (result operation-result mail-error)))
+
+(defn run-operation! (app account kind)
+  (submit! (mut (:operations app))
+           account kind
+           (:priority app)))
 
 (defn unexpected (name)
   (err (mail-error/internal (str name

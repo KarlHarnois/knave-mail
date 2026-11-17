@@ -13,7 +13,10 @@
 (use adapters/driven/memory/memory-clock memory-clock
                                          new-memory-clock)
 
+(use app/operations/inline-queue new-inline-queue)
+(use domain/operation priority)
 (use ports/driven/clock clock)
+(use ports/driven/operation-queue operation-queue)
 (use app/mail-app mail-app new-mail-app)
 (use ports/driven/event-log event-log)
 
@@ -71,9 +74,12 @@
 
 (defn app-timed-by (remote log clock)
   (new-mail-app (box (empty-memory-store))
-                (box (->memory-provider (vec (str world-account))
-                                        (vec (handle remote))))
+                (the (box operation-queue)
+                     (box (new-inline-queue (box (->memory-provider (vec (str world-account))
+                                                                    (vec (handle
+                                                                           remote))))
+                                            (the (box clock) (box clock))
+                                            (share-log (ref log)))))
                 (box (->memory-authorizer (vec (->account (str "new@example.com")))))
                 (the (box event-log) (box log))
-                (the (box clock) (box clock))
-                50))
+                priority/interactive 50))

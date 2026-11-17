@@ -1,0 +1,138 @@
+(use adapters/driven/system-clock ->system-clock)
+(use adapters/driven/threaded-queue submission)
+(use app/mailboxes ->mailboxes)
+
+(use app/operations/runner ->operation-runner attempt-once!
+                           attempt-outcome new-operation!
+                           operation-runner)
+
+(use composition/gmail-backend gmail-provider-for)
+(use composition/logging chosen-log)
+(use composition/settings settings)
+(use domain/collections appended)
+
+(use composition/executor-channel answered-and-dropped
+                                  next-arrival removed-at
+                                  replaced-at spawn-executor
+                                  submission-inbox)
+
+(use domain/operation-schedule ->scheduled next-ready
+                               scheduled wait-until-due)
+
+(use ports/driven/clock now-milliseconds)
+(use ports/driven/event-log share-log)
+
+(export start-gmail-executor)
+
+(defn start-gmail-executor (chosen)
+  (spawn-executor (fn (inbox) (run-gmail-executor chosen inbox))))
+
+(type run-gmail-executor
+  (fn (settings submission-inbox) unit))
+
+(defn run-gmail-executor (chosen inbox)
+  (let (log (chosen-log (ref chosen))
+        runner (->operation-runner :mailboxes (->mailboxes (gmail-provider-for
+                                                             (ref chosen)
+                                                             (ref log))
+                                                           (vec)
+                                                           (vec))
+                                   :clock (box (->system-clock))
+                                   :log (share-log (ref log))))
+    (local running runner)
+    (executed! (mut running)
+               (ref inbox)
+               (vec)
+               (vec))))
+
+(type executed!
+  (fn ((mut operation-runner)
+       (ref submission-inbox)
+       (vec scheduled)
+       (vec (pair i64 submission)))
+    unit))
+
+(defn executed! (runner inbox waiting replies)
+  (let-match ((pair queued answers) (with-arrivals!
+                                      runner inbox waiting
+                                      replies))
+    (let (now (now-milliseconds (ref (:clock runner))))
+      (match (next-ready (ref queued) now)
+        ((some index)
+         (let-match ((pair left unanswered) (attempted!
+                                              runner queued
+                                              answers index
+                                              now))
+           (recur runner inbox left unanswered)))
+        (none (match (next-arrival inbox (wait-until-due (ref queued) now))
+                ((some (some arrival))
+                 (let-match ((pair more more-answers) (admitted! runner
+                                                                 arrival
+                                                                 queued
+                                                                 answers))
+                   (recur runner inbox more more-answers)))
+                ((some none) (recur runner inbox queued answers))
+                (none (do))))))))
+
+(type with-arrivals!
+  (fn ((mut operation-runner)
+       (ref submission-inbox)
+       (vec scheduled)
+       (vec (pair i64 submission)))
+    (pair (vec scheduled)
+          (vec (pair i64 submission)))))
+
+(defn with-arrivals! (runner inbox waiting replies)
+  (match (next-arrival inbox (some 0))
+    ((some (some arrival))
+     (let-match ((pair more more-answers) (admitted! runner
+                                                     arrival
+                                                     waiting
+                                                     replies))
+       (recur runner inbox more more-answers)))
+    (_ (pair waiting replies))))
+
+(type admitted!
+  (fn ((mut operation-runner)
+       submission
+       (vec scheduled)
+       (vec (pair i64 submission)))
+    (pair (vec scheduled)
+          (vec (pair i64 submission)))))
+
+(defn admitted! (runner arrival waiting replies)
+  (let (queued (new-operation! runner
+                               (as-str (:account arrival))
+                               (clone (:kind arrival))
+                               (:priority arrival))
+        id (:id queued))
+    (pair (appended waiting
+                    (->scheduled :operation queued :attempt 1 :not-before 0))
+          (appended replies (pair id arrival)))))
+
+(type attempted!
+  (fn ((mut operation-runner)
+       (vec scheduled)
+       (vec (pair i64 submission))
+       usize i64)
+    (pair (vec scheduled)
+          (vec (pair i64 submission)))))
+
+(defn attempted! (runner waiting replies index now)
+  (let (entry (clone (at waiting index)))
+    (match (attempt-once! runner (ref entry))
+      ((finished outcome)
+       (answered waiting replies index (ok outcome)))
+      ((failed failure)
+       (answered waiting replies index (err failure)))
+      ((retry-after delay)
+       (pair (replaced-at waiting index
+                          (assoc entry
+                                 :attempt (+ (:attempt entry) 1)
+                                 :not-before (+ now delay)))
+             replies)))))
+
+(defn answered (waiting replies index outcome)
+  (let (id (:id (:operation (at waiting index))))
+    (pair (removed-at waiting index)
+          (answered-and-dropped replies id outcome))))

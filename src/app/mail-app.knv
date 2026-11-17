@@ -1,24 +1,23 @@
-(use app/mailboxes ->mailboxes mailboxes)
+(use domain/operation priority)
 (use ports/driven/authorizer authorizer)
-(use ports/driven/clock clock)
 (use ports/driven/event-log event-log)
-(use ports/driven/mailbox-provider mailbox-provider)
+(use ports/driven/operation-queue operation-queue)
 (use ports/driven/store store)
 
 (export ->mail-app mail-app new-mail-app)
 
 (defstruct mail-app
   :store (box store)
-  :mailboxes mailboxes
+  :operations (box operation-queue)
   :authorizer (box authorizer)
   :log (box event-log)
-  :clock (box clock)
+  :priority priority
   :sync-limit i64)
 
-(defn new-mail-app (store provider authorizer log clock sync-limit)
+(defn new-mail-app (store operations authorizer log rank sync-limit)
   (->mail-app :store store
-              :mailboxes (->mailboxes provider (vec) (vec))
+              :operations operations
               :authorizer authorizer
               :log log
-              :clock clock
+              :priority rank
               :sync-limit sync-limit))

@@ -1,0 +1,53 @@
+(use domain/operation operation priority)
+
+(export ->scheduled next-ready scheduled wait-until-due)
+
+(defstruct scheduled
+  :operation operation
+  :attempt i64
+  :not-before i64)
+
+(type next-ready
+  (fn ((ref (vec scheduled)) i64)
+    (option usize)))
+
+(defn next-ready (waiting now)
+  (loop (index 0
+         best none)
+    (if (>= index (len waiting))
+      best
+      (recur (+ index 1)
+             (if (and (<= (:not-before (at waiting index)) now)
+                      (runs-before? waiting index best))
+               (some index)
+               best)))))
+
+(type runs-before?
+  (fn ((ref (vec scheduled))
+       usize
+       (option usize))
+    bool))
+
+(defn runs-before? (waiting index best)
+  (match best
+    ((some chosen)
+     (and (interactive? (:priority (:operation (at waiting index))))
+          (not (interactive? (:priority (:operation (at waiting chosen)))))))
+    (none true)))
+
+(defn interactive? (rank)
+  (match rank (interactive true) (background false)))
+
+(type wait-until-due
+  (fn ((ref (vec scheduled)) i64)
+    (option i64)))
+
+(defn wait-until-due (waiting now)
+  (reduce (iter waiting) none
+    (fn (soonest entry)
+      (let (wait (if (> (:not-before entry) now)
+                   (- (:not-before entry) now)
+                   0))
+        (match soonest
+          ((some known) (if (< wait known) (some wait) (some known)))
+          (none (some wait)))))))
