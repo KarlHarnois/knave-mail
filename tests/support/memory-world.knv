@@ -10,6 +10,10 @@
 (use adapters/driven/memory/memory-log memory-log
                                        new-memory-log)
 
+(use adapters/driven/memory/memory-clock memory-clock
+                                         new-memory-clock)
+
+(use ports/driven/clock clock)
 (use app/mail-app mail-app new-mail-app)
 (use ports/driven/event-log event-log)
 
@@ -18,8 +22,8 @@
 
 (use support/sample-mail addresses)
 
-(export app-logging-to app-over remote-with sample-thread
-        world-account)
+(export app-logging-to app-over app-timed-by remote-with
+        sample-thread world-account)
 
 (def world-account "ada@example.com")
 
@@ -44,6 +48,7 @@
                         :sent (vec)
                         :latency-milliseconds 0
                         :failing none
+                        :failures-left none
                         :next-id 1
                         :history-id 1
                         :history-floor 0
@@ -57,9 +62,17 @@
     mail-app))
 
 (defn app-logging-to (remote log)
+  (app-timed-by remote log (new-memory-clock)))
+
+(type app-timed-by
+  (fn ((ref (shared remote-mail)) memory-log memory-clock)
+    mail-app))
+
+(defn app-timed-by (remote log clock)
   (new-mail-app (box (empty-memory-store))
                 (box (->memory-provider (vec (str world-account))
                                         (vec (handle remote))))
                 (box (->memory-authorizer (vec (->account (str "new@example.com")))))
                 (the (box event-log) (box log))
+                (the (box clock) (box clock))
                 50))

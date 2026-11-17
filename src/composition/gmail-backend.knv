@@ -10,6 +10,7 @@
 (use adapters/driven/google-oauth/consent-browser ->system-browser)
 (use adapters/driven/keyring/credentials ->keyring-credentials)
 (use adapters/driven/sqlite/store open-sqlite-store)
+(use adapters/driven/system-clock ->system-clock)
 (use app/mail-app new-mail-app)
 (use ports/driven/event-log share-log)
 (use composition/settings settings)
@@ -40,7 +41,9 @@
                            :sign-in-wait-milliseconds sign-in-wait-milliseconds)
                :credentials (chosen-credentials chosen)
                :browser (box (->system-browser (clone (:browser chosen))))))
-        log sync-limit)))
+        log
+        (box (->system-clock))
+        sync-limit)))
 
 (type check-client
   (fn ((ref settings))

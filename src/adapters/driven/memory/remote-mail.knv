@@ -2,35 +2,59 @@
 (use domain/mail ->message message outgoing thread)
 (use domain/mail-error mail-error)
 
-(export ->remote-mail fail-when! guard remote-mail
-        sent-from)
+(export ->remote-mail fail-times! fail-when! guard!
+        remote-mail sent-from)
 
 (defstruct remote-mail
   :threads (vec thread)
   :sent (vec outgoing)
   :latency-milliseconds u64
   :failing (option string)
+  :failures-left (option i64)
   :next-id i64
   :history-id i64
   :history-floor i64
   :changes (vec remote-change))
 
-(type guard
-  (fn ((ref remote-mail) (ref str))
+(type guard!
+  (fn ((mut remote-mail) (ref str))
     (result unit mail-error)))
 
-(defn guard (remote operation)
+(defn guard! (remote operation)
   (sleep-milliseconds (:latency-milliseconds remote))
   (if (failing? remote operation)
-    (err (mail-error/network (str "simulated failure of " operation)))
+    (do
+      (count-failure! remote)
+      (err (mail-error/network (str "simulated failure of " operation))))
     (ok (do))))
+
+(type count-failure!
+  (fn ((mut remote-mail)) unit))
+
+(defn count-failure! (remote)
+  (match (:failures-left remote)
+    ((some 1) (fail-when! remote none))
+    ((some left)
+     (set! (:failures-left remote)
+           (some (- left 1))))
+    (none (do))))
 
 (type fail-when!
   (fn ((mut remote-mail) (option string))
     unit))
 
 (defn fail-when! (remote operation)
-  (set! (:failing remote) operation))
+  (set! (:failing remote) operation)
+  (set! (:failures-left remote) none))
+
+(type fail-times!
+  (fn ((mut remote-mail) (ref str) i64)
+    unit))
+
+(defn fail-times! (remote operation times)
+  (set! (:failing remote)
+        (some (str operation)))
+  (set! (:failures-left remote) (some times)))
 
 (type failing?
   (fn ((ref remote-mail) (ref str)) bool))

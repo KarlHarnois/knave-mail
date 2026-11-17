@@ -1,0 +1,5 @@
+(export clock)
+
+(deftrait clock
+  (now-milliseconds (fn ((ref self)) i64))
+  (pause! (fn ((ref self) i64) unit)))

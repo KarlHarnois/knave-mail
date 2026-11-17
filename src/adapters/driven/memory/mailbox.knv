@@ -2,7 +2,7 @@
                                            record-change!
                                            record-relabel!)
 
-(use adapters/driven/memory/remote-mail guard remote-mail
+(use adapters/driven/memory/remote-mail guard! remote-mail
                                         sent-from)
 
 (use adapters/driven/memory/remote-queries labelled?
@@ -28,63 +28,63 @@
   (fetch-labels! (box)
     (with-shared! (ref (:remote box))
       (fn (remote)
-        (try (guard remote "fetch-labels"))
+        (try (guard! remote "fetch-labels"))
         (ok (labels-of remote)))))
 
   (fetch-threads! (box query)
     (with-shared! (ref (:remote box))
       (fn (remote)
-        (try (guard remote "fetch-threads"))
+        (try (guard! remote "fetch-threads"))
         (ok (matching-summaries remote query)))))
 
   (fetch-thread-ids! (box query)
     (with-shared! (ref (:remote box))
       (fn (remote)
-        (try (guard remote "list-thread-ids"))
+        (try (guard! remote "list-thread-ids"))
         (ok (collect (map (iter (matching-summaries remote query))
                        (fn (summary) (clone (:id summary)))))))))
 
   (fetch-thread-page! (box query page-token)
     (with-shared! (ref (:remote box))
       (fn (remote)
-        (try (guard remote "list-thread-ids"))
+        (try (guard! remote "list-thread-ids"))
         (ok (matching-page remote query page-token)))))
 
   (fetch-summaries! (box ids)
     (with-shared! (ref (:remote box))
       (fn (remote)
-        (try (guard remote "fetch-summaries"))
+        (try (guard! remote "fetch-summaries"))
         (ok (summaries-with-ids remote ids)))))
 
   (fetch-thread! (box thread-id)
     (with-shared! (ref (:remote box))
       (fn (remote)
-        (try (guard remote "fetch-thread"))
+        (try (guard! remote "fetch-thread"))
         (ok (clone (at (:threads remote)
                        (try (found-thread remote thread-id))))))))
 
   (fetch-history-id! (box)
     (with-shared! (ref (:remote box))
       (fn (remote)
-        (try (guard remote "fetch-history-id"))
+        (try (guard! remote "fetch-history-id"))
         (ok (str (:history-id remote))))))
 
   (fetch-changes! (box since)
     (with-shared! (ref (:remote box))
       (fn (remote)
-        (try (guard remote "fetch-changes"))
+        (try (guard! remote "fetch-changes"))
         (changes-since remote since))))
 
   (deliver! (box sent)
     (with-shared! (ref (:remote box))
       (fn (remote)
-        (try (guard remote "deliver"))
+        (try (guard! remote "deliver"))
         (ok (record-delivery! remote sent)))))
 
   (relabel! (box thread-id change)
     (with-shared! (ref (:remote box))
       (fn (remote)
-        (try (guard remote "relabel"))
+        (try (guard! remote "relabel"))
         (let (index (try (found-thread remote thread-id))
               changed (relabeled-thread (at (:threads remote) index) change))
           (set! (at (:threads remote) index) changed)

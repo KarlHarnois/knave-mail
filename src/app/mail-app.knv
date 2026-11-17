@@ -1,5 +1,6 @@
 (use app/mailboxes ->mailboxes mailboxes)
 (use ports/driven/authorizer authorizer)
+(use ports/driven/clock clock)
 (use ports/driven/event-log event-log)
 (use ports/driven/mailbox-provider mailbox-provider)
 (use ports/driven/store store)
@@ -11,11 +12,13 @@
   :mailboxes mailboxes
   :authorizer (box authorizer)
   :log (box event-log)
+  :clock (box clock)
   :sync-limit i64)
 
-(defn new-mail-app (store provider authorizer log sync-limit)
+(defn new-mail-app (store provider authorizer log clock sync-limit)
   (->mail-app :store store
               :mailboxes (->mailboxes provider (vec) (vec))
               :authorizer authorizer
               :log log
+              :clock clock
               :sync-limit sync-limit))
