@@ -34,6 +34,7 @@ export class ListViewport {
   fit(rowCount: number): void {
     const lowestScrollTop = this.listWindow.lowestScrollTop(rowCount, this.height);
     if (this.scrollTop > lowestScrollTop) this.scrollTo(lowestScrollTop);
+    if (this.element.scrollTop !== this.scrollTop) this.element.scrollTop = this.scrollTop;
   }
 
   describe(rowCount: number): string {

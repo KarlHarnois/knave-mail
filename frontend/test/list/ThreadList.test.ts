@@ -11,6 +11,21 @@ const OVERSCAN = 5;
 const FALLBACK_VIEWPORT_ROWS = 30;
 const MAX_RENDERED_ROWS = FALLBACK_VIEWPORT_ROWS + 1 + 2 * OVERSCAN;
 
+class BrowserScrolling {
+  static clampTo(element: HTMLElement, viewportHeight: number): void {
+    let scrolled = 0;
+    Object.defineProperty(element, "clientHeight", { value: viewportHeight });
+    Object.defineProperty(element, "scrollTop", {
+      get: () => scrolled,
+      set: (wanted: number) => {
+        const spacer = element.querySelector<HTMLElement>(".thread-list-spacer");
+        const content = Number.parseFloat(spacer?.style.height ?? "0") || 0;
+        scrolled = Math.max(0, Math.min(wanted, content - viewportHeight));
+      },
+    });
+  }
+}
+
 class ListFixture {
   readonly scheduler = new RenderScheduler(() => {});
   readonly list = new ThreadList({
@@ -133,6 +148,16 @@ describe("ThreadList changes", () => {
     fixture.act((list) => list.moveToLast());
     fixture.act((list) => list.refresh(MailFixtures.summaries(36)));
     expect(fixture.visibleRows().some((row) => row.dataset["threadId"] === "t-0")).toBe(true);
+  });
+
+  test("a refresh that moves the selected thread far down scrolls the element there too", () => {
+    const fixture = new ListFixture(18);
+    BrowserScrolling.clampTo(fixture.list.element, 36 * ROW_HEIGHT);
+    fixture.act((list) => list.moveToLast());
+    const newer = MailFixtures.summaries(51).slice(18);
+    fixture.act((list) => list.refresh([...newer, ...MailFixtures.summaries(18)]));
+    expect(fixture.list.selectedIndex).toBe(50);
+    expect(fixture.list.element.scrollTop).toBe(51 * ROW_HEIGHT - 36 * ROW_HEIGHT);
   });
 
   test("removing another thread keeps the selection", () => {
