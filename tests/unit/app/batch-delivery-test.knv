@@ -44,7 +44,7 @@
     (synced! (mut app))
     (unwrap-ok (archive-first-two! (mut app)))
     (assert (mentions? (ref (logged-lines (ref log)))
-                       "relabel batch ada@example.com: queued, interactive, 2 messages in 2 threads +[] -[INBOX]"))
+                       "relabel batch ada@example.com: 2 threads, 2 messages in one request +[] -[INBOX]"))
     (assert (empty? (:labels (remote-thread (ref world) "t-1"))))
     (assert (empty? (:labels (remote-thread (ref world) "t-2"))))))
 

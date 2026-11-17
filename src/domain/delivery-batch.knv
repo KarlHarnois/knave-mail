@@ -41,9 +41,7 @@
                    summaries pending
                    (with-row batch row ids))
             batch))
-         (none (if (= index 0)
-                 batch
-                 (recur queued (+ index 1) summaries pending batch))))
+         (none (recur queued (+ index 1) summaries pending batch)))
        batch))
     (none batch)))
 

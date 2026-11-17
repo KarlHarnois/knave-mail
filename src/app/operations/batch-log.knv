@@ -2,9 +2,17 @@
 (use domain/delivery-tally delivery-count)
 (use ports/driven/event-log event-log log-info)
 
-(export log-batch-delivered! log-batch-queued!)
+(export log-batch-delivered! log-batch-queued!
+        log-batch-sent!)
 
 (def operations-area "operations")
+
+(defn log-batch-sent! (log account change thread-count message-count)
+  (log-info log operations-area
+            (str "relabel batch " account ": " thread-count
+                 " threads, " message-count
+                 " messages in one request "
+                 (labels-changed change))))
 
 (defn log-batch-queued! (log account name change thread-ids)
   (log-info log operations-area

@@ -66,7 +66,9 @@
                               (vec (str "t-2")))
              (vec (str "t-1")))))
 
-(deftest nothing-is-batched-when-the-oldest-change-cannot-be
-  (assert (empty? (batched-threads (vec (row 1 "t-4" (archive-change))
-                                        (row 2 "t-1" (archive-change)))
-                                   (vec)))))
+(deftest the-rest-of-a-run-goes-out-together-when-the-oldest-cannot
+  (assert (= (batched-threads (vec (row 1 "t-4" (archive-change))
+                                   (row 2 "t-1" (archive-change))
+                                   (row 3 "t-2" (archive-change)))
+                              (vec))
+             (vec (str "t-1") (str "t-2")))))
