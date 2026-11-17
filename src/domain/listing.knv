@@ -1,20 +1,44 @@
 (use domain/collections appended as-count)
+(use domain/label-scope label-of label-scope)
 (use domain/labels label-id system-label)
 (use domain/mail thread-summary)
 
-(export ids-without-summary in-listed-order
-        missing-from-listing ready-for-batches)
+(export current-for-listing ids-without-summary
+        in-listed-order missing-from-listing outside-scope)
 
-(type ready-for-batches
-  (fn ((ref (vec thread-summary)))
+(type current-for-listing
+  (fn ((ref (vec thread-summary))
+       (ref label-scope))
     (vec thread-summary)))
 
-(defn ready-for-batches (summaries)
+(defn current-for-listing (summaries scope)
   (-> (iter summaries)
       (filter (fn (summary)
-                (not (inbox-without-message-ids? summary))))
+                (and (not (inbox-without-message-ids? summary))
+                     (under-scope? summary scope))))
       (map (fn (summary) (clone summary)))
       collect))
+
+(type outside-scope
+  (fn ((ref (vec thread-summary))
+       (ref label-scope))
+    (vec string)))
+
+(defn outside-scope (summaries scope)
+  (-> (iter summaries)
+      (filter (fn (summary)
+                (not (under-scope? summary scope))))
+      (map (fn (summary) (clone (:id summary))))
+      collect))
+
+(type under-scope?
+  (fn ((ref thread-summary) (ref label-scope))
+    bool))
+
+(defn under-scope? (summary scope)
+  (match (label-of scope)
+    ((some label) (contains? (:labels summary) label))
+    (none true)))
 
 (type inbox-without-message-ids?
   (fn ((ref thread-summary)) bool))

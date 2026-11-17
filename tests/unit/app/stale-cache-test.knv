@@ -1,0 +1,30 @@
+(use app/client/mail-labeler)
+(use app/client/mail-syncer)
+(use domain/labels archive-change inbox-change)
+(use ports/driving/mail-labeler relabel-threads!)
+(use support/app-steps inbox-query listed-ids! synced!)
+
+(use support/memory-world app-over remote-with sample-thread
+                          world-account)
+
+(use support/remote-changes relabel-silently!)
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100)
+                    (sample-thread "t-2" (vec "INBOX") 200))))
+
+(deftest a-sync-puts-back-a-thread-gmail-lists-in-the-inbox-again
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (unwrap-ok (relabel-threads! (mut app)
+                                 world-account
+                                 (ref (vec (str "t-2")))
+                                 (ref (archive-change))))
+    (relabel-silently! (ref world)
+                       "t-2"
+                       (ref (inbox-change)))
+    (synced! (mut app))
+    (assert (= (listed-ids! (mut app)
+                            (ref (inbox-query)))
+               (vec (str "t-2") (str "t-1"))))))

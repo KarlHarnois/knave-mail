@@ -2,7 +2,7 @@
 (use domain/labels label-id system-label)
 (use domain/collections try-for-each)
 (use app/mail-app mail-app)
-(use app/reading listed-threads!)
+(use app/listing listed-threads!)
 (use domain/mail ->thread-query)
 (use domain/mail-error mail-error)
 

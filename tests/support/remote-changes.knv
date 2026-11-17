@@ -11,7 +11,8 @@
 
 (export arrive-remotely! delete-remotely!
         expire-remote-history! heal-remote!
-        relabel-remotely! surface-remotely!)
+        relabel-remotely! relabel-silently!
+        surface-remotely!)
 
 (type arrive-remotely!
   (fn ((ref (shared remote-mail)) thread)
@@ -63,16 +64,27 @@
     unit))
 
 (defn relabel-remotely! (remote thread-id change)
+  (relabel-silently! remote thread-id (ref change))
+  (with-shared! remote
+    (fn (state)
+      (record-relabel! state thread-id (ref change)))))
+
+(type relabel-silently!
+  (fn ((ref (shared remote-mail))
+       (ref str)
+       (ref label-change))
+    unit))
+
+(defn relabel-silently! (remote thread-id change)
   (with-shared! remote
     (fn (state)
       (set! (:threads state)
             (-> (iter (:threads state))
                 (map (fn (held)
                        (if (= (:id held) thread-id)
-                         (relabeled held (ref change))
+                         (relabeled held change)
                          (clone held))))
-                collect))
-      (record-relabel! state thread-id (ref change)))))
+                collect)))))
 
 (type relabeled
   (fn ((ref thread) (ref label-change))

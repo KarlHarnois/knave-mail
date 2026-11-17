@@ -8,9 +8,9 @@
 (export log-changes! log-first-listed! log-full-sync-done!
         log-full-sync-started! log-gmail-relabel!
         log-history-expired! log-incremental-sync-started!
-        log-new-thread! log-preview! log-sent-but-uncached!
-        log-skipped-prefetch! log-still-unread!
-        log-vanished-thread!)
+        log-label-restored! log-new-thread! log-preview!
+        log-sent-but-uncached! log-skipped-prefetch!
+        log-still-unread! log-vanished-thread!)
 
 (def sync-area "sync")
 
@@ -42,6 +42,14 @@
                      (map (fn (summary) (clone (:id summary))))
                      collect
                      (join " ")))))
+
+(defn log-label-restored! (log account label thread-ids)
+  (log-info log sync-area
+            (str account ": a Gmail listing has "
+                 (len thread-ids)
+                 " threads under " label
+                 " that the cache held without it: "
+                 (join thread-ids " "))))
 
 (defn log-incremental-sync-started! (log account since)
   (log-info log sync-area

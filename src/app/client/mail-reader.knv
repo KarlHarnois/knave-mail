@@ -1,9 +1,7 @@
 (use domain/freshness freshness)
 (use app/mail-app mail-app)
-
-(use app/reading find-threads! listed-page! listed-threads!
-                 read-thread!)
-
+(use app/listing listed-page! listed-threads!)
+(use app/reading find-threads! read-thread!)
 (use ports/driven/store load-labels)
 (use ports/driving/mail-reader mail-reader)
 

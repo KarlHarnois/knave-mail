@@ -1,27 +1,18 @@
-(use app/activity-log log-first-listed!)
+(use app/listing listed-threads!)
 (use app/mail-app mail-app)
-(use domain/collections concatenated)
 (use app/marking-read marked-read!)
 (use domain/labels unread?)
 
-(use domain/mail ->summary-page ->thread-ref summary-page
-                 thread thread-query thread-summary)
+(use domain/mail ->thread-ref thread thread-query
+                 thread-summary)
 
 (use domain/mail-error mail-error)
+(use app/operations/calls fetched-thread!)
 
-(use domain/listing ids-without-summary in-listed-order
-                    ready-for-batches)
+(use ports/driven/store load-thread load-threads
+                        save-thread!)
 
-(use app/operations/calls fetched-summaries! fetched-thread!
-                          fetched-thread-ids!
-                          fetched-thread-page!)
-
-(use ports/driven/store load-summaries-of load-thread
-                        load-threads save-thread!
-                        save-threads!)
-
-(export find-threads! listed-page! listed-threads!
-        read-thread!)
+(export find-threads! read-thread!)
 
 (type find-threads!
   (fn ((mut mail-app)
@@ -33,75 +24,6 @@
   (if (empty? (:query query))
     (load-threads (ref (:store app)) account query)
     (listed-threads! app account query)))
-
-(type listed-threads!
-  (fn ((mut mail-app)
-       (ref str)
-       (ref thread-query))
-    (result (vec thread-summary) mail-error)))
-
-(defn listed-threads! (app account query)
-  (let (ids (try (fetched-thread-ids! app account query)))
-    (summaries-for! app account (ref ids))))
-
-(type listed-page!
-  (fn ((mut mail-app)
-       (ref str)
-       (ref thread-query)
-       (ref str))
-    (result summary-page mail-error)))
-
-(defn listed-page! (app account query page-token)
-  (let (page (try (fetched-thread-page! app account query page-token)))
-    (ok (->summary-page
-          :summaries (try (summaries-for! app account (ref (:ids page))))
-          :next-token (clone (:next-token page))))))
-
-(type summaries-for!
-  (fn ((mut mail-app)
-       (ref str)
-       (ref (vec string)))
-    (result (vec thread-summary) mail-error)))
-
-(defn summaries-for! (app account ids)
-  (let (stored (try (load-summaries-of (ref (:store app)) account ids))
-        known (ready-for-batches (ref stored))
-        fetched (try (missing-summaries!
-                       app account
-                       (ref (ids-without-summary ids (ref known)))))
-        first-seen (ids-without-summary-in (ref fetched) (ref stored)))
-    (try (save-threads! (mut (:store app))
-                        account
-                        (ref fetched)))
-    (when (not (empty? first-seen))
-      (log-first-listed! (ref (:log app))
-                         account
-                         (ref first-seen)))
-    (ok (in-listed-order ids (ref (concatenated known fetched))))))
-
-(type ids-without-summary-in
-  (fn ((ref (vec thread-summary))
-       (ref (vec thread-summary)))
-    (vec thread-summary)))
-
-(defn ids-without-summary-in (fetched stored)
-  (-> (iter fetched)
-      (filter (fn (summary)
-                (not (any? (iter stored)
-                       (fn (held) (= (:id held) (:id summary)))))))
-      (map (fn (summary) (clone summary)))
-      collect))
-
-(type missing-summaries!
-  (fn ((mut mail-app)
-       (ref str)
-       (ref (vec string)))
-    (result (vec thread-summary) mail-error)))
-
-(defn missing-summaries! (app account ids)
-  (if (empty? ids)
-    (ok (vec))
-    (fetched-summaries! app account ids)))
 
 (type read-thread!
   (fn ((mut mail-app) (ref str) (ref str))

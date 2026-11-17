@@ -1,0 +1,114 @@
+(use app/activity-log log-first-listed! log-label-restored!)
+(use app/mail-app mail-app)
+(use domain/collections concatenated)
+(use domain/label-scope label-of label-scope)
+
+(use domain/listing current-for-listing ids-without-summary
+                    in-listed-order outside-scope)
+
+(use domain/mail ->summary-page summary-page thread-query
+                 thread-summary)
+
+(use domain/mail-error mail-error)
+
+(use app/operations/calls fetched-summaries!
+                          fetched-thread-ids!
+                          fetched-thread-page!)
+
+(use ports/driven/store load-summaries-of save-threads!)
+
+(export listed-page! listed-threads!)
+
+(type listed-threads!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref thread-query))
+    (result (vec thread-summary) mail-error)))
+
+(defn listed-threads! (app account query)
+  (let (ids (try (fetched-thread-ids! app account query)))
+    (summaries-for! app account
+                    (ref ids)
+                    (ref (:scope query)))))
+
+(type listed-page!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref thread-query)
+       (ref str))
+    (result summary-page mail-error)))
+
+(defn listed-page! (app account query page-token)
+  (let (page (try (fetched-thread-page! app account query page-token)))
+    (ok (->summary-page :summaries (try (summaries-for! app
+                                                        account
+                                                        (ref (:ids page))
+                                                        (ref (:scope query))))
+                        :next-token (clone (:next-token page))))))
+
+(type summaries-for!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref (vec string))
+       (ref label-scope))
+    (result (vec thread-summary) mail-error)))
+
+(defn summaries-for! (app account ids scope)
+  (let (stored (try (load-summaries-of (ref (:store app)) account ids))
+        current (current-for-listing (ref stored) scope)
+        refreshed (try (refreshed-summaries! app account
+                                             (ref (ids-without-summary ids
+                                                                       (ref current))))))
+    (log-first-seen! app account (ref stored) (ref refreshed))
+    (log-back-under-label! app account (ref stored) scope)
+    (ok (in-listed-order ids (ref (concatenated current refreshed))))))
+
+(type refreshed-summaries!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref (vec string)))
+    (result (vec thread-summary) mail-error)))
+
+(defn refreshed-summaries! (app account ids)
+  (if (empty? ids)
+    (ok (vec))
+    (let (fetched (try (fetched-summaries! app account ids)))
+      (try (save-threads! (mut (:store app))
+                          account
+                          (ref fetched)))
+      (load-summaries-of (ref (:store app)) account ids))))
+
+(type log-first-seen!
+  (fn ((ref mail-app)
+       (ref str)
+       (ref (vec thread-summary))
+       (ref (vec thread-summary)))
+    unit))
+
+(defn log-first-seen! (app account stored refreshed)
+  (let (first-seen (-> (iter refreshed)
+                       (filter (fn (summary)
+                                 (not (any? (iter stored)
+                                        (fn (held)
+                                          (= (:id held) (:id summary)))))))
+                       (map (fn (summary) (clone summary)))
+                       collect))
+    (when (not (empty? first-seen))
+      (log-first-listed! (ref (:log app))
+                         account
+                         (ref first-seen)))))
+
+(type log-back-under-label!
+  (fn ((ref mail-app)
+       (ref str)
+       (ref (vec thread-summary))
+       (ref label-scope))
+    unit))
+
+(defn log-back-under-label! (app account stored scope)
+  (let (restored (outside-scope stored scope))
+    (when (not (empty? restored))
+      (log-label-restored! (ref (:log app))
+                           account
+                           (unwrap-or (label-of scope) (str ""))
+                           (ref restored)))))
