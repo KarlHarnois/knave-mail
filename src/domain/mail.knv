@@ -21,7 +21,8 @@
 (defstruct label
   :id string
   :name string
-  :unread int)
+  :unread int
+  :total int)
 
 (defstruct thread-summary
   :id string

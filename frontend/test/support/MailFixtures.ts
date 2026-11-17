@@ -48,8 +48,8 @@ export class MailFixtures {
 
   static labels(): Label[] {
     return [
-      { id: "INBOX", name: "INBOX", unread: 2 },
-      { id: "Label_7", name: "Receipts", unread: 0 },
+      { id: "INBOX", name: "INBOX", unread: 2, total: 50 },
+      { id: "Label_7", name: "Receipts", unread: 0, total: 1 },
     ];
   }
 

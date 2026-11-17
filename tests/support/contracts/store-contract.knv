@@ -60,11 +60,13 @@
 
 (defn keeps-labels-per-account! (cache)
   (unwrap-ok (save-labels! cache account
-                           (ref (vec (->label (str "INBOX") (str "Inbox") 3)))))
+                           (ref (vec
+                                  (->label (str "INBOX") (str "Inbox") 3 40)))))
   (unwrap-ok (save-labels! cache "other@example.com"
-                           (ref (vec (->label (str "SENT") (str "Sent") 0)))))
+                           (ref (vec
+                                  (->label (str "SENT") (str "Sent") 0 12)))))
   (= (unwrap-ok (load-labels cache account))
-     (vec (->label (str "INBOX") (str "Inbox") 3))))
+     (vec (->label (str "INBOX") (str "Inbox") 3 40))))
 
 (defn lists-label-newest-first! (cache)
   (unwrap-ok

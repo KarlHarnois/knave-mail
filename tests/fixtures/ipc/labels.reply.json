@@ -4,12 +4,14 @@
     {
       "id": "INBOX",
       "name": "INBOX",
-      "unread": 1
+      "unread": 1,
+      "total": 1
     },
     {
       "id": "UNREAD",
       "name": "UNREAD",
-      "unread": 1
+      "unread": 1,
+      "total": 1
     }
   ]
 }

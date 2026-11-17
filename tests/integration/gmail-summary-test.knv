@@ -1,5 +1,5 @@
 (use adapters/driven/gmail/mailbox gmail-mailbox)
-(use ports/driven/mailbox fetch-threads!)
+(use ports/driven/mailbox fetch-labels! fetch-threads!)
 (use support/fake-gmail start-fake-gmail)
 (use support/gmail-requests inbox)
 (use support/gmail-world fixture-routes gmail-over)
@@ -11,3 +11,11 @@
                                                             (ref (inbox))))
                                  0))
                (vec (str "m1") (str "m2"))))))
+
+(deftest reads-the-thread-total-of-each-label
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (assert (any? (iter (unwrap-ok (fetch-labels! (mut gmail))))
+              (fn (label)
+                (and (= (:id label) "INBOX")
+                     (= (:total label) 5)))))))

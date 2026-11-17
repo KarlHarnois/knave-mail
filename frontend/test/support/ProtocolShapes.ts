@@ -16,7 +16,7 @@ export type EventShapes = { readonly [Event in CoreEvent as Event["event"]]: Sha
 export class ProtocolShapes {
   static readonly account: ShapeOf<Account> = { email: "string" };
 
-  static readonly label: ShapeOf<Label> = { id: "string", name: "string", unread: "number" };
+  static readonly label: ShapeOf<Label> = { id: "string", name: "string", unread: "number", total: "number" };
 
   static readonly threadSummary: ShapeOf<ThreadSummary> = {
     id: "string",

@@ -25,7 +25,8 @@
 (defn label-named (remote name)
   (->label :id (clone name)
            :name (clone name)
-           :unread (unread-count (ref (:threads remote)) name)))
+           :unread (unread-count (ref (:threads remote)) name)
+           :total (labelled-count (ref (:threads remote)) name)))
 
 (type matching-summaries
   (fn ((ref remote-mail) (ref thread-query))
@@ -110,6 +111,13 @@
   (sort! names)
   (dedup! names)
   names)
+
+(defn labelled-count (threads name)
+  (reduce (iter threads) 0
+    (fn (count held)
+      (if (labelled? held (as-str name))
+        (+ count 1)
+        count))))
 
 (defn unread-count (threads name)
   (reduce (iter threads) 0

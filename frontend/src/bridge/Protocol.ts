@@ -1,6 +1,6 @@
 export type Account = { email: string };
 
-export type Label = { id: string; name: string; unread: number };
+export type Label = { id: string; name: string; unread: number; total: number };
 
 export type ThreadSummary = {
   id: string;

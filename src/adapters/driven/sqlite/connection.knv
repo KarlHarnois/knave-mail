@@ -10,6 +10,7 @@
    CREATE TABLE IF NOT EXISTS accounts (email TEXT PRIMARY KEY);
    CREATE TABLE IF NOT EXISTS labels (
      account TEXT NOT NULL, id TEXT NOT NULL, name TEXT NOT NULL, unread INTEGER NOT NULL,
+     total INTEGER NOT NULL DEFAULT 0,
      PRIMARY KEY (account, id));
    CREATE TABLE IF NOT EXISTS summaries (
      account TEXT NOT NULL, id TEXT NOT NULL, subject TEXT NOT NULL,
@@ -41,15 +42,25 @@
 (def message-ids-column
   "ALTER TABLE summaries ADD COLUMN message_ids TEXT NOT NULL DEFAULT '[]'")
 
+(def label-total-check
+  "SELECT COUNT(*) FROM pragma_table_info('labels') WHERE name = 'total'")
+
+(def label-total-column
+  "ALTER TABLE labels ADD COLUMN total INTEGER NOT NULL DEFAULT 0")
+
 (def message-ids-from-cached-messages
   "UPDATE summaries SET message_ids = (SELECT json_group_array(id) FROM (SELECT id FROM messages WHERE messages.account = summaries.account AND messages.thread_id = summaries.id ORDER BY position)) WHERE message_ids = '[]' AND EXISTS (SELECT 1 FROM messages WHERE messages.account = summaries.account AND messages.thread_id = summaries.id)")
 
 (defn open-database (path)
   (map-err (then-ok (then-ok (opened-with-schema path schema)
                       (fn (connection)
-                        (column-added connection
-                                      message-ids-check
-                                      message-ids-column)))
+                        (then-ok (column-added connection
+                                               message-ids-check
+                                               message-ids-column)
+                                 (fn (migrated)
+                                   (column-added migrated
+                                                 label-total-check
+                                                 label-total-column)))))
                     (fn (connection)
                       (batch-run connection message-ids-from-cached-messages)))
            (fn (problem)

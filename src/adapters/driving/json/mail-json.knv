@@ -12,7 +12,7 @@
     (fn ((ref (vec account))) json-value)))
 
 (def labels-json
-  (rust "serde_json::Value::Array({0}.iter().map(|{!label}| serde_json::json!({{\"id\": {!label}.id, \"name\": {!label}.name, \"unread\": {!label}.unread}})).collect())"
+  (rust "serde_json::Value::Array({0}.iter().map(|{!label}| serde_json::json!({{\"id\": {!label}.id, \"name\": {!label}.name, \"unread\": {!label}.unread, \"total\": {!label}.total}})).collect())"
     (fn ((ref (vec label))) json-value)))
 
 (type summary-page-json

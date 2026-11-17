@@ -22,7 +22,8 @@
 (defn label-from (details)
   (->label :id (text-at details "id")
            :name (text-at details "name")
-           :unread (number-at details "threadsUnread")))
+           :unread (number-at details "threadsUnread")
+           :total (number-at details "threadsTotal")))
 
 (defn message-from-raw (raw-message thread-id)
   (let (parts (message-parts-of raw-message))

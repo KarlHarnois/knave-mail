@@ -10,7 +10,8 @@
 (defstruct label-row
   :id string
   :name string
-  :unread int)
+  :unread int
+  :total int)
 
 (def select-emails
   "SELECT email FROM accounts ORDER BY rowid")
@@ -28,12 +29,12 @@
        "DELETE FROM pending_downloads WHERE account = ?1"))
 
 (def select-labels
-  "SELECT id, name, unread FROM labels WHERE account = ?1 ORDER BY name")
+  "SELECT id, name, unread, total FROM labels WHERE account = ?1 ORDER BY name")
 
 (def delete-labels "DELETE FROM labels WHERE account = ?1")
 
 (def insert-label
-  "INSERT INTO labels (account, id, name, unread) VALUES (?1, ?2, ?3, ?4)")
+  "INSERT INTO labels (account, id, name, unread, total) VALUES (?1, ?2, ?3, ?4, ?5)")
 
 (defn read-accounts (connection)
   (let (emails (try (as-internal (account-emails connection select-emails))))
@@ -56,7 +57,8 @@
                    (fn (row)
                      (->label (clone (:id row))
                               (clone (:name row))
-                              (:unread row))))))))
+                              (:unread row)
+                              (:total row))))))))
 
 (defn write-labels (connection account labels)
   (as-internal (replace-labels connection delete-labels
@@ -69,14 +71,14 @@
       (result (vec string) string))))
 
 (def label-rows
-  (rust "{0}.prepare_cached({1}).and_then(|mut {!statement}| {!statement}.query_map([{2}], |{!row}| Ok(LabelRow {{ id: {!row}.get(0)?, name: {!row}.get(1)?, unread: {!row}.get(2)? }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
+  (rust "{0}.prepare_cached({1}).and_then(|mut {!statement}| {!statement}.query_map([{2}], |{!row}| Ok(LabelRow {{ id: {!row}.get(0)?, name: {!row}.get(1)?, unread: {!row}.get(2)?, total: {!row}.get(3)? }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection)
          (ref str)
          (ref str))
       (result (vec label-row) string))))
 
 (def replace-labels
-  (rust "{0}.unchecked_transaction().and_then(|{!transaction}| {{ {!transaction}.execute({1}, [{3}])?; for {!label} in {4}.iter() {{ {!transaction}.execute({2}, rusqlite::params![{3}, {!label}.id, {!label}.name, {!label}.unread])?; }} {!transaction}.commit() }}).map_err(|{!error}| {!error}.to_string())"
+  (rust "{0}.unchecked_transaction().and_then(|{!transaction}| {{ {!transaction}.execute({1}, [{3}])?; for {!label} in {4}.iter() {{ {!transaction}.execute({2}, rusqlite::params![{3}, {!label}.id, {!label}.name, {!label}.unread, {!label}.total])?; }} {!transaction}.commit() }}).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection)
          (ref str)
          (ref str)

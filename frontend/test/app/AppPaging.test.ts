@@ -90,7 +90,7 @@ describe("loading older threads from Gmail", () => {
     app.driver.press("G");
     app.driver.press("gi");
     await new Promise((resolve) => setTimeout(resolve, 30));
-    expect(app.status("label")).toBe("Inbox");
+    expect(app.status("label")).toStartWith("Inbox");
     expect(app.core.lastArgsFor("threads")["label"]).toBe("INBOX");
     app.core.releaseReplies();
     await app.driver.whenIdle();

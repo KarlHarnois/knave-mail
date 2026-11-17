@@ -9,6 +9,7 @@ describe("app start", () => {
     expect(app.core.requests.map((request) => request.command)).toEqual([
       "accounts",
       "threads",
+      "labels",
       "accounts",
       "sync",
       "sync",

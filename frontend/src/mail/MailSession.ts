@@ -5,6 +5,7 @@ import type { StatusLine } from "../status/StatusLine";
 import { AccountRoster } from "./AccountRoster";
 import { INBOX, type LabelDirectory, type LabelRef } from "./LabelDirectory";
 import { GMAIL_PAGE, ListingPages, SEARCH_PAGE, THREAD_LIMIT } from "./ListingPages";
+import { LocationStatus } from "./LocationStatus";
 import type { PendingChanges } from "./PendingChanges";
 
 export { THREAD_LIMIT } from "./ListingPages";
@@ -28,8 +29,11 @@ export class MailSession {
   private loadingMore = false;
   private readonly pages = new ListingPages();
   private readonly accountListeners: AccountListener[] = [];
+  private readonly location: LocationStatus;
 
-  constructor(private readonly ports: MailSessionPorts) {}
+  constructor(private readonly ports: MailSessionPorts) {
+    this.location = new LocationStatus(ports);
+  }
 
   get account(): string {
     return this.accounts.current;
@@ -65,7 +69,7 @@ export class MailSession {
   }
 
   async goToLabelNamed(name: string): Promise<void> {
-    const navigation = this.startNavigation();
+    const navigation = ++this.navigation;
     const label = await this.ports.labels.find(this.account, name);
     if (navigation === this.navigation) await this.goTo(label, "");
   }
@@ -85,6 +89,7 @@ export class MailSession {
   async reload(): Promise<void> {
     const summaries = await this.fetchThreads();
     if (summaries) this.ports.list.refresh(summaries);
+    await this.location.showCount(this.account, this.label, this.query);
   }
 
   removeThread(threadId: string): void {
@@ -108,20 +113,18 @@ export class MailSession {
     if (generation !== this.loadGeneration) return;
     this.pages.addPage(page.threads, page.nextPageToken);
     this.ports.list.refresh(this.ports.pending.applyTo(this.pages.listing(), this.label.id));
+    await this.location.showCount(this.account, this.label, this.query);
   }
 
   private async goTo(label: LabelRef, query: string): Promise<void> {
-    this.startNavigation();
+    ++this.navigation;
     this.label = label;
     this.query = query;
     this.pages.startListing();
-    this.showLocation();
+    this.location.showWhere(this.account, this.label, this.query);
     const summaries = await this.fetchThreads();
     if (summaries) this.ports.list.show(summaries);
-  }
-
-  private startNavigation(): number {
-    return ++this.navigation;
+    await this.location.showCount(this.account, this.label, this.query);
   }
 
   private async enterAccount(index: number): Promise<void> {
@@ -141,10 +144,5 @@ export class MailSession {
 
   private queryOf(limit: number): ThreadQuery {
     return { account: this.account, label: this.label.id, query: this.query, limit };
-  }
-
-  private showLocation(): void {
-    this.ports.status.showAccount(this.account);
-    this.ports.status.showLabel(this.query ? `${this.label.name} /${this.query}` : this.label.name);
   }
 }

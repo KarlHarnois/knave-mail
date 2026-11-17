@@ -2,12 +2,15 @@
                                   sqlite-store)
 
 (use domain/summary summarize)
-(use ports/driven/store load-summaries-of save-threads!)
+
+(use ports/driven/store load-labels load-summaries-of
+                        save-threads!)
+
 (use support/memory-world sample-thread)
 (use support/temporary temporary-path)
 
 (def cache-before-message-ids
-  "CREATE TABLE summaries (account TEXT NOT NULL, id TEXT NOT NULL, subject TEXT NOT NULL, participants TEXT NOT NULL, snippet TEXT NOT NULL, date INTEGER NOT NULL, labels TEXT NOT NULL, message_count INTEGER NOT NULL, PRIMARY KEY (account, id)); INSERT INTO summaries VALUES ('ada@example.com', 't-0', 'Downloaded', 'Grace', '', 1, '[\"INBOX\"]', 1); INSERT INTO summaries VALUES ('ada@example.com', 't-9', 'Listed only', 'Grace', '', 2, '[\"INBOX\"]', 1); CREATE TABLE messages (account TEXT NOT NULL, id TEXT NOT NULL, thread_id TEXT NOT NULL, position INTEGER NOT NULL, sender TEXT NOT NULL, recipients TEXT NOT NULL, copied TEXT NOT NULL, subject TEXT NOT NULL, date INTEGER NOT NULL, text TEXT NOT NULL, html TEXT, header_id TEXT NOT NULL, refs TEXT NOT NULL, PRIMARY KEY (account, id)); INSERT INTO messages VALUES ('ada@example.com', 'm-0', 't-0', 0, 'Grace', '[]', '[]', 'Downloaded', 1, 'Hi', NULL, '<m-0>', '');")
+  "CREATE TABLE summaries (account TEXT NOT NULL, id TEXT NOT NULL, subject TEXT NOT NULL, participants TEXT NOT NULL, snippet TEXT NOT NULL, date INTEGER NOT NULL, labels TEXT NOT NULL, message_count INTEGER NOT NULL, PRIMARY KEY (account, id)); INSERT INTO summaries VALUES ('ada@example.com', 't-0', 'Downloaded', 'Grace', '', 1, '[\"INBOX\"]', 1); INSERT INTO summaries VALUES ('ada@example.com', 't-9', 'Listed only', 'Grace', '', 2, '[\"INBOX\"]', 1); CREATE TABLE messages (account TEXT NOT NULL, id TEXT NOT NULL, thread_id TEXT NOT NULL, position INTEGER NOT NULL, sender TEXT NOT NULL, recipients TEXT NOT NULL, copied TEXT NOT NULL, subject TEXT NOT NULL, date INTEGER NOT NULL, text TEXT NOT NULL, html TEXT, header_id TEXT NOT NULL, refs TEXT NOT NULL, PRIMARY KEY (account, id)); INSERT INTO messages VALUES ('ada@example.com', 'm-0', 't-0', 0, 'Grace', '[]', '[]', 'Downloaded', 1, 'Hi', NULL, '<m-0>', ''); CREATE TABLE labels (account TEXT NOT NULL, id TEXT NOT NULL, name TEXT NOT NULL, unread INTEGER NOT NULL, PRIMARY KEY (account, id)); INSERT INTO labels VALUES ('ada@example.com', 'INBOX', 'Inbox', 2);")
 
 (def cache-made-with
   (rust "rusqlite::Connection::open({0}).and_then(|{!connection}| {!connection}.execute_batch({1})).expect(\"the old cache is written\")"
@@ -46,3 +49,10 @@
                              (ref (sample-thread "t-1" (vec "INBOX") 100)))))))
     (assert (= (message-ids-of (ref opened) "t-1")
                (vec (str "m-t-1"))))))
+
+(deftest an-older-cache-keeps-its-labels-with-no-total-yet
+  (assert (= (collect (map (iter (unwrap-ok (load-labels (ref (reopened-old-cache))
+                                                         "ada@example.com")))
+                           (fn (label)
+                             (pair (:unread label) (:total label)))))
+             (vec (pair 2 0)))))
