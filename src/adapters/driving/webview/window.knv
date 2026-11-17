@@ -55,7 +55,7 @@
     {!event_loop}.run(move |{!event}, _, {!control_flow}| {{
       *{!control_flow} = tao::event_loop::ControlFlow::Wait;
       match {!event} {{
-        tao::event::Event::UserEvent({!reply}) => if let Some({!code}) = {!reply}.strip_prefix(\"\\u{{1}}exit \") {{ *{!control_flow} = tao::event_loop::ControlFlow::ExitWithCode({!code}.parse().unwrap_or(1)) }} else if let Some({!level}) = {!reply}.strip_prefix(\"\\u{{1}}zoom \") {{ drop({!webview}.zoom({!level}.parse().unwrap_or(1.0))) }} else {{ drop({!webview}.evaluate_script(&format!(\"window.knaveBridge.receive({{}})\", {!reply}))) }},
+        tao::event::Event::UserEvent({!reply}) => if let Some({!code}) = {!reply}.strip_prefix(\"\\u{{1}}exit \") {{ *{!control_flow} = tao::event_loop::ControlFlow::ExitWithCode({!code}.parse().unwrap_or(1)) }} else if let Some({!level}) = {!reply}.strip_prefix(\"\\u{{1}}zoom \") {{ drop({!webview}.zoom({!level}.parse().unwrap_or(1.0))) }} else if {!reply} == \"\\u{{1}}focus\" {{ {!window}.set_focus() }} else {{ drop({!webview}.evaluate_script(&format!(\"window.knaveBridge.receive({{}})\", {!reply}))) }},
         tao::event::Event::WindowEvent {{ event: tao::event::WindowEvent::CloseRequested, .. }} => *{!control_flow} = tao::event_loop::ControlFlow::Exit,
         _ => {{}}
       }}

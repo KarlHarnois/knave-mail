@@ -1,0 +1,39 @@
+(use adapters/driving/webview/single-window claimed-window
+                                            socket-path-for
+                                            window-claim)
+
+(use support/temporary temporary-path)
+
+(defn claim-kind (claim)
+  (match claim
+    ((claimed _) "claimed")
+    (another-window-open "another window is open")
+    (unguarded "unguarded")))
+
+(def removed-file
+  (rust "drop(std::fs::remove_file({0}))"
+    (fn ((ref str)) unit)))
+
+(deftest the-first-window-claims-its-cache
+  (let (cache (temporary-path "single-window-a.sqlite3")
+        first (claimed-window (as-str cache)))
+    (assert (= (claim-kind (ref first)) "claimed"))
+    (removed-file (as-str (socket-path-for (as-str cache))))))
+
+(deftest a-second-launch-finds-the-open-window
+  (let (cache (temporary-path "single-window-b.sqlite3")
+        first (claimed-window (as-str cache))
+        second (claimed-window (as-str cache)))
+    (assert (= (claim-kind (ref first)) "claimed"))
+    (assert (= (claim-kind (ref second)) "another window is open"))
+    (removed-file (as-str (socket-path-for (as-str cache))))))
+
+(deftest a-socket-left-by-a-closed-window-is-claimed-again
+  (let (cache (temporary-path "single-window-c.sqlite3"))
+    (drop-claim (claimed-window (as-str cache)))
+    (assert (= (claim-kind (ref (claimed-window (as-str cache))))
+               "claimed"))
+    (removed-file (as-str (socket-path-for (as-str cache))))))
+
+(defn drop-claim (claim)
+  (match claim (_ (do))))
