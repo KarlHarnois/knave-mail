@@ -9,6 +9,7 @@
   (->quota-bucket :ceiling ceiling
                   :slowed-to ceiling
                   :slowed-at 0
+                  :throttled-at none
                   :available ceiling
                   :refilled-at 0))
 
@@ -31,10 +32,25 @@
                       (+ throttled-at 3600000))
              ceiling)))
 
-(deftest repeated-throttles-stop-at-the-slowest-pace
+(deftest throttles-in-the-same-minute-halve-the-pace-once
   (let (bucket (throttled-bucket))
-    (slowed-at! (mut bucket) throttled-at)
-    (slowed-at! (mut bucket) throttled-at)
-    (slowed-at! (mut bucket) throttled-at)
+    (slowed-at! (mut bucket) (+ throttled-at 1000))
+    (slowed-at! (mut bucket) (+ throttled-at 30000))
+    (assert (= (pace-at (ref bucket) (+ throttled-at 30000))
+               110))))
+
+(deftest a-throttle-a-minute-later-halves-the-pace-again
+  (let (bucket (throttled-bucket))
+    (slowed-at! (mut bucket) (+ throttled-at 60000))
+    (assert (= (pace-at (ref bucket) (+ throttled-at 60000))
+               60))))
+
+(deftest the-pace-never-drops-below-the-slowest-pace
+  (let (bucket (->quota-bucket :ceiling 15
+                               :slowed-to 15
+                               :slowed-at 0
+                               :throttled-at none
+                               :available 15
+                               :refilled-at 0))
     (slowed-at! (mut bucket) throttled-at)
     (assert (= (pace-at (ref bucket) throttled-at) 10))))

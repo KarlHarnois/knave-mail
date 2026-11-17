@@ -8,10 +8,13 @@
 
 (def milliseconds-per-minute 60000)
 
+(def throttle-window-milliseconds 60000)
+
 (defstruct quota-bucket
   :ceiling int
   :slowed-to int
   :slowed-at int
+  :throttled-at (option int)
   :available int
   :refilled-at int)
 
@@ -20,6 +23,7 @@
     (->quota-bucket :ceiling units-per-second
                     :slowed-to units-per-second
                     :slowed-at now
+                    :throttled-at none
                     :available units-per-second
                     :refilled-at now)))
 
@@ -33,6 +37,9 @@
                 (/ (:ceiling bucket) recovered-share-per-minute))
              milliseconds-per-minute))))
 
+(type current-pace
+  (fn ((ref quota-bucket)) int))
+
 (defn current-pace (bucket)
   (pace-at bucket (wall-milliseconds)))
 
@@ -43,11 +50,22 @@
   (fn ((mut quota-bucket) int) unit))
 
 (defn slowed-at! (bucket now)
-  (set! (:slowed-to bucket)
-        (max slowest-pace (/ (pace-at bucket now) 2)))
-  (set! (:slowed-at bucket) now)
+  (unless (throttled-within-window? bucket now)
+    (set! (:slowed-to bucket)
+          (max slowest-pace (/ (pace-at bucket now) 2)))
+    (set! (:slowed-at bucket) now)
+    (set! (:throttled-at bucket) (some now)))
   (set! (:available bucket) 0)
   (set! (:refilled-at bucket) now))
+
+(type throttled-within-window?
+  (fn ((ref quota-bucket) int) bool))
+
+(defn throttled-within-window? (bucket now)
+  (match (:throttled-at bucket)
+    ((some throttled)
+     (< (- now throttled) throttle-window-milliseconds))
+    (none false)))
 
 (defn take-units! (bucket units)
   (refill! bucket)
