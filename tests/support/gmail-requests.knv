@@ -1,5 +1,6 @@
 (use domain/label-scope label-scope)
 (use domain/mail ->thread-query thread-query)
+(use domain/collections owned-items)
 (use support/fake-gmail fake-gmail requests-seen)
 
 (export inbox mime-header requests-matching sent-mime)
@@ -10,12 +11,8 @@
                   20))
 
 (defn requests-matching (server prefix)
-  (collect (filter (into-iter (requests-seen server))
+  (collect (filter (owned-items (requests-seen server))
              (fn (request) (starts-with? request prefix)))))
-
-(def into-iter
-  (rust "{0}.into_iter()"
-    (fn ((vec string)) (iterator string))))
 
 (def sent-mime
   (rust "{{ use base64::Engine; let {!body} = {0}.splitn(3, '\\n').nth(2).unwrap_or(\"\"); let {!json}: serde_json::Value = serde_json::from_str({!body}).unwrap_or_default(); let {!raw} = {!json}[\"raw\"].as_str().unwrap_or(\"\"); String::from_utf8_lossy(&base64::engine::general_purpose::URL_SAFE.decode({!raw}).unwrap_or_default()).into_owned() }}"

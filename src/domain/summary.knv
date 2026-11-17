@@ -1,3 +1,4 @@
+(use domain/collections as-count)
 (use domain/label-scope label-of label-scope)
 
 (use domain/mail ->thread-summary message thread
@@ -41,9 +42,11 @@
   (expect (last (:messages summarized))
           "a thread holds at least one message"))
 
-(def message-count
-  (rust "{0}.messages.len() as i64"
-    (fn ((ref thread)) int)))
+(type message-count
+  (fn ((ref thread)) int))
+
+(defn message-count (summarized)
+  (as-count (len (:messages summarized))))
 
 (def distinct-senders
   (rust "{0}.iter().fold(Vec::<String>::new(), |mut {!names}, {!message}| {{ let {!name} = {!message}.from.split('<').next().unwrap_or(\"\").trim().trim_matches('\"').to_string(); let {!shown} = if {!name}.is_empty() {{ {!message}.from.clone() }} else {{ {!name} }}; if !{!names}.contains(&{!shown}) {{ {!names}.push({!shown}); }} {!names} }})"

@@ -1,8 +1,8 @@
 (export prefixed-ignoring-case? quoted replaced trimmed-of)
 
-(def prefixed-ignoring-case?
-  (rust "{0}.to_lowercase().starts_with(&{1}.to_lowercase())"
-    (fn ((ref str) (ref str)) bool)))
+(defn prefixed-ignoring-case? (text prefix)
+  (starts-with? (lower-case text)
+                (as-str (lower-case prefix))))
 
 (def quoted
   (rust "{0}.lines().map(|line| if line.is_empty() {{ String::from(\">\") }} else {{ format!(\"> {{line}}\") }}).collect::<Vec<_>>().join(\"\\n\")"

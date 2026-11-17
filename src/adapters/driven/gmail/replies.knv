@@ -6,8 +6,7 @@
 (use adapters/driven/gmail/throttling throttling-of)
 (use domain/mail-error mail-error)
 
-(export as-internal checked collect-results into-replies
-        sent)
+(export as-internal checked collect-results sent)
 
 (defn checked (reply)
   (let (status (:status reply)
@@ -42,11 +41,6 @@
   (if (empty? (trim (as-str body)))
     (str "{}")
     body))
-
-(def into-replies
-  (rust "{0}.into_iter()"
-    (fn ((vec (result http-reply string)))
-      (iterator (result http-reply string)))))
 
 (def collect-results
   (rust "{0}.into_iter().collect::<Result<Vec<_>, _>>()"

@@ -18,15 +18,13 @@
          (result operation-result mail-error))
       (vec (pair int submission)))))
 
-(def removed-at
-  (rust "{{ let mut {!all} = {0}; {!all}.remove({1}); {!all} }}"
-    (fn ((vec scheduled) usize)
-      (vec scheduled))))
+(defn removed-at (all index)
+  (remove-at! all index)
+  all)
 
-(def replaced-at
-  (rust "{{ let mut {!all} = {0}; {!all}[{1}] = {2}; {!all} }}"
-    (fn ((vec scheduled) usize scheduled)
-      (vec scheduled))))
+(defn replaced-at (all index entry)
+  (set-at all (index) entry)
+  all)
 
 (def next-arrival
   (rust "match {1} {{ Some({!wait}) => match {0}.recv_timeout(std::time::Duration::from_millis({!wait}.max(0) as u64)) {{ Ok({!arrived}) => Some(Some({!arrived})), Err(std::sync::mpsc::RecvTimeoutError::Timeout) => Some(None), Err(_) => None }}, None => {0}.recv().ok().map(Some) }}"

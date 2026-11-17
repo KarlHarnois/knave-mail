@@ -1,4 +1,5 @@
 (use app/mail-app mail-app)
+(use domain/collections concatenated)
 (use app/marking-read marked-read!)
 (use domain/labels unread?)
 
@@ -67,7 +68,7 @@
     (try (save-threads! (mut (:store app))
                         account
                         (ref fetched)))
-    (ok (in-listed-order ids (ref (concat known fetched))))))
+    (ok (in-listed-order ids (ref (concatenated known fetched))))))
 
 (type missing-summaries!
   (fn ((mut mail-app)
@@ -79,11 +80,6 @@
   (if (empty? ids)
     (ok (vec))
     (fetched-summaries! app account ids)))
-
-(def concat
-  (rust "{{ let mut {!all} = {0}; {!all}.extend({1}); {!all} }}"
-    (fn ((vec thread-summary) (vec thread-summary))
-      (vec thread-summary))))
 
 (type read-thread!
   (fn ((mut mail-app) (ref str) (ref str))

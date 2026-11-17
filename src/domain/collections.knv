@@ -1,5 +1,5 @@
-(export appended appended-once as-count one-of?
-        try-for-each)
+(export appended appended-once as-count concatenated one-of?
+        owned-items try-for-each)
 
 (defn one-of? (word words)
   (any? (iter words)
@@ -18,6 +18,16 @@
 
 (def as-count
   (rust "{0} as i64" (fn (usize) int)))
+
+(def concatenated
+  (rust "{{ let mut {!all} = {0}; {!all}.extend({1}); {!all} }}"
+    (where (item)
+      (fn ((vec item) (vec item)) (vec item)))))
+
+(def owned-items
+  (rust "{0}.into_iter()"
+    (where (item)
+      (fn ((vec item)) (iterator item)))))
 
 (def try-for-each
   (rust "{0}.try_for_each({1})"

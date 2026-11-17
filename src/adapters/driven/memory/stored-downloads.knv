@@ -24,11 +24,13 @@
     (vec string)))
 
 (defn downloads-of (pending email)
-  (newest-first (collect (map (filter (iter pending)
-                                (fn (row) (account-of? row email)))
-                              (fn (row)
-                                (let-match ((pair _ thread-id) row)
-                                  (clone thread-id)))))))
+  (let (oldest-first (collect (map (filter (iter pending)
+                                     (fn (row) (account-of? row email)))
+                                   (fn (row)
+                                     (let-match ((pair _ thread-id) row)
+                                       (clone thread-id))))))
+    (collect (map (reverse oldest-first)
+               (fn (thread-id) (clone thread-id))))))
 
 (type without-download
   (fn ((ref (vec (pair string string)))
@@ -59,7 +61,3 @@
 (defn account-of? (row email)
   (let-match ((pair account _) row)
     (= account email)))
-
-(def newest-first
-  (rust "{{ let mut {!ids} = {0}; {!ids}.reverse(); {!ids} }}"
-    (fn ((vec string)) (vec string))))

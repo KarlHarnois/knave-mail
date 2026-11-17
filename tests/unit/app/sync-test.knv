@@ -1,3 +1,4 @@
+(use domain/collections as-count)
 (use domain/label-scope label-scope)
 (use domain/freshness freshness)
 (use domain/mail ->thread-query)
@@ -40,15 +41,12 @@
                              (fn (summary) (clone (:id summary)))))
                (vec (str "t-2") (str "t-1"))))))
 
-(def as-date
-  (rust "{0} as i64" (fn (usize) int)))
-
 (defn busy-remote ()
   (remote-with (collect (map (range 0 (+ prefetch-limit 5))
                           (fn (number)
                             (sample-thread (ref (str "t-" number))
                                            (vec "INBOX")
-                                           (as-date (+ 1000 number))))))))
+                                           (as-count (+ 1000 number))))))))
 
 (deftest a-sync-downloads-the-newest-threads-in-full
   (let (world (busy-remote)

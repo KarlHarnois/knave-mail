@@ -8,7 +8,9 @@
                                  units-for)
 
 (use adapters/driven/gmail/replies checked collect-results
-                                   into-replies sent)
+                                   sent)
+
+(use domain/collections owned-items)
 
 (use adapters/driven/gmail/request-log clock-milliseconds
                                        log-outcome!)
@@ -67,7 +69,7 @@
                         "GET"
                         (at paths index)
                         outcome started))))
-    (collect-results (collect (map (into-replies replies)
+    (collect-results (collect (map (owned-items replies)
                                 (fn (outcome)
                                   (checked (try (sent outcome)))))))))
 

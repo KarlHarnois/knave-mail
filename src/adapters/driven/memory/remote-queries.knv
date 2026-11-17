@@ -1,3 +1,4 @@
+(use domain/collections as-count owned-items)
 (use domain/labels label-id system-label)
 (use adapters/driven/memory/remote-mail remote-mail)
 
@@ -35,7 +36,7 @@
                                   (fn (candidate)
                                     (mentions? candidate (:query query))))
                                 (fn (matched) (summarize matched))))
-        labelled (collect (filter (into-iter summaries)
+        labelled (collect (filter (owned-items summaries)
                             (fn (summary)
                               (in-scope? summary (ref (:scope query)))))))
     (newest-first labelled query)))
@@ -59,15 +60,10 @@
                         offset
                         (:limit query)))
     (->thread-page :ids ids
-                   :next-token (if (longer-than? (ref through-next)
-                                                 (+ offset (:limit query)))
+                   :next-token (if (> (as-count (len through-next))
+                                      (+ offset (:limit query)))
                                  (str (+ offset (:limit query)))
                                  (str "")))))
-
-(def longer-than?
-  (rust "{0}.len() as i64 > {1}"
-    (fn ((ref (vec thread-summary)) int)
-      bool)))
 
 (def page-slice
   (rust "{0}.iter().skip({1} as usize).take({2} as usize).cloned().collect::<Vec<_>>()"
@@ -89,11 +85,6 @@
                     (any? (iter ids)
                       (fn (id) (= id (:id candidate))))))
                 (fn (matched) (summarize matched)))))
-
-(def into-iter
-  (rust "{0}.into_iter()"
-    (fn ((vec thread-summary))
-      (iterator thread-summary))))
 
 (type thread-position
   (fn ((ref remote-mail) (ref str))

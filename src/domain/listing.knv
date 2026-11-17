@@ -1,4 +1,4 @@
-(use domain/collections appended)
+(use domain/collections appended as-count)
 (use domain/mail thread-summary)
 
 (export ids-without-summary in-listed-order
@@ -49,7 +49,7 @@
            (newer-than-listed? summary listed))))
 
 (defn listing-complete? (listed limit)
-  (< (listed-count listed) limit))
+  (< (as-count (len listed)) limit))
 
 (type newer-than-listed?
   (fn ((ref thread-summary)
@@ -57,15 +57,7 @@
     bool))
 
 (defn newer-than-listed? (summary listed)
-  (match (oldest-date listed)
+  (match (min (map (iter listed)
+                (fn (listed-summary) (:date listed-summary))))
     ((some oldest) (> (:date summary) oldest))
     (none true)))
-
-(def listed-count
-  (rust "{0}.len() as i64"
-    (fn ((ref (vec thread-summary))) int)))
-
-(def oldest-date
-  (rust "{0}.iter().map(|{!summary}| {!summary}.date).min()"
-    (fn ((ref (vec thread-summary)))
-      (option int))))

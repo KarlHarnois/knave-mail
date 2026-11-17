@@ -1,3 +1,4 @@
+(use domain/collections concatenated)
 (use adapters/driven/gmail/http batch-size http-get-all)
 
 (use adapters/driven/gmail/http-reply http-reply
@@ -29,7 +30,7 @@
                                   token))
         (when (any-rate-limited? (ref fetched))
           (drain! (mut (:quota session))))
-        (extended replies fetched)))))
+        (concatenated replies fetched)))))
 
 (type units-of-gets
   (fn ((ref (vec string))) int))
@@ -54,9 +55,3 @@
   (rust "{0}.chunks({1}).map(<[String]>::to_vec).collect::<Vec<Vec<String>>>()"
     (fn ((ref (vec string)) usize)
       (vec (vec string)))))
-
-(def extended
-  (rust "{{ let mut {!all} = {0}; {!all}.extend({1}); {!all} }}"
-    (fn ((vec (result http-reply string))
-         (vec (result http-reply string)))
-      (vec (result http-reply string)))))

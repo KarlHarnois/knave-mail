@@ -1,3 +1,5 @@
+(use domain/collections concatenated)
+
 (export ->label-change apply-label-change archive-change
         inbox-change label-change label-id label-removal
         read-change reversed-change star-change starred?
@@ -94,9 +96,4 @@
 
 (defn with-added (labels added)
   (let (missing (without-removed added labels))
-    (concat-labels (clone labels) missing)))
-
-(def concat-labels
-  (rust "{{ let mut {!all} = {0}; {!all}.extend({1}); {!all} }}"
-    (fn ((vec string) (vec string))
-      (vec string))))
+    (concatenated (clone labels) missing)))
