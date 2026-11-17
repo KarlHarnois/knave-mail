@@ -8,6 +8,7 @@ import type { MailSession } from "./MailSession";
 
 const SYNCING = "syncing";
 const SYNC_FAILED = "sync failed";
+const SYNC_PAUSED_BY_GMAIL = "sync paused by Gmail's rate limit";
 const MILLISECONDS_PER_MINUTE = 60_000;
 const SYNC_EVERY_MINUTES = 5;
 const SYNC_EVERY_MILLISECONDS = SYNC_EVERY_MINUTES * MILLISECONDS_PER_MINUTE;
@@ -62,6 +63,11 @@ export class SyncMonitor {
   }
 
   private failSync(event: SyncFailedEvent): void {
+    if (event.error.kind === "throttled") this.record(event.account, SYNC_PAUSED_BY_GMAIL);
+    else this.reportFailedSync(event);
+  }
+
+  private reportFailedSync(event: SyncFailedEvent): void {
     this.record(event.account, SYNC_FAILED);
     if (this.isCurrent(event.account)) this.ports.status.showError(`sync: ${event.error.kind}: ${event.error.message}`);
   }
