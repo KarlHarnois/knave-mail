@@ -4,8 +4,8 @@
 (use adapters/driven/gmail/http-reply http-reply
                                       rate-limited?)
 
-(use adapters/driven/gmail/quota drain! take-units!
-                                 units-for)
+(use adapters/driven/gmail/pacing slowed-down!)
+(use adapters/driven/gmail/quota take-units! units-for)
 
 (use adapters/driven/gmail/replies checked collect-results
                                    sent)
@@ -91,7 +91,7 @@
                                 (ref token)
                                 body))
     (when (posted-rate-limited? (ref outcome))
-      (drain! (mut (:quota session))))
+      (slowed-down! session))
     (log-outcome! (ref (:log session))
                   "POST" path
                   (ref outcome)

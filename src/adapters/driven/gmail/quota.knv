@@ -1,15 +1,53 @@
-(export ->quota-bucket drain! full-bucket quota-bucket
-        take-units! units-for)
+(export ->quota-bucket current-pace full-bucket pace-at
+        quota-bucket slowed! slowed-at! take-units!
+        units-for)
+
+(def slowest-pace 10)
+
+(def recovered-share-per-minute 10)
+
+(def milliseconds-per-minute 60000)
 
 (defstruct quota-bucket
-  :units-per-second int
+  :ceiling int
+  :slowed-to int
+  :slowed-at int
   :available int
   :refilled-at int)
 
 (defn full-bucket (units-per-second)
-  (->quota-bucket :units-per-second units-per-second
-                  :available units-per-second
-                  :refilled-at (wall-milliseconds)))
+  (let (now (wall-milliseconds))
+    (->quota-bucket :ceiling units-per-second
+                    :slowed-to units-per-second
+                    :slowed-at now
+                    :available units-per-second
+                    :refilled-at now)))
+
+(type pace-at
+  (fn ((ref quota-bucket) int) int))
+
+(defn pace-at (bucket now)
+  (min (:ceiling bucket)
+       (+ (:slowed-to bucket)
+          (/ (* (- now (:slowed-at bucket))
+                (/ (:ceiling bucket) recovered-share-per-minute))
+             milliseconds-per-minute))))
+
+(defn current-pace (bucket)
+  (pace-at bucket (wall-milliseconds)))
+
+(defn slowed! (bucket)
+  (slowed-at! bucket (wall-milliseconds)))
+
+(type slowed-at!
+  (fn ((mut quota-bucket) int) unit))
+
+(defn slowed-at! (bucket now)
+  (set! (:slowed-to bucket)
+        (max slowest-pace (/ (pace-at bucket now) 2)))
+  (set! (:slowed-at bucket) now)
+  (set! (:available bucket) 0)
+  (set! (:refilled-at bucket) now))
 
 (defn take-units! (bucket units)
   (refill! bucket)
@@ -19,24 +57,17 @@
   (set! (:available bucket)
         (- (:available bucket) units)))
 
-(defn drain! (bucket)
-  (refill! bucket)
-  (set! (:available bucket) 0))
-
 (type refill!
   (fn ((mut quota-bucket)) unit))
 
 (defn refill! (bucket)
   (let (now (wall-milliseconds)
-        earned (/ (* (- now (:refilled-at bucket))
-                     (:units-per-second bucket))
-                  1000)
-        topped (+ (:available bucket) earned))
+        pace (pace-at bucket now)
+        earned (/ (* (- now (:refilled-at bucket)) pace)
+                  1000))
     (when (> earned 0)
       (set! (:available bucket)
-            (if (> topped (:units-per-second bucket))
-              (:units-per-second bucket)
-              topped))
+            (min pace (+ (:available bucket) earned)))
       (set! (:refilled-at bucket) now))))
 
 (type milliseconds-until
@@ -45,7 +76,7 @@
 (defn milliseconds-until (bucket units)
   (+ 1
      (/ (* (- units (:available bucket)) 1000)
-        (:units-per-second bucket))))
+        (current-pace bucket))))
 
 (type units-for
   (fn ((ref str) (ref str)) int))

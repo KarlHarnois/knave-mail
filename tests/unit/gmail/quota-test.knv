@@ -1,0 +1,40 @@
+(use adapters/driven/gmail/quota ->quota-bucket pace-at
+                                 slowed-at!)
+
+(def ceiling 200)
+
+(def throttled-at 1000000)
+
+(defn bucket-at-full-pace ()
+  (->quota-bucket :ceiling ceiling
+                  :slowed-to ceiling
+                  :slowed-at 0
+                  :available ceiling
+                  :refilled-at 0))
+
+(defn throttled-bucket ()
+  (let (bucket (bucket-at-full-pace))
+    (slowed-at! (mut bucket) throttled-at)
+    bucket))
+
+(deftest a-throttle-halves-the-pace
+  (assert (= (pace-at (ref (throttled-bucket)) throttled-at)
+             100)))
+
+(deftest the-pace-recovers-a-tenth-of-the-ceiling-each-minute
+  (assert (= (pace-at (ref (throttled-bucket))
+                      (+ throttled-at 60000))
+             120)))
+
+(deftest the-pace-never-passes-the-ceiling
+  (assert (= (pace-at (ref (throttled-bucket))
+                      (+ throttled-at 3600000))
+             ceiling)))
+
+(deftest repeated-throttles-stop-at-the-slowest-pace
+  (let (bucket (throttled-bucket))
+    (slowed-at! (mut bucket) throttled-at)
+    (slowed-at! (mut bucket) throttled-at)
+    (slowed-at! (mut bucket) throttled-at)
+    (slowed-at! (mut bucket) throttled-at)
+    (assert (= (pace-at (ref bucket) throttled-at) 10))))

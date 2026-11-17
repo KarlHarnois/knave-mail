@@ -4,8 +4,8 @@
 (use adapters/driven/gmail/http-reply http-reply
                                       rate-limited?)
 
-(use adapters/driven/gmail/quota drain! take-units!
-                                 units-for)
+(use adapters/driven/gmail/pacing slowed-down!)
+(use adapters/driven/gmail/quota take-units! units-for)
 
 (use adapters/driven/gmail/session-state api-url
                                          gmail-session)
@@ -29,7 +29,7 @@
                                                     (api-url session path)))))
                                   token))
         (when (any-rate-limited? (ref fetched))
-          (drain! (mut (:quota session))))
+          (slowed-down! session))
         (concatenated replies fetched)))))
 
 (defn units-of-gets (paths)
