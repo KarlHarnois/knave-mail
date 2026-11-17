@@ -42,4 +42,4 @@ The log is at `~/.local/state/knave-mail/knave-mail.log` and holds no tokens or 
 
 ## Develop
 
-Run `knave task ci` for every check. The code follows a ports and adapters design under `src/`, and the frontend in `frontend/` speaks the protocol in [docs/ipc-protocol.md](docs/ipc-protocol.md).
+Run `knave task ci` for every check. The code follows a ports and adapters design under `src/`. The frontend in `frontend/` talks to the core in the messages that [frontend/src/bridge/Protocol.ts](frontend/src/bridge/Protocol.ts) types. Both sides test against the recorded messages in [tests/fixtures/ipc](tests/fixtures/ipc).
