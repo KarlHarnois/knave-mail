@@ -1,0 +1,90 @@
+[
+  {
+    "id": "font.family.mono",
+    "type": "x",
+    "values": {
+      "dark": "\"Fixture Mono\", \"Fixture Term\", monospace",
+      "light": "\"Fixture Mono\", \"Fixture Term\", monospace"
+    }
+  },
+  {
+    "id": "font.family.prose",
+    "type": "x",
+    "values": {
+      "dark": "\"Fixture Sans\", sans-serif",
+      "light": "\"Fixture Sans\", sans-serif"
+    }
+  },
+  {
+    "id": "font.size.body",
+    "type": "x",
+    "values": {
+      "dark": "10px",
+      "light": "10px"
+    }
+  },
+  {
+    "id": "color.surface.base",
+    "type": "x",
+    "values": {
+      "dark": "#000000",
+      "light": "#ffffff"
+    }
+  },
+  {
+    "id": "color.text.primary",
+    "type": "x",
+    "values": {
+      "dark": "#ffffff",
+      "light": "#000000"
+    }
+  },
+  {
+    "id": "color.text.secondary",
+    "type": "x",
+    "values": {
+      "dark": "#808080",
+      "light": "#606060"
+    }
+  },
+  {
+    "id": "color.border.default",
+    "type": "x",
+    "values": {
+      "dark": "#404040",
+      "light": "#c0c0c0"
+    }
+  },
+  {
+    "id": "color.selection",
+    "type": "x",
+    "values": {
+      "dark": "#202020",
+      "light": "#e0e0e0"
+    }
+  },
+  {
+    "id": "color.focus",
+    "type": "x",
+    "values": {
+      "dark": "#fefefe",
+      "light": "#010101"
+    }
+  },
+  {
+    "id": "color.surface.raised",
+    "type": "x",
+    "values": {
+      "dark": "#101010",
+      "light": "#f0f0f0"
+    }
+  },
+  {
+    "id": "color.surface.document",
+    "type": "x",
+    "values": {
+      "dark": "#ffffff",
+      "light": "#ffffff"
+    }
+  }
+]

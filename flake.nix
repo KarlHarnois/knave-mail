@@ -4,6 +4,7 @@
   inputs = {
     knave.url = "github:knave-lang/knave/v0.17.0";
     nixpkgs.follows = "knave/nixpkgs";
+    design-system.url = "github:KarlHarnois/design-system";
   };
 
   outputs =

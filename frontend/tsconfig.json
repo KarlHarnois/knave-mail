@@ -25,5 +25,5 @@
     "isolatedDeclarations": true,
     "declaration": true
   },
-  "include": ["src", "test", "build.ts"]
+  "include": ["src", "test", "tools", "build.ts"]
 }

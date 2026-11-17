@@ -1,0 +1,12 @@
+(use steps ->command run!)
+
+(def write-theme
+  "glossary=\"$(nix build --no-link --print-out-paths --inputs-from . design-system)/glossary/glossary.json\" && cd frontend && bun run tools/writeDesignSystemTheme.ts \"$glossary\" > ../docs/theme.design-system.knv")
+
+(deftask design-system-theme ()
+  "Writes docs/theme.design-system.knv from the design system pinned in flake.lock."
+  (try (run! (->command :desc "design system theme"
+                        :dir "."
+                        :cmd "sh"
+                        :args (vec "-c" write-theme))))
+  (ok (println "Wrote docs/theme.design-system.knv.")))

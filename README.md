@@ -32,6 +32,8 @@ Press `?` in the window for every key.
 
 Copy [docs/theme.example.knv](docs/theme.example.knv) and [docs/keymap.example.knv](docs/keymap.example.knv) to `~/.config/knave-mail/` as `theme.knv` and `keymap.knv`, and keep only what you change.
 
+For the black and white look of the [design system](https://github.com/KarlHarnois/design-system), copy [docs/theme.design-system.knv](docs/theme.design-system.knv) to `~/.config/knave-mail/theme.knv` instead. Run `knave task design-system-theme` after `nix flake update design-system` to regenerate it.
+
 ### CLI
 
 Run `knave-mail help` for the commands. Add `--json` for output that scripts and agents can read.
