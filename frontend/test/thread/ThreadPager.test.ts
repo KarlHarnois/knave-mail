@@ -8,6 +8,7 @@ class PagerFixture {
   readonly message = document.createElement("article");
   readonly steps: number[] = [];
   readonly logged: string[] = [];
+  hasNeighbours = true;
 
   constructor(messageTop: number, messageBottom: number) {
     this.view.getBoundingClientRect = () => new DOMRect(0, 0, 800, 600);
@@ -15,7 +16,11 @@ class PagerFixture {
   }
 
   pager(): ThreadPager {
-    const messages = { focusedElement: () => this.message, stepBy: (offset: number) => this.steps.push(offset) };
+    const messages = {
+      focusedElement: () => this.message,
+      hasNeighbour: () => this.hasNeighbours,
+      stepBy: (offset: number) => this.steps.push(offset),
+    };
     const logger = { debug: (message: string) => this.logged.push(message) };
     return new ThreadPager(this.view, messages as unknown as MessageStack, logger as unknown as Logger);
   }
@@ -33,6 +38,23 @@ describe("thread pager", () => {
     const fixture = new PagerFixture(100, 400);
     fixture.pager().down(1);
     expect(fixture.steps).toEqual([1]);
+  });
+
+  test("j keeps scrolling to the end of the thread after its last message", () => {
+    const fixture = new PagerFixture(100, 400);
+    fixture.hasNeighbours = false;
+    fixture.pager().down(1);
+    expect(fixture.view.scrollTop).toBe(60);
+    expect(fixture.steps).toEqual([]);
+  });
+
+  test("k keeps scrolling to the top of the thread above its first message", () => {
+    const fixture = new PagerFixture(0, 2000);
+    fixture.hasNeighbours = false;
+    fixture.view.scrollTop = 60;
+    fixture.pager().up(1);
+    expect(fixture.view.scrollTop).toBe(0);
+    expect(fixture.steps).toEqual([]);
   });
 
   test("k scrolls up through a message that starts above the screen", () => {

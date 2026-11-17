@@ -30,6 +30,11 @@ export class MessageStack {
     this.focus(this.focusIndex + offset, "nearest");
   }
 
+  hasNeighbour(offset: number): boolean {
+    const neighbour = this.focusIndex + offset;
+    return neighbour >= 0 && neighbour < this.cards.length;
+  }
+
   focusedElement(): HTMLElement | null {
     return this.cards[this.focusIndex]?.element ?? null;
   }

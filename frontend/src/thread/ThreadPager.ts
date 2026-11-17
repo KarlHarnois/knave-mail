@@ -72,13 +72,15 @@ export class ThreadPager {
 
   private stepDown(): void {
     const focused = this.messages.focusedElement();
-    if (focused && this.continuesBelow(focused)) this.view.scrollTop += LINE_SCROLL_PIXELS;
+    const staysOnMessage = (focused && this.continuesBelow(focused)) || !this.messages.hasNeighbour(1);
+    if (staysOnMessage) this.view.scrollTop += LINE_SCROLL_PIXELS;
     else this.messages.stepBy(1);
   }
 
   private stepUp(): void {
     const focused = this.messages.focusedElement();
-    if (focused && this.continuesAbove(focused)) this.view.scrollTop -= LINE_SCROLL_PIXELS;
+    const staysOnMessage = (focused && this.continuesAbove(focused)) || !this.messages.hasNeighbour(-1);
+    if (staysOnMessage) this.view.scrollTop -= LINE_SCROLL_PIXELS;
     else this.messages.stepBy(-1);
   }
 
