@@ -1,0 +1,16 @@
+{
+  "id": 1,
+  "command": "send",
+  "args": {
+    "account": "ada@example.com",
+    "draft": {
+      "to": [
+        "grace@example.com"
+      ],
+      "cc": [],
+      "subject": "Hi",
+      "body": "Hello",
+      "replyTo": null
+    }
+  }
+}

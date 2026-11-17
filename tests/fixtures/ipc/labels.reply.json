@@ -1,0 +1,15 @@
+{
+  "id": 1,
+  "ok": [
+    {
+      "id": "INBOX",
+      "name": "INBOX",
+      "unread": 1
+    },
+    {
+      "id": "UNREAD",
+      "name": "UNREAD",
+      "unread": 1
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "id": 1,
+  "ok": {
+    "threads": [
+      {
+        "date": 100,
+        "id": "t-1",
+        "labels": [
+          "INBOX",
+          "UNREAD"
+        ],
+        "messageCount": 1,
+        "participants": "Grace",
+        "snippet": "Body of t-1",
+        "starred": false,
+        "subject": "Subject of t-1",
+        "unread": true
+      }
+    ],
+    "nextPageToken": ""
+  }
+}

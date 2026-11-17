@@ -1,0 +1,9 @@
+(export recorded same-json?)
+
+(def recorded
+  (rust "std::fs::read_to_string(format!(\"tests/fixtures/ipc/{{}}.json\", {0})).expect(\"the IPC fixture exists\")"
+    (fn ((ref str)) string)))
+
+(def same-json?
+  (rust "matches!((serde_json::from_str::<serde_json::Value>({0}), serde_json::from_str::<serde_json::Value>({1})), (Ok({!left}), Ok({!right})) if {!left} == {!right})"
+    (fn ((ref str) (ref str)) bool)))

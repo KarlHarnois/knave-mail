@@ -1,0 +1,8 @@
+{
+  "id": 1,
+  "command": "thread",
+  "args": {
+    "account": "ada@example.com",
+    "threadId": "t-9"
+  }
+}

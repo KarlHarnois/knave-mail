@@ -1,0 +1,8 @@
+{
+  "id": 1,
+  "command": "forward-draft",
+  "args": {
+    "account": "ada@example.com",
+    "messageId": "m-t-1"
+  }
+}

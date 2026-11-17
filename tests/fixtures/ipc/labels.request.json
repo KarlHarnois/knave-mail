@@ -1,0 +1,7 @@
+{
+  "id": 1,
+  "command": "labels",
+  "args": {
+    "account": "ada@example.com"
+  }
+}

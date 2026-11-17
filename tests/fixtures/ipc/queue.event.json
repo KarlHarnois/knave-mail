@@ -1,0 +1,5 @@
+{
+  "event": "queue",
+  "account": "ada@example.com",
+  "waiting": 3
+}

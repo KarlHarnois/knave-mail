@@ -1,0 +1,9 @@
+{
+  "id": 1,
+  "command": "reply-draft",
+  "args": {
+    "account": "ada@example.com",
+    "messageId": "m-t-1",
+    "all": true
+  }
+}

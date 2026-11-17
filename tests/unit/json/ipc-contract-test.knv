@@ -1,0 +1,110 @@
+(use adapters/driving/json/commands answer!)
+
+(use adapters/driving/json/envelope failure-event
+                                    operation-failed-event
+                                    queue-event
+                                    sync-progress-event
+                                    synced-event)
+
+(use adapters/driven/memory/memory-log logged-lines
+                                       new-memory-log
+                                       same-log)
+
+(use adapters/driving/webview/request-log record-frontend-entry!)
+(use adapters/json/value parse-json)
+(use domain/mail-error mail-error)
+(use ports/driven/event-log event-log)
+(use app/client/account-book)
+(use ports/driving/account-book add-account!)
+(use support/app-steps synced!)
+(use support/ipc-fixtures recorded same-json?)
+(use support/log-lines mentions?)
+
+(use support/memory-world app-over remote-with
+                          sample-thread)
+
+(def account "ada@example.com")
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-1" (vec "INBOX" "UNREAD") 100))))
+
+(defn answers-as-recorded? (name)
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (replays-as-recorded! (mut app) name)))
+
+(defn replays-as-recorded! (app name)
+  (same-json? (as-str (answer! app (as-str (recorded-request name))))
+              (as-str (recorded (as-str (str name ".reply"))))))
+
+(defn recorded-request (name)
+  (recorded (as-str (str name ".request"))))
+
+(defn recorded-as? (sent name)
+  (same-json? (as-str sent)
+              (as-str (recorded (as-str (str name ".event"))))))
+
+(deftest answers-accounts-as-recorded
+  (let (world (remote)
+        app (app-over (ref world)))
+    (unwrap-ok (add-account! (mut app)))
+    (assert (replays-as-recorded! (mut app) "accounts"))))
+
+(deftest answers-labels-as-recorded
+  (assert (answers-as-recorded? "labels")))
+
+(deftest answers-threads-as-recorded
+  (assert (answers-as-recorded? "threads")))
+
+(deftest answers-a-thread-page-as-recorded
+  (assert (answers-as-recorded? "thread-page")))
+
+(deftest answers-a-thread-as-recorded
+  (assert (answers-as-recorded? "thread")))
+
+(deftest answers-a-missing-thread-as-recorded
+  (assert (answers-as-recorded? "thread-missing")))
+
+(deftest answers-a-reply-draft-as-recorded
+  (assert (answers-as-recorded? "reply-draft")))
+
+(deftest answers-a-forward-draft-as-recorded
+  (assert (answers-as-recorded? "forward-draft")))
+
+(deftest answers-a-send-as-recorded
+  (assert (answers-as-recorded? "send")))
+
+(deftest answers-an-archive-as-recorded
+  (assert (answers-as-recorded? "archive")))
+
+(deftest describes-a-finished-sync-as-recorded
+  (assert (recorded-as? (synced-event account) "synced")))
+
+(deftest describes-sync-progress-as-recorded
+  (assert (recorded-as? (sync-progress-event account) "sync-progress")))
+
+(deftest describes-a-failed-sync-as-recorded
+  (assert (recorded-as? (failure-event account
+                                       (ref (mail-error/network (str
+                                                                  "offline"))))
+                        "sync-failed")))
+
+(deftest describes-waiting-changes-as-recorded
+  (assert (recorded-as? (queue-event account 3) "queue")))
+
+(deftest describes-a-refused-change-as-recorded
+  (assert (recorded-as? (operation-failed-event account
+                                                "relabel"
+                                                (ref (vec (str "t-1")))
+                                                "not-found"
+                                                "Gmail has no such item")
+                        "operation-failed")))
+
+(deftest records-a-frontend-log-entry-as-recorded
+  (let (log (new-memory-log))
+    (record-frontend-entry! (ref (the (box event-log)
+                                      (box (same-log (ref log)))))
+                            (ref (unwrap-ok (parse-json (as-str (recorded "log.request"))))))
+    (assert (mentions? (ref (logged-lines (ref log)))
+                       "frontend thread-page: throttled: Gmail is rate limiting this account"))))

@@ -1,0 +1,12 @@
+{
+  "id": 1,
+  "ok": {
+    "to": [
+      "Grace <grace@example.com>"
+    ],
+    "cc": [],
+    "subject": "Re: Subject of t-1",
+    "body": "\n\nGrace <grace@example.com> wrote:\n> Body of t-1",
+    "replyTo": "m-t-1"
+  }
+}

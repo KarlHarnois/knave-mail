@@ -1,0 +1,10 @@
+{
+  "id": 1,
+  "command": "archive",
+  "args": {
+    "account": "ada@example.com",
+    "threadIds": [
+      "t-1"
+    ]
+  }
+}

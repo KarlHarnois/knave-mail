@@ -1,0 +1,12 @@
+{
+  "event": "operation-failed",
+  "account": "ada@example.com",
+  "name": "relabel",
+  "threadIds": [
+    "t-1"
+  ],
+  "error": {
+    "kind": "not-found",
+    "message": "Gmail has no such item"
+  }
+}

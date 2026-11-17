@@ -1,0 +1,8 @@
+{
+  "event": "sync-failed",
+  "account": "ada@example.com",
+  "error": {
+    "kind": "network",
+    "message": "offline"
+  }
+}

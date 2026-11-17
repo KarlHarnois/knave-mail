@@ -1,0 +1,7 @@
+{
+  "id": 1,
+  "error": {
+    "kind": "not-found",
+    "message": "no thread t-9"
+  }
+}

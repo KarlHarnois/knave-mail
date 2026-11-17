@@ -1,0 +1,25 @@
+{
+  "id": 1,
+  "ok": {
+    "id": "t-1",
+    "subject": "Subject of t-1",
+    "labels": [
+      "INBOX"
+    ],
+    "messages": [
+      {
+        "id": "m-t-1",
+        "threadId": "t-1",
+        "from": "Grace <grace@example.com>",
+        "to": [
+          "ada@example.com"
+        ],
+        "cc": [],
+        "subject": "Subject of t-1",
+        "date": 100,
+        "text": "Body of t-1",
+        "html": null
+      }
+    ]
+  }
+}

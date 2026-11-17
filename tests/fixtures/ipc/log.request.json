@@ -1,0 +1,7 @@
+{
+  "command": "log",
+  "args": {
+    "level": "warn",
+    "message": "thread-page: throttled: Gmail is rate limiting this account"
+  }
+}

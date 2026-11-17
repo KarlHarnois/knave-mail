@@ -1,0 +1,11 @@
+{
+  "id": 1,
+  "command": "thread-page",
+  "args": {
+    "account": "ada@example.com",
+    "label": "INBOX",
+    "query": "",
+    "limit": 10,
+    "pageToken": ""
+  }
+}
