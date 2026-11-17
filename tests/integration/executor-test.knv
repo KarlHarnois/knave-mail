@@ -14,9 +14,6 @@
 (use support/gmail-world fixture-routes)
 (use support/temporary temporary-path)
 
-(type settings-over
-  (fn ((ref fake-gmail) string) settings))
-
 (defn settings-over (server tokens)
   (let (base (fake-gmail-base server))
     (settings-from (ref (vec (str "--gmail-base-url")
