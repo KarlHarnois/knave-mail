@@ -51,9 +51,9 @@ export class MailSession {
     this.accountListeners.push(listener);
   }
 
-  async start(): Promise<void> {
+  async start(preferredAccount = ""): Promise<void> {
     this.accounts.load(await this.ports.mail.accounts());
-    await this.enterAccount(0);
+    await this.enterAccount(this.accounts.startIndex(preferredAccount));
   }
 
   async selectAccount(search: string): Promise<void> {

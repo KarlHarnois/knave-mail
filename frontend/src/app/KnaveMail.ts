@@ -52,7 +52,7 @@ export class KnaveMail {
     new FocusGuard(this.window, () => this.app.focusScreen()).watch();
     this.factory.zoomControl().listen(this.services.document);
     this.factory.darkReaderWarmup().start();
-    const startup = this.services.session.start().then(() => this.services.launched());
+    const startup = this.services.session.start(this.services.startAccount).then(() => this.services.launched());
     this.factory.testDriver((token) => this.app.press(token), startup).installOn(this.window);
     this.app.refreshStatus();
     this.services.errors.run(startup);

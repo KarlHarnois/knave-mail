@@ -1,0 +1,5 @@
+(export start-account-script)
+
+(def start-account-script
+  (rust "if {0}.is_empty() {{ String::new() }} else {{ format!(\"window.knaveStartAccount = {{}};\\n\", serde_json::Value::String({0}.to_string())) }}"
+    (fn ((ref str)) string)))

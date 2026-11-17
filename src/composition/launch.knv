@@ -28,6 +28,7 @@
                              trimmed)
 
 (use composition/settings settings)
+(use adapters/driving/webview/start-account-script start-account-script)
 (use composition/theme-file theme-stylesheet)
 (use domain/mail-error error-message mail-error)
 (use ports/driven/event-log event-log log-info share-log)
@@ -74,6 +75,7 @@
 
 (defn launch-window (chosen)
   (let (script (str (keymap-startup-script (ref chosen))
+                    (start-account-script (ref (:start-account chosen)))
                     (:e2e-script chosen))
         stylesheet (theme-stylesheet (ref chosen)))
     (open-window "knave-mail" (ref script) (ref stylesheet)

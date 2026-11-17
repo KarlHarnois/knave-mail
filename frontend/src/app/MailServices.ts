@@ -23,6 +23,8 @@ import { VimExCommands } from "../vim/VimExCommands";
 import { VimKeymap } from "../vim/VimKeymap";
 import { VimPrompts } from "../vim/VimPrompts";
 
+type StartAccountWindow = Window & { knaveStartAccount?: string };
+
 const ROW_HEIGHT = 30;
 const OVERSCAN_ROWS = 10;
 
@@ -42,6 +44,7 @@ export class MailServices {
   readonly sync: SyncMonitor;
   readonly editors: VimEditorFactory;
   readonly actions: ThreadActions;
+  readonly startAccount: string;
   private readonly pending = new PendingChanges();
 
   constructor(
@@ -62,6 +65,7 @@ export class MailServices {
     this.sync = this.createSyncMonitor();
     this.editors = this.createEditors();
     this.actions = this.createThreadActions();
+    this.startAccount = (window as StartAccountWindow).knaveStartAccount ?? "";
   }
 
   launched(): void {

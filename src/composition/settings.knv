@@ -18,7 +18,8 @@
   :theme-path string
   :keymap-path string
   :log-path string
-  :log-level string)
+  :log-level string
+  :start-account string)
 
 (defn settings-from (arguments)
   (let (latency (option-value arguments "--latency"
@@ -66,7 +67,10 @@
                               "KNAVE_MAIL_LOG_FILE"
                               (ref (default-log-path)))
       :log-level (option-value arguments "--log-level"
-                               "KNAVE_MAIL_LOG" "info"))))
+                               "KNAVE_MAIL_LOG" "info")
+      :start-account (option-value arguments "--account"
+                                   "KNAVE_MAIL_ACCOUNT"
+                                   ""))))
 
 (def option-value
   (rust "{0}.iter().position(|{!argument}| *{!argument} == *{1}).and_then(|{!index}| {0}.get({!index} + 1).cloned()).or_else(|| std::env::var({2}).ok()).unwrap_or_else(|| {3}.to_string())"

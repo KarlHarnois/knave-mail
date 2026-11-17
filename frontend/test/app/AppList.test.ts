@@ -21,6 +21,16 @@ describe("app start", () => {
     });
   });
 
+  test("opens on the account the launcher asks for", async () => {
+    (window as Window & { knaveStartAccount?: string }).knaveStartAccount = MailFixtures.GRACE;
+    try {
+      const app = await AppHarness.started();
+      expect(app.status("account")).toBe(MailFixtures.GRACE);
+    } finally {
+      delete (window as Window & { knaveStartAccount?: string }).knaveStartAccount;
+    }
+  });
+
   test("shows mode, account and label in the status line", async () => {
     const app = await AppHarness.started();
     expect(app.status("mode")).toBe("LIST");

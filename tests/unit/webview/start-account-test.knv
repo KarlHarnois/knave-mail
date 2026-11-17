@@ -1,0 +1,8 @@
+(use adapters/driving/webview/start-account-script start-account-script)
+
+(deftest the-start-account-becomes-a-page-script
+  (assert (= (start-account-script "karl@example.com")
+             "window.knaveStartAccount = \"karl@example.com\";\n")))
+
+(deftest no-start-account-adds-no-script
+  (assert (= (start-account-script "") "")))

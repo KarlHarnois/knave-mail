@@ -22,6 +22,11 @@ export class AccountRoster {
     this.currentIndex = index;
   }
 
+  startIndex(preferred: string): number {
+    const index = this.accounts.findIndex((account) => account.email === preferred);
+    return Math.max(0, index);
+  }
+
   indexAfter(step: number): number {
     const count = this.accounts.length;
     if (count === 0) throw new Error("no account to switch to");
