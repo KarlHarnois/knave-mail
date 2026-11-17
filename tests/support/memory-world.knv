@@ -5,7 +5,8 @@
                                         remote-mail)
 
 (use adapters/driven/memory/shared handle share shared)
-(use adapters/driven/memory/store empty-memory-store)
+(use adapters/driven/memory/store)
+(use adapters/driven/memory/memory-store empty-memory-store)
 
 (use adapters/driven/memory/memory-log memory-log
                                        new-memory-log)

@@ -1,0 +1,26 @@
+(use adapters/driven/memory/stored stored-summary
+                                   stored-thread)
+
+(use adapters/driven/memory/stored-labels stored-labels)
+(use domain/mail account)
+(use domain/queued-relabel queued-relabel)
+
+(export ->memory-store empty-memory-store memory-store)
+
+(defstruct memory-store
+  :accounts (vec account)
+  :labels (vec stored-labels)
+  :summaries (vec stored-summary)
+  :threads (vec stored-thread)
+  :checkpoints (vec (pair string string))
+  :queued (vec queued-relabel)
+  :next-queued-id i64)
+
+(defn empty-memory-store ()
+  (->memory-store (vec)
+                  (vec)
+                  (vec)
+                  (vec)
+                  (vec)
+                  (vec)
+                  1))

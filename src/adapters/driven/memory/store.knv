@@ -11,29 +11,25 @@
 
 (use adapters/driven/memory/stored-labels align-thread-labels!
                                           labels-in
+                                          reapply-queued!
                                           relabel-everywhere!
                                           replace-labels!
                                           stored-labels)
 
-(use domain/mail account)
+(use adapters/driven/memory/stored-accounts account-kept?
+                                            accounts-without)
+
+(use adapters/driven/memory/stored-checkpoints checkpoint-of
+                                               replace-checkpoint!)
+
+(use adapters/driven/memory/stored-queue count-queued
+                                         without-queued)
+
+(use domain/labels reversed-change)
+(use adapters/driven/memory/memory-store memory-store)
+(use domain/queued-relabel ->queued-relabel queued-relabel)
 (use domain/summary newest-first)
 (use ports/driven/store store)
-
-(export ->memory-store empty-memory-store memory-store)
-
-(defstruct memory-store
-  :accounts (vec account)
-  :labels (vec stored-labels)
-  :summaries (vec stored-summary)
-  :threads (vec stored-thread)
-  :checkpoints (vec (pair string string)))
-
-(defn empty-memory-store ()
-  (->memory-store (vec)
-                  (vec)
-                  (vec)
-                  (vec)
-                  (vec)))
 
 (impl store memory-store
   (load-accounts (cache)
@@ -62,8 +58,12 @@
   (save-threads! (cache email summaries)
     (replace-summaries! (mut (:summaries cache))
                         email summaries)
-    (ok (align-thread-labels! (mut (:threads cache))
-                              email summaries)))
+    (align-thread-labels! (mut (:threads cache))
+                          email summaries)
+    (ok (reapply-queued! (mut (:summaries cache))
+                         (mut (:threads cache))
+                         (ref (:queued cache))
+                         email)))
 
   (load-summaries-of (cache email ids)
     (ok (summaries-with-ids (ref (:summaries cache)) email ids)))
@@ -79,7 +79,11 @@
                     (as-str (:message-id wanted)))))
 
   (save-thread! (cache email saved)
-    (ok (replace-thread! (mut (:threads cache)) email saved)))
+    (replace-thread! (mut (:threads cache)) email saved)
+    (ok (reapply-queued! (mut (:summaries cache))
+                         (mut (:threads cache))
+                         (ref (:queued cache))
+                         email)))
 
   (forget-thread! (cache forgotten)
     (let (email (as-str (:account forgotten))
@@ -101,50 +105,46 @@
                              (mut (:threads cache))
                              (as-str (:account relabeled))
                              (as-str (:thread-id relabeled))
-                             change))))
+                             change)))
 
-(defn checkpoint-of (checkpoints email)
-  (map-some (find (iter checkpoints)
-              (fn (checkpoint) (checkpoint-of? checkpoint email)))
-            (fn (checkpoint)
-              (let-match ((pair _ history-id) checkpoint)
-                (clone history-id)))))
+  (queue-relabels! (cache email thread-ids change)
+    (local added (vec))
+    (for-each (iter thread-ids)
+      (fn (thread-id)
+        (relabel-everywhere! (mut (:summaries cache))
+                             (mut (:threads cache))
+                             email
+                             (as-str thread-id)
+                             change)
+        (push! added
+               (->queued-relabel :id (:next-queued-id cache)
+                                 :account (str email)
+                                 :thread-id (clone thread-id)
+                                 :change (clone change)))
+        (set! (:next-queued-id cache)
+              (+ (:next-queued-id cache) 1))))
+    (for-each (iter added)
+      (fn (row)
+        (push! (mut (:queued cache))
+               (clone row))))
+    (ok added))
 
-(defn replace-checkpoint! (checkpoints email history-id)
-  (set! checkpoints (checkpoints-without checkpoints email))
-  (push! checkpoints
-         (pair (str email) (str history-id))))
+  (load-queued (cache)
+    (ok (clone (:queued cache))))
 
-(type checkpoints-without
-  (fn ((ref (vec (pair string string)))
-       (ref str))
-    (vec (pair string string))))
+  (forget-queued! (cache id)
+    (ok (set! (:queued cache)
+              (without-queued (ref (:queued cache)) id))))
 
-(defn checkpoints-without (checkpoints email)
-  (collect (map (filter (iter checkpoints)
-                  (fn (checkpoint)
-                    (not (checkpoint-of? checkpoint email))))
-                (fn (checkpoint) (clone checkpoint)))))
+  (revert-queued! (cache queued)
+    (relabel-everywhere! (mut (:summaries cache))
+                         (mut (:threads cache))
+                         (as-str (:account queued))
+                         (as-str (:thread-id queued))
+                         (ref (reversed-change (ref (:change queued)))))
+    (ok (set! (:queued cache)
+              (without-queued (ref (:queued cache))
+                              (:id queued)))))
 
-(type checkpoint-of?
-  (fn ((ref (pair string string)) (ref str))
-    bool))
-
-(defn checkpoint-of? (checkpoint email)
-  (let-match ((pair account _) checkpoint)
-    (= account email)))
-
-(defn account-kept? (accounts email)
-  (any? (iter accounts)
-    (fn (account)
-      (= (:email account) email))))
-
-(type accounts-without
-  (fn ((ref (vec account)) (ref str))
-    (vec account)))
-
-(defn accounts-without (accounts email)
-  (collect (map (filter (iter accounts)
-                  (fn (account)
-                    (not= (:email account) email)))
-                (fn (account) (clone account)))))
+  (queued-count (cache email)
+    (ok (count-queued (ref (:queued cache)) email))))

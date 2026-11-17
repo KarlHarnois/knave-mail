@@ -10,18 +10,23 @@
 (use adapters/driven/sqlite/connection open-database
                                        sqlite-connection)
 
+(use adapters/driven/sqlite/queued count-queued erase-queued
+                                   read-all-queued)
+
+(use adapters/driven/sqlite/relabeling queued-together
+                                       reapply-queued
+                                       relabel-everywhere
+                                       reverted)
+
 (use adapters/driven/sqlite/summaries read-summaries
                                       read-summaries-with-ids
-                                      read-summary-labels
-                                      relabel-summary
                                       write-summaries)
 
 (use adapters/driven/sqlite/threads erase-thread
                                     read-message read-thread
-                                    relabel-thread
                                     write-thread)
 
-(use domain/labels apply-label-change label-change)
+(use domain/labels label-change)
 (use domain/mail-error mail-error)
 (use ports/driven/store store)
 
@@ -53,7 +58,8 @@
     (read-summaries (ref (:connection cache)) email query))
 
   (save-threads! (cache email summaries)
-    (write-summaries (ref (:connection cache)) email summaries))
+    (try (write-summaries (ref (:connection cache)) email summaries))
+    (reapply-queued (ref (:connection cache)) email))
 
   (load-summaries-of (cache email ids)
     (read-summaries-with-ids (ref (:connection cache))
@@ -70,7 +76,8 @@
                   (as-str (:message-id wanted))))
 
   (save-thread! (cache email saved)
-    (write-thread (ref (:connection cache)) email saved))
+    (try (write-thread (ref (:connection cache)) email saved))
+    (reapply-queued (ref (:connection cache)) email))
 
   (forget-thread! (cache forgotten)
     (erase-thread (ref (:connection cache))
@@ -88,16 +95,20 @@
     (relabel-everywhere (ref (:connection cache))
                         (as-str (:account relabeled))
                         (as-str (:thread-id relabeled))
-                        change)))
+                        change))
 
-(defn relabel-everywhere (connection email thread-id change)
-  (match (try (read-thread connection email thread-id))
-    ((some stored)
-     (try (relabel-thread connection email thread-id
-                          (apply-label-change (ref (:labels stored)) change))))
-    (none (do)))
-  (match (try (read-summary-labels connection email thread-id))
-    ((some labels)
-     (relabel-summary connection email thread-id
-                      (apply-label-change (ref labels) change)))
-    (none (ok (do)))))
+  (queue-relabels! (cache email thread-ids change)
+    (queued-together (ref (:connection cache))
+                     email thread-ids change))
+
+  (load-queued (cache)
+    (read-all-queued (ref (:connection cache))))
+
+  (forget-queued! (cache id)
+    (erase-queued (ref (:connection cache)) id))
+
+  (revert-queued! (cache queued)
+    (reverted (ref (:connection cache)) queued))
+
+  (queued-count (cache email)
+    (count-queued (ref (:connection cache)) email)))

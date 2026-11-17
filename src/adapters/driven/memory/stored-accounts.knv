@@ -1,0 +1,18 @@
+(use domain/mail account)
+
+(export account-kept? accounts-without)
+
+(defn account-kept? (accounts email)
+  (any? (iter accounts)
+    (fn (account)
+      (= (:email account) email))))
+
+(type accounts-without
+  (fn ((ref (vec account)) (ref str))
+    (vec account)))
+
+(defn accounts-without (accounts email)
+  (collect (map (filter (iter accounts)
+                  (fn (account)
+                    (not= (:email account) email)))
+                (fn (account) (clone account)))))

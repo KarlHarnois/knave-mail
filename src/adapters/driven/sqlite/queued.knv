@@ -1,0 +1,82 @@
+(use adapters/driven/sqlite/connection sqlite-connection)
+(use adapters/driven/sqlite/rows as-internal)
+(use domain/labels label-change)
+(use domain/mail-error mail-error)
+(use domain/queued-relabel ->queued-relabel queued-relabel)
+
+(export begin! commit! count-queued erase-queued
+        insert-queued read-all-queued read-queued-of
+        rollback!)
+
+(def insert-queued-row
+  "INSERT INTO queued_relabels (account, thread_id, added, removed) VALUES (?1, ?2, ?3, ?4)")
+
+(def select-all-queued
+  "SELECT id, account, thread_id, added, removed FROM queued_relabels ORDER BY id")
+
+(def select-queued-of-account
+  "SELECT id, account, thread_id, added, removed FROM queued_relabels WHERE account = ?1 ORDER BY id")
+
+(def delete-queued-row
+  "DELETE FROM queued_relabels WHERE id = ?1")
+
+(def count-queued-rows
+  "SELECT COUNT(*) FROM queued_relabels WHERE account = ?1")
+
+(defn insert-queued (connection email thread-id change)
+  (as-internal (inserted-row connection email thread-id
+                             change insert-queued-row)))
+
+(defn read-all-queued (connection)
+  (as-internal (queued-rows connection select-all-queued "")))
+
+(defn read-queued-of (connection email)
+  (as-internal (queued-rows connection select-queued-of-account email)))
+
+(defn erase-queued (connection id)
+  (as-internal (row-erased connection delete-queued-row id)))
+
+(defn count-queued (connection email)
+  (as-internal (counted connection count-queued-rows email)))
+
+(defn begin! (connection)
+  (as-internal (batch-run connection "BEGIN IMMEDIATE")))
+
+(defn commit! (connection)
+  (as-internal (batch-run connection "COMMIT")))
+
+(defn rollback! (connection)
+  (as-internal (batch-run connection "ROLLBACK")))
+
+(def inserted-row
+  (rust "{0}.execute({4}, rusqlite::params![{1}, {2}, serde_json::to_string(&{3}.added).unwrap_or_default(), serde_json::to_string(&{3}.removed).unwrap_or_default()]).map(|_| {0}.last_insert_rowid()).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection)
+         (ref str)
+         (ref str)
+         (ref label-change)
+         (ref str))
+      (result i64 string))))
+
+(def queued-rows
+  (rust "{0}.prepare_cached({1}).and_then(|mut {!statement}| {{ let {!read} = |{!row}: &rusqlite::Row| Ok(crate::domain::queued_relabel::QueuedRelabel {{ id: {!row}.get(0)?, account: {!row}.get(1)?, thread_id: {!row}.get(2)?, change: crate::domain::labels::LabelChange {{ added: serde_json::from_str(&{!row}.get::<_, String>(3)?).unwrap_or_default(), removed: serde_json::from_str(&{!row}.get::<_, String>(4)?).unwrap_or_default() }} }}); let {!rows} = if {2}.is_empty() {{ {!statement}.query_map([], {!read})?.collect::<rusqlite::Result<Vec<_>>>() }} else {{ {!statement}.query_map([{2}], {!read})?.collect::<rusqlite::Result<Vec<_>>>() }}; {!rows} }}).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection)
+         (ref str)
+         (ref str))
+      (result (vec queued-relabel) string))))
+
+(def row-erased
+  (rust "{0}.execute({1}, [{2}]).map(|_| ()).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection) (ref str) i64)
+      (result unit string))))
+
+(def counted
+  (rust "{0}.query_row({1}, [{2}], |{!row}| {!row}.get::<_, i64>(0)).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection)
+         (ref str)
+         (ref str))
+      (result i64 string))))
+
+(def batch-run
+  (rust "{0}.execute_batch({1}).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection) (ref str))
+      (result unit string))))

@@ -1,0 +1,68 @@
+(use adapters/driven/memory/store)
+(use adapters/driven/memory/memory-store empty-memory-store)
+(use adapters/driven/sqlite/store open-sqlite-store)
+(use domain/labels archive-change)
+(use ports/driven/store load-queued queue-relabels!)
+
+(use support/contracts/queue-contract counts-queued-per-account!
+                                      forgets-without-undoing!
+                                      keeps-queued-changes-in-saved-copies!
+                                      queues-and-applies-at-once!
+                                      reverts-a-queued-change!)
+
+(use support/temporary temporary-path)
+
+(defn sqlite ()
+  (unwrap-ok (open-sqlite-store (ref (temporary-path "queue.sqlite3")))))
+
+(deftest memory-store-queues-and-applies-a-change-at-once
+  (let (cache (empty-memory-store))
+    (assert (queues-and-applies-at-once! (mut cache)))))
+
+(deftest sqlite-store-queues-and-applies-a-change-at-once
+  (let (cache (sqlite))
+    (assert (queues-and-applies-at-once! (mut cache)))))
+
+(deftest memory-store-keeps-queued-changes-in-saved-copies
+  (let (cache (empty-memory-store))
+    (assert (keeps-queued-changes-in-saved-copies! (mut cache)))))
+
+(deftest sqlite-store-keeps-queued-changes-in-saved-copies
+  (let (cache (sqlite))
+    (assert (keeps-queued-changes-in-saved-copies! (mut cache)))))
+
+(deftest memory-store-forgets-a-delivered-change-without-undoing-it
+  (let (cache (empty-memory-store))
+    (assert (forgets-without-undoing! (mut cache)))))
+
+(deftest sqlite-store-forgets-a-delivered-change-without-undoing-it
+  (let (cache (sqlite))
+    (assert (forgets-without-undoing! (mut cache)))))
+
+(deftest memory-store-reverts-a-refused-change
+  (let (cache (empty-memory-store))
+    (assert (reverts-a-queued-change! (mut cache)))))
+
+(deftest sqlite-store-reverts-a-refused-change
+  (let (cache (sqlite))
+    (assert (reverts-a-queued-change! (mut cache)))))
+
+(deftest memory-store-counts-queued-changes-per-account
+  (let (cache (empty-memory-store))
+    (assert (counts-queued-per-account! (mut cache)))))
+
+(deftest sqlite-store-counts-queued-changes-per-account
+  (let (cache (sqlite))
+    (assert (counts-queued-per-account! (mut cache)))))
+
+(deftest sqlite-store-keeps-queued-changes-after-a-reopen
+  (let (path (temporary-path "reopened.sqlite3"))
+    (local first
+      (unwrap-ok (open-sqlite-store (ref path))))
+    (unwrap-ok (queue-relabels! (mut first)
+                                "ada@example.com"
+                                (ref (vec (str "t-1")))
+                                (ref (archive-change))))
+    (let (second (unwrap-ok (open-sqlite-store (ref path))))
+      (assert (= (len (unwrap-ok (load-queued (ref second))))
+                 1)))))

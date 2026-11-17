@@ -7,10 +7,12 @@
 
 (use domain/labels label-change)
 (use domain/mail label thread thread-summary)
+(use adapters/driven/memory/stored-queue queued-changes-of)
 (use domain/relabel relabeled-summary relabeled-thread)
 
 (export ->stored-labels align-thread-labels! labels-in
-        relabel-everywhere! replace-labels! stored-labels)
+        reapply-queued! relabel-everywhere! replace-labels!
+        stored-labels)
 
 (defstruct stored-labels
   :account string
@@ -44,6 +46,15 @@
 (defn relabel-everywhere! (summaries threads email thread-id change)
   (relabel-summaries! summaries email thread-id change)
   (relabel-threads! threads email thread-id change))
+
+(defn reapply-queued! (summaries threads queued email)
+  (for-each (iter (queued-changes-of queued email))
+    (fn (entry)
+      (let-match ((pair thread-id change) entry)
+        (relabel-summaries! summaries email
+                            (as-str thread-id)
+                            change)
+        (relabel-threads! threads email (as-str thread-id) change)))))
 
 (defn relabel-summaries! (summaries email thread-id change)
   (for-each (range 0 (len summaries))

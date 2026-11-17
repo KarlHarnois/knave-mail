@@ -1,0 +1,33 @@
+(use domain/collections as-count)
+(use domain/labels label-change)
+(use domain/queued-relabel queued-relabel)
+
+(export count-queued queued-changes-of without-queued)
+
+(type without-queued
+  (fn ((ref (vec queued-relabel)) i64)
+    (vec queued-relabel)))
+
+(defn without-queued (queued id)
+  (collect (map (filter (iter queued)
+                  (fn (row) (not= (:id row) id)))
+                (fn (row) (clone row)))))
+
+(type count-queued
+  (fn ((ref (vec queued-relabel)) (ref str))
+    i64))
+
+(defn count-queued (queued email)
+  (as-count (len (collect (filter (iter queued)
+                            (fn (row) (= (:account row) email)))))))
+
+(type queued-changes-of
+  (fn ((ref (vec queued-relabel)) (ref str))
+    (vec (pair string label-change))))
+
+(defn queued-changes-of (queued email)
+  (collect (map (filter (iter queued)
+                  (fn (row) (= (:account row) email)))
+                (fn (row)
+                  (pair (clone (:thread-id row))
+                        (clone (:change row)))))))

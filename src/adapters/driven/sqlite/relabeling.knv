@@ -1,0 +1,104 @@
+(use adapters/driven/sqlite/connection sqlite-connection)
+
+(use adapters/driven/sqlite/queued begin! commit!
+                                   erase-queued
+                                   insert-queued
+                                   read-queued-of rollback!)
+
+(use adapters/driven/sqlite/summaries read-summary-labels
+                                      relabel-summary)
+
+(use adapters/driven/sqlite/threads read-thread
+                                    relabel-thread)
+
+(use domain/collections try-for-each)
+
+(use domain/labels apply-label-change label-change
+                   reversed-change)
+
+(use domain/mail-error mail-error)
+(use domain/queued-relabel ->queued-relabel queued-relabel)
+
+(export queued-together reapply-queued relabel-everywhere
+        reverted)
+
+(type queued-together
+  (fn ((ref sqlite-connection)
+       (ref str)
+       (ref (vec string))
+       (ref label-change))
+    (result (vec queued-relabel) mail-error)))
+
+(defn queued-together (connection email thread-ids change)
+  (try (begin! connection))
+  (match (queued-each connection email thread-ids change)
+    ((ok rows) (do (try (commit! connection)) (ok rows)))
+    ((err failure)
+     (do
+       (try (rollback! connection))
+       (err failure)))))
+
+(defn queued-each (connection email thread-ids change)
+  (local rows (vec))
+  (try (try-for-each (iter thread-ids)
+         (fn (thread-id)
+           (try (relabel-everywhere connection email
+                                    (as-str thread-id)
+                                    change))
+           (push! rows
+                  (->queued-relabel :id (try (insert-queued connection
+                                                            email
+                                                            (as-str thread-id)
+                                                            change))
+                                    :account (str email)
+                                    :thread-id (clone thread-id)
+                                    :change (clone change)))
+           (ok (do)))))
+  (ok rows))
+
+(type reverted
+  (fn ((ref sqlite-connection) (ref queued-relabel))
+    (result unit mail-error)))
+
+(defn reverted (connection queued)
+  (try (begin! connection))
+  (match (reverted-in-place connection queued)
+    ((ok _) (commit! connection))
+    ((err failure)
+     (do
+       (try (rollback! connection))
+       (err failure)))))
+
+(type reverted-in-place
+  (fn ((ref sqlite-connection) (ref queued-relabel))
+    (result unit mail-error)))
+
+(defn reverted-in-place (connection queued)
+  (try (relabel-everywhere connection
+                           (as-str (:account queued))
+                           (as-str (:thread-id queued))
+                           (ref (reversed-change (ref (:change queued))))))
+  (erase-queued connection (:id queued)))
+
+(type reapply-queued
+  (fn ((ref sqlite-connection) (ref str))
+    (result unit mail-error)))
+
+(defn reapply-queued (connection email)
+  (try-for-each (iter (try (read-queued-of connection email)))
+    (fn (row)
+      (relabel-everywhere connection email
+                          (as-str (:thread-id row))
+                          (ref (:change row))))))
+
+(defn relabel-everywhere (connection email thread-id change)
+  (match (try (read-thread connection email thread-id))
+    ((some stored)
+     (try (relabel-thread connection email thread-id
+                          (apply-label-change (ref (:labels stored)) change))))
+    (none (do)))
+  (match (try (read-summary-labels connection email thread-id))
+    ((some labels)
+     (relabel-summary connection email thread-id
+                      (apply-label-change (ref labels) change)))
+    (none (ok (do)))))

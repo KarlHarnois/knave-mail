@@ -1,0 +1,87 @@
+(use domain/label-scope label-scope)
+(use domain/labels archive-change)
+(use domain/mail ->thread-query)
+(use domain/summary summarize)
+
+(use ports/driven/store forget-queued! load-queued
+                        load-threads queue-relabels!
+                        queued-count revert-queued!
+                        save-thread! save-threads! store)
+
+(use support/memory-world sample-thread)
+
+(export counts-queued-per-account! forgets-without-undoing!
+        keeps-queued-changes-in-saved-copies!
+        queues-and-applies-at-once!
+        reverts-a-queued-change!)
+
+(def account "ada@example.com")
+
+(defn inbox ()
+  (->thread-query (label-scope/only (str "INBOX"))
+                  (str "")
+                  10))
+
+(type inbox-ids
+  (where ((cache store))
+    (fn ((ref cache)) (vec string))))
+
+(defn inbox-ids (cache)
+  (collect (map (iter (unwrap-ok (load-threads cache account (ref (inbox)))))
+             (fn (summary) (clone (:id summary))))))
+
+(type cached-in-inbox!
+  (where ((cache store))
+    (fn ((mut cache) (ref str)) unit)))
+
+(defn cached-in-inbox! (cache thread-id)
+  (let (saved (sample-thread thread-id (vec "INBOX") 100))
+    (unwrap-ok (save-thread! cache account (ref saved)))
+    (unwrap-ok (save-threads! cache account
+                              (ref (vec (summarize (ref saved))))))))
+
+(type archived!
+  (where ((cache store))
+    (fn ((mut cache) (vec string)) unit)))
+
+(defn archived! (cache thread-ids)
+  (unwrap-ok (queue-relabels! cache account
+                              (ref thread-ids)
+                              (ref (archive-change))))
+  (do))
+
+(defn queues-and-applies-at-once! (cache)
+  (cached-in-inbox! cache "t-1")
+  (archived! cache (vec (str "t-1")))
+  (let (queued (unwrap-ok (load-queued cache)))
+    (and (empty? (inbox-ids cache))
+         (= (len queued) 1)
+         (= (:thread-id (at queued 0)) "t-1"))))
+
+(defn keeps-queued-changes-in-saved-copies! (cache)
+  (cached-in-inbox! cache "t-1")
+  (archived! cache (vec (str "t-1")))
+  (cached-in-inbox! cache "t-1")
+  (empty? (inbox-ids cache)))
+
+(defn forgets-without-undoing! (cache)
+  (cached-in-inbox! cache "t-1")
+  (archived! cache (vec (str "t-1")))
+  (unwrap-ok (forget-queued! cache
+                             (:id (at (unwrap-ok (load-queued cache)) 0))))
+  (and (empty? (unwrap-ok (load-queued cache)))
+       (empty? (inbox-ids cache))))
+
+(defn reverts-a-queued-change! (cache)
+  (cached-in-inbox! cache "t-1")
+  (archived! cache (vec (str "t-1")))
+  (let (queued (unwrap-ok (load-queued cache)))
+    (unwrap-ok (revert-queued! cache (at queued 0)))
+    (and (empty? (unwrap-ok (load-queued cache)))
+         (= (inbox-ids cache) (vec (str "t-1"))))))
+
+(defn counts-queued-per-account! (cache)
+  (archived! cache
+             (vec (str "t-1") (str "t-2")))
+  (and (= (unwrap-ok (queued-count cache account)) 2)
+       (= (unwrap-ok (queued-count cache "grace@example.com")) 0)))

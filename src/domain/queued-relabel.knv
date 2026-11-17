@@ -1,0 +1,9 @@
+(use domain/labels label-change)
+
+(export ->queued-relabel queued-relabel)
+
+(defstruct queued-relabel
+  :id i64
+  :account string
+  :thread-id string
+  :change label-change)

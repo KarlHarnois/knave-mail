@@ -9,9 +9,10 @@
                                  seeded-threads)
 
 (use adapters/driven/memory/shared share shared)
+(use adapters/driven/memory/store)
 
-(use adapters/driven/memory/store empty-memory-store
-                                  memory-store)
+(use adapters/driven/memory/memory-store empty-memory-store
+                                         memory-store)
 
 (use adapters/driven/system-clock ->system-clock)
 (use app/mail-app mail-app new-mail-app)

@@ -1,4 +1,5 @@
-(use adapters/driven/memory/store empty-memory-store)
+(use adapters/driven/memory/store)
+(use adapters/driven/memory/memory-store empty-memory-store)
 (use adapters/driven/sqlite/store open-sqlite-store)
 
 (use support/contracts/checkpoint-contract has-no-checkpoint-at-first!

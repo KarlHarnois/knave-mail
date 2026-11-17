@@ -1,8 +1,8 @@
 (export ->label-change apply-label-change archive-change
         inbox-change label-change label-id label-removal
-        read-change star-change starred? system-label
-        trash-change unread-change unread? unstar-change
-        untrash-change)
+        read-change reversed-change star-change starred?
+        system-label trash-change unread-change unread?
+        unstar-change untrash-change)
 
 (defenum system-label
   inbox
@@ -50,6 +50,13 @@
 (defn read-change ()
   (->label-change (vec)
                   (vec (label-id system-label/unread))))
+
+(type reversed-change
+  (fn ((ref label-change)) label-change))
+
+(defn reversed-change (change)
+  (->label-change (clone (:removed change))
+                  (clone (:added change))))
 
 (defn label-removal (label)
   (->label-change (vec) (vec (str label))))
