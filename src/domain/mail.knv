@@ -30,7 +30,8 @@
   :snippet string
   :date int
   :labels (vec string)
-  :message-count int)
+  :message-count int
+  :message-ids (vec string))
 
 (defstruct message
   :id string

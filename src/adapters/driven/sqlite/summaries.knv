@@ -19,19 +19,20 @@
   :snippet string
   :date int
   :labels (vec string)
-  :message-count int)
+  :message-count int
+  :message-ids (vec string))
 
 (def select-summaries-with-ids
-  "SELECT id, subject, participants, snippet, date, labels, message_count FROM summaries WHERE account = ?1 AND id IN (SELECT value FROM json_each(?2))")
+  "SELECT id, subject, participants, snippet, date, labels, message_count, message_ids FROM summaries WHERE account = ?1 AND id IN (SELECT value FROM json_each(?2))")
 
 (def select-summary-labels
   "SELECT labels FROM summaries WHERE account = ?1 AND id = ?2")
 
 (def select-summaries-in-label
-  "SELECT id, subject, participants, snippet, date, labels, message_count FROM summaries WHERE account = ?1 AND (?2 IS NULL OR EXISTS (SELECT 1 FROM json_each(summaries.labels) WHERE value = ?2)) ORDER BY date DESC LIMIT ?3")
+  "SELECT id, subject, participants, snippet, date, labels, message_count, message_ids FROM summaries WHERE account = ?1 AND (?2 IS NULL OR EXISTS (SELECT 1 FROM json_each(summaries.labels) WHERE value = ?2)) ORDER BY date DESC LIMIT ?3")
 
 (def upsert-summary
-  "INSERT OR REPLACE INTO summaries (account, id, subject, participants, snippet, date, labels, message_count) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)")
+  "INSERT OR REPLACE INTO summaries (account, id, subject, participants, snippet, date, labels, message_count, message_ids) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)")
 
 (def set-summary-labels
   "UPDATE summaries SET labels = ?3 WHERE account = ?1 AND id = ?2")
@@ -53,7 +54,7 @@
                    (fn (row) (summary-from row)))))))
 
 (def summary-rows-with-ids
-  (rust "{0}.prepare_cached({3}).and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{1}, serde_json::to_string({2}).unwrap_or_default()], |{!row}| Ok(SummaryRow {{ id: {!row}.get(0)?, subject: {!row}.get(1)?, participants: {!row}.get(2)?, snippet: {!row}.get(3)?, date: {!row}.get(4)?, labels: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(5)?).unwrap_or_default(), message_count: {!row}.get(6)? }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
+  (rust "{0}.prepare_cached({3}).and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{1}, serde_json::to_string({2}).unwrap_or_default()], |{!row}| Ok(SummaryRow {{ id: {!row}.get(0)?, subject: {!row}.get(1)?, participants: {!row}.get(2)?, snippet: {!row}.get(3)?, date: {!row}.get(4)?, labels: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(5)?).unwrap_or_default(), message_count: {!row}.get(6)?, message_ids: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(7)?).unwrap_or_default() }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection)
          (ref str)
          (ref (vec string))
@@ -70,7 +71,8 @@
                     :snippet (clone (:snippet row))
                     :date (:date row)
                     :labels (clone (:labels row))
-                    :message-count (:message-count row)))
+                    :message-count (:message-count row)
+                    :message-ids (clone (:message-ids row))))
 
 (defn write-summaries (connection account summaries)
   (try (as-internal (upsert-summaries connection account
@@ -99,7 +101,7 @@
       (result (option (vec string)) string))))
 
 (def summary-rows
-  (rust "{0}.prepare_cached({4}).and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{1}, {2}, {3}], |{!row}| Ok(SummaryRow {{ id: {!row}.get(0)?, subject: {!row}.get(1)?, participants: {!row}.get(2)?, snippet: {!row}.get(3)?, date: {!row}.get(4)?, labels: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(5)?).unwrap_or_default(), message_count: {!row}.get(6)? }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
+  (rust "{0}.prepare_cached({4}).and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{1}, {2}, {3}], |{!row}| Ok(SummaryRow {{ id: {!row}.get(0)?, subject: {!row}.get(1)?, participants: {!row}.get(2)?, snippet: {!row}.get(3)?, date: {!row}.get(4)?, labels: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(5)?).unwrap_or_default(), message_count: {!row}.get(6)?, message_ids: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(7)?).unwrap_or_default() }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection)
          (ref str)
          (ref (option string))
@@ -108,7 +110,7 @@
       (result (vec summary-row) string))))
 
 (def upsert-summaries
-  (rust "{0}.prepare_cached({3}).and_then(|mut {!statement}| {2}.iter().try_for_each(|{!summary}| {!statement}.execute(rusqlite::params![{1}, {!summary}.id, {!summary}.subject, {!summary}.participants, {!summary}.snippet, {!summary}.date, serde_json::to_string(&{!summary}.labels).unwrap_or_default(), {!summary}.message_count]).map(|_| ()))).map_err(|{!error}| {!error}.to_string())"
+  (rust "{0}.prepare_cached({3}).and_then(|mut {!statement}| {2}.iter().try_for_each(|{!summary}| {!statement}.execute(rusqlite::params![{1}, {!summary}.id, {!summary}.subject, {!summary}.participants, {!summary}.snippet, {!summary}.date, serde_json::to_string(&{!summary}.labels).unwrap_or_default(), {!summary}.message_count, serde_json::to_string(&{!summary}.message_ids).unwrap_or_default()]).map(|_| ()))).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection)
          (ref str)
          (ref (vec thread-summary))

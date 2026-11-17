@@ -14,6 +14,7 @@
 
 (use support/contracts/summary-contract aligns-cached-thread-labels!
                                         finds-summaries-by-id!
+                                        keeps-message-ids!
                                         relabels-a-summary-without-its-thread!)
 
 (use support/temporary temporary-path)
@@ -116,3 +117,11 @@
 (deftest sqlite-store-aligns-cached-thread-labels-with-saved-summaries
   (let (cache (sqlite))
     (assert (aligns-cached-thread-labels! (mut cache)))))
+
+(deftest memory-store-keeps-message-ids
+  (let (cache (empty-memory-store))
+    (assert (keeps-message-ids! (mut cache)))))
+
+(deftest sqlite-store-keeps-message-ids
+  (let (cache (sqlite))
+    (assert (keeps-message-ids! (mut cache)))))

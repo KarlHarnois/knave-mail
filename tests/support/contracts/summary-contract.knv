@@ -10,6 +10,7 @@
 (use support/memory-world sample-thread)
 
 (export aligns-cached-thread-labels! finds-summaries-by-id!
+        keeps-message-ids!
         relabels-a-summary-without-its-thread!)
 
 (def account "ada@example.com")
@@ -64,3 +65,15 @@
                                                         100)))))))
   (= (unwrap (unwrap-ok (load-thread cache (ref (thread-of "t-1")))))
      (sample-thread "t-1" (vec "INBOX" "UNREAD") 100)))
+
+(defn keeps-message-ids! (cache)
+  (unwrap-ok (save-threads!
+               cache account
+               (ref (vec (summarize
+                           (ref (sample-thread "t-1" (vec "INBOX") 100)))))))
+  (= (collect (map (iter (unwrap-ok (load-summaries-of
+                                      cache account
+                                      (ref (vec (str "t-1"))))))
+                   (fn (summary)
+                     (clone (:message-ids summary)))))
+     (vec (vec (str "m-t-1")))))

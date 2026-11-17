@@ -15,6 +15,7 @@
      account TEXT NOT NULL, id TEXT NOT NULL, subject TEXT NOT NULL,
      participants TEXT NOT NULL, snippet TEXT NOT NULL, date INTEGER NOT NULL,
      labels TEXT NOT NULL, message_count INTEGER NOT NULL,
+     message_ids TEXT NOT NULL DEFAULT '[]',
      PRIMARY KEY (account, id));
    CREATE INDEX IF NOT EXISTS summaries_by_date ON summaries (account, date DESC);
    CREATE TABLE IF NOT EXISTS threads (
@@ -34,11 +35,25 @@
      id INTEGER PRIMARY KEY AUTOINCREMENT, account TEXT NOT NULL, thread_id TEXT NOT NULL,
      added TEXT NOT NULL, removed TEXT NOT NULL);")
 
+(def message-ids-check
+  "SELECT COUNT(*) FROM pragma_table_info('summaries') WHERE name = 'message_ids'")
+
+(def message-ids-column
+  "ALTER TABLE summaries ADD COLUMN message_ids TEXT NOT NULL DEFAULT '[]'")
+
 (defn open-database (path)
-  (map-err (opened-with-schema path schema)
-    (fn (problem)
-      (mail-error/internal (str "cannot open the cache at "
-                                path ": " problem)))))
+  (map-err (then-ok (opened-with-schema path schema)
+             (fn (connection)
+               (column-added connection message-ids-check
+                             message-ids-column)))
+           (fn (problem)
+             (mail-error/internal
+               (str "cannot open the cache at " path ": " problem)))))
+
+(def column-added
+  (rust "{0}.query_row({1}, [], |{!row}| {!row}.get::<_, i64>(0)).and_then(|{!found}| if {!found} == 0 {{ {0}.execute_batch({2}) }} else {{ Ok(()) }}).map(|_| {0}).map_err(|{!error}| {!error}.to_string())"
+    (fn (sqlite-connection (ref str) (ref str))
+      (result sqlite-connection string))))
 
 (def opened-with-schema
   (rust "{{ let {!path} = std::path::Path::new({0}); if let Some({!parent}) = {!path}.parent() {{ let _ = std::fs::create_dir_all({!parent}); }} rusqlite::Connection::open({!path}).and_then(|{!connection}| {!connection}.execute_batch({1}).map(|_| {!connection})).map_err(|{!error}| {!error}.to_string()) }}"

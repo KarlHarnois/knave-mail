@@ -19,7 +19,10 @@
                       :snippet (snippet-of (ref messages))
                       :date (date-of (ref messages))
                       :labels (thread-labels thread)
-                      :message-count (as-count (len messages)))))
+                      :message-count (as-count (len messages))
+                      :message-ids (collect (map (iter messages)
+                                              (fn (message)
+                                                (text-at message "id")))))))
 
 (defn subject-of (messages)
   (match (first messages)

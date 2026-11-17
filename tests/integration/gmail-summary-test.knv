@@ -1,0 +1,13 @@
+(use adapters/driven/gmail/mailbox gmail-mailbox)
+(use ports/driven/mailbox fetch-threads!)
+(use support/fake-gmail start-fake-gmail)
+(use support/gmail-requests inbox)
+(use support/gmail-world fixture-routes gmail-over)
+
+(deftest keeps-the-message-ids-of-each-summary
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (assert (= (:message-ids (at (unwrap-ok (fetch-threads! (mut gmail)
+                                                            (ref (inbox))))
+                                 0))
+               (vec (str "m1") (str "m2"))))))
