@@ -8,7 +8,7 @@
 (use adapters/driven/threaded-queue share-sender
                                     threaded-operations)
 
-(use adapters/driving/webview/relabel-runner ->inline-relabel)
+(use adapters/driving/webview/listing-runner ->inline-listing)
 (use adapters/driving/webview/session serve-requests!)
 (use adapters/driving/webview/start-account-script start-account-script)
 (use adapters/driving/webview/sync-runner ->inline-sync)
@@ -18,7 +18,7 @@
                                      request-inbox)
 
 (use adapters/driving/webview/change-delivery ->inline-delivery)
-(use composition/background-relabel start-background-relabel)
+(use composition/background-listing start-background-listing)
 (use composition/delivery-worker start-delivery-worker)
 (use composition/background-sync ->background-sync)
 (use composition/gmail-backend gmail-app)
@@ -66,11 +66,11 @@
 (defn serve-memory-window! (chosen log inbox outbox)
   (local running (memory-app chosen (share-log log)))
   (local runner (->inline-sync 0))
-  (local relabeler (->inline-relabel 0))
+  (local lister (->inline-listing 0))
   (local deliverer (->inline-delivery))
   (serve-requests! (mut running)
                    (mut runner)
-                   (mut relabeler)
+                   (mut lister)
                    (mut deliverer)
                    log inbox outbox))
 
@@ -93,13 +93,13 @@
          (local running app)
          (local runner
            (->background-sync (share-sender (ref executor))))
-         (local relabeler
-           (start-background-relabel outbox (ref executor)))
+         (local lister
+           (start-background-listing outbox (ref executor)))
          (local deliverer
            (start-delivery-worker outbox (ref executor)))
          (serve-requests! (mut running)
                           (mut runner)
-                          (mut relabeler)
+                          (mut lister)
                           (mut deliverer)
                           log inbox outbox)))
       ((err failure) (fail-with (ref failure))))))

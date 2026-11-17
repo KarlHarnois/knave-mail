@@ -3,22 +3,21 @@
 
 (use adapters/driving/json/envelope request-arguments)
 (use adapters/json/value bool-field json-value string-field)
-(use domain/label-commands label-change-named)
 
-(export ->inline-relabel ->outbox-sink inline-relabel
-        outbox-sink relabel-command? relabel-runner
-        reply-sink worker-request?)
+(export ->inline-listing ->outbox-sink inline-listing
+        listing-request? listing-runner outbox-sink
+        reply-sink)
 
-(deftrait relabel-runner
+(deftrait listing-runner
   (hand-off! (fn ((mut self) (ref str)) bool)))
 
 (deftrait reply-sink
   (deliver-reply! (fn ((ref self) string) unit)))
 
-(defstruct inline-relabel
+(defstruct inline-listing
   :handed-off i64)
 
-(impl relabel-runner inline-relabel
+(impl listing-runner inline-listing
   (hand-off! (runner request-text) false))
 
 (defstruct outbox-sink
@@ -28,7 +27,7 @@
   (deliver-reply! (sink reply)
     (send-reply (ref (:outbox sink)) reply)))
 
-(defn worker-request? (command request)
+(defn listing-request? (command request)
   (or (= command "thread-page")
       (and (= command "threads")
            (gmail-listing? (ref (request-arguments request))))))
@@ -40,8 +39,3 @@
       (match (bool-field arguments "fresh")
         ((ok fresh) fresh)
         (_ false))))
-
-(defn relabel-command? (command)
-  (match (label-change-named command)
-    ((some _) true)
-    (none false)))

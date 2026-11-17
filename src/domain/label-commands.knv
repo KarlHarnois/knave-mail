@@ -3,7 +3,7 @@
                    unread-change unstar-change
                    untrash-change)
 
-(export label-change-named)
+(export label-change-named label-command?)
 
 (defn label-change-named (command)
   (match command
@@ -16,3 +16,8 @@
     ("mark-read" (some (read-change)))
     ("mark-unread" (some (unread-change)))
     (_ none)))
+
+(defn label-command? (command)
+  (match (label-change-named command)
+    ((some _) true)
+    (none false)))

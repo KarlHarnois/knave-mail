@@ -1,7 +1,7 @@
 (use adapters/driving/webview/window-client answer-request!
                                             window-client)
 
-(use adapters/driving/webview/relabel-runner deliver-reply!
+(use adapters/driving/webview/listing-runner deliver-reply!
                                              reply-sink)
 
 (use adapters/driving/webview/request-log clock-milliseconds
@@ -19,19 +19,19 @@
 (use ports/driven/event-log event-log log-debug log-warn)
 (use ports/driving/account-book account-book list-accounts!)
 
-(export answer-relabels! answered-and-logged!
-        refuse-relabels!)
+(export answer-listings! answered-and-logged!
+        refuse-listings!)
 
 (def unnamed-request "request")
 
-(defn answer-relabels! (client log inbox sink)
+(defn answer-listings! (client log inbox sink)
   (log-debug log "window"
-             (str "label worker ready for "
+             (str "listing worker ready for "
                   (len (unwrap-ok-or (list-accounts! client) (vec)))
                   " accounts"))
-  (answer-queued-relabels! client log inbox sink))
+  (answer-queued-listings! client log inbox sink))
 
-(defn answer-queued-relabels! (client log inbox sink)
+(defn answer-queued-listings! (client log inbox sink)
   (match (next-request inbox)
     ((some request)
      (deliver-reply! sink
@@ -41,7 +41,7 @@
      (recur client log inbox sink))
     (none (do))))
 
-(defn refuse-relabels! (failure inbox sink)
+(defn refuse-listings! (failure inbox sink)
   (match (next-request inbox)
     ((some request)
      (deliver-reply! sink

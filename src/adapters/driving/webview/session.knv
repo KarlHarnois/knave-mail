@@ -14,10 +14,11 @@
 (use adapters/driving/webview/change-delivery change-delivery
                                               changes-queued!)
 
-(use adapters/driving/webview/relabel-runner hand-off!
-                                             relabel-command?
-                                             relabel-runner
-                                             worker-request?)
+(use adapters/driving/webview/listing-runner hand-off!
+                                             listing-request?
+                                             listing-runner)
+
+(use domain/label-commands label-command?)
 
 (use adapters/driving/webview/sync-requests missing-account-reply
                                             sync-event)
@@ -40,31 +41,30 @@
 
 (export serve-requests!)
 
-(defn serve-requests! (client runner relabeler deliverer log inbox outbox)
+(defn serve-requests! (client runner lister deliverer log inbox outbox)
   (match (next-request inbox)
     ((some request)
-     (handle-request! client runner relabeler deliverer log
+     (handle-request! client runner lister deliverer log
                       (ref request)
                       outbox)
-     (recur client runner relabeler deliverer log inbox outbox))
+     (recur client runner lister deliverer log inbox outbox))
     (none (do))))
 
 (type handle-request!
   (where ((client window-client)
           (runner sync-runner)
-          (relabeler relabel-runner)
+          (lister listing-runner)
           (deliverer change-delivery))
     (fn ((mut client)
          (mut runner)
-         (mut relabeler)
+         (mut lister)
          (mut deliverer)
          (ref (box event-log))
          (ref str)
          (ref reply-outbox))
       unit)))
 
-(defn handle-request! (client runner relabeler deliverer log
-                              request-text outbox)
+(defn handle-request! (client runner lister deliverer log request-text outbox)
   (match (parse-json request-text)
     ((ok request)
      (match (string-field (ref request) "command")
@@ -75,13 +75,13 @@
        ((ok "zoom") (zoom-to (ref request) outbox))
        ((ok "log") (record-frontend-entry! log (ref request)))
        ((ok command)
-        (if (relabel-command? (as-str command))
+        (if (label-command? (as-str command))
           (answer-relabel! client deliverer log request-text
                            (ref command)
                            (ref request)
                            outbox)
-          (when (not (and (worker-request? (ref command) (ref request))
-                          (hand-off! relabeler request-text)))
+          (when (not (and (listing-request? (ref command) (ref request))
+                          (hand-off! lister request-text)))
             (send-reply
               outbox
               (answered-and-logged! client log request-text (ref command))))))

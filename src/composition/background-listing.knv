@@ -1,11 +1,11 @@
 (use composition/window-client)
 (use app/client/account-book)
 
-(use adapters/driving/webview/relabel-runner ->outbox-sink
-                                             relabel-runner)
+(use adapters/driving/webview/listing-runner ->outbox-sink
+                                             listing-runner)
 
-(use adapters/driving/webview/logged-answers answer-relabels!
-                                             refuse-relabels!)
+(use adapters/driving/webview/logged-answers answer-listings!
+                                             refuse-listings!)
 
 (use adapters/driving/webview/window reply-outbox
                                      request-inbox)
@@ -21,27 +21,27 @@
 (use domain/mail-error error-message)
 (use ports/driven/event-log log-warn share-log)
 
-(export background-relabel start-background-relabel)
+(export background-listing start-background-listing)
 
-(deftype relabel-queue
+(deftype listing-queue
   (rust "std::sync::mpsc::Sender<String>"))
 
-(defstruct background-relabel
-  :queue relabel-queue)
+(defstruct background-listing
+  :queue listing-queue)
 
-(impl relabel-runner background-relabel
+(impl listing-runner background-listing
   (hand-off! (runner request-text)
     (enqueue! (ref (:queue runner)) request-text)))
 
-(defn start-background-relabel (outbox executor)
+(defn start-background-listing (outbox executor)
   (let (shared (share-sender executor))
-    (->background-relabel
+    (->background-listing
       (spawn-worker outbox
         (fn (inbox replies)
           (let (moved-executor shared)
-            (relabel-in-own-app inbox replies (ref moved-executor))))))))
+            (list-in-own-app inbox replies (ref moved-executor))))))))
 
-(defn relabel-in-own-app (inbox outbox executor)
+(defn list-in-own-app (inbox outbox executor)
   (let (chosen (settings-from (ref (command-line-args)))
         log (chosen-log (ref chosen)))
     (match (gmail-app (ref chosen)
@@ -52,16 +52,16 @@
       ((ok app)
        (do
          (local running app)
-         (answer-relabels! (mut running)
+         (answer-listings! (mut running)
                            (ref log)
                            (ref inbox)
                            (ref (->outbox-sink outbox)))))
       ((err failure)
        (log-warn (ref log)
                  "window"
-                 (str "the label worker could not start, so it refuses label changes: "
+                 (str "the listing worker could not start, so it refuses Gmail listings: "
                       (error-message (ref failure))))
-       (refuse-relabels! (ref failure)
+       (refuse-listings! (ref failure)
                          (ref inbox)
                          (ref (->outbox-sink outbox)))))))
 
@@ -69,9 +69,9 @@
   (rust "{{ let ({!queue}, {!inbox}) = std::sync::mpsc::channel::<String>(); let {!outbox} = {0}.clone(); let {!job} = {1}; std::thread::spawn(move || {!job}({!inbox}, {!outbox})); {!queue} }}"
     (fn ((ref reply-outbox)
          (fn-once (request-inbox reply-outbox) unit))
-      relabel-queue)))
+      listing-queue)))
 
 (def enqueue!
   (rust "{0}.send({1}.to_string()).is_ok()"
-    (fn ((ref relabel-queue) (ref str))
+    (fn ((ref listing-queue) (ref str))
       bool)))
