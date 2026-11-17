@@ -40,7 +40,7 @@
                                                            (vec "--json"
                                                                 "labels")
                                                            ""))))
-                       "{\"result\":[{\"id\":\"INBOX\",\"name\":\"INBOX\",\"unread\":2}"))))
+                       "{\"result\":[{\"id\":\"INBOX\",\"name\":\"INBOX\",\"total\":5,\"unread\":2}"))))
 
 (deftest a-missing-sign-in-exits-with-auth-required
   (let (server (start-fake-gmail (ref (fixture-routes)))
