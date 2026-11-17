@@ -1,0 +1,9 @@
+(export ->inline-delivery change-delivery inline-delivery)
+
+(deftrait change-delivery
+  (changes-queued! (fn ((mut self)) unit)))
+
+(defstruct inline-delivery)
+
+(impl change-delivery inline-delivery
+  (changes-queued! (delivery) (do)))

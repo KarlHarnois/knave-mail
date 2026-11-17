@@ -4,7 +4,11 @@
 (use ports/driven/operation-queue operation-queue)
 (use ports/driven/store store)
 
-(export ->mail-app mail-app new-mail-app)
+(export ->mail-app delivery mail-app new-mail-app)
+
+(defenum delivery
+  deliver-now
+  deliver-later)
 
 (defstruct mail-app
   :store (box store)
@@ -12,12 +16,14 @@
   :authorizer (box authorizer)
   :log (box event-log)
   :priority priority
+  :delivery delivery
   :sync-limit i64)
 
-(defn new-mail-app (store operations authorizer log rank sync-limit)
+(defn new-mail-app (store operations authorizer log rank delivery sync-limit)
   (->mail-app :store store
               :operations operations
               :authorizer authorizer
               :log log
               :priority rank
+              :delivery delivery
               :sync-limit sync-limit))

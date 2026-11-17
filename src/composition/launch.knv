@@ -10,6 +10,7 @@
 (use adapters/driving/cli/exit-codes exit-code)
 (use adapters/driving/cli/help usage-text)
 (use composition/gmail-backend gmail-app gmail-operations)
+(use app/mail-app delivery)
 (use domain/operation priority)
 (use composition/memory-backend memory-app)
 (use composition/logging chosen-log)
@@ -64,7 +65,8 @@
   (if (= (:backend chosen) memory-backend)
     (ok (memory-app chosen log))
     (let (operations (gmail-operations chosen (ref log)))
-      (gmail-app chosen log operations priority/interactive))))
+      (gmail-app chosen log operations priority/interactive
+                 delivery/deliver-now))))
 
 (defn fail-with (failure)
   (eprintln (str "knave-mail: " (error-message failure)))

@@ -1,7 +1,14 @@
+(use app/delivering deliver-next!)
 (use app/mail-app mail-app)
 (use app/writing relabel-each!)
+(use ports/driven/store queued-count)
 (use ports/driving/mail-labeler mail-labeler)
 
 (impl mail-labeler mail-app
   (relabel-threads! (app account thread-ids change)
-    (relabel-each! app account thread-ids change)))
+    (relabel-each! app account thread-ids change))
+
+  (deliver-next-change! (app) (deliver-next! app))
+
+  (waiting-changes (app account)
+    (queued-count (ref (:store app)) account)))

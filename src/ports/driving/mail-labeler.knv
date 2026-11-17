@@ -1,5 +1,6 @@
 (use domain/labels label-change)
 (use domain/mail-error mail-error)
+(use domain/queued-relabel delivery-step)
 
 (export mail-labeler)
 
@@ -8,4 +9,8 @@
                          (ref str)
                          (ref (vec string))
                          (ref label-change))
-                      (result unit mail-error))))
+                      (result unit mail-error)))
+  (deliver-next-change! (fn ((mut self))
+                          (result delivery-step mail-error)))
+  (waiting-changes (fn ((ref self) (ref str))
+                     (result i64 mail-error))))

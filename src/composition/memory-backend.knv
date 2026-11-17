@@ -17,6 +17,7 @@
 (use adapters/driven/system-clock ->system-clock)
 (use app/mail-app mail-app new-mail-app)
 (use app/operations/inline-queue new-inline-queue)
+(use app/mail-app delivery)
 (use domain/operation priority)
 (use ports/driven/event-log event-log share-log)
 (use ports/driven/operation-queue operation-queue)
@@ -40,10 +41,11 @@
                                                                               (seeded-remotes
                                                                                 chosen)))
                                                       (box (->system-clock))
-                                                      (share-log (ref log)))))
+                                                      (share-log (ref log))
+                                                      (some 0))))
                           (box (->memory-authorizer (vec)))
                           log priority/interactive
-                          sync-limit))
+                          delivery/deliver-now sync-limit))
     (sync-every-account! (mut app))
     app))
 

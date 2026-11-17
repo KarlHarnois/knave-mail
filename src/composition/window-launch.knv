@@ -17,7 +17,9 @@
                                      reply-outbox
                                      request-inbox)
 
+(use adapters/driving/webview/change-delivery ->inline-delivery)
 (use composition/background-relabel start-background-relabel)
+(use composition/delivery-worker start-delivery-worker)
 (use composition/background-sync ->background-sync)
 (use composition/gmail-backend gmail-app)
 (use composition/keymap-loader keymap-startup-script)
@@ -28,6 +30,7 @@
 (use composition/settings settings)
 (use composition/startup-log log-started)
 (use composition/theme-file theme-stylesheet)
+(use app/mail-app delivery)
 (use domain/operation priority)
 (use ports/driven/event-log event-log share-log)
 
@@ -64,9 +67,11 @@
   (local running (memory-app chosen (share-log log)))
   (local runner (->inline-sync 0))
   (local relabeler (->inline-relabel 0))
+  (local deliverer (->inline-delivery))
   (serve-requests! (mut running)
                    (mut runner)
                    (mut relabeler)
+                   (mut deliverer)
                    log inbox outbox))
 
 (type serve-gmail-window!
@@ -81,7 +86,8 @@
     (match (gmail-app chosen
                       (share-log log)
                       (threaded-operations (ref executor))
-                      priority/interactive)
+                      priority/interactive
+                      delivery/deliver-later)
       ((ok app)
        (do
          (local running app)
@@ -89,8 +95,11 @@
            (->background-sync (share-sender (ref executor))))
          (local relabeler
            (start-background-relabel outbox (ref executor)))
+         (local deliverer
+           (start-delivery-worker outbox (ref executor)))
          (serve-requests! (mut running)
                           (mut runner)
                           (mut relabeler)
+                          (mut deliverer)
                           log inbox outbox)))
       ((err failure) (fail-with (ref failure))))))

@@ -1,0 +1,49 @@
+(use app/mail-app mail-app)
+(use app/operations/calls run-operation! unexpected)
+(use domain/labels label-change)
+(use domain/mail-error mail-error)
+
+(use domain/operation ->relabel-work operation-kind
+                      operation-result)
+
+(use domain/queued-relabel queued-relabel)
+
+(export delivered-queued! relabeled!)
+
+(type relabeled!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref str)
+       (ref label-change))
+    (result unit mail-error)))
+
+(defn relabeled! (app account thread-id change)
+  (relabeled-as! app account thread-id change none))
+
+(type delivered-queued!
+  (fn ((mut mail-app) (ref queued-relabel))
+    (result unit mail-error)))
+
+(defn delivered-queued! (app queued)
+  (relabeled-as! app
+                 (as-str (:account queued))
+                 (as-str (:thread-id queued))
+                 (ref (:change queued))
+                 (some (:id queued))))
+
+(type relabeled-as!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref str)
+       (ref label-change)
+       (option i64))
+    (result unit mail-error)))
+
+(defn relabeled-as! (app account thread-id change queued-id)
+  (match (try (run-operation! app account
+                              (operation-kind/relabel
+                                (->relabel-work :thread-id (str thread-id)
+                                                :change (clone change)
+                                                :queued-id queued-id))))
+    (relabeled (ok (do)))
+    (_ (unexpected "relabel"))))

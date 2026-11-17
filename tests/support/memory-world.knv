@@ -18,7 +18,7 @@
 (use domain/operation priority)
 (use ports/driven/clock clock)
 (use ports/driven/operation-queue operation-queue)
-(use app/mail-app mail-app new-mail-app)
+(use app/mail-app delivery mail-app new-mail-app)
 (use ports/driven/event-log event-log)
 
 (use domain/mail ->account ->message ->thread account
@@ -28,6 +28,8 @@
 
 (export app-logging-to app-over app-timed-by remote-with
         sample-thread world-account)
+
+(def fake-patience-milliseconds 600000)
 
 (def world-account "ada@example.com")
 
@@ -80,7 +82,9 @@
                                                                     (vec (handle
                                                                            remote))))
                                             (the (box clock) (box clock))
-                                            (share-log (ref log)))))
+                                            (share-log (ref log))
+                                            (some fake-patience-milliseconds))))
                 (box (->memory-authorizer (vec (->account (str "new@example.com")))))
                 (the (box event-log) (box log))
-                priority/interactive 50))
+                priority/interactive delivery/deliver-now
+                50))

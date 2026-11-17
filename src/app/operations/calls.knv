@@ -14,7 +14,7 @@
 (export delivered! fetched-changes! fetched-history-id!
         fetched-labels! fetched-summaries! fetched-thread!
         fetched-thread-ids! fetched-thread-page!
-        fetched-threads! relabeled!)
+        fetched-threads! run-operation! unexpected)
 
 (type fetched-labels!
   (fn ((mut mail-app) (ref str))
@@ -116,21 +116,6 @@
                               (operation-kind/send (clone sent))))
     ((delivered thread-id) (ok thread-id))
     (_ (unexpected "send"))))
-
-(type relabeled!
-  (fn ((mut mail-app)
-       (ref str)
-       (ref str)
-       (ref label-change))
-    (result unit mail-error)))
-
-(defn relabeled! (app account thread-id change)
-  (match (try (run-operation! app account
-                              (operation-kind/relabel
-                                (->relabel-work :thread-id (str thread-id)
-                                                :change (clone change)))))
-    (relabeled (ok (do)))
-    (_ (unexpected "relabel"))))
 
 (type run-operation!
   (fn ((mut mail-app) (ref str) operation-kind)

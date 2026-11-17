@@ -7,7 +7,8 @@
 (use domain/mail-error mail-error)
 (use domain/operation operation-result)
 (use domain/operation-schedule ->scheduled scheduled)
-(use ports/driven/clock clock pause!)
+(use app/operations/operation-log log-left-queued!)
+(use ports/driven/clock clock now-milliseconds pause!)
 (use ports/driven/event-log event-log)
 (use ports/driven/mailbox-provider mailbox-provider)
 (use ports/driven/operation-queue operation-queue)
@@ -15,30 +16,49 @@
 (export ->inline-queue inline-queue new-inline-queue)
 
 (defstruct inline-queue
-  :runner operation-runner)
+  :runner operation-runner
+  :patience (option i64))
 
-(defn new-inline-queue (provider clock log)
+(defn new-inline-queue (provider clock log patience)
   (->inline-queue :runner (->operation-runner
                             :mailboxes (->mailboxes provider (vec) (vec))
                             :clock clock
-                            :log log)))
+                            :log log)
+                  :patience patience))
 
 (impl operation-queue inline-queue
   (submit! (queue account kind rank)
     (let (queued (new-operation! (ref (:runner queue)) account kind rank))
       (run-to-end! (mut (:runner queue))
+                   (:patience queue)
                    (->scheduled :operation queued :attempt 1 :not-before 0)))))
 
 (type run-to-end!
-  (fn ((mut operation-runner) scheduled)
+  (fn ((mut operation-runner) (option i64) scheduled)
     (result operation-result mail-error)))
 
-(defn run-to-end! (runner entry)
+(defn run-to-end! (runner patience entry)
   (match (attempt-once! runner (ref entry))
     ((finished outcome) (ok outcome))
-    ((retry-after delay)
-     (do
-       (pause! (ref (:clock runner)) delay)
-       (recur runner
-              (assoc entry :attempt (+ (:attempt entry) 1)))))
+    ((retry plan)
+     (let (waited (- (+ (now-milliseconds (ref (:clock runner)))
+                        (:delay plan))
+                     (:queued-at (:operation entry))))
+       (if (out-of-patience? patience waited)
+         (do
+           (log-left-queued! (ref (:log runner))
+                             (ref (:operation entry))
+                             (ref (:failure plan))
+                             waited)
+           (err (clone (:failure plan))))
+         (do
+           (pause! (ref (:clock runner))
+                   (:delay plan))
+           (recur runner patience
+                  (assoc entry :attempt (+ (:attempt entry) 1)))))))
     ((failed failure) (err failure))))
+
+(defn out-of-patience? (patience waited)
+  (match patience
+    ((some limit) (> waited limit))
+    (none false)))

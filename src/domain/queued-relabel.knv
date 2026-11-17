@@ -1,9 +1,21 @@
 (use domain/labels label-change)
+(use domain/mail-error mail-error)
 
-(export ->queued-relabel queued-relabel)
+(export ->queued-relabel ->refusal delivery-step
+        queued-relabel refusal)
 
 (defstruct queued-relabel
   :id i64
   :account string
   :thread-id string
   :change label-change)
+
+(defstruct refusal
+  :queued queued-relabel
+  :failure mail-error)
+
+(defenum delivery-step
+  nothing-queued
+  (delivered queued-relabel)
+  (kept queued-relabel)
+  (refused refusal))

@@ -1,0 +1,21 @@
+(use adapters/driving/webview/window reply-outbox)
+
+(export spawn-delivery wake! wake-inbox wake-sender woken?)
+
+(deftype wake-sender (rust "std::sync::mpsc::Sender<()>"))
+
+(deftype wake-inbox (rust "std::sync::mpsc::Receiver<()>"))
+
+(def wake!
+  (rust "drop({0}.send(()))"
+    (fn ((ref wake-sender)) unit)))
+
+(def woken?
+  (rust "!matches!({0}.recv_timeout(std::time::Duration::from_millis({1})), Err(std::sync::mpsc::RecvTimeoutError::Disconnected))"
+    (fn ((ref wake-inbox) u64) bool)))
+
+(def spawn-delivery
+  (rust "{{ let ({!sender}, {!inbox}) = std::sync::mpsc::channel::<()>(); let {!outbox} = {0}.clone(); let {!job} = {1}; std::thread::spawn(move || {!job}({!inbox}, {!outbox})); {!sender} }}"
+    (fn ((ref reply-outbox)
+         (fn-once (wake-inbox reply-outbox) unit))
+      wake-sender)))

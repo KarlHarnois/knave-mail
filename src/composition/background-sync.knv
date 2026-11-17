@@ -15,6 +15,7 @@
                                     threaded-operations)
 
 (use composition/gmail-backend gmail-app)
+(use app/mail-app delivery)
 (use domain/operation priority)
 (use composition/logging chosen-log)
 (use domain/mail-error error-kind error-message mail-error)
@@ -54,7 +55,8 @@
         outcome (match (gmail-app (ref chosen)
                                   (share-log (ref log))
                                   (threaded-operations executor)
-                                  priority/background)
+                                  priority/background
+                                  delivery/deliver-later)
                   ((ok app)
                    (do
                      (local syncing app)

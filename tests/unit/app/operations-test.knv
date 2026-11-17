@@ -69,18 +69,6 @@
     (assert (mentions? (ref (logged-lines (ref log)))
                        "relabel ada@example.com: failed, will retry: network: simulated failure of relabel; attempt 2 in 1000ms"))))
 
-(deftest a-relabel-gives-up-after-six-attempts
-  (let (world (remote)
-        log (new-memory-log)
-        app (app-timed-by (ref world)
-                          (same-log (ref log))
-                          (new-memory-clock)))
-    (synced! (mut app))
-    (fail-remote! (ref world) "relabel")
-    (assert (err? (archive-t-1! (mut app))))
-    (assert (mentions? (ref (logged-lines (ref log)))
-                       "relabel ada@example.com: gave up after 6 attempts: network: simulated failure of relabel"))))
-
 (deftest a-failed-send-is-not-retried
   (let (world (remote)
         clock (new-memory-clock)

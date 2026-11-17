@@ -17,8 +17,9 @@
 
 (defstruct operation-policy
   :name string
-  :most-attempts i64
-  :retries-network bool)
+  :most-attempts (option i64)
+  :retries-network bool
+  :durable bool)
 
 (defn policy-of (kind)
   (match kind
@@ -32,17 +33,28 @@
     ((fetch-history _) (read-policy "fetch history"))
     ((send _)
      (->operation-policy :name (str "send")
-                         :most-attempts send-attempts
-                         :retries-network false))
-    ((relabel _)
-     (->operation-policy :name (str "relabel")
-                         :most-attempts relabel-attempts
-                         :retries-network true))))
+                         :most-attempts (some send-attempts)
+                         :retries-network false
+                         :durable false))
+    ((relabel work) (relabel-policy (:queued-id work)))))
 
 (defn read-policy (name)
   (->operation-policy :name (str name)
-                      :most-attempts read-attempts
-                      :retries-network true))
+                      :most-attempts (some read-attempts)
+                      :retries-network true
+                      :durable false))
+
+(defn relabel-policy (queued-id)
+  (match queued-id
+    ((some _)
+     (->operation-policy :name (str "relabel")
+                         :most-attempts none
+                         :retries-network true
+                         :durable true))
+    (none (->operation-policy :name (str "relabel")
+                              :most-attempts (some relabel-attempts)
+                              :retries-network true
+                              :durable false))))
 
 (defenum next-step
   (retry-after i64)
@@ -50,14 +62,20 @@
 
 (defn step-after-failure (attempt policy failure)
   (if (and (retryable? policy failure)
-           (< attempt (:most-attempts policy)))
+           (attempts-left? (:most-attempts policy) attempt))
     (next-step/retry-after (delay-after attempt failure))
     next-step/stop))
+
+(defn attempts-left? (most-attempts attempt)
+  (match most-attempts
+    ((some most) (< attempt most))
+    (none true)))
 
 (defn retryable? (policy failure)
   (match failure
     ((throttled _) true)
     ((network _) (:retries-network policy))
+    ((auth-required _) (:durable policy))
     (_ false)))
 
 (defn delay-after (attempt failure)

@@ -5,4 +5,5 @@
 (deftrait window-client
   (answer-request! (fn ((mut self) (ref str)) string))
   (sync-mail! (fn ((mut self) (ref str))
-                (result unit mail-error))))
+                (result unit mail-error)))
+  (waiting-changes-of (fn ((ref self) (ref str)) i64)))

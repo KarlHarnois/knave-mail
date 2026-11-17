@@ -18,16 +18,20 @@
 (use ports/driven/event-log event-log)
 
 (export ->operation-runner attempt-once! attempt-outcome
-        new-operation! operation-runner)
+        new-operation! operation-runner retry-plan)
 
 (defstruct operation-runner
   :mailboxes mailboxes
   :clock (box clock)
   :log (box event-log))
 
+(defstruct retry-plan
+  :delay i64
+  :failure mail-error)
+
 (defenum attempt-outcome
   (finished operation-result)
-  (retry-after i64)
+  (retry retry-plan)
   (failed mail-error))
 
 (type new-operation!
@@ -78,7 +82,8 @@
                           (ref failure)
                           (+ attempt 1)
                           delay)
-            (attempt-outcome/retry-after delay)))
+            (attempt-outcome/retry (->retry-plan :delay delay
+                                                 :failure failure))))
          (stop (do
                  (if (retryable? (ref policy) (ref failure))
                    (log-gave-up! (ref (:log runner))

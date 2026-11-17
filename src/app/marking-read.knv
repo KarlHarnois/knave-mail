@@ -3,7 +3,7 @@
 (use domain/labels apply-label-change read-change)
 (use domain/mail ->thread-ref thread)
 (use domain/mail-error mail-error)
-(use app/operations/calls relabeled!)
+(use app/operations/relabel-calls relabeled!)
 (use ports/driven/store relabel-stored!)
 
 (export marked-read!)

@@ -1,0 +1,89 @@
+(use app/client/mail-labeler)
+(use app/client/mail-syncer)
+
+(use adapters/driven/memory/memory-log logged-lines
+                                       new-memory-log
+                                       same-log)
+
+(use adapters/driven/memory/memory-clock new-memory-clock)
+(use domain/labels archive-change)
+(use domain/queued-relabel delivery-step)
+
+(use ports/driving/mail-labeler deliver-next-change!
+                                relabel-threads!
+                                waiting-changes)
+
+(use support/app-steps fail-remote! inbox-query listed-ids!
+                       remote-thread synced!)
+
+(use support/log-lines mentions?)
+
+(use support/memory-world app-timed-by remote-with
+                          sample-thread world-account)
+
+(use support/remote-changes delete-remotely! heal-remote!)
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100)
+                    (sample-thread "t-2" (vec "INBOX") 200))))
+
+(defn archive-t-1! (app)
+  (relabel-threads! app world-account
+                    (ref (vec (str "t-1")))
+                    (ref (archive-change))))
+
+(deftest an-archive-gmail-cannot-take-stays-queued-and-shown
+  (let (world (remote)
+        log (new-memory-log)
+        app (app-timed-by (ref world)
+                          (same-log (ref log))
+                          (new-memory-clock)))
+    (synced! (mut app))
+    (fail-remote! (ref world) "relabel")
+    (unwrap-ok (archive-t-1! (mut app)))
+    (assert (= (unwrap-ok (waiting-changes (ref app) world-account))
+               1))
+    (assert (= (listed-ids! (mut app)
+                            (ref (inbox-query)))
+               (vec (str "t-2"))))
+    (assert (mentions? (ref (logged-lines (ref log)))
+                       "relabel ada@example.com: left queued after"))))
+
+(deftest a-queued-archive-reaches-gmail-once-it-is-back
+  (let (world (remote)
+        app (app-timed-by (ref world)
+                          (new-memory-log)
+                          (new-memory-clock)))
+    (synced! (mut app))
+    (fail-remote! (ref world) "relabel")
+    (unwrap-ok (archive-t-1! (mut app)))
+    (heal-remote! (ref world))
+    (assert (match (unwrap-ok (deliver-next-change! (mut app)))
+              ((delivered _) true)
+              (_ false)))
+    (assert (= (unwrap-ok (waiting-changes (ref app) world-account))
+               0))
+    (assert (empty? (:labels (remote-thread (ref world) "t-1"))))))
+
+(deftest an-archive-gmail-refuses-is-undone-and-reported
+  (let (world (remote)
+        app (app-timed-by (ref world)
+                          (new-memory-log)
+                          (new-memory-clock)))
+    (synced! (mut app))
+    (delete-remotely! (ref world) "t-1")
+    (assert (err? (archive-t-1! (mut app))))
+    (assert (= (unwrap-ok (waiting-changes (ref app) world-account))
+               0))
+    (assert (= (listed-ids! (mut app)
+                            (ref (inbox-query)))
+               (vec (str "t-2") (str "t-1"))))))
+
+(deftest nothing-is-delivered-when-nothing-waits
+  (let (world (remote)
+        app (app-timed-by (ref world)
+                          (new-memory-log)
+                          (new-memory-clock)))
+    (assert (match (unwrap-ok (deliver-next-change! (mut app)))
+              (nothing-queued true)
+              (_ false)))))

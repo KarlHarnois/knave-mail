@@ -1,0 +1,64 @@
+(use app/mail-app mail-app)
+(use app/operations/relabel-calls delivered-queued!)
+(use domain/mail-error mail-error)
+
+(use domain/queued-relabel ->refusal delivery-step
+                           queued-relabel refusal)
+
+(use ports/driven/store forget-queued! load-queued
+                        revert-queued!)
+
+(export deliver-everything-now! deliver-next!)
+
+(type deliver-next!
+  (fn ((mut mail-app))
+    (result delivery-step mail-error)))
+
+(defn deliver-next! (app)
+  (let (queued (try (load-queued (ref (:store app)))))
+    (if (empty? queued)
+      (ok delivery-step/nothing-queued)
+      (delivered-or-kept! app (clone (at queued 0))))))
+
+(type delivered-or-kept!
+  (fn ((mut mail-app) queued-relabel)
+    (result delivery-step mail-error)))
+
+(defn delivered-or-kept! (app row)
+  (match (delivered-queued! app (ref row))
+    ((ok _)
+     (do
+       (try (forget-queued! (mut (:store app))
+                            (:id row)))
+       (ok (delivery-step/delivered row))))
+    ((err failure)
+     (if (worth-keeping? (ref failure))
+       (ok (delivery-step/kept row))
+       (do
+         (try (revert-queued! (mut (:store app))
+                              (ref row)))
+         (ok (delivery-step/refused (->refusal :queued row
+                                               :failure failure))))))))
+
+(defn worth-keeping? (failure)
+  (match failure
+    ((network _) true)
+    ((throttled _) true)
+    ((auth-required _) true)
+    (_ false)))
+
+(type deliver-everything-now!
+  (fn ((mut mail-app) (option mail-error))
+    (result unit mail-error)))
+
+(defn deliver-everything-now! (app first-refusal)
+  (match (try (deliver-next! app))
+    ((delivered _) (recur app first-refusal))
+    ((refused refused)
+     (recur app
+            (if (none? first-refusal)
+              (some (clone (:failure refused)))
+              first-refusal)))
+    (_ (match first-refusal
+         ((some failure) (err failure))
+         (none (ok (do)))))))

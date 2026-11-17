@@ -1,0 +1,143 @@
+(use app/client/mail-labeler)
+
+(use adapters/driven/threaded-queue share-sender
+                                    submission-sender
+                                    threaded-operations)
+
+(use adapters/driving/json/envelope operation-failed-event
+                                    queue-event)
+
+(use adapters/driving/webview/change-delivery change-delivery)
+
+(use adapters/driving/webview/window reply-outbox
+                                     send-reply)
+
+(use composition/delivery-channel spawn-delivery wake!
+                                  wake-inbox wake-sender
+                                  woken?)
+
+(use app/mail-app delivery mail-app)
+(use composition/gmail-backend gmail-app)
+(use composition/logging chosen-log)
+(use composition/settings settings-from)
+(use domain/mail-error error-kind error-message)
+(use domain/operation priority)
+
+(use domain/queued-relabel delivery-step queued-relabel
+                           refusal)
+
+(use ports/driven/event-log event-log log-info log-warn
+                            share-log)
+
+(use ports/driving/mail-labeler deliver-next-change!
+                                waiting-changes)
+
+(export ->background-delivery background-delivery
+        start-delivery-worker)
+
+(def retry-milliseconds 60000)
+
+(defstruct background-delivery
+  :wake wake-sender)
+
+(impl change-delivery background-delivery
+  (changes-queued! (delivery)
+    (wake! (ref (:wake delivery)))))
+
+(defn start-delivery-worker (outbox executor)
+  (let (shared (share-sender executor))
+    (->background-delivery :wake (spawn-delivery outbox
+                                   (fn (wakeups replies)
+                                     (let (moved-executor shared)
+                                       (delivered-in-own-app wakeups
+                                                             replies
+                                                             (ref moved-executor))))))))
+
+(defn delivered-in-own-app (wakeups outbox executor)
+  (let (chosen (settings-from (ref (command-line-args)))
+        log (chosen-log (ref chosen)))
+    (match (gmail-app (ref chosen)
+                      (share-log (ref log))
+                      (threaded-operations executor)
+                      priority/interactive
+                      delivery/deliver-later)
+      ((ok app)
+       (do
+         (local delivering app)
+         (log-info (ref log)
+                   "delivery"
+                   (str "delivering queued changes"))
+         (kept-delivering! (mut delivering)
+                           (ref wakeups)
+                           (ref outbox)
+                           (ref log))))
+      ((err failure)
+       (log-warn (ref log)
+                 "delivery"
+                 (str "queued changes wait for the next start: "
+                      (error-message (ref failure))))))))
+
+(type kept-delivering!
+  (fn ((mut mail-app)
+       (ref wake-inbox)
+       (ref reply-outbox)
+       (ref (box event-log)))
+    unit))
+
+(defn kept-delivering! (app wakeups outbox log)
+  (delivered-all! app outbox log)
+  (when (woken? wakeups retry-milliseconds)
+    (recur app wakeups outbox log)))
+
+(type delivered-all!
+  (fn ((mut mail-app)
+       (ref reply-outbox)
+       (ref (box event-log)))
+    unit))
+
+(defn delivered-all! (app outbox log)
+  (match (deliver-next-change! app)
+    ((ok (delivered row))
+     (do
+       (count-waiting! app outbox (as-str (:account row)))
+       (recur app outbox log)))
+    ((ok (refused refused))
+     (do
+       (report-refusal! outbox (ref refused))
+       (count-waiting! app outbox
+                       (as-str (:account (:queued refused))))
+       (recur app outbox log)))
+    ((ok _) (do))
+    ((err failure)
+     (log-warn log "delivery"
+               (str "could not read queued changes: "
+                    (error-message (ref failure)))))))
+
+(type count-waiting!
+  (fn ((ref mail-app)
+       (ref reply-outbox)
+       (ref str))
+    unit))
+
+(defn count-waiting! (app outbox account)
+  (send-reply outbox
+              (queue-event account
+                           (unwrap-ok-or-zero (waiting-changes app account)))))
+
+(type report-refusal!
+  (fn ((ref reply-outbox) (ref refusal))
+    unit))
+
+(defn report-refusal! (outbox refused)
+  (send-reply outbox
+              (operation-failed-event (as-str (:account (:queued refused)))
+                                      "relabel"
+                                      (ref (vec (clone (:thread-id (:queued refused)))))
+                                      (error-kind (ref (:failure refused)))
+                                      (error-message (ref (:failure
+                                                            refused))))))
+
+(defn unwrap-ok-or-zero (counted)
+  (match counted
+    ((ok count) count)
+    ((err _) 0)))

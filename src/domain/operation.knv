@@ -14,7 +14,8 @@
 
 (defstruct relabel-work
   :thread-id string
-  :change label-change)
+  :change label-change
+  :queued-id (option i64))
 
 (defenum operation-kind
   fetch-labels

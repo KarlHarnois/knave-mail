@@ -11,15 +11,21 @@
 
 (defn relabel-kind ()
   (operation-kind/relabel (->relabel-work :thread-id (str "t")
-                                          :change (archive-change))))
+                                          :change (archive-change)
+                                          :queued-id none)))
+
+(defn queued-relabel-kind ()
+  (operation-kind/relabel (->relabel-work :thread-id (str "t")
+                                          :change (archive-change)
+                                          :queued-id (some 7))))
 
 (deftest a-read-is-tried-three-times
   (assert (= (:most-attempts (policy-of (ref operation-kind/fetch-labels)))
-             3)))
+             (some 3))))
 
 (deftest a-relabel-is-tried-six-times
   (assert (= (:most-attempts (policy-of (ref (relabel-kind))))
-             6)))
+             (some 6))))
 
 (deftest an-operation-is-named-by-its-kind
   (assert (= (:name (policy-of (ref (relabel-kind))))
@@ -90,3 +96,21 @@
 
 (deftest the-wait-stops-growing-at-a-minute
   (assert (= (backoff-after 10) 60000)))
+
+(deftest a-queued-relabel-keeps-trying
+  (assert (= (step-after-failure 40
+                                 (ref (policy-of (ref (queued-relabel-kind))))
+                                 (ref (network-failure)))
+             (next-step/retry-after 60000))))
+
+(deftest a-queued-relabel-waits-for-a-new-sign-in
+  (assert (= (step-after-failure 1
+                                 (ref (policy-of (ref (queued-relabel-kind))))
+                                 (ref (mail-error/auth-required (str "sign in again"))))
+             (next-step/retry-after 1000))))
+
+(deftest an-unqueued-relabel-gives-up-on-a-refused-sign-in
+  (assert (= (step-after-failure 1
+                                 (ref (policy-of (ref (relabel-kind))))
+                                 (ref (mail-error/auth-required (str "sign in again"))))
+             next-step/stop)))

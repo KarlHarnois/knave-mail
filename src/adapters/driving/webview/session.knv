@@ -1,15 +1,21 @@
 (use adapters/driving/webview/window-client answer-request!
                                             sync-mail!
+                                            waiting-changes-of
                                             window-client)
 
-(use adapters/driving/json/envelope request-arguments
+(use adapters/driving/json/envelope queue-event
+                                    request-arguments
                                     request-id
                                     success-reply)
 
 (use adapters/json/value json-value parse-json string-field)
 (use adapters/driving/webview/logged-answers answered-and-logged!)
 
+(use adapters/driving/webview/change-delivery change-delivery
+                                              changes-queued!)
+
 (use adapters/driving/webview/relabel-runner hand-off!
+                                             relabel-command?
                                              relabel-runner
                                              worker-request?)
 
@@ -34,28 +40,31 @@
 
 (export serve-requests!)
 
-(defn serve-requests! (client runner relabeler log inbox outbox)
+(defn serve-requests! (client runner relabeler deliverer log inbox outbox)
   (match (next-request inbox)
     ((some request)
-     (handle-request! client runner relabeler log
+     (handle-request! client runner relabeler deliverer log
                       (ref request)
                       outbox)
-     (recur client runner relabeler log inbox outbox))
+     (recur client runner relabeler deliverer log inbox outbox))
     (none (do))))
 
 (type handle-request!
   (where ((client window-client)
           (runner sync-runner)
-          (relabeler relabel-runner))
+          (relabeler relabel-runner)
+          (deliverer change-delivery))
     (fn ((mut client)
          (mut runner)
          (mut relabeler)
+         (mut deliverer)
          (ref (box event-log))
          (ref str)
          (ref reply-outbox))
       unit)))
 
-(defn handle-request! (client runner relabeler log request-text outbox)
+(defn handle-request! (client runner relabeler deliverer log
+                              request-text outbox)
   (match (parse-json request-text)
     ((ok request)
      (match (string-field (ref request) "command")
@@ -66,14 +75,41 @@
        ((ok "zoom") (zoom-to (ref request) outbox))
        ((ok "log") (record-frontend-entry! log (ref request)))
        ((ok command)
-        (when (not (and (worker-request? (ref command) (ref request))
-                        (hand-off! relabeler request-text)))
-          (send-reply
-            outbox
-            (answered-and-logged! client log request-text (ref command)))))
+        (if (relabel-command? (as-str command))
+          (answer-relabel! client deliverer log request-text
+                           (ref command)
+                           (ref request)
+                           outbox)
+          (when (not (and (worker-request? (ref command) (ref request))
+                          (hand-off! relabeler request-text)))
+            (send-reply
+              outbox
+              (answered-and-logged! client log request-text (ref command))))))
        (_ (send-reply outbox (answer-request! client request-text)))))
     ((err _)
      (send-reply outbox (answer-request! client request-text)))))
+
+(type answer-relabel!
+  (where ((client window-client) (deliverer change-delivery))
+    (fn ((mut client)
+         (mut deliverer)
+         (ref (box event-log))
+         (ref str)
+         (ref str)
+         (ref json-value)
+         (ref reply-outbox))
+      unit)))
+
+(defn answer-relabel! (client deliverer log request-text command request outbox)
+  (send-reply outbox
+              (answered-and-logged! client log request-text command))
+  (changes-queued! deliverer)
+  (match (string-field (ref (request-arguments request)) "account")
+    ((ok account)
+     (send-reply outbox
+                 (queue-event (ref account)
+                              (waiting-changes-of client (ref account)))))
+    ((err _) (do))))
 
 (type start-requested-sync!
   (where ((client window-client) (runner sync-runner))

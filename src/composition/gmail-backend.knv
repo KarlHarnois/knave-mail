@@ -26,9 +26,11 @@
 
 (def quota-units-per-second 200)
 
+(def cli-patience-milliseconds 60000)
+
 (def sign-in-wait-milliseconds 300000)
 
-(defn gmail-app (chosen log operations rank)
+(defn gmail-app (chosen log operations rank delivery)
   (try (check-client chosen))
   (ok (new-mail-app
         (box (try (open-sqlite-store (ref (:cache-path chosen)))))
@@ -44,7 +46,7 @@
                            :sign-in-wait-milliseconds sign-in-wait-milliseconds)
                :credentials (chosen-credentials chosen)
                :browser (box (->system-browser (clone (:browser chosen))))))
-        log rank sync-limit)))
+        log rank delivery sync-limit)))
 
 (type gmail-provider-for
   (fn ((ref settings) (ref (box event-log)))
@@ -64,7 +66,8 @@
   (the (box operation-queue)
        (box (new-inline-queue (gmail-provider-for chosen log)
                               (box (->system-clock))
-                              (share-log log)))))
+                              (share-log log)
+                              (some cli-patience-milliseconds)))))
 
 (type check-client
   (fn ((ref settings))

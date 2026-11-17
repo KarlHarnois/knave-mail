@@ -6,8 +6,8 @@
 (use domain/label-commands label-change-named)
 
 (export ->inline-relabel ->outbox-sink inline-relabel
-        outbox-sink relabel-runner reply-sink
-        worker-request?)
+        outbox-sink relabel-command? relabel-runner
+        reply-sink worker-request?)
 
 (deftrait relabel-runner
   (hand-off! (fn ((mut self) (ref str)) bool)))
@@ -29,8 +29,7 @@
     (send-reply (ref (:outbox sink)) reply)))
 
 (defn worker-request? (command request)
-  (or (relabel-command? command)
-      (= command "thread-page")
+  (or (= command "thread-page")
       (and (= command "threads")
            (gmail-listing? (ref (request-arguments request))))))
 

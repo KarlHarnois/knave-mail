@@ -125,11 +125,11 @@
        (answered waiting replies index (ok outcome)))
       ((failed failure)
        (answered waiting replies index (err failure)))
-      ((retry-after delay)
+      ((retry plan)
        (pair (replaced-at waiting index
                           (assoc entry
                                  :attempt (+ (:attempt entry) 1)
-                                 :not-before (+ now delay)))
+                                 :not-before (+ now (:delay plan))))
              replies)))))
 
 (defn answered (waiting replies index outcome)

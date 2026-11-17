@@ -9,7 +9,8 @@
 
 (use adapters/json/value parse-json)
 
-(use adapters/driving/webview/relabel-runner reply-sink
+(use adapters/driving/webview/relabel-runner relabel-command?
+                                             reply-sink
                                              worker-request?)
 
 (use adapters/driving/webview/logged-answers answer-relabels!
@@ -51,9 +52,10 @@
                                                          arguments
                                                          "}")))))))
 
-(deftest label-commands-go-to-the-worker
-  (assert (to-worker? "archive" "{}"))
-  (assert (to-worker? "mark-unread" "{}")))
+(deftest label-commands-are-queued-on-the-window-loop
+  (assert (not (to-worker? "archive" "{}")))
+  (assert (relabel-command? "archive"))
+  (assert (relabel-command? "mark-unread")))
 
 (deftest gmail-listings-go-to-the-worker
   (assert (to-worker? "thread-page" "{}"))
