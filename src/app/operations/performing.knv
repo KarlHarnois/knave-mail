@@ -1,0 +1,76 @@
+(use app/mail-app mail-app)
+(use app/mailboxes open-mailbox!)
+(use domain/history mail-changes)
+(use domain/mail label thread thread-page thread-summary)
+(use domain/mail-error mail-error)
+(use domain/operation operation operation-kind)
+
+(use ports/driven/mailbox deliver! fetch-changes!
+                          fetch-history-id! fetch-labels!
+                          fetch-summaries! fetch-thread!
+                          fetch-thread-ids!
+                          fetch-thread-page! fetch-threads!
+                          mailbox relabel!)
+
+(export operation-result performed!)
+
+(defenum operation-result
+  (labels-fetched (vec label))
+  (summaries-fetched (vec thread-summary))
+  (ids-fetched (vec string))
+  (page-fetched thread-page)
+  (thread-fetched thread)
+  (history-id-fetched string)
+  (history-fetched mail-changes)
+  (delivered string)
+  relabeled)
+
+(type performed!
+  (fn ((mut mail-app) (ref operation))
+    (result operation-result mail-error)))
+
+(defn performed! (app operation)
+  (perform! (try (open-mailbox! (mut (:mailboxes app))
+                                (as-str (:account operation))))
+            (ref (:kind operation))))
+
+(type perform!
+  (fn ((mut (box mailbox))
+       (ref operation-kind))
+    (result operation-result mail-error)))
+
+(defn perform! (mailbox kind)
+  (match kind
+    (fetch-labels (map-ok (fetch-labels! mailbox)
+                    (fn (labels) (operation-result/labels-fetched labels))))
+    ((fetch-threads query)
+     (map-ok (fetch-threads! mailbox query)
+       (fn (found) (operation-result/summaries-fetched found))))
+    ((fetch-thread-ids query)
+     (map-ok (fetch-thread-ids! mailbox query)
+       (fn (ids) (operation-result/ids-fetched ids))))
+    ((fetch-page request)
+     (map-ok (fetch-thread-page! mailbox
+                                 (ref (:listing request))
+                                 (as-str (:page-token request)))
+             (fn (page) (operation-result/page-fetched page))))
+    ((fetch-summaries ids)
+     (map-ok (fetch-summaries! mailbox ids)
+       (fn (found) (operation-result/summaries-fetched found))))
+    ((fetch-thread thread-id)
+     (map-ok (fetch-thread! mailbox (as-str thread-id))
+       (fn (found) (operation-result/thread-fetched found))))
+    (fetch-history-id (map-ok (fetch-history-id! mailbox)
+                        (fn (history-id)
+                          (operation-result/history-id-fetched history-id))))
+    ((fetch-history since)
+     (map-ok (fetch-changes! mailbox (as-str since))
+       (fn (changes) (operation-result/history-fetched changes))))
+    ((send outgoing)
+     (map-ok (deliver! mailbox outgoing)
+       (fn (thread-id) (operation-result/delivered thread-id))))
+    ((relabel work)
+     (map-ok (relabel! mailbox
+                       (as-str (:thread-id work))
+                       (ref (:change work)))
+             (fn (_) operation-result/relabeled)))))

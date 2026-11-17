@@ -1,0 +1,53 @@
+(use domain/labels archive-change)
+(use domain/mail-error mail-error)
+(use domain/operation ->relabel-work operation-kind)
+
+(use domain/operation-policy backoff-after next-step
+                             policy-of step-after-failure)
+
+(defn network-failure ()
+  (mail-error/network (str "connection reset")))
+
+(defn relabel-kind ()
+  (operation-kind/relabel (->relabel-work :thread-id (str "t")
+                                          :change (archive-change))))
+
+(deftest a-read-is-tried-three-times
+  (assert (= (:most-attempts (policy-of (ref operation-kind/fetch-labels)))
+             3)))
+
+(deftest a-relabel-is-tried-six-times
+  (assert (= (:most-attempts (policy-of (ref (relabel-kind))))
+             6)))
+
+(deftest an-operation-is-named-by-its-kind
+  (assert (= (:name (policy-of (ref (relabel-kind))))
+             "relabel")))
+
+(deftest a-network-failure-is-retried-after-a-second
+  (assert (= (step-after-failure 1
+                                 (ref (policy-of (ref (relabel-kind))))
+                                 (ref (network-failure)))
+             (next-step/retry-after 1000))))
+
+(deftest each-retry-waits-twice-as-long
+  (assert (= (step-after-failure 2
+                                 (ref (policy-of (ref (relabel-kind))))
+                                 (ref (network-failure)))
+             (next-step/retry-after 2000))))
+
+(deftest the-last-attempt-stops
+  (assert (= (step-after-failure 3
+                                 (ref (policy-of (ref operation-kind/fetch-labels)))
+                                 (ref (network-failure)))
+             next-step/stop)))
+
+(deftest a-missing-item-is-not-retried
+  (assert (= (step-after-failure 1
+                                 (ref (policy-of (ref (relabel-kind))))
+                                 (ref (mail-error/not-found (str
+                                                              "no thread t"))))
+             next-step/stop)))
+
+(deftest the-wait-stops-growing-at-a-minute
+  (assert (= (backoff-after 10) 60000)))

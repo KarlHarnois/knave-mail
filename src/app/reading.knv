@@ -1,5 +1,4 @@
 (use app/mail-app mail-app)
-(use app/mailboxes open-mailbox!)
 (use app/marking-read marked-read!)
 (use domain/labels unread?)
 
@@ -9,9 +8,9 @@
 (use domain/mail-error mail-error)
 (use domain/listing ids-without-summary in-listed-order)
 
-(use ports/driven/mailbox fetch-summaries! fetch-thread!
-                          fetch-thread-ids!
-                          fetch-thread-page!)
+(use app/operations/calls fetched-summaries! fetched-thread!
+                          fetched-thread-ids!
+                          fetched-thread-page!)
 
 (use ports/driven/store load-summaries-of load-thread
                         load-threads save-thread!
@@ -38,9 +37,7 @@
     (result (vec thread-summary) mail-error)))
 
 (defn listed-threads! (app account query)
-  (let (ids (try (fetch-thread-ids! (try (open-mailbox! (mut (:mailboxes app))
-                                                        account))
-                                    query)))
+  (let (ids (try (fetched-thread-ids! app account query)))
     (summaries-for! app account (ref ids))))
 
 (type listed-page!
@@ -51,9 +48,7 @@
     (result summary-page mail-error)))
 
 (defn listed-page! (app account query page-token)
-  (let (page (try (fetch-thread-page! (try (open-mailbox! (mut (:mailboxes app))
-                                                          account))
-                                      query page-token)))
+  (let (page (try (fetched-thread-page! app account query page-token)))
     (ok (->summary-page
           :summaries (try (summaries-for! app account (ref (:ids page))))
           :next-token (clone (:next-token page))))))
@@ -83,8 +78,7 @@
 (defn missing-summaries! (app account ids)
   (if (empty? ids)
     (ok (vec))
-    (fetch-summaries! (try (open-mailbox! (mut (:mailboxes app)) account))
-                      ids)))
+    (fetched-summaries! app account ids)))
 
 (def concat
   (rust "{{ let mut {!all} = {0}; {!all}.extend({1}); {!all} }}"
@@ -117,9 +111,7 @@
     (result thread mail-error)))
 
 (defn fetch-and-store-thread! (app account thread-id)
-  (let (fetched (try (fetch-thread! (try (open-mailbox! (mut (:mailboxes app))
-                                                        account))
-                                    thread-id)))
+  (let (fetched (try (fetched-thread! app account thread-id)))
     (try (save-thread! (mut (:store app))
                        account
                        (ref fetched)))

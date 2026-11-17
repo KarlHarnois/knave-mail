@@ -1,0 +1,31 @@
+(use domain/labels label-change)
+(use domain/mail outgoing thread-query)
+
+(export ->operation ->page-request ->relabel-work operation
+        operation-kind page-request relabel-work)
+
+(defstruct page-request
+  :listing thread-query
+  :page-token string)
+
+(defstruct relabel-work
+  :thread-id string
+  :change label-change)
+
+(defenum operation-kind
+  fetch-labels
+  (fetch-threads thread-query)
+  (fetch-thread-ids thread-query)
+  (fetch-page page-request)
+  (fetch-summaries (vec string))
+  (fetch-thread string)
+  fetch-history-id
+  (fetch-history string)
+  (send outgoing)
+  (relabel relabel-work))
+
+(defstruct operation
+  :id i64
+  :account string
+  :kind operation-kind
+  :queued-at i64)

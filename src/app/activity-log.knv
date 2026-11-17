@@ -5,9 +5,8 @@
 (export log-changes! log-full-sync-done!
         log-full-sync-started! log-history-expired!
         log-incremental-sync-started! log-preview!
-        log-relabel! log-sent-but-uncached!
-        log-skipped-prefetch! log-still-unread!
-        log-vanished-thread!)
+        log-sent-but-uncached! log-skipped-prefetch!
+        log-still-unread! log-vanished-thread!)
 
 (def sync-area "sync")
 
@@ -63,15 +62,6 @@
                  (error-kind failure)
                  ": "
                  (error-message failure))))
-
-(defn log-relabel! (log account thread-ids change)
-  (log-info log "labels"
-            (str account ": +["
-                 (join-with (ref (:added change)) ",")
-                 "] -["
-                 (join-with (ref (:removed change)) ",")
-                 "] on "
-                 (join-with thread-ids " "))))
 
 (defn log-still-unread! (log account thread-id failure)
   (log-warn log "read"

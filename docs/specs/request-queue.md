@@ -74,13 +74,19 @@ One pure table in `domain/` gives each kind its rules:
 
 | Kind | Name | Durable | Units | Most attempts | Order key |
 |---|---|---|---|---|---|
-| `relabel` | relabel | yes | 10 | unlimited | the thread |
-| `send` | send | no | 100 | 3 | none |
-| `fetch-thread` | fetch thread | no | 10 | 6 | none |
-| `fetch-summaries` | fetch summaries | no | 10 per thread | 6 | none |
-| `fetch-history` | fetch history | no | 2 | 6 | none |
-| `fetch-page` | fetch page | no | 5 | 6 | none |
-| `fetch-labels` | fetch labels | no | 1 per label | 6 | none |
+| `relabel` | relabel | yes, from step 5 | 10 | 6, unlimited once durable | the thread |
+| `send` | send | no | 100 | 1, retried only when `throttled` | none |
+| `fetch-thread` | fetch thread | no | 10 | 3 | none |
+| `fetch-summaries` | fetch summaries | no | 10 per thread | 3 | none |
+| `fetch-threads` | fetch threads | no | 10 per thread | 3 | none |
+| `fetch-thread-ids` | fetch thread ids | no | 5 | 3 | none |
+| `fetch-history` | fetch history | no | 2 | 3 | none |
+| `fetch-history-id` | fetch history id | no | 1 | 3 | none |
+| `fetch-page` | fetch page | no | 5 | 3 | none |
+| `fetch-labels` | fetch labels | no | 1 per label | 3 | none |
+
+- Reads stop after 3 attempts, so being offline fails within seconds instead of a minute.
+- A send never retries a network error, because the message may already have gone out. It retries only a `throttled` reply, which Gmail gives before doing anything.
 
 After each attempt, a pure function picks the next step:
 
@@ -88,7 +94,7 @@ After each attempt, a pure function picks the next step:
 (defenum next-step finished (retry-at i64) (give-up mail-error))
 ```
 
-- **Retryable failures:** `throttled`, `network` and `auth-required`. A durable operation keeps waiting on `auth-required`, because signing in again fixes it.
+- **Retryable failures:** `throttled` and `network`. A durable operation also keeps waiting on `auth-required`, because signing in again fixes it.
 - **Final failures:** `not-found`, `usage` and `internal`, or a retryable failure once `most-attempts` runs out.
 - **Backoff:** the `Retry-After` delay when Gmail sends one. Otherwise it doubles from 1 second, up to 60 seconds.
 
@@ -151,6 +157,7 @@ A new driven port lets the app hand work over without knowing where it runs:
 | finished | debug | how long the attempt took, the attempt number, total time since it was queued |
 | throttled | info | the next attempt number and the delay, and whether the delay came from `Retry-After` |
 | failed, will retry | info | the error kind and message, the next attempt number and the delay |
+| failed | info | the error kind and message, and the attempt, when the failure is not worth retrying, such as an expired history the caller handles |
 | gave up | warn | the error kind and message, the attempts made, and "local change reverted" for a durable operation |
 
 Example lines for one relabel:
@@ -217,7 +224,7 @@ The CLI uses the inline queue. It writes durable rows like the window, then runs
 Each step ships alone and helps by itself:
 
 1. **History:** label-only changes skip the download.
-2. **Operation model, the inline queue and operation logging.** Every mailbox call in `app/` goes through `perform!` with policy retries. POSTs get retries, and every step of every call writes an `operations` line.
+2. **Operation model, the inline runner and operation logging.** Every mailbox call in `app/` goes through `perform!` with policy retries, on the caller's thread. POSTs get retries, and every step of every call writes an `operations` line. The `operation-queue` port and priorities wait for step 4, where the threaded queue is their second implementation.
 3. **Quota:** the bucket in the Gmail session and the `throttled` error.
 4. **Executor thread:** the threaded queue, with priorities. The window and sync submit to it.
 5. **Durable relabels:** rows, recovery, giving up, the store overlay and `operation-failed`.

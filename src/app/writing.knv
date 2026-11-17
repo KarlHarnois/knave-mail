@@ -1,14 +1,14 @@
 (use domain/collections try-for-each)
-(use app/activity-log log-relabel! log-sent-but-uncached!)
+(use app/activity-log log-sent-but-uncached!)
+(use app/operations/operation-log log-batch-queued!)
 (use app/mail-app mail-app)
-(use app/mailboxes open-mailbox!)
 (use domain/labels label-change)
 (use domain/mail ->message-ref ->thread-ref draft message)
 (use domain/outgoing new-outgoing reply-outgoing)
 (use domain/reply draft-for draft-kind)
 (use app/caching cache-thread!)
 (use domain/mail-error mail-error)
-(use ports/driven/mailbox deliver! relabel!)
+(use app/operations/calls delivered! relabeled!)
 (use ports/driven/store load-message relabel-stored!)
 
 (export compose-draft relabel-each! send!)
@@ -36,9 +36,7 @@
                       written account
                       (ref (try (stored-message app account message-id)))))
                    (none (new-outgoing written account)))
-        thread-id (try (deliver! (try (open-mailbox! (mut (:mailboxes app))
-                                                     account))
-                                 (ref outgoing))))
+        thread-id (try (delivered! app account (ref outgoing))))
     (remember-sent! app account (ref thread-id))
     (ok (do))))
 
@@ -62,7 +60,9 @@
     (result unit mail-error)))
 
 (defn relabel-each! (app account thread-ids change)
-  (log-relabel! (ref (:log app)) account thread-ids change)
+  (log-batch-queued! (ref (:log app))
+                     account "relabel"
+                     (len thread-ids))
   (try-for-each (iter thread-ids)
     (fn (thread-id) (relabel-one! app account thread-id change))))
 
@@ -74,8 +74,7 @@
     (result unit mail-error)))
 
 (defn relabel-one! (app account thread-id change)
-  (try (relabel! (try (open-mailbox! (mut (:mailboxes app)) account))
-                 thread-id change))
+  (try (relabeled! app account thread-id change))
   (relabel-stored! (mut (:store app))
                    (ref (->thread-ref :account (str account)
                                       :thread-id (str thread-id)))

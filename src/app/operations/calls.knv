@@ -1,0 +1,138 @@
+(use app/mail-app mail-app)
+(use app/operations/performing operation-result)
+(use app/operations/running run-operation!)
+(use domain/history mail-changes)
+(use domain/labels label-change)
+
+(use domain/mail label outgoing thread thread-page
+                 thread-query thread-summary)
+
+(use domain/mail-error mail-error)
+
+(use domain/operation ->page-request ->relabel-work
+                      operation-kind)
+
+(export delivered! fetched-changes! fetched-history-id!
+        fetched-labels! fetched-summaries! fetched-thread!
+        fetched-thread-ids! fetched-thread-page!
+        fetched-threads! relabeled!)
+
+(type fetched-labels!
+  (fn ((mut mail-app) (ref str))
+    (result (vec label) mail-error)))
+
+(defn fetched-labels! (app account)
+  (match (try (run-operation! app account operation-kind/fetch-labels))
+    ((labels-fetched labels) (ok labels))
+    (_ (unexpected "fetch labels"))))
+
+(type fetched-threads!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref thread-query))
+    (result (vec thread-summary) mail-error)))
+
+(defn fetched-threads! (app account query)
+  (match (try (run-operation! app account
+                              (operation-kind/fetch-threads (clone query))))
+    ((summaries-fetched found) (ok found))
+    (_ (unexpected "fetch threads"))))
+
+(type fetched-thread-ids!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref thread-query))
+    (result (vec string) mail-error)))
+
+(defn fetched-thread-ids! (app account query)
+  (match (try (run-operation! app account
+                              (operation-kind/fetch-thread-ids (clone query))))
+    ((ids-fetched ids) (ok ids))
+    (_ (unexpected "fetch thread ids"))))
+
+(type fetched-thread-page!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref thread-query)
+       (ref str))
+    (result thread-page mail-error)))
+
+(defn fetched-thread-page! (app account query page-token)
+  (match (try (run-operation! app account
+                              (operation-kind/fetch-page
+                                (->page-request :listing (clone query)
+                                                :page-token (str page-token)))))
+    ((page-fetched page) (ok page))
+    (_ (unexpected "fetch page"))))
+
+(type fetched-summaries!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref (vec string)))
+    (result (vec thread-summary) mail-error)))
+
+(defn fetched-summaries! (app account ids)
+  (match (try (run-operation! app account
+                              (operation-kind/fetch-summaries (clone ids))))
+    ((summaries-fetched found) (ok found))
+    (_ (unexpected "fetch summaries"))))
+
+(type fetched-thread!
+  (fn ((mut mail-app) (ref str) (ref str))
+    (result thread mail-error)))
+
+(defn fetched-thread! (app account thread-id)
+  (match (try (run-operation! app account
+                              (operation-kind/fetch-thread (str thread-id))))
+    ((thread-fetched found) (ok found))
+    (_ (unexpected "fetch thread"))))
+
+(type fetched-history-id!
+  (fn ((mut mail-app) (ref str))
+    (result string mail-error)))
+
+(defn fetched-history-id! (app account)
+  (match (try (run-operation! app account operation-kind/fetch-history-id))
+    ((history-id-fetched history-id) (ok history-id))
+    (_ (unexpected "fetch history id"))))
+
+(type fetched-changes!
+  (fn ((mut mail-app) (ref str) (ref str))
+    (result mail-changes mail-error)))
+
+(defn fetched-changes! (app account since)
+  (match (try (run-operation! app account
+                              (operation-kind/fetch-history (str since))))
+    ((history-fetched changes) (ok changes))
+    (_ (unexpected "fetch history"))))
+
+(type delivered!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref outgoing))
+    (result string mail-error)))
+
+(defn delivered! (app account sent)
+  (match (try (run-operation! app account
+                              (operation-kind/send (clone sent))))
+    ((delivered thread-id) (ok thread-id))
+    (_ (unexpected "send"))))
+
+(type relabeled!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref str)
+       (ref label-change))
+    (result unit mail-error)))
+
+(defn relabeled! (app account thread-id change)
+  (match (try (run-operation! app account
+                              (operation-kind/relabel
+                                (->relabel-work :thread-id (str thread-id)
+                                                :change (clone change)))))
+    (relabeled (ok (do)))
+    (_ (unexpected "relabel"))))
+
+(defn unexpected (name)
+  (err (mail-error/internal (str name
+                                 " answered with the wrong kind of result"))))

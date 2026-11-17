@@ -3,14 +3,13 @@
 (use domain/collections appended-once try-for-each)
 (use app/caching cache-thread!)
 (use app/mail-app mail-app)
-(use app/mailboxes open-mailbox!)
 
 (use domain/history history-change mail-changes
                     relabeled-only-ids)
 
 (use domain/labels label-change)
 (use domain/mail-error error-kind mail-error)
-(use ports/driven/mailbox fetch-changes!)
+(use app/operations/calls fetched-changes!)
 
 (use ports/driven/store forget-thread! load-summaries-of
                         relabel-stored! save-checkpoint!)
@@ -22,9 +21,7 @@
     (result unit mail-error)))
 
 (defn sync-changes! (app account since)
-  (let (changes (try (fetch-changes! (try (open-mailbox! (mut (:mailboxes app))
-                                                         account))
-                                     since))
+  (let (changes (try (fetched-changes! app account since))
         cached (try (load-summaries-of (ref (:store app))
                                        account
                                        (ref (relabeled-only-ids (ref

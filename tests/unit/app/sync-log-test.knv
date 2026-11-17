@@ -103,7 +103,7 @@
     (assert (mentions? (ref (logged-lines (ref log)))
                        "caching it failed"))))
 
-(deftest a-label-change-is-logged-with-its-threads
+(deftest a-label-change-is-logged-as-one-operation-per-thread
   (let (world (remote)
         log (new-memory-log)
         app (app-logging-to (ref world)
@@ -114,7 +114,10 @@
                                  (ref (vec (str "t-1") (str "t-2")))
                                  (ref (archive-change))))
     (assert (mentions? (ref (logged-lines (ref log)))
-                       "labels ada@example.com: +[] -[INBOX] on t-1 t-2"))))
+                       "relabel ada@example.com: queued 2"))
+    (assert (mentions?
+              (ref (logged-lines (ref log)))
+              "relabel ada@example.com: queued, thread t-2 +[] -[INBOX]"))))
 
 (deftest opening-a-thread-offline-logs-that-it-stays-unread
   (let (world (remote-with (vec

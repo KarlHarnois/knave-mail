@@ -1,0 +1,119 @@
+(use domain/label-scope label-of)
+(use domain/labels label-change)
+(use domain/mail thread-query)
+(use domain/mail-error error-kind error-message)
+(use domain/operation operation operation-kind)
+(use domain/operation-policy operation-policy policy-of)
+(use domain/text join-with)
+(use ports/driven/event-log log-debug log-info log-warn)
+
+(export labels-changed log-batch-queued! log-failed!
+        log-finished! log-gave-up! log-queued! log-retrying!
+        log-started!)
+
+(def operations-area "operations")
+
+(defn log-queued! (log queued)
+  (log-debug log operations-area
+             (line-of queued
+                      (with-target "queued"
+                                   (target-of (ref (:kind queued)))))))
+
+(defn log-batch-queued! (log account name count)
+  (log-info log operations-area
+            (str name " " account ": queued " count)))
+
+(defn log-started! (log queued policy attempt waited)
+  (log-debug log operations-area
+             (line-of queued
+                      (str "started, attempt " attempt
+                           " of "
+                           (:most-attempts policy)
+                           ", waited " waited "ms"))))
+
+(defn log-finished! (log queued attempt took since-queued)
+  (log-debug
+    log operations-area
+    (line-of queued
+             (str "finished in " took "ms, attempt " attempt
+                  ", " since-queued "ms since queued"))))
+
+(defn log-retrying! (log queued failure next-attempt delay)
+  (log-info log operations-area
+            (line-of queued
+                     (str "failed, will retry: "
+                          (failure-text failure)
+                          "; attempt " next-attempt " in "
+                          delay "ms"))))
+
+(defn log-gave-up! (log queued failure attempts)
+  (log-warn log operations-area
+            (line-of queued
+                     (str "gave up after "
+                          (attempts-text attempts)
+                          ": "
+                          (failure-text failure)))))
+
+(defn log-failed! (log queued failure attempt)
+  (log-info log operations-area
+            (line-of queued
+                     (str "failed on attempt " attempt ": "
+                          (failure-text failure)))))
+
+(type line-of
+  (fn ((ref operation) string) string))
+
+(defn line-of (queued step)
+  (str "#"
+       (:id queued)
+       " "
+       (:name (policy-of (ref (:kind queued))))
+       " "
+       (:account queued)
+       ": " step))
+
+(defn with-target (step target)
+  (if (empty? target)
+    (str step)
+    (str step ", " target)))
+
+(defn target-of (kind)
+  (match kind
+    ((fetch-threads query) (listing-of query))
+    ((fetch-thread-ids query) (listing-of query))
+    ((fetch-page request) (listing-of (ref (:listing request))))
+    ((fetch-summaries ids) (str (len ids) " threads"))
+    ((fetch-thread thread-id) (str "thread " thread-id))
+    ((fetch-history since) (str "since history " since))
+    ((relabel work)
+     (str "thread "
+          (:thread-id work)
+          " "
+          (labels-changed (ref (:change work)))))
+    (_ (str ""))))
+
+(type listing-of
+  (fn ((ref thread-query)) string))
+
+(defn listing-of (query)
+  (match (label-of (ref (:scope query)))
+    ((some label) (str "label " label))
+    (none (str "all mail"))))
+
+(type labels-changed
+  (fn ((ref label-change)) string))
+
+(defn labels-changed (change)
+  (str "+["
+       (join-with (ref (:added change)) ",")
+       "] -["
+       (join-with (ref (:removed change)) ",")
+       "]"))
+
+(defn failure-text (failure)
+  (str (error-kind failure) ": " (error-message failure)))
+
+(defn attempts-text (attempts)
+  (if (= attempts 1)
+    (str "1 attempt")
+    (str attempts " attempts")))

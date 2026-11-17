@@ -1,8 +1,7 @@
 (use app/mail-app mail-app)
-(use app/mailboxes open-mailbox!)
 (use domain/mail-error mail-error)
 (use domain/summary summarize)
-(use ports/driven/mailbox fetch-thread!)
+(use app/operations/calls fetched-thread!)
 (use ports/driven/store save-thread! save-threads!)
 
 (export cache-thread!)
@@ -12,9 +11,7 @@
     (result unit mail-error)))
 
 (defn cache-thread! (app account thread-id)
-  (let (fetched (try (fetch-thread! (try (open-mailbox! (mut (:mailboxes app))
-                                                        account))
-                                    thread-id)))
+  (let (fetched (try (fetched-thread! app account thread-id)))
     (try (save-thread! (mut (:store app))
                        account
                        (ref fetched)))

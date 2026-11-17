@@ -1,0 +1,63 @@
+(use domain/mail-error mail-error)
+(use domain/operation operation-kind)
+
+(export ->operation-policy backoff-after next-step
+        operation-policy policy-of retryable?
+        step-after-failure)
+
+(def read-attempts 3)
+
+(def relabel-attempts 6)
+
+(def first-backoff-milliseconds 1000)
+
+(def longest-backoff-milliseconds 60000)
+
+(defstruct operation-policy
+  :name string
+  :most-attempts i64)
+
+(defn policy-of (kind)
+  (match kind
+    (fetch-labels (read-policy "fetch labels"))
+    ((fetch-threads _) (read-policy "fetch threads"))
+    ((fetch-thread-ids _) (read-policy "fetch thread ids"))
+    ((fetch-page _) (read-policy "fetch page"))
+    ((fetch-summaries _) (read-policy "fetch summaries"))
+    ((fetch-thread _) (read-policy "fetch thread"))
+    (fetch-history-id (read-policy "fetch history id"))
+    ((fetch-history _) (read-policy "fetch history"))
+    ((send _)
+     (->operation-policy :name (str "send") :most-attempts 1))
+    ((relabel _)
+     (->operation-policy :name (str "relabel")
+                         :most-attempts relabel-attempts))))
+
+(defn read-policy (name)
+  (->operation-policy :name (str name)
+                      :most-attempts read-attempts))
+
+(defenum next-step
+  (retry-after i64)
+  stop)
+
+(defn step-after-failure (attempt policy failure)
+  (if (and (retryable? failure)
+           (< attempt (:most-attempts policy)))
+    (next-step/retry-after (backoff-after attempt))
+    next-step/stop))
+
+(defn retryable? (failure)
+  (match failure
+    ((network _) true)
+    (_ false)))
+
+(defn backoff-after (attempt)
+  (let (doubled (doubled-times first-backoff-milliseconds (- attempt 1)))
+    (if (> doubled longest-backoff-milliseconds)
+      longest-backoff-milliseconds doubled)))
+
+(defn doubled-times (milliseconds times)
+  (if (<= times 0)
+    milliseconds
+    (recur (* milliseconds 2) (- times 1))))

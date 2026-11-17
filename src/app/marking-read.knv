@@ -1,10 +1,9 @@
 (use app/activity-log log-still-unread!)
 (use app/mail-app mail-app)
-(use app/mailboxes open-mailbox!)
 (use domain/labels apply-label-change read-change)
 (use domain/mail ->thread-ref thread)
 (use domain/mail-error mail-error)
-(use ports/driven/mailbox relabel!)
+(use app/operations/calls relabeled!)
 (use ports/driven/store relabel-stored!)
 
 (export marked-read!)
@@ -42,9 +41,7 @@
 
 (defn mark-thread-read! (app account thread-id)
   (let (change (read-change))
-    (try (relabel! (try (open-mailbox! (mut (:mailboxes app)) account))
-                   thread-id
-                   (ref change)))
+    (try (relabeled! app account thread-id (ref change)))
     (relabel-stored! (mut (:store app))
                      (ref (->thread-ref :account (str account)
                                         :thread-id (str thread-id)))
