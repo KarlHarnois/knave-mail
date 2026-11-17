@@ -165,7 +165,7 @@ Example lines for one relabel:
 ```
 DEBUG operations #42 relabel ada@example.com: queued, interactive, thread t-42 +[] -[INBOX]
 DEBUG operations #42 relabel ada@example.com: started, attempt 1 of unlimited, waited 120ms
-INFO  operations #42 relabel ada@example.com: throttled, attempt 2 in 4000ms (Retry-After)
+INFO  operations #42 relabel ada@example.com: throttled; attempt 2 in 4000ms (Retry-After)
 INFO  operations #42 relabel ada@example.com: failed, will retry: network: connection reset; attempt 3 in 8000ms
 DEBUG operations #42 relabel ada@example.com: finished in 280ms, attempt 3, 12400ms since queued
 WARN  operations #43 relabel ada@example.com: gave up after 1 attempt: not-found: Gmail has no such item; local change reverted
@@ -225,7 +225,7 @@ Each step ships alone and helps by itself:
 
 1. **History:** label-only changes skip the download.
 2. **Operation model, the inline runner and operation logging.** Every mailbox call in `app/` goes through `perform!` with policy retries, on the caller's thread. POSTs get retries, and every step of every call writes an `operations` line. The `operation-queue` port and priorities wait for step 4, where the threaded queue is their second implementation.
-3. **Quota:** the bucket in the Gmail session and the `throttled` error.
+3. **Quota:** the bucket in the Gmail session and the `throttled` error. Until step 4 each thread still has its own sessions, so each bucket runs at 100 units per second. Step 4 raises the one shared bucket to 200.
 4. **Executor thread:** the threaded queue, with priorities. The window and sync submit to it.
 5. **Durable relabels:** rows, recovery, giving up, the store overlay and `operation-failed`.
 6. **Window:** the waiting count and the error message.

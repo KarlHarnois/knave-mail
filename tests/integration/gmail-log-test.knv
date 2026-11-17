@@ -25,7 +25,7 @@
     (assert (mentions? (ref (logged-lines (ref log)))
                        "refreshed the access token"))))
 
-(deftest rate-limit-retries-are-logged
+(deftest a-rate-limited-request-is-logged-with-its-status
   (let (routes (fixture-routes))
     (push! (mut routes)
            (route "GET /gmail/v1/users/me/labels"
@@ -36,7 +36,7 @@
                                (same-log (ref log))))
       (fetch-labels! (mut gmail))
       (assert (mentions? (ref (logged-lines (ref log)))
-                         "hit the rate limit, retried 6 times")))))
+                         "GET /gmail/v1/users/me/labels 429")))))
 
 (deftest the-log-holds-no-credentials
   (let (server (start-fake-gmail (ref (fixture-routes)))

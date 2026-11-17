@@ -36,7 +36,7 @@ export type Draft = {
   replyTo: string | null;
 };
 
-export type ErrorKind = "usage" | "not-found" | "auth-required" | "network" | "internal";
+export type ErrorKind = "usage" | "not-found" | "auth-required" | "network" | "throttled" | "internal";
 
 export type CoreError = { kind: ErrorKind; message: string };
 

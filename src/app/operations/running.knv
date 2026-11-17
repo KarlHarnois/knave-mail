@@ -3,8 +3,7 @@
 
 (use app/operations/operation-log log-failed! log-finished!
                                   log-gave-up! log-queued!
-                                  log-retrying!
-                                  log-started!)
+                                  log-started! log-waiting!)
 
 (use domain/mail-error mail-error)
 (use domain/operation ->operation operation operation-kind)
@@ -56,15 +55,15 @@
        (match (step-after-failure attempt (ref policy) (ref failure))
          ((retry-after delay)
           (do
-            (log-retrying! (ref (:log app))
-                           queued
-                           (ref failure)
-                           (+ attempt 1)
-                           delay)
+            (log-waiting! (ref (:log app))
+                          queued
+                          (ref failure)
+                          (+ attempt 1)
+                          delay)
             (pause! (ref (:clock app)) delay)
             (recur app queued (+ attempt 1))))
          (stop (do
-                 (if (retryable? (ref failure))
+                 (if (retryable? (ref policy) (ref failure))
                    (log-gave-up! (ref (:log app))
                                  queued
                                  (ref failure)

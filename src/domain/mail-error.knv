@@ -1,10 +1,16 @@
-(export error-kind error-message mail-error)
+(export ->throttling error-kind error-message mail-error
+        throttling)
+
+(defstruct throttling
+  :message string
+  :retry-after-milliseconds i64)
 
 (defenum mail-error
   (usage string)
   (not-found string)
   (auth-required string)
   (network string)
+  (throttled throttling)
   (internal string))
 
 (defn error-kind (error)
@@ -13,6 +19,7 @@
     ((not-found _) "not-found")
     ((auth-required _) "auth-required")
     ((network _) "network")
+    ((throttled _) "throttled")
     ((internal _) "internal")))
 
 (type error-message
@@ -24,4 +31,5 @@
     ((not-found message) message)
     ((auth-required message) message)
     ((network message) message)
+    ((throttled throttle) (:message throttle))
     ((internal message) message)))

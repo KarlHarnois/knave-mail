@@ -21,6 +21,8 @@
 
 (def sync-limit 100)
 
+(def quota-units-per-second 100)
+
 (def sign-in-wait-milliseconds 300000)
 
 (defn gmail-app (chosen log)
@@ -62,8 +64,7 @@
                      :token-url (clone (:token-url chosen))
                      :client-id (clone (:client-id chosen))
                      :client-secret (clone (:client-secret chosen))
-                     :rate-limit-pause-milliseconds 1000
-                     :request-spacing-milliseconds 160))
+                     :quota-units-per-second quota-units-per-second))
 
 (defn chosen-credentials (chosen)
   (if (empty? (:credentials-file chosen))

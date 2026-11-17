@@ -3,7 +3,8 @@
 
 (use adapters/driven/memory/remote-mail fail-times!
                                         fail-when!
-                                        remote-mail)
+                                        remote-mail
+                                        throttle-times!)
 
 (use adapters/driven/memory/shared shared with-shared!)
 (use app/mail-app mail-app)
@@ -19,7 +20,8 @@
 
 (export ada-message ada-thread fail-remote!
         fail-remote-times! failing-kind inbox-query
-        listed-ids! remote-sent remote-thread synced!)
+        listed-ids! remote-sent remote-thread synced!
+        throttle-remote-times!)
 
 (defn inbox-query ()
   (->thread-query (label-scope/only (str "INBOX"))
@@ -42,6 +44,10 @@
                                    app world-account query
                                    freshness/cached)))
                 (fn (summary) (clone (:id summary))))))
+
+(defn throttle-remote-times! (remote operation times delay)
+  (with-shared! remote
+    (fn (state) (throttle-times! state operation times delay))))
 
 (defn fail-remote-times! (remote operation times)
   (with-shared! remote

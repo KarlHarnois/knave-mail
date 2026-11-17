@@ -10,4 +10,5 @@
     ((not-found _) 2)
     ((auth-required _) 3)
     ((network _) 4)
+    ((throttled _) 4)
     ((internal _) 5)))

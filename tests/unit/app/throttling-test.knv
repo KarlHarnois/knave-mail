@@ -1,0 +1,45 @@
+(use app/client/mail-writer)
+
+(use adapters/driven/memory/memory-clock new-memory-clock
+                                         pauses-of
+                                         same-clock)
+
+(use adapters/driven/memory/memory-log logged-lines
+                                       new-memory-log
+                                       same-log)
+
+(use domain/mail ->draft)
+(use ports/driving/mail-writer send-draft!)
+(use support/app-steps remote-sent throttle-remote-times!)
+(use support/log-lines mentions?)
+
+(use support/memory-world app-timed-by remote-with
+                          sample-thread world-account)
+
+(use support/sample-mail addresses)
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100))))
+
+(defn draft-to-alan ()
+  (->draft :to (addresses (vec "alan@example.com"))
+           :cc (vec)
+           :subject (str "Hello")
+           :body (str "Hi Alan")
+           :reply-to none))
+
+(deftest a-throttled-send-goes-out-after-the-wait-gmail-asks-for
+  (let (world (remote)
+        clock (new-memory-clock)
+        log (new-memory-log)
+        app (app-timed-by (ref world)
+                          (same-log (ref log))
+                          (same-clock (ref clock))))
+    (throttle-remote-times! (ref world) "deliver" 1 7000)
+    (unwrap-ok (send-draft! (mut app)
+                            world-account
+                            (ref (draft-to-alan))))
+    (assert (= (len (remote-sent (ref world))) 1))
+    (assert (= (pauses-of (ref clock)) (vec 7000)))
+    (assert (mentions? (ref (logged-lines (ref log)))
+                       "send ada@example.com: throttled; attempt 2 in 7000ms (Retry-After)"))))

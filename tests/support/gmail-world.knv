@@ -1,4 +1,5 @@
 (use adapters/driven/gmail/http new-agent)
+(use adapters/driven/gmail/quota full-bucket)
 
 (use adapters/driven/gmail/mailbox ->gmail-mailbox
                                    gmail-mailbox)
@@ -54,17 +55,21 @@
        (route "POST /gmail/v1/users/me/threads/t1/modify"
               (ref (str "200 " fixtures "empty.json")))))
 
-(defn gmail-over (server) (gmail-paced server 0))
+(def unlimited-units-per-second 1000000)
 
-(defn gmail-paced (server spacing)
-  (gmail-built server spacing (new-memory-log)))
+(defn gmail-over (server)
+  (gmail-paced server unlimited-units-per-second))
 
-(defn gmail-logging (server log) (gmail-built server 0 log))
+(defn gmail-paced (server units-per-second)
+  (gmail-built server units-per-second (new-memory-log)))
+
+(defn gmail-logging (server log)
+  (gmail-built server unlimited-units-per-second log))
 
 (type gmail-built
-  (fn ((ref fake-gmail) u64 memory-log) gmail-mailbox))
+  (fn ((ref fake-gmail) i64 memory-log) gmail-mailbox))
 
-(defn gmail-built (server spacing log)
+(defn gmail-built (server units-per-second log)
   (let (base (fake-gmail-base server))
     (->gmail-mailbox (->gmail-session
                        :agent (new-agent)
@@ -73,8 +78,8 @@
                                     :token-url (str base "/token")
                                     :client-id (str "fake-client")
                                     :client-secret (str "fake-secret")
-                                    :rate-limit-pause-milliseconds 1
-                                    :request-spacing-milliseconds spacing)
+                                    :quota-units-per-second units-per-second)
                        :refresh-token (str "fake-refresh")
                        :access-token none
+                       :quota (full-bucket units-per-second)
                        :log (the (box event-log) (box log))))))

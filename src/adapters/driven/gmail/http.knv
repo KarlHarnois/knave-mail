@@ -1,8 +1,8 @@
-(use adapters/driven/gmail/http-reply http-reply
-                                      rate-limited?)
+(use adapters/driven/gmail/http-reply http-reply)
 
-(export agent-with-timeouts http-agent http-get http-get-all
-        http-post-form http-post-json new-agent)
+(export agent-with-timeouts batch-size http-agent http-get
+        http-get-all http-post-form http-post-json
+        new-agent)
 
 (deftype http-agent (rust "ureq::Agent"))
 
@@ -33,51 +33,23 @@
     (fn ((ref http-agent) (ref str) (ref str))
       (result http-response string))))
 
-(defn first-reply (outcome)
-  (then-ok outcome
-    (fn (response) (reply-from response 0))))
+(defn first-reply (outcome) (then-ok outcome reply-from))
 
 (def reply-from
-  (rust "{{ let mut {!response} = {0}; let {!status} = {!response}.status().as_u16(); {!response}.body_mut().with_config().limit(64 * 1024 * 1024).read_to_string().map(|{!body}| crate::adapters::driven::gmail::http_reply::HttpReply {{ status: {!status}, body: {!body}, retries: {1} }}).map_err(|{!error}| format!(\"the answer was cut short: {{}}\", {!error})) }}"
-    (fn (http-response u32) (result http-reply string))))
+  (rust "{{ let mut {!response} = {0}; let {!status} = {!response}.status().as_u16(); let {!retry_after} = {!response}.headers().get(\"retry-after\").and_then(|{!value}| {!value}.to_str().ok()).and_then(|{!seconds}| {!seconds}.trim().parse::<i64>().ok()).map(|{!seconds}| {!seconds} * 1000); {!response}.body_mut().with_config().limit(64 * 1024 * 1024).read_to_string().map(|{!body}| crate::adapters::driven::gmail::http_reply::HttpReply {{ status: {!status}, body: {!body}, retry_after: {!retry_after} }}).map_err(|{!error}| format!(\"the answer was cut short: {{}}\", {!error})) }}"
+    (fn (http-response) (result http-reply string))))
 
 (def batch-size 8)
 
-(def most-retries 6)
-
-(defn http-get-all (agent urls token pause spacing)
-  (in-paced-batches urls batch-size spacing
+(defn http-get-all (agent urls token)
+  (in-batches urls batch-size
     (fn (url)
-      (get-with-retries agent (as-str url) token pause 0))))
+      (http-get agent (as-str url) token))))
 
-(defn get-with-retries (agent url token pause attempt)
-  (let (outcome (then-ok (get-response agent url token)
-                  (fn (response) (reply-from response attempt))))
-    (if (retry? (ref outcome) attempt)
-      (do
-        (sleep-milliseconds (doubled pause attempt))
-        (recur agent url token pause (+ attempt 1)))
-      outcome)))
-
-(defn retry? (outcome attempt)
-  (match outcome
-    ((ok reply)
-     (and (rate-limited? reply) (< attempt most-retries)))
-    ((err _) false)))
-
-(defn doubled (milliseconds times)
-  (if (= times 0)
-    milliseconds
-    (recur (* milliseconds 2) (- times 1))))
-
-(def sleep-milliseconds
-  (rust "std::thread::sleep(std::time::Duration::from_millis({0}))"
-    (fn (u64) unit)))
-
-(def in-paced-batches
-  (rust "{{ let ({!urls}, {!size}, {!spacing}, {!fetch}) = ({0}, {1}, {2}, &{3}); let mut {!replies} = Vec::with_capacity({!urls}.len()); for {!batch} in {!urls}.chunks({!size}) {{ let {!started} = std::time::Instant::now(); std::thread::scope(|{!scope}| {{ let {!handles}: Vec<_> = {!batch}.iter().map(|{!url}| {!scope}.spawn(move || {!fetch}({!url}))).collect(); for {!handle} in {!handles} {{ {!replies}.push({!handle}.join().unwrap_or_else(|_| Err(String::from(\"a request thread panicked\")))); }} }}); if let Some({!rest}) = std::time::Duration::from_millis({!spacing} * {!batch}.len() as u64).checked_sub({!started}.elapsed()) {{ std::thread::sleep({!rest}); }} }} {!replies} }}"
+(def in-batches
+  (rust "{{ let ({!urls}, {!size}, {!fetch}) = ({0}, {1}, &{2}); let mut {!replies} = Vec::with_capacity({!urls}.len()); for {!batch} in {!urls}.chunks({!size}) {{ std::thread::scope(|{!scope}| {{ let {!handles}: Vec<_> = {!batch}.iter().map(|{!url}| {!scope}.spawn(move || {!fetch}({!url}))).collect(); for {!handle} in {!handles} {{ {!replies}.push({!handle}.join().unwrap_or_else(|_| Err(String::from(\"a request thread panicked\")))); }} }}); }} {!replies} }}"
     (fn ((ref (vec string))
-         usize u64
+         usize
          (fn ((ref string))
            (result http-reply string)))
       (vec (result http-reply string)))))

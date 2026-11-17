@@ -23,7 +23,7 @@ A reply always carries the request's `id`, and either `ok` or `error`:
 {"id": 7, "error": {"kind": "not-found", "message": "no thread t-9 in ada@example.com"}}
 ```
 
-Error kinds are `usage`, `not-found`, `auth-required`, `network` and `internal`.
+Error kinds are `usage`, `not-found`, `auth-required`, `network`, `throttled` and `internal`.
 
 An event has no `id`, and the core sends it on its own:
 

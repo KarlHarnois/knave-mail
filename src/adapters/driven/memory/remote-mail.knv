@@ -1,9 +1,9 @@
 (use adapters/driven/memory/remote-change remote-change)
 (use domain/mail ->message message outgoing thread)
-(use domain/mail-error mail-error)
+(use domain/mail-error ->throttling mail-error)
 
 (export ->remote-mail fail-times! fail-when! guard!
-        remote-mail sent-from)
+        remote-mail sent-from throttle-times!)
 
 (defstruct remote-mail
   :threads (vec thread)
@@ -11,6 +11,7 @@
   :latency-milliseconds u64
   :failing (option string)
   :failures-left (option i64)
+  :throttle-delay (option i64)
   :next-id i64
   :history-id i64
   :history-floor i64
@@ -23,10 +24,22 @@
 (defn guard! (remote operation)
   (sleep-milliseconds (:latency-milliseconds remote))
   (if (failing? remote operation)
-    (do
+    (let (failure (simulated-failure remote operation))
       (count-failure! remote)
-      (err (mail-error/network (str "simulated failure of " operation))))
+      (err failure))
     (ok (do))))
+
+(type simulated-failure
+  (fn ((ref remote-mail) (ref str))
+    mail-error))
+
+(defn simulated-failure (remote operation)
+  (match (:throttle-delay remote)
+    ((some delay)
+     (mail-error/throttled (->throttling
+                             :message (str "simulated throttling of " operation)
+                             :retry-after-milliseconds delay)))
+    (none (mail-error/network (str "simulated failure of " operation)))))
 
 (type count-failure!
   (fn ((mut remote-mail)) unit))
@@ -45,7 +58,8 @@
 
 (defn fail-when! (remote operation)
   (set! (:failing remote) operation)
-  (set! (:failures-left remote) none))
+  (set! (:failures-left remote) none)
+  (set! (:throttle-delay remote) none))
 
 (type fail-times!
   (fn ((mut remote-mail) (ref str) i64)
@@ -55,6 +69,14 @@
   (set! (:failing remote)
         (some (str operation)))
   (set! (:failures-left remote) (some times)))
+
+(type throttle-times!
+  (fn ((mut remote-mail) (ref str) i64 i64)
+    unit))
+
+(defn throttle-times! (remote operation times delay)
+  (fail-times! remote operation times)
+  (set! (:throttle-delay remote) (some delay)))
 
 (type failing?
   (fn ((ref remote-mail) (ref str)) bool))

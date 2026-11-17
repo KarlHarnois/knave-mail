@@ -1,0 +1,62 @@
+(use adapters/driven/gmail/http batch-size http-get-all)
+
+(use adapters/driven/gmail/http-reply http-reply
+                                      rate-limited?)
+
+(use adapters/driven/gmail/quota drain! take-units!
+                                 units-for)
+
+(use adapters/driven/gmail/session-state api-url
+                                         gmail-session)
+
+(export fetched-all!)
+
+(type fetched-all!
+  (fn ((mut gmail-session)
+       (ref (vec string))
+       (ref str))
+    (vec (result http-reply string))))
+
+(defn fetched-all! (session paths token)
+  (reduce (iter (chunks-of paths batch-size)) (vec)
+    (fn (replies chunk)
+      (take-units! (mut (:quota session))
+                   (units-of-gets chunk))
+      (let (fetched (http-get-all (ref (:agent session))
+                                  (ref (collect (map (iter chunk)
+                                                  (fn (path)
+                                                    (api-url session path)))))
+                                  token))
+        (when (any-rate-limited? (ref fetched))
+          (drain! (mut (:quota session))))
+        (extended replies fetched)))))
+
+(type units-of-gets
+  (fn ((ref (vec string))) i64))
+
+(defn units-of-gets (paths)
+  (reduce (iter paths) 0
+    (fn (total path)
+      (+ total (units-for "GET" (as-str path))))))
+
+(type any-rate-limited?
+  (fn ((ref (vec (result http-reply string))))
+    bool))
+
+(defn any-rate-limited? (outcomes)
+  (any? (iter outcomes)
+    (fn (outcome)
+      (match outcome
+        ((ok reply) (rate-limited? reply))
+        (_ false)))))
+
+(def chunks-of
+  (rust "{0}.chunks({1}).map(<[String]>::to_vec).collect::<Vec<Vec<String>>>()"
+    (fn ((ref (vec string)) usize)
+      (vec (vec string)))))
+
+(def extended
+  (rust "{{ let mut {!all} = {0}; {!all}.extend({1}); {!all} }}"
+    (fn ((vec (result http-reply string))
+         (vec (result http-reply string)))
+      (vec (result http-reply string)))))

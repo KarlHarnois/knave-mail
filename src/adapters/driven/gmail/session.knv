@@ -1,5 +1,11 @@
-(use adapters/driven/gmail/http http-get-all http-post-json)
-(use adapters/driven/gmail/http-reply http-reply)
+(use adapters/driven/gmail/http http-post-json)
+(use adapters/driven/gmail/paced-gets fetched-all!)
+
+(use adapters/driven/gmail/http-reply http-reply
+                                      rate-limited?)
+
+(use adapters/driven/gmail/quota drain! take-units!
+                                 units-for)
 
 (use adapters/driven/gmail/replies checked collect-results
                                    into-replies sent)
@@ -7,7 +13,9 @@
 (use adapters/driven/gmail/request-log clock-milliseconds
                                        log-outcome!)
 
-(use adapters/driven/gmail/session-state gmail-session)
+(use adapters/driven/gmail/session-state api-url
+                                         gmail-session)
+
 (use adapters/driven/gmail/tokens access-token! refresh!)
 (use adapters/json/value json-value)
 (use domain/mail-error mail-error)
@@ -35,9 +43,9 @@
 (defn get-one! (session path)
   (let (token (try (access-token! session))
         started (clock-milliseconds)
-        outcome (only-outcome (fetched-all session
-                                           (ref (vec (str path)))
-                                           (ref token))))
+        outcome (only-outcome (fetched-all! session
+                                            (ref (vec (str path)))
+                                            (ref token))))
     (log-outcome! (ref (:log session))
                   "GET" path
                   (ref outcome)
@@ -51,7 +59,7 @@
 (defn api-get-all! (session paths)
   (let (token (try (access-token! session))
         started (clock-milliseconds)
-        replies (fetched-all session paths (ref token)))
+        replies (fetched-all! session paths (ref token)))
     (for-each (enumerate (iter replies))
       (fn (numbered)
         (let-match ((pair index outcome) numbered)
@@ -63,21 +71,6 @@
                                 (fn (outcome)
                                   (checked (try (sent outcome)))))))))
 
-(type fetched-all
-  (fn ((ref gmail-session)
-       (ref (vec string))
-       (ref str))
-    (vec (result http-reply string))))
-
-(defn fetched-all (session paths token)
-  (let (endpoints (ref (:endpoints session)))
-    (http-get-all (ref (:agent session))
-                  (ref (collect (map (iter paths)
-                                  (fn (path) (api-url session path)))))
-                  token
-                  (:rate-limit-pause-milliseconds endpoints)
-                  (:request-spacing-milliseconds endpoints))))
-
 (defn api-post! (session path body)
   (let (first-reply (try (post-one! session path body)))
     (if (= (:status first-reply) unauthorized)
@@ -87,26 +80,28 @@
       (checked first-reply))))
 
 (defn post-one! (session path body)
+  (take-units! (mut (:quota session))
+               (units-for "POST" path))
   (let (token (try (access-token! session))
         started (clock-milliseconds)
         outcome (http-post-json (ref (:agent session))
                                 (ref (api-url session path))
                                 (ref token)
                                 body))
+    (when (posted-rate-limited? (ref outcome))
+      (drain! (mut (:quota session))))
     (log-outcome! (ref (:log session))
                   "POST" path
                   (ref outcome)
                   started)
     (sent outcome)))
 
+(defn posted-rate-limited? (outcome)
+  (match outcome
+    ((ok reply) (rate-limited? reply))
+    (_ false)))
+
 (defn only-outcome (replies)
   (local remaining replies)
   (unwrap-or (pop! (mut remaining))
              (err (str "no reply"))))
-
-(type api-url
-  (fn ((ref gmail-session) (ref str))
-    string))
-
-(defn api-url (session path)
-  (str (:api-base (:endpoints session)) path))

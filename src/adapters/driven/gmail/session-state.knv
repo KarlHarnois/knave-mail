@@ -1,20 +1,28 @@
 (use adapters/driven/gmail/http http-agent)
+(use adapters/driven/gmail/quota quota-bucket)
 (use ports/driven/event-log event-log)
 
-(export ->gmail-endpoints ->gmail-session gmail-endpoints
-        gmail-session)
+(export ->gmail-endpoints ->gmail-session api-url
+        gmail-endpoints gmail-session)
 
 (defstruct gmail-endpoints
   :api-base string
   :token-url string
   :client-id string
   :client-secret string
-  :rate-limit-pause-milliseconds u64
-  :request-spacing-milliseconds u64)
+  :quota-units-per-second i64)
 
 (defstruct gmail-session
   :agent http-agent
   :endpoints gmail-endpoints
   :refresh-token string
   :access-token (option string)
+  :quota quota-bucket
   :log (box event-log))
+
+(type api-url
+  (fn ((ref gmail-session) (ref str))
+    string))
+
+(defn api-url (session path)
+  (str (:api-base (:endpoints session)) path))

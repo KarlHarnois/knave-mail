@@ -1,0 +1,83 @@
+(export ->quota-bucket drain! full-bucket quota-bucket
+        take-units! units-for)
+
+(defstruct quota-bucket
+  :units-per-second i64
+  :available i64
+  :refilled-at i64)
+
+(defn full-bucket (units-per-second)
+  (->quota-bucket :units-per-second units-per-second
+                  :available units-per-second
+                  :refilled-at (wall-milliseconds)))
+
+(type take-units!
+  (fn ((mut quota-bucket) i64) unit))
+
+(defn take-units! (bucket units)
+  (refill! bucket)
+  (when (< (:available bucket) units)
+    (sleep-for (milliseconds-until bucket units))
+    (refill! bucket))
+  (set! (:available bucket)
+        (- (:available bucket) units)))
+
+(type drain!
+  (fn ((mut quota-bucket)) unit))
+
+(defn drain! (bucket)
+  (refill! bucket)
+  (set! (:available bucket) 0))
+
+(type refill!
+  (fn ((mut quota-bucket)) unit))
+
+(defn refill! (bucket)
+  (let (now (wall-milliseconds)
+        earned (/ (* (- now (:refilled-at bucket))
+                     (:units-per-second bucket))
+                  1000)
+        topped (+ (:available bucket) earned))
+    (when (> earned 0)
+      (set! (:available bucket)
+            (if (> topped (:units-per-second bucket))
+              (:units-per-second bucket)
+              topped))
+      (set! (:refilled-at bucket) now))))
+
+(type milliseconds-until
+  (fn ((ref quota-bucket) i64) i64))
+
+(defn milliseconds-until (bucket units)
+  (+ 1
+     (/ (* (- units (:available bucket)) 1000)
+        (:units-per-second bucket))))
+
+(type units-for
+  (fn ((ref str) (ref str)) i64))
+
+(defn units-for (method path)
+  (cond
+    ((ends-with? path "/messages/send") 100)
+    ((ends-with? path "/modify") 10)
+    ((= method "POST") 10)
+    ((contains-text? path "/threads") 10)
+    ((contains-text? path "/messages") 5)
+    ((contains-text? path "/history") 2)
+    (else 1)))
+
+(def ends-with?
+  (rust "{0}.ends_with({1})"
+    (fn ((ref str) (ref str)) bool)))
+
+(def contains-text?
+  (rust "{0}.contains({1})"
+    (fn ((ref str) (ref str)) bool)))
+
+(def wall-milliseconds
+  (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as i64).unwrap_or(0)"
+    (fn () i64)))
+
+(def sleep-for
+  (rust "std::thread::sleep(std::time::Duration::from_millis({0}.max(0) as u64))"
+    (fn (i64) unit)))

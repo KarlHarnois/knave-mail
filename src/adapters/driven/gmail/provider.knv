@@ -1,5 +1,6 @@
 (use adapters/driven/gmail/http new-agent)
 (use adapters/driven/gmail/mailbox ->gmail-mailbox)
+(use adapters/driven/gmail/quota full-bucket)
 
 (use adapters/driven/gmail/session-state ->gmail-session
                                          gmail-endpoints)
@@ -22,13 +23,15 @@
     (match (try (load-token (ref (:credentials provider)) email))
       ((some refresh-token)
        (ok (the (box mailbox)
-                (box (->gmail-mailbox (->gmail-session
-                                        :agent (new-agent)
-                                        :endpoints (clone (:endpoints provider))
-                                        :refresh-token refresh-token
-                                        :access-token none
-                                        :log (share-log (ref (:log
-                                                               provider)))))))))
+                (box (->gmail-mailbox
+                       (->gmail-session
+                         :agent (new-agent)
+                         :endpoints (clone (:endpoints provider))
+                         :refresh-token refresh-token
+                         :access-token none
+                         :quota (full-bucket (:quota-units-per-second (:endpoints
+                                                                        provider)))
+                         :log (share-log (ref (:log provider)))))))))
       (none (err (mail-error/auth-required (str "no saved sign-in for "
                                                 email
                                                 "; run `knave-mail accounts add`")))))))

@@ -1,5 +1,6 @@
 (use domain/labels archive-change)
-(use domain/mail-error mail-error)
+(use domain/mail ->outgoing)
+(use domain/mail-error ->throttling mail-error)
 (use domain/operation ->relabel-work operation-kind)
 
 (use domain/operation-policy backoff-after next-step
@@ -47,6 +48,44 @@
                                  (ref (policy-of (ref (relabel-kind))))
                                  (ref (mail-error/not-found (str
                                                               "no thread t"))))
+             next-step/stop)))
+
+(defn throttled-for (milliseconds)
+  (mail-error/throttled (->throttling :message (str "slow down")
+                                      :retry-after-milliseconds milliseconds)))
+
+(defn send-kind ()
+  (operation-kind/send (->outgoing :from (str "ada@example.com")
+                                   :to (vec)
+                                   :cc (vec)
+                                   :subject (str "")
+                                   :body (str "")
+                                   :thread-id none
+                                   :in-reply-to none
+                                   :references (str ""))))
+
+(deftest a-throttled-call-waits-as-long-as-gmail-asks
+  (assert (= (step-after-failure 1
+                                 (ref (policy-of (ref (relabel-kind))))
+                                 (ref (throttled-for 7000)))
+             (next-step/retry-after 7000))))
+
+(deftest a-throttled-call-without-a-wait-backs-off
+  (assert (= (step-after-failure 2
+                                 (ref (policy-of (ref (relabel-kind))))
+                                 (ref (throttled-for 0)))
+             (next-step/retry-after 2000))))
+
+(deftest a-throttled-send-is-retried
+  (assert (= (step-after-failure 1
+                                 (ref (policy-of (ref (send-kind))))
+                                 (ref (throttled-for 0)))
+             (next-step/retry-after 1000))))
+
+(deftest a-send-that-failed-on-the-network-is-not-retried
+  (assert (= (step-after-failure 1
+                                 (ref (policy-of (ref (send-kind))))
+                                 (ref (network-failure)))
              next-step/stop)))
 
 (deftest the-wait-stops-growing-at-a-minute

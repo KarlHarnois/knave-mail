@@ -10,19 +10,12 @@
   (let (shown (str method " " (without-query path)))
     (match outcome
       ((ok reply)
-       (do
-         (when (> (:retries reply) 0)
-           (log-warn log area
-                     (str shown
-                          " hit the rate limit, retried "
-                          (:retries reply)
-                          " times")))
-         (log-debug log area
-                    (str shown " "
-                         (:status reply)
-                         " "
-                         (- (clock-milliseconds) started)
-                         "ms"))))
+       (log-debug log area
+                  (str shown " "
+                       (:status reply)
+                       " "
+                       (- (clock-milliseconds) started)
+                       "ms")))
       ((err problem)
        (log-warn log area (str shown " failed: " problem))))))
 

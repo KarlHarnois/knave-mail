@@ -16,7 +16,8 @@
 (use ports/driving/mail-writer send-draft!)
 
 (use support/app-steps fail-remote! fail-remote-times!
-                       remote-sent remote-thread synced!)
+                       remote-sent remote-thread synced!
+                       throttle-remote-times!)
 
 (use support/log-lines mentions?)
 

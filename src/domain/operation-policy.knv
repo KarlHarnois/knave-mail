@@ -9,13 +9,16 @@
 
 (def relabel-attempts 6)
 
+(def send-attempts 3)
+
 (def first-backoff-milliseconds 1000)
 
 (def longest-backoff-milliseconds 60000)
 
 (defstruct operation-policy
   :name string
-  :most-attempts i64)
+  :most-attempts i64
+  :retries-network bool)
 
 (defn policy-of (kind)
   (match kind
@@ -28,29 +31,42 @@
     (fetch-history-id (read-policy "fetch history id"))
     ((fetch-history _) (read-policy "fetch history"))
     ((send _)
-     (->operation-policy :name (str "send") :most-attempts 1))
+     (->operation-policy :name (str "send")
+                         :most-attempts send-attempts
+                         :retries-network false))
     ((relabel _)
      (->operation-policy :name (str "relabel")
-                         :most-attempts relabel-attempts))))
+                         :most-attempts relabel-attempts
+                         :retries-network true))))
 
 (defn read-policy (name)
   (->operation-policy :name (str name)
-                      :most-attempts read-attempts))
+                      :most-attempts read-attempts
+                      :retries-network true))
 
 (defenum next-step
   (retry-after i64)
   stop)
 
 (defn step-after-failure (attempt policy failure)
-  (if (and (retryable? failure)
+  (if (and (retryable? policy failure)
            (< attempt (:most-attempts policy)))
-    (next-step/retry-after (backoff-after attempt))
+    (next-step/retry-after (delay-after attempt failure))
     next-step/stop))
 
-(defn retryable? (failure)
+(defn retryable? (policy failure)
   (match failure
-    ((network _) true)
+    ((throttled _) true)
+    ((network _) (:retries-network policy))
     (_ false)))
+
+(defn delay-after (attempt failure)
+  (match failure
+    ((throttled throttle)
+     (if (> (:retry-after-milliseconds throttle) 0)
+       (:retry-after-milliseconds throttle)
+       (backoff-after attempt)))
+    (_ (backoff-after attempt))))
 
 (defn backoff-after (attempt)
   (let (doubled (doubled-times first-backoff-milliseconds (- attempt 1)))
