@@ -6,13 +6,13 @@
   :cmd str
   :args (vec str))
 
-(defn run! (step)
-  (println "== " (:desc step))
-  (if (run-command! (:dir step)
-                    (:cmd step)
-                    (clone (:args step)))
+(defn run! (cmd)
+  (println "== " (:desc cmd))
+  (if (run-command! (:dir cmd)
+                    (:cmd cmd)
+                    (clone (:args cmd)))
     (ok (do))
-    (err (str (:desc step) " failed"))))
+    (err (str (:desc cmd) " failed"))))
 
 (def run-command!
   (rust "std::process::Command::new({1}).args({2}).current_dir({0}).status().map(|{!status}| {!status}.success()).unwrap_or(false)"
