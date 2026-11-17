@@ -13,10 +13,10 @@
 
 (def answered-and-dropped
   (rust "{{ let mut {!replies} = {0}; if let Some({!index}) = {!replies}.iter().position(|({!id}, _)| *{!id} == {1}) {{ let (_, {!asked}) = {!replies}.remove({!index}); drop({!asked}.reply.send({2})); }} {!replies} }}"
-    (fn ((vec (pair i64 submission))
-         i64
+    (fn ((vec (pair int submission))
+         int
          (result operation-result mail-error))
-      (vec (pair i64 submission)))))
+      (vec (pair int submission)))))
 
 (def removed-at
   (rust "{{ let mut {!all} = {0}; {!all}.remove({1}); {!all} }}"
@@ -30,7 +30,7 @@
 
 (def next-arrival
   (rust "match {1} {{ Some({!wait}) => match {0}.recv_timeout(std::time::Duration::from_millis({!wait}.max(0) as u64)) {{ Ok({!arrived}) => Some(Some({!arrived})), Err(std::sync::mpsc::RecvTimeoutError::Timeout) => Some(None), Err(_) => None }}, None => {0}.recv().ok().map(Some) }}"
-    (fn ((ref submission-inbox) (option i64))
+    (fn ((ref submission-inbox) (option int))
       (option (option submission)))))
 
 (def spawn-executor

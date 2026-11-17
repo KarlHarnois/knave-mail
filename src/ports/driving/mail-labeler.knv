@@ -18,4 +18,4 @@
 
   (waiting-changes
     (fn ((ref self) (ref str))
-      (result i64 mail-error))))
+      (result int mail-error))))

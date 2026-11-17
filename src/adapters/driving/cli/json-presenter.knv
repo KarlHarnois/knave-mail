@@ -34,11 +34,11 @@
 
 (def document-text
   (rust "serde_json::json!({{\"schema\": {0}, \"result\": {1}}}).to_string()"
-    (fn (i64 (ref json-value)) string)))
+    (fn (int (ref json-value)) string)))
 
 (def error-document-text
   (rust "serde_json::json!({{\"schema\": {0}, \"error\": {{\"kind\": {1}, \"message\": {2}}}}}).to_string()"
-    (fn (i64 (ref str) (ref str)) string)))
+    (fn (int (ref str) (ref str)) string)))
 
 (def text-json
   (rust "serde_json::Value::String({0}.clone())"

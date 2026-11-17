@@ -27,7 +27,7 @@
                 " GUI scenarios failed")))))
 
 (type count-failures
-  (fn ((ref (vec string)) usize i64) i64))
+  (fn ((ref (vec string)) usize int) int))
 
 (defn count-failures (scenarios index failures)
   (if (>= index (len scenarios))

@@ -66,12 +66,12 @@
 
 (def longer-than?
   (rust "{0}.len() as i64 > {1}"
-    (fn ((ref (vec thread-summary)) i64)
+    (fn ((ref (vec thread-summary)) int)
       bool)))
 
 (def page-slice
   (rust "{0}.iter().skip({1} as usize).take({2} as usize).cloned().collect::<Vec<_>>()"
-    (fn ((ref (vec string)) i64 i64)
+    (fn ((ref (vec string)) int int)
       (vec string))))
 
 (defn page-offset (page-token)

@@ -77,7 +77,7 @@
 
 (type messages-losing
   (fn ((ref (vec message-relabel)) (ref str))
-    i64))
+    int))
 
 (defn messages-losing (relabels label)
   (as-count (len (reduce (filter (iter relabels)

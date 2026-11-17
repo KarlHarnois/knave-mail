@@ -21,16 +21,16 @@
 (defstruct label
   :id string
   :name string
-  :unread i64)
+  :unread int)
 
 (defstruct thread-summary
   :id string
   :subject string
   :participants string
   :snippet string
-  :date i64
+  :date int
   :labels (vec string)
-  :message-count i64)
+  :message-count int)
 
 (defstruct message
   :id string
@@ -39,7 +39,7 @@
   :to (vec string)
   :cc (vec string)
   :subject string
-  :date i64
+  :date int
   :text string
   :html (option string)
   :header-id string
@@ -61,7 +61,7 @@
 (defstruct thread-query
   :scope label-scope
   :query string
-  :limit i64)
+  :limit int)
 
 (defstruct thread-page
   :ids (vec string)

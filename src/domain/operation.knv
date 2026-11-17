@@ -15,7 +15,7 @@
 (defstruct relabel-work
   :thread-id string
   :change label-change
-  :queued-id (option i64))
+  :queued-id (option int))
 
 (defenum operation-kind
   fetch-labels
@@ -34,11 +34,11 @@
   background)
 
 (defstruct operation
-  :id i64
+  :id int
   :account string
   :kind operation-kind
   :priority priority
-  :queued-at i64)
+  :queued-at int)
 
 (defenum operation-result
   (labels-fetched (vec label))

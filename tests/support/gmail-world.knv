@@ -67,7 +67,7 @@
   (gmail-built server unlimited-units-per-second log))
 
 (type gmail-built
-  (fn ((ref fake-gmail) i64 memory-log) gmail-mailbox))
+  (fn ((ref fake-gmail) int memory-log) gmail-mailbox))
 
 (defn gmail-built (server units-per-second log)
   (let (base (fake-gmail-base server))

@@ -40,7 +40,7 @@
 (type missing-from?
   (fn ((ref thread-summary)
        (ref (vec thread-summary))
-       i64)
+       int)
     bool))
 
 (defn missing-from? (summary listed limit)
@@ -63,9 +63,9 @@
 
 (def listed-count
   (rust "{0}.len() as i64"
-    (fn ((ref (vec thread-summary))) i64)))
+    (fn ((ref (vec thread-summary))) int)))
 
 (def oldest-date
   (rust "{0}.iter().map(|{!summary}| {!summary}.date).min()"
     (fn ((ref (vec thread-summary)))
-      (option i64))))
+      (option int))))

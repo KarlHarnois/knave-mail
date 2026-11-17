@@ -17,7 +17,7 @@
 
 (defstruct operation-policy
   :name string
-  :most-attempts (option i64)
+  :most-attempts (option int)
   :retries-network bool
   :durable bool)
 
@@ -57,7 +57,7 @@
                               :durable false))))
 
 (defenum next-step
-  (retry-after i64)
+  (retry-after int)
   stop)
 
 (defn step-after-failure (attempt policy failure)

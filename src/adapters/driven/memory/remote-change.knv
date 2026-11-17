@@ -3,6 +3,6 @@
 (export ->remote-change remote-change)
 
 (defstruct remote-change
-  :at i64
+  :at int
   :thread-id string
   :relabel (option label-change))

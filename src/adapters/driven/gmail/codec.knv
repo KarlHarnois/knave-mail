@@ -13,7 +13,7 @@
   :to (vec string)
   :cc (vec string)
   :subject string
-  :date i64
+  :date int
   :text string
   :html (option string)
   :header-id string

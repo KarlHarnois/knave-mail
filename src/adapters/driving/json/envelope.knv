@@ -59,7 +59,7 @@
 
 (def queue-event
   (rust "serde_json::json!({{\"event\": \"queue\", \"account\": {0}, \"waiting\": {1}}}).to_string()"
-    (fn ((ref str) i64) string)))
+    (fn ((ref str) int) string)))
 
 (def operation-failed-event
   (rust "serde_json::json!({{\"event\": \"operation-failed\", \"account\": {0}, \"name\": {1}, \"threadIds\": {2}, \"error\": {{\"kind\": {3}, \"message\": {4}}}}}).to_string()"

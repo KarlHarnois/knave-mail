@@ -86,5 +86,5 @@
 
 (def cycled
   (rust "{{ let {!words} = {0}; {!words}[({1} as usize) % {!words}.len()] }}"
-    (fn ((ref (vec (ref str))) i64)
+    (fn ((ref (vec (ref str))) int)
       (ref str))))

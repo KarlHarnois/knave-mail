@@ -3,7 +3,7 @@
 
 (defstruct throttling
   :message string
-  :retry-after-milliseconds i64)
+  :retry-after-milliseconds int)
 
 (defenum mail-error
   (usage string)

@@ -11,8 +11,8 @@
 
 (def wall-milliseconds
   (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as i64).unwrap_or(0)"
-    (fn () i64)))
+    (fn () int)))
 
 (def sleep-for
   (rust "std::thread::sleep(std::time::Duration::from_millis({0}.max(0) as u64))"
-    (fn (i64) unit)))
+    (fn (int) unit)))

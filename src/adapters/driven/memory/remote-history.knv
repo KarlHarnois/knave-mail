@@ -54,7 +54,7 @@
     (result mail-changes mail-error)))
 
 (defn changes-since (remote since)
-  (match (the (result i64 parse-int-error) (parse since))
+  (match (the (result int parse-int-error) (parse since))
     ((ok start)
      (if (< start (:history-floor remote))
        (err (mail-error/not-found (str "history " since " has expired")))

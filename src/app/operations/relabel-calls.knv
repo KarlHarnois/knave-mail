@@ -36,7 +36,7 @@
        (ref str)
        (ref str)
        (ref label-change)
-       (option i64))
+       (option int))
     (result unit mail-error)))
 
 (defn relabeled-as! (app account thread-id change queued-id)

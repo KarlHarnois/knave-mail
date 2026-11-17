@@ -11,4 +11,4 @@
       (result unit mail-error)))
 
   (waiting-changes-of
-    (fn ((ref self) (ref str)) i64)))
+    (fn ((ref self) (ref str)) int)))

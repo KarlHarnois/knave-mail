@@ -17,7 +17,7 @@
   :log (box event-log)
   :priority priority
   :delivery delivery
-  :sync-limit i64)
+  :sync-limit int)
 
 (defn new-mail-app (store operations authorizer log rank delivery sync-limit)
   (->mail-app :store store

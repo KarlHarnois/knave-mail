@@ -55,7 +55,7 @@
          (ref str)
          (ref label-change)
          (ref str))
-      (result i64 string))))
+      (result int string))))
 
 (def queued-rows
   (rust "{0}.prepare_cached({1}).and_then(|mut {!statement}| {{ let {!read} = |{!row}: &rusqlite::Row| Ok(crate::domain::queued_relabel::QueuedRelabel {{ id: {!row}.get(0)?, account: {!row}.get(1)?, thread_id: {!row}.get(2)?, change: crate::domain::labels::LabelChange {{ added: serde_json::from_str(&{!row}.get::<_, String>(3)?).unwrap_or_default(), removed: serde_json::from_str(&{!row}.get::<_, String>(4)?).unwrap_or_default() }} }}); let {!rows} = if {2}.is_empty() {{ {!statement}.query_map([], {!read})?.collect::<rusqlite::Result<Vec<_>>>() }} else {{ {!statement}.query_map([{2}], {!read})?.collect::<rusqlite::Result<Vec<_>>>() }}; {!rows} }}).map_err(|{!error}| {!error}.to_string())"
@@ -66,7 +66,7 @@
 
 (def row-erased
   (rust "{0}.execute({1}, [{2}]).map(|_| ()).map_err(|{!error}| {!error}.to_string())"
-    (fn ((ref sqlite-connection) (ref str) i64)
+    (fn ((ref sqlite-connection) (ref str) int)
       (result unit string))))
 
 (def counted
@@ -74,7 +74,7 @@
     (fn ((ref sqlite-connection)
          (ref str)
          (ref str))
-      (result i64 string))))
+      (result int string))))
 
 (def batch-run
   (rust "{0}.execute_batch({1}).map_err(|{!error}| {!error}.to_string())"

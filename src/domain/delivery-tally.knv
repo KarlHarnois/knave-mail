@@ -4,7 +4,7 @@
 
 (defstruct delivery-count
   :account string
-  :delivered i64)
+  :delivered int)
 
 (type counted-delivery
   (fn ((vec delivery-count) (ref str))

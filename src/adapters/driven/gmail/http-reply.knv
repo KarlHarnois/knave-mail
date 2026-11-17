@@ -3,7 +3,7 @@
 (defstruct http-reply
   :status u16
   :body string
-  :retry-after (option i64))
+  :retry-after (option int))
 
 (defn rate-limited? (reply)
   (or (= (:status reply) 429)

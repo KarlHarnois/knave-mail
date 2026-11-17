@@ -2,6 +2,6 @@
 
 (deftrait clock
   (now-milliseconds
-    (fn ((ref self)) i64))
+    (fn ((ref self)) int))
 
-  (pause! (fn ((ref self) i64) unit)))
+  (pause! (fn ((ref self) int) unit)))

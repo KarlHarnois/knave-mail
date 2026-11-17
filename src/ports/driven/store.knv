@@ -103,7 +103,7 @@
       (result (vec queued-relabel) mail-error)))
 
   (forget-queued!
-    (fn ((mut self) i64)
+    (fn ((mut self) int)
       (result unit mail-error)))
 
   (revert-queued!
@@ -112,4 +112,4 @@
 
   (queued-count
     (fn ((ref self) (ref str))
-      (result i64 mail-error))))
+      (result int mail-error))))

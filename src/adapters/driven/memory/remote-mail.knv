@@ -10,11 +10,11 @@
   :sent (vec outgoing)
   :latency-milliseconds u64
   :failing (option string)
-  :failures-left (option i64)
-  :throttle-delay (option i64)
-  :next-id i64
-  :history-id i64
-  :history-floor i64
+  :failures-left (option int)
+  :throttle-delay (option int)
+  :next-id int
+  :history-id int
+  :history-floor int
   :changes (vec remote-change))
 
 (type guard!
@@ -62,7 +62,7 @@
   (set! (:throttle-delay remote) none))
 
 (type fail-times!
-  (fn ((mut remote-mail) (ref str) i64)
+  (fn ((mut remote-mail) (ref str) int)
     unit))
 
 (defn fail-times! (remote operation times)
@@ -71,7 +71,7 @@
   (set! (:failures-left remote) (some times)))
 
 (type throttle-times!
-  (fn ((mut remote-mail) (ref str) i64 i64)
+  (fn ((mut remote-mail) (ref str) int int)
     unit))
 
 (defn throttle-times! (remote operation times delay)
@@ -87,7 +87,7 @@
     (none false)))
 
 (type sent-from
-  (fn ((ref outgoing) (ref str) (ref str) i64)
+  (fn ((ref outgoing) (ref str) (ref str) int)
     message))
 
 (defn sent-from (sent message-id thread-id date)

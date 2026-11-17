@@ -10,7 +10,7 @@
 (defstruct label-row
   :id string
   :name string
-  :unread i64)
+  :unread int)
 
 (def select-emails
   "SELECT email FROM accounts ORDER BY rowid")

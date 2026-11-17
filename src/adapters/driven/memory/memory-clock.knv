@@ -7,8 +7,8 @@
         pauses-of same-clock)
 
 (defstruct clock-state
-  :now i64
-  :pauses (vec i64))
+  :now int
+  :pauses (vec int))
 
 (defstruct memory-clock
   :state (shared clock-state))
@@ -35,7 +35,7 @@
   (->memory-clock :state (handle (ref (:state fake)))))
 
 (type pauses-of
-  (fn ((ref memory-clock)) (vec i64)))
+  (fn ((ref memory-clock)) (vec int)))
 
 (defn pauses-of (fake)
   (with-shared! (ref (:state fake))

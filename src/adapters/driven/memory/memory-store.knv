@@ -15,7 +15,7 @@
   :checkpoints (vec (pair string string))
   :pending-downloads (vec (pair string string))
   :queued (vec queued-relabel)
-  :next-queued-id i64)
+  :next-queued-id int)
 
 (defn empty-memory-store ()
   (->memory-store (vec)

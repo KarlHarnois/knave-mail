@@ -26,7 +26,7 @@
   list-labels
   (list-threads :scope label-scope
                 :query string
-                :limit i64
+                :limit int
                 :fresh bool)
   (show-thread :thread-id string :format string)
   (send :to (vec string) :cc (vec string) :subject string)

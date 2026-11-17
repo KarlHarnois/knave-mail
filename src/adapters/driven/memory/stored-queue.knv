@@ -5,7 +5,7 @@
 (export count-queued queued-changes-of without-queued)
 
 (type without-queued
-  (fn ((ref (vec queued-relabel)) i64)
+  (fn ((ref (vec queued-relabel)) int)
     (vec queued-relabel)))
 
 (defn without-queued (queued id)
@@ -15,7 +15,7 @@
 
 (type count-queued
   (fn ((ref (vec queued-relabel)) (ref str))
-    i64))
+    int))
 
 (defn count-queued (queued email)
   (as-count (len (collect (filter (iter queued)

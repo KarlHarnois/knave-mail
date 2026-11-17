@@ -10,7 +10,7 @@
   :token-url string
   :client-id string
   :client-secret string
-  :quota-units-per-second i64)
+  :quota-units-per-second int)
 
 (defstruct gmail-session
   :agent http-agent

@@ -32,7 +32,7 @@
         (extended replies fetched)))))
 
 (type units-of-gets
-  (fn ((ref (vec string))) i64))
+  (fn ((ref (vec string))) int))
 
 (defn units-of-gets (paths)
   (reduce (iter paths) 0

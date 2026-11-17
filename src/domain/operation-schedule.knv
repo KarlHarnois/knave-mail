@@ -4,11 +4,11 @@
 
 (defstruct scheduled
   :operation operation
-  :attempt i64
-  :not-before i64)
+  :attempt int
+  :not-before int)
 
 (type next-ready
-  (fn ((ref (vec scheduled)) i64)
+  (fn ((ref (vec scheduled)) int)
     (option usize)))
 
 (defn next-ready (waiting now)
@@ -39,8 +39,8 @@
   (match rank (interactive true) (background false)))
 
 (type wait-until-due
-  (fn ((ref (vec scheduled)) i64)
-    (option i64)))
+  (fn ((ref (vec scheduled)) int)
+    (option int)))
 
 (defn wait-until-due (waiting now)
   (reduce (iter waiting) none

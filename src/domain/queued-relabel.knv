@@ -5,7 +5,7 @@
         queued-relabel refusal)
 
 (defstruct queued-relabel
-  :id i64
+  :id int
   :account string
   :thread-id string
   :change label-change)

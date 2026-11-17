@@ -17,7 +17,7 @@
 
 (defstruct inline-queue
   :runner operation-runner
-  :patience (option i64))
+  :patience (option int))
 
 (defn new-inline-queue (provider clock log patience)
   (->inline-queue :runner (->operation-runner
@@ -34,7 +34,7 @@
                    (->scheduled :operation queued :attempt 1 :not-before 0)))))
 
 (type run-to-end!
-  (fn ((mut operation-runner) (option i64) scheduled)
+  (fn ((mut operation-runner) (option int) scheduled)
     (result operation-result mail-error)))
 
 (defn run-to-end! (runner patience entry)

@@ -49,7 +49,7 @@
   (fn ((mut operation-runner)
        (ref submission-inbox)
        (vec scheduled)
-       (vec (pair i64 submission)))
+       (vec (pair int submission)))
     unit))
 
 (defn executed! (runner inbox waiting replies)
@@ -78,9 +78,9 @@
   (fn ((mut operation-runner)
        (ref submission-inbox)
        (vec scheduled)
-       (vec (pair i64 submission)))
+       (vec (pair int submission)))
     (pair (vec scheduled)
-          (vec (pair i64 submission)))))
+          (vec (pair int submission)))))
 
 (defn with-arrivals! (runner inbox waiting replies)
   (match (next-arrival inbox (some 0))
@@ -96,9 +96,9 @@
   (fn ((mut operation-runner)
        submission
        (vec scheduled)
-       (vec (pair i64 submission)))
+       (vec (pair int submission)))
     (pair (vec scheduled)
-          (vec (pair i64 submission)))))
+          (vec (pair int submission)))))
 
 (defn admitted! (runner arrival waiting replies)
   (let (queued (new-operation! runner
@@ -113,10 +113,10 @@
 (type attempted!
   (fn ((mut operation-runner)
        (vec scheduled)
-       (vec (pair i64 submission))
-       usize i64)
+       (vec (pair int submission))
+       usize int)
     (pair (vec scheduled)
-          (vec (pair i64 submission)))))
+          (vec (pair int submission)))))
 
 (defn attempted! (runner waiting replies index now)
   (let (entry (clone (at waiting index)))

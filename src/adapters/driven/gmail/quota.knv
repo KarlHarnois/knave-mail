@@ -2,9 +2,9 @@
         take-units! units-for)
 
 (defstruct quota-bucket
-  :units-per-second i64
-  :available i64
-  :refilled-at i64)
+  :units-per-second int
+  :available int
+  :refilled-at int)
 
 (defn full-bucket (units-per-second)
   (->quota-bucket :units-per-second units-per-second
@@ -12,7 +12,7 @@
                   :refilled-at (wall-milliseconds)))
 
 (type take-units!
-  (fn ((mut quota-bucket) i64) unit))
+  (fn ((mut quota-bucket) int) unit))
 
 (defn take-units! (bucket units)
   (refill! bucket)
@@ -46,7 +46,7 @@
       (set! (:refilled-at bucket) now))))
 
 (type milliseconds-until
-  (fn ((ref quota-bucket) i64) i64))
+  (fn ((ref quota-bucket) int) int))
 
 (defn milliseconds-until (bucket units)
   (+ 1
@@ -54,7 +54,7 @@
         (:units-per-second bucket))))
 
 (type units-for
-  (fn ((ref str) (ref str)) i64))
+  (fn ((ref str) (ref str)) int))
 
 (defn units-for (method path)
   (cond
@@ -72,8 +72,8 @@
 
 (def wall-milliseconds
   (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as i64).unwrap_or(0)"
-    (fn () i64)))
+    (fn () int)))
 
 (def sleep-for
   (rust "std::thread::sleep(std::time::Duration::from_millis({0}.max(0) as u64))"
-    (fn (i64) unit)))
+    (fn (int) unit)))

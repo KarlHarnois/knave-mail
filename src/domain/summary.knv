@@ -43,7 +43,7 @@
 
 (def message-count
   (rust "{0}.messages.len() as i64"
-    (fn ((ref thread)) i64)))
+    (fn ((ref thread)) int)))
 
 (def distinct-senders
   (rust "{0}.iter().fold(Vec::<String>::new(), |mut {!names}, {!message}| {{ let {!name} = {!message}.from.split('<').next().unwrap_or(\"\").trim().trim_matches('\"').to_string(); let {!shown} = if {!name}.is_empty() {{ {!message}.from.clone() }} else {{ {!name} }}; if !{!names}.contains(&{!shown}) {{ {!names}.push({!shown}); }} {!names} }})"
@@ -59,7 +59,7 @@
 
 (type newer-first
   (fn ((ref thread-summary) (ref thread-summary))
-    i64))
+    int))
 
 (defn newer-first (left right)
   (comparison (:date right) (:date left)))
@@ -72,5 +72,5 @@
 
 (def first-few
   (rust "{0}.into_iter().take({1} as usize).collect::<Vec<_>>()"
-    (fn ((vec thread-summary) i64)
+    (fn ((vec thread-summary) int)
       (vec thread-summary))))

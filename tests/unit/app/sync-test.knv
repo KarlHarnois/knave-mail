@@ -41,7 +41,7 @@
                (vec (str "t-2") (str "t-1"))))))
 
 (def as-date
-  (rust "{0} as i64" (fn (usize) i64)))
+  (rust "{0} as i64" (fn (usize) int)))
 
 (defn busy-remote ()
   (remote-with (collect (map (range 0 (+ prefetch-limit 5))
