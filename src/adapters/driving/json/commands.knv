@@ -22,6 +22,7 @@
                                     success-reply)
 
 (use adapters/driving/json/page-command thread-page-command!)
+(use adapters/driving/json/archive-command archive-older-command!)
 
 (use adapters/json/value empty-object json-value parse-json
                          string-field)
@@ -89,6 +90,7 @@
        (ok (labels-json (ref labels)))))
     ("threads" (threads-listed! client arguments))
     ("thread-page" (thread-page-command! client arguments))
+    ("archive-older" (archive-older-command! client arguments))
     ("thread"
      (let (wanted (try (thread-argument arguments))
            opened (try (open-thread! client (ref wanted))))

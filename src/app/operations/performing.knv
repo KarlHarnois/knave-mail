@@ -6,6 +6,7 @@
 
 (use ports/driven/mailbox deliver! fetch-changes!
                           fetch-history-id! fetch-labels!
+                          fetch-message-page!
                           fetch-summaries! fetch-thread!
                           fetch-thread-ids!
                           fetch-thread-page! fetch-threads!
@@ -37,6 +38,11 @@
     ((fetch-thread-ids query)
      (map-ok (fetch-thread-ids! mailbox query)
        (fn (ids) (operation-result/ids-fetched ids))))
+    ((fetch-message-page request)
+     (map-ok (fetch-message-page! mailbox
+                                  (ref (:listing request))
+                                  (as-str (:page-token request)))
+             (fn (page) (operation-result/message-page-fetched page))))
     ((fetch-page request)
      (map-ok (fetch-thread-page! mailbox
                                  (ref (:listing request))

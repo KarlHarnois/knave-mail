@@ -2,8 +2,8 @@
 (use domain/delivery-tally delivery-count)
 (use ports/driven/event-log event-log log-info)
 
-(export log-batch-delivered! log-batch-queued!
-        log-batch-sent!)
+(export log-archived-older! log-batch-delivered!
+        log-batch-queued! log-batch-sent!)
 
 (def operations-area "operations")
 
@@ -13,6 +13,13 @@
                  " threads, " message-count
                  " messages in one request "
                  (labels-changed change))))
+
+(defn log-archived-older! (log account before threads messages requests)
+  (log-info log operations-area
+            (str "archive older " account ": " threads
+                 " inbox threads before " before ", "
+                 messages " messages in " requests
+                 " requests")))
 
 (defn log-batch-queued! (log account name change thread-ids)
   (log-info log operations-area

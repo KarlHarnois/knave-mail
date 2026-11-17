@@ -47,6 +47,7 @@
     ((fetch-threads _) (read-policy "fetch threads"))
     ((fetch-thread-ids _) (read-policy "fetch thread ids"))
     ((fetch-page _) (read-policy "fetch page"))
+    ((fetch-message-page _) (read-policy "fetch message page"))
     ((fetch-summaries _) (read-policy "fetch summaries"))
     ((fetch-thread _) (read-policy "fetch thread"))
     (fetch-history-id (read-policy "fetch history id"))

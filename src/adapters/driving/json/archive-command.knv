@@ -1,0 +1,33 @@
+(use adapters/driving/json/arguments account-argument
+                                     text-argument)
+
+(use adapters/json/value json-value)
+(use domain/mail-error mail-error)
+(use ports/driving/mail-labeler archive-older! mail-labeler)
+
+(export archive-older-command!)
+
+(type archive-older-command!
+  (where ((client mail-labeler))
+    (fn ((mut client) (ref json-value))
+      (result json-value mail-error))))
+
+(defn archive-older-command! (client arguments)
+  (let (account (try (account-argument arguments))
+        before (try (gmail-date-argument arguments)))
+    (ok (archived-json (try
+                         (archive-older! client (ref account) (ref before)))))))
+
+(defn gmail-date-argument (arguments)
+  (let (written (try (text-argument arguments "before")))
+    (ok-or (gmail-date (as-str written))
+           (mail-error/usage (str "expected a date like 2026/10/01 in `before`, not "
+                                  written)))))
+
+(def gmail-date
+  (rust "{{ let {!parts}: Vec<&str> = {0}.trim().split(|{!c}| {!c} == '/' || {!c} == '-').collect(); match {!parts}.as_slice() {{ [{!year}, {!month}, {!day}] if {!year}.len() == 4 && {!month}.len() <= 2 && {!day}.len() <= 2 && [{!year}, {!month}, {!day}].iter().all(|{!part}| !{!part}.is_empty() && {!part}.chars().all(|{!c}| {!c}.is_ascii_digit())) => Some(format!(\"{{}}/{{:0>2}}/{{:0>2}}\", {!year}, {!month}, {!day})), _ => None }} }}"
+    (fn ((ref str)) (option string))))
+
+(def archived-json
+  (rust "serde_json::json!({{\"archived\": {0}}})"
+    (fn (int) json-value)))

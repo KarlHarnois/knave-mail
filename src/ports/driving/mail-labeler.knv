@@ -16,6 +16,10 @@
     (fn ((mut self))
       (result (vec delivery-step) mail-error)))
 
+  (archive-older!
+    (fn ((mut self) (ref str) (ref str))
+      (result int mail-error)))
+
   (waiting-changes
     (fn ((ref self) (ref str))
       (result int mail-error))))

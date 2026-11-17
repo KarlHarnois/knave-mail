@@ -1,3 +1,4 @@
+(use app/archiving-older archived-older!)
 (use app/delivering deliver-next!)
 (use app/mail-app mail-app)
 (use app/writing relabel-each!)
@@ -9,6 +10,9 @@
     (relabel-each! app account thread-ids change))
 
   (deliver-next-change! (app) (deliver-next! app))
+
+  (archive-older! (app account before)
+    (archived-older! app account before))
 
   (waiting-changes (app account)
     (queued-count (ref (:store app)) account)))

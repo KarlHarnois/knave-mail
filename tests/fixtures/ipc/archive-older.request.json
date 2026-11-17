@@ -1,0 +1,8 @@
+{
+  "id": 1,
+  "command": "archive-older",
+  "args": {
+    "account": "ada@example.com",
+    "before": "2026/10/01"
+  }
+}

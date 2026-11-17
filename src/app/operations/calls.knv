@@ -3,8 +3,8 @@
 (use domain/history mail-changes)
 (use domain/labels label-change)
 
-(use domain/mail label outgoing thread thread-page
-                 thread-query thread-summary)
+(use domain/mail label message-page outgoing thread
+                 thread-page thread-query thread-summary)
 
 (use domain/mail-error mail-error)
 
@@ -12,7 +12,8 @@
                       operation-kind operation-result)
 
 (export delivered! fetched-changes! fetched-history-id!
-        fetched-labels! fetched-summaries! fetched-thread!
+        fetched-labels! fetched-message-page!
+        fetched-summaries! fetched-thread!
         fetched-thread-ids! fetched-thread-page!
         fetched-threads! run-operation! unexpected)
 
@@ -63,6 +64,21 @@
                                                 :page-token (str page-token)))))
     ((page-fetched page) (ok page))
     (_ (unexpected "fetch page"))))
+
+(type fetched-message-page!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref thread-query)
+       (ref str))
+    (result message-page mail-error)))
+
+(defn fetched-message-page! (app account query page-token)
+  (match (try (run-operation! app account
+                              (operation-kind/fetch-message-page
+                                (->page-request :listing (clone query)
+                                                :page-token (str page-token)))))
+    ((message-page-fetched page) (ok page))
+    (_ (unexpected "fetch message page"))))
 
 (type fetched-summaries!
   (fn ((mut mail-app)

@@ -30,6 +30,7 @@
 
 (defn listing-request? (command request)
   (or (= command "thread-page")
+      (= command "archive-older")
       (and (= command "threads")
            (gmail-listing? (ref (request-arguments request))))))
 

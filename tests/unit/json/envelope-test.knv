@@ -37,3 +37,7 @@
 (deftest reads-the-command-of-a-request
   (assert (= (request-command "{\"command\":\"sync\"}")
              (some (str "sync")))))
+
+(deftest reports-an-unreadable-date-as-a-usage-error
+  (assert (= (answered "{\"id\":15,\"command\":\"archive-older\",\"args\":{\"account\":\"ada@example.com\",\"before\":\"last week\"}}")
+             "{\"error\":{\"kind\":\"usage\",\"message\":\"expected a date like 2026/10/01 in `before`, not last week\"},\"id\":15}")))

@@ -1,8 +1,13 @@
 (use adapters/driven/gmail/mailbox gmail-mailbox)
-(use ports/driven/mailbox fetch-labels! fetch-threads!)
+(use domain/label-scope label-scope)
+(use domain/mail ->thread-query)
+
+(use ports/driven/mailbox fetch-labels! fetch-message-page!
+                          fetch-threads!)
+
 (use support/fake-gmail start-fake-gmail)
 (use support/gmail-requests inbox)
-(use support/gmail-world fixture-routes gmail-over)
+(use support/gmail-world fixture-routes gmail-over route)
 
 (deftest keeps-the-message-ids-of-each-summary
   (let (server (start-fake-gmail (ref (fixture-routes)))
@@ -19,3 +24,23 @@
               (fn (label)
                 (and (= (:id label) "INBOX")
                      (= (:total label) 5)))))))
+
+(deftest searches-messages-and-keeps-each-thread-once
+  (let (server (start-fake-gmail (ref (routes-with (route "GET /gmail/v1/users/me/messages?maxResults=500&labelIds=INBOX&q=before%3A2026%2F10%2F01"
+                                                          "200 tests/fixtures/gmail/messages-older.json"))))
+        gmail (gmail-over (ref server))
+        page (unwrap-ok (fetch-message-page! (mut gmail)
+                                             (ref (->thread-query
+                                                    (label-scope/only (str "INBOX"))
+                                                    (str "before:2026/10/01")
+                                                    500))
+                                             "")))
+    (assert (= (:thread-ids page)
+               (vec (str "t1") (str "t2"))))
+    (assert (= (len (:message-ids page)) 3))
+    (assert (= (:next-token page) "next-page"))))
+
+(defn routes-with (extra)
+  (let (routes (fixture-routes))
+    (push! (mut routes) extra)
+    routes))

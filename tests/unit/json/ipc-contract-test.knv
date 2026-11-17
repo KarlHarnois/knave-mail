@@ -108,3 +108,6 @@
                             (ref (unwrap-ok (parse-json (as-str (recorded "log.request"))))))
     (assert (mentions? (ref (logged-lines (ref log)))
                        "frontend thread-page: throttled: Gmail is rate limiting this account"))))
+
+(deftest answers-an-archive-of-older-mail-as-recorded
+  (assert (answers-as-recorded? "archive-older")))

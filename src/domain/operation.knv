@@ -1,8 +1,8 @@
 (use domain/history mail-changes)
 (use domain/labels label-change)
 
-(use domain/mail label outgoing thread thread-page
-                 thread-query thread-summary)
+(use domain/mail label message-page outgoing thread
+                 thread-page thread-query thread-summary)
 
 (export ->message-batch ->operation ->page-request
         ->relabel-work message-batch operation
@@ -28,6 +28,7 @@
   (fetch-threads thread-query)
   (fetch-thread-ids thread-query)
   (fetch-page page-request)
+  (fetch-message-page page-request)
   (fetch-summaries (vec string))
   (fetch-thread string)
   fetch-history-id
@@ -52,6 +53,7 @@
   (summaries-fetched (vec thread-summary))
   (ids-fetched (vec string))
   (page-fetched thread-page)
+  (message-page-fetched message-page)
   (thread-fetched thread)
   (history-id-fetched string)
   (history-fetched mail-changes)

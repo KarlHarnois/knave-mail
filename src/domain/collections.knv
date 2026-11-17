@@ -1,5 +1,5 @@
-(export appended appended-once as-count concatenated one-of?
-        owned-items try-for-each)
+(export appended appended-once as-count concatenated
+        in-chunks one-of? owned-items try-for-each)
 
 (defn one-of? (word words)
   (any? (iter words)
@@ -23,6 +23,12 @@
   (rust "{{ let mut {!all} = {0}; {!all}.extend({1}); {!all} }}"
     (where (item)
       (fn ((vec item) (vec item)) (vec item)))))
+
+(def in-chunks
+  (rust "{0}.chunks({1}.max(1)).map(<[_]>::to_vec).collect::<Vec<_>>()"
+    (where (item)
+      (fn ((ref (vec item)) usize)
+        (vec (vec item))))))
 
 (def owned-items
   (rust "{0}.into_iter()"

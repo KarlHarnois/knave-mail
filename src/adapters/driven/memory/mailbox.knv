@@ -15,6 +15,7 @@
                                            summaries-with-ids
                                            thread-position)
 
+(use adapters/driven/memory/remote-messages messages-matching)
 (use adapters/driven/memory/shared shared with-shared!)
 (use domain/labels label-change label-id system-label)
 (use domain/mail ->thread message outgoing thread)
@@ -51,6 +52,12 @@
       (fn (remote)
         (try (guard! remote "list-thread-ids"))
         (ok (matching-page remote query page-token)))))
+
+  (fetch-message-page! (box query _page-token)
+    (with-shared! (ref (:remote box))
+      (fn (remote)
+        (try (guard! remote "list-thread-ids"))
+        (ok (messages-matching remote query)))))
 
   (fetch-summaries! (box ids)
     (with-shared! (ref (:remote box))

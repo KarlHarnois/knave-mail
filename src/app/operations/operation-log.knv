@@ -107,6 +107,8 @@
     ((fetch-threads query) (listing-of query))
     ((fetch-thread-ids query) (listing-of query))
     ((fetch-page request) (listing-of (ref (:listing request))))
+    ((fetch-message-page request)
+     (str "messages matching " (:query (:listing request))))
     ((fetch-summaries ids) (str (len ids) " threads"))
     ((fetch-thread thread-id) (str "thread " thread-id))
     ((fetch-history since) (str "since history " since))

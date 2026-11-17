@@ -1,0 +1,37 @@
+(use app/client/mail-labeler)
+(use app/client/mail-syncer)
+(use ports/driving/mail-labeler archive-older!)
+
+(use support/app-steps inbox-query listed-ids! remote-thread
+                       synced!)
+
+(use support/memory-world app-over remote-with sample-thread
+                          world-account)
+
+(def september-21 1790000000000)
+
+(def november-18 1795000000000)
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-old" (vec "INBOX") september-21)
+                    (sample-thread "t-new" (vec "INBOX") november-18)
+                    (sample-thread "t-filed" (vec "Receipts") september-21))))
+
+(deftest archiving-older-mail-archives-inbox-threads-before-the-date
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (assert (= (unwrap-ok (archive-older! (mut app) world-account "2026/10/01"))
+               1))
+    (assert (empty? (:labels (remote-thread (ref world) "t-old"))))
+    (assert (= (:labels (remote-thread (ref world) "t-new"))
+               (vec (str "INBOX"))))))
+
+(deftest archiving-older-mail-updates-the-cached-inbox
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (unwrap-ok (archive-older! (mut app) world-account "2026/10/01"))
+    (assert (= (listed-ids! (mut app)
+                            (ref (inbox-query)))
+               (vec (str "t-new"))))))

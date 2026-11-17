@@ -10,6 +10,7 @@
 (use adapters/driven/gmail/requests batch-modify-body
                                     batch-modify-path
                                     label-path labels-path
+                                    message-page-path
                                     message-path modify-body
                                     modify-path send-body
                                     send-path
@@ -25,6 +26,7 @@
                                    api-post!)
 
 (use adapters/driven/gmail/session-state gmail-session)
+(use adapters/driven/gmail/message-page message-page-from)
 
 (use domain/mail ->thread ->thread-page message thread
                  thread-page thread-query thread-summary)
@@ -59,6 +61,11 @@
 
   (fetch-thread-page! (box query page-token)
     (listed-thread-page! (mut (:session box)) query page-token))
+
+  (fetch-message-page! (box query page-token)
+    (ok (message-page-from
+          (ref (try (api-get! (mut (:session box))
+                              (ref (message-page-path query page-token))))))))
 
   (fetch-summaries! (box ids)
     (summaries-of! (mut (:session box)) ids))

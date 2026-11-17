@@ -4,9 +4,10 @@
 (use adapters/url url-encoded)
 
 (export batch-modify-body batch-modify-path label-path
-        labels-path message-path modify-body modify-path
-        send-body send-path thread-list-path
-        thread-metadata-path thread-page-path thread-path)
+        labels-path message-page-path message-path
+        modify-body modify-path send-body send-path
+        thread-list-path thread-metadata-path
+        thread-page-path thread-path)
 
 (def users-me "/gmail/v1/users/me")
 
@@ -30,6 +31,15 @@
   (match (label-of scope)
     ((some label) (str "&labelIds=" (url-encoded (ref label))))
     (none (str ""))))
+
+(defn message-page-path (query page-token)
+  (str users-me "/messages?maxResults="
+       (:limit query)
+       (label-filter (ref (:scope query)))
+       (str "&q=" (url-encoded (:query query)))
+       (if (empty? page-token)
+         (str "")
+         (str "&pageToken=" (url-encoded page-token)))))
 
 (defn thread-page-path (query page-token)
   (str (thread-list-path query)
