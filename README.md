@@ -42,4 +42,4 @@ The log is at `~/.local/state/knave-mail/knave-mail.log` and holds no tokens or 
 
 ## Develop
 
-Run `knave task ci` for every check. The code follows a ports and adapters design under `src/`. Rust too long for an inline `rust` template lives in the [native](native) crate. The frontend in `frontend/` talks to the core in the messages that [frontend/src/bridge/Protocol.ts](frontend/src/bridge/Protocol.ts) types. Both sides test against the recorded messages in [tests/fixtures/ipc](tests/fixtures/ipc).
+Run `knave task ci` for every check. The code follows a ports and adapters design under `src/`. Rust too long for an inline `rust` template lives in the [native](native) crate. The fake servers for tests live in [native/testing](native/testing). The frontend in `frontend/` talks to the core in the messages that [frontend/src/bridge/Protocol.ts](frontend/src/bridge/Protocol.ts) types. Both sides test against the recorded messages in [tests/fixtures/ipc](tests/fixtures/ipc).

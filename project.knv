@@ -9,4 +9,5 @@
     (base64 "0.23.1")
     (sha2 "0.11.1")
     (rand "0.10.3")
-    (native :path "native")))
+    (native :path "native"))
+  (dev-dependencies (native-testing :path "native/testing")))
