@@ -1,7 +1,7 @@
 (export sexp-tokens string-token? token-text)
 
 (def sexp-tokens
-  (rust "{{ let mut {!tokens} = Vec::<String>::new(); let mut {!chars} = {0}.chars().peekable(); while let Some({!c}) = {!chars}.next() {{ match {!c} {{ '(' | ')' => {!tokens}.push({!c}.to_string()), ';' => {{ for {!n} in {!chars}.by_ref() {{ if {!n} == '\\n' {{ break; }} }} }} '\"' => {{ let mut {!s} = String::from(\"\\\"\"); for {!n} in {!chars}.by_ref() {{ if {!n} == '\"' {{ break; }} {!s}.push({!n}); }} {!tokens}.push({!s}); }} {!w} if {!w}.is_whitespace() => {{}} {!other} => {{ let mut {!atom} = {!other}.to_string(); while let Some(&{!n}) = {!chars}.peek() {{ if {!n}.is_whitespace() || {!n} == '(' || {!n} == ')' {{ break; }} {!atom}.push({!n}); {!chars}.next(); }} {!tokens}.push({!atom}); }} }} }} {!tokens} }}"
+  (rust "native::text::sexp_tokens({0})"
     (fn ((ref str)) (vec string))))
 
 (defn string-token? (token) (starts-with? token "\""))

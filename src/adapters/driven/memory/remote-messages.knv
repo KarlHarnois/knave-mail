@@ -51,5 +51,5 @@
                           :next-token (str ""))))))
 
 (def before-cutoff
-  (rust "{0}.split_whitespace().find_map(|{!term}| {!term}.strip_prefix(\"before:\")).and_then(|{!date}| {{ let {!parts}: Vec<i64> = {!date}.split(|{!c}| {!c} == '/' || {!c} == '-').filter_map(|{!part}| {!part}.parse().ok()).collect(); let (&{!year}, &{!month}, &{!day}) = ({!parts}.first()?, {!parts}.get(1)?, {!parts}.get(2)?); let {!march_year} = if {!month} <= 2 {{ {!year} - 1 }} else {{ {!year} }}; let {!era} = {!march_year}.div_euclid(400); let {!year_of_era} = {!march_year} - {!era} * 400; let {!day_of_year} = (153 * ({!month} + if {!month} > 2 {{ -3 }} else {{ 9 }}) + 2) / 5 + {!day} - 1; let {!day_of_era} = {!year_of_era} * 365 + {!year_of_era} / 4 - {!year_of_era} / 100 + {!day_of_year}; Some(({!era} * 146097 + {!day_of_era} - 719468) * 86_400_000) }})"
+  (rust "native::dates::before_cutoff({0})"
     (fn ((ref str)) (option int))))

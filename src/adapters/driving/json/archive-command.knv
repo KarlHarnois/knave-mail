@@ -25,7 +25,7 @@
                                   written)))))
 
 (def gmail-date
-  (rust "{{ let {!parts}: Vec<&str> = {0}.trim().split(|{!c}| {!c} == '/' || {!c} == '-').collect(); match {!parts}.as_slice() {{ [{!year}, {!month}, {!day}] if {!year}.len() == 4 && {!month}.len() <= 2 && {!day}.len() <= 2 && [{!year}, {!month}, {!day}].iter().all(|{!part}| !{!part}.is_empty() && {!part}.chars().all(|{!c}| {!c}.is_ascii_digit())) => Some(format!(\"{{}}/{{:0>2}}/{{:0>2}}\", {!year}, {!month}, {!day})), _ => None }} }}"
+  (rust "native::dates::gmail_date({0})"
     (fn ((ref str)) (option string))))
 
 (def archived-json

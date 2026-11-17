@@ -20,7 +20,7 @@
         (none window-claim/unguarded)))))
 
 (def socket-path-for
-  (rust "{{ use sha2::Digest; let {!folder} = std::env::var_os(\"XDG_RUNTIME_DIR\").map(std::path::PathBuf::from).unwrap_or_else(std::env::temp_dir); let {!digest} = sha2::Sha256::digest({0}.as_bytes()); let {!short}: String = {!digest}.iter().take(8).map(|{!byte}| format!(\"{{:02x}}\", {!byte})).collect(); {!folder}.join(format!(\"knave-mail-{{}}.sock\", {!short})).to_string_lossy().into_owned() }}"
+  (rust "native::single_window::socket_path_for({0})"
     (fn ((ref str)) string)))
 
 (def asked-open-window-forward?
@@ -32,5 +32,5 @@
     (fn ((ref str)) (option window-socket))))
 
 (def forward-launches!
-  (rust "{{ let {!socket} = {0}; let {!outbox} = {1}.clone(); std::thread::spawn(move || for {!stream} in {!socket}.incoming() {{ let Ok(mut {!stream}) = {!stream} else {{ continue }}; let mut {!asked} = String::new(); use std::io::Read; let _ = {!stream}.read_to_string(&mut {!asked}); if {!asked}.trim() == \"focus\" {{ drop({!outbox}.send_event(String::from(\"\\u{{1}}focus\"))); }} }}); }}"
+  (rust "native::single_window::forward_launches({0}, {1})"
     (fn (window-socket (ref reply-outbox)) unit)))

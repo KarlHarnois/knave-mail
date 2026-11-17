@@ -9,5 +9,5 @@
     (fn ((ref str) (ref str)) string)))
 
 (def percent-decoded
-  (rust "{{ let {!bytes} = {0}.as_bytes(); let {!hex} = |{!digit}: u8| ({!digit} as char).to_digit(16).map(|{!value}| {!value} as u8); let mut {!decoded} = Vec::with_capacity({!bytes}.len()); let mut {!index} = 0; while {!index} < {!bytes}.len() {{ let {!escaped} = match {!bytes}.get({!index}..{!index} + 3) {{ Some([b'%', {!high}, {!low}]) => {!hex}(*{!high}).zip({!hex}(*{!low})).map(|({!high}, {!low})| {!high} * 16 + {!low}), _ => None }}; match {!escaped} {{ Some({!byte}) => {{ {!decoded}.push({!byte}); {!index} += 3; }} None => {{ {!decoded}.push({!bytes}[{!index}]); {!index} += 1; }} }} }} String::from_utf8_lossy(&{!decoded}).into_owned() }}"
+  (rust "native::text::percent_decoded({0})"
     (fn ((ref str)) string)))

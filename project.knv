@@ -1,14 +1,12 @@
 (defproject knave-mail
   (dependencies
-    (wry "0.57.2")
     (tao "0.37.2")
     (serde_json "1.0.154")
     (rusqlite "0.42.0" :features ("bundled"))
     (keyring "3.6.3"
              :features ("sync-secret-service" "crypto-rust"))
     (ureq "3.5.1")
-    (mail-parser "0.11.9")
-    (mail-builder "2.0.1")
     (base64 "0.23.1")
     (sha2 "0.11.1")
-    (rand "0.10.3")))
+    (rand "0.10.3")
+    (native :path "native")))

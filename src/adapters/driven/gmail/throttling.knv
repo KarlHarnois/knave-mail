@@ -53,7 +53,7 @@
     (fn ((ref str)) string)))
 
 (def utc-milliseconds-after
-  (rust "{0}.find({1}).and_then(|{!at}| {{ let {!stamp} = &{0}[{!at} + {1}.len()..]; let {!field} = |{!from}: usize, {!to}: usize| {!stamp}.get({!from}..{!to}).and_then(|{!digits}| {!digits}.parse::<i64>().ok()); let ({!year}, {!month}, {!day}) = ({!field}(0, 4)?, {!field}(5, 7)?, {!field}(8, 10)?); let ({!hour}, {!minute}, {!second}) = ({!field}(11, 13)?, {!field}(14, 16)?, {!field}(17, 19)?); let {!fraction} = if {!stamp}.get(19..20) == Some(\".\") {{ {!field}(20, 23).unwrap_or(0) }} else {{ 0 }}; let {!march_year} = if {!month} <= 2 {{ {!year} - 1 }} else {{ {!year} }}; let {!era} = {!march_year}.div_euclid(400); let {!year_of_era} = {!march_year} - {!era} * 400; let {!day_of_year} = (153 * ({!month} + if {!month} > 2 {{ -3 }} else {{ 9 }}) + 2) / 5 + {!day} - 1; let {!day_of_era} = {!year_of_era} * 365 + {!year_of_era} / 4 - {!year_of_era} / 100 + {!day_of_year}; let {!days} = {!era} * 146097 + {!day_of_era} - 719468; Some(((({!days} * 24 + {!hour}) * 60 + {!minute}) * 60 + {!second}) * 1000 + {!fraction}) }})"
+  (rust "native::dates::utc_milliseconds_after({0}, {1})"
     (fn ((ref str) (ref str)) (option int))))
 
 (def now-milliseconds

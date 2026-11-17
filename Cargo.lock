@@ -1564,15 +1564,14 @@ version = "0.1.0"
 dependencies = [
  "base64",
  "keyring",
- "mail-builder",
- "mail-parser",
+ "native",
+ "native-testing",
  "rand 0.10.3",
  "rusqlite",
  "serde_json",
  "sha2 0.11.1",
  "tao",
  "ureq",
- "wry",
 ]
 
 [[package]]
@@ -1691,6 +1690,30 @@ checksum = "b63fbc4a50860e98e7b2aa7804ded1db5cbc3aff9193adaff57a6931bf7c4b4c"
 dependencies = [
  "adler2",
  "simd-adler32",
+]
+
+[[package]]
+name = "native"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "mail-builder",
+ "mail-parser",
+ "serde_json",
+ "sha2 0.11.1",
+ "tao",
+ "ureq",
+ "wry",
+]
+
+[[package]]
+name = "native-testing"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "rand 0.10.3",
+ "serde_json",
+ "ureq",
 ]
 
 [[package]]

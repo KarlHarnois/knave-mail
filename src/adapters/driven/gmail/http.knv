@@ -36,7 +36,7 @@
 (defn first-reply (outcome) (then-ok outcome reply-from))
 
 (def reply-from
-  (rust "{{ let mut {!response} = {0}; let {!status} = {!response}.status().as_u16(); let {!retry_after} = {!response}.headers().get(\"retry-after\").and_then(|{!value}| {!value}.to_str().ok()).and_then(|{!seconds}| {!seconds}.trim().parse::<i64>().ok()).map(|{!seconds}| {!seconds} * 1000); {!response}.body_mut().with_config().limit(64 * 1024 * 1024).read_to_string().map(|{!body}| crate::adapters::driven::gmail::http_reply::HttpReply {{ status: {!status}, body: {!body}, retry_after: {!retry_after} }}).map_err(|{!error}| format!(\"the answer was cut short: {{}}\", {!error})) }}"
+  (rust "native::http_reply::reply_from({0}).map(|{!reply}| crate::adapters::driven::gmail::http_reply::HttpReply {{ status: {!reply}.status, body: {!reply}.body, retry_after: {!reply}.retry_after }})"
     (fn (http-response) (result http-reply string))))
 
 (def batch-size 8)
@@ -47,7 +47,7 @@
       (http-get agent (as-str url) token))))
 
 (def in-batches
-  (rust "{{ let ({!urls}, {!size}, {!fetch}) = ({0}, {1}, &{2}); let mut {!replies} = Vec::with_capacity({!urls}.len()); for {!batch} in {!urls}.chunks({!size}) {{ std::thread::scope(|{!scope}| {{ let {!handles}: Vec<_> = {!batch}.iter().map(|{!url}| {!scope}.spawn(move || {!fetch}({!url}))).collect(); for {!handle} in {!handles} {{ {!replies}.push({!handle}.join().unwrap_or_else(|_| Err(String::from(\"a request thread panicked\")))); }} }}); }} {!replies} }}"
+  (rust "native::batches::in_batches({0}, {1}, {2})"
     (fn ((ref (vec string))
          usize
          (fn ((ref string))

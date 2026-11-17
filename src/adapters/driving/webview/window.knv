@@ -17,50 +17,7 @@
     (fn ((ref reply-outbox) string) unit)))
 
 (def open-window
-  (rust "{{
-    use tao::platform::unix::WindowExtUnix;
-    use wry::WebViewBuilderExtUnix;
-    let {!event_loop} = tao::event_loop::EventLoopBuilder::<String>::with_user_event().build();
-    let {!outbox} = {!event_loop}.create_proxy();
-    let ({!sender}, {!inbox}) = std::sync::mpsc::channel::<String>();
-    let {!worker} = {3};
-    std::thread::spawn(move || {!worker}({!inbox}, {!outbox}));
-    let {!startup_script} = {1}.to_string();
-    let {!theme_css} = {2}.to_string();
-    let {!window} = tao::window::WindowBuilder::new()
-      .with_title({0})
-      .with_inner_size(tao::dpi::LogicalSize::new(1100.0, 760.0))
-      .build(&{!event_loop})
-      .expect(\"the window opens\");
-    let {!webview} = wry::WebViewBuilder::new()
-      .with_custom_protocol(\"knave\".into(), move |_, {!request}| {{
-        let ({!body}, {!kind}): (std::borrow::Cow<'static, [u8]>, &str) = match {!request}.uri().path() {{
-          \"/theme.css\" => (std::borrow::Cow::Owned({!theme_css}.clone().into_bytes()), \"text/css; charset=utf-8\"),
-          \"/darkreader.js\" => (std::borrow::Cow::Borrowed(include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../../../frontend/dist/darkreader.js\"))), \"text/javascript; charset=utf-8\"),
-          \"/app.js\" => (std::borrow::Cow::Borrowed(include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../../../frontend/dist/app.js\"))), \"text/javascript; charset=utf-8\"),
-          \"/app.css\" => (std::borrow::Cow::Borrowed(include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../../../frontend/dist/app.css\"))), \"text/css; charset=utf-8\"),
-          _ => (std::borrow::Cow::Borrowed(include_bytes!(concat!(env!(\"CARGO_MANIFEST_DIR\"), \"/../../../frontend/dist/index.html\"))), \"text/html; charset=utf-8\"),
-        }};
-        wry::http::Response::builder()
-          .header(\"Content-Type\", {!kind})
-          .body({!body})
-          .expect(\"an asset response\")
-      }})
-      .with_clipboard(true)
-      .with_initialization_script(&{!startup_script})
-      .with_ipc_handler(move |{!request}| drop({!sender}.send({!request}.into_body())))
-      .with_url(\"knave://localhost/\")
-      .build_gtk({!window}.default_vbox().expect(\"the window has a box\"))
-      .expect(\"the webview opens\");
-    {!event_loop}.run(move |{!event}, _, {!control_flow}| {{
-      *{!control_flow} = tao::event_loop::ControlFlow::Wait;
-      match {!event} {{
-        tao::event::Event::UserEvent({!reply}) => if let Some({!code}) = {!reply}.strip_prefix(\"\\u{{1}}exit \") {{ *{!control_flow} = tao::event_loop::ControlFlow::ExitWithCode({!code}.parse().unwrap_or(1)) }} else if let Some({!level}) = {!reply}.strip_prefix(\"\\u{{1}}zoom \") {{ drop({!webview}.zoom({!level}.parse().unwrap_or(1.0))) }} else if {!reply} == \"\\u{{1}}focus\" {{ {!window}.set_focus() }} else {{ drop({!webview}.evaluate_script(&format!(\"window.knaveBridge.receive({{}})\", {!reply}))) }},
-        tao::event::Event::WindowEvent {{ event: tao::event::WindowEvent::CloseRequested, .. }} => *{!control_flow} = tao::event_loop::ControlFlow::Exit,
-        _ => {{}}
-      }}
-    }})
-  }}"
+  (rust "native::window::open_window({0}, {1}, {2}, {3})"
     (fn ((ref str)
          (ref str)
          (ref str)

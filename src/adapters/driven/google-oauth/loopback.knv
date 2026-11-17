@@ -21,7 +21,7 @@
     (fn (u64) sign-in-deadline)))
 
 (def next-connection
-  (rust "loop {{ match {0}.accept() {{ Ok(({!stream}, _)) => break {!stream}.set_nonblocking(false).and_then(|_| {!stream}.set_read_timeout(Some(std::time::Duration::from_secs(10)))).map(|_| {!stream}).map_err(|{!error}| {!error}.to_string()), Err({!error}) if {!error}.kind() != std::io::ErrorKind::WouldBlock => break Err({!error}.to_string()), Err(_) if std::time::Instant::now() >= *{1} => break Err(String::from(\"the browser did not answer in time\")), Err(_) => std::thread::sleep(std::time::Duration::from_millis(20)) }} }}"
+  (rust "native::loopback::next_connection({0}, {1})"
     (fn ((ref loopback-listener) (ref sign-in-deadline))
       (result browser-connection string))))
 
@@ -30,7 +30,7 @@
     (fn ((ref browser-connection)) string)))
 
 (def answer-browser!
-  (rust "{{ use std::io::Write; let mut {!stream}: &std::net::TcpStream = {0}; let {!page} = {2}; let _ = write!({!stream}, \"HTTP/1.1 {{}}\\r\\nContent-Type: text/html; charset=utf-8\\r\\nContent-Length: {{}}\\r\\nConnection: close\\r\\n\\r\\n{{}}\", {1}, {!page}.len(), {!page}); let _ = {!stream}.shutdown(std::net::Shutdown::Both); }}"
+  (rust "native::loopback::answer_browser({0}, {1}, {2})"
     (fn ((ref browser-connection)
          (ref str)
          (ref str))
