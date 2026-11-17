@@ -1,0 +1,31 @@
+(use adapters/driving/cli/command cli-command)
+(use adapters/driving/cli/exit-codes exit-code)
+
+(use adapters/driving/cli/runner ->cli-request
+                                 run-cli-command!)
+
+(use domain/mail-error error-message mail-error)
+(use support/app-steps fail-remote! synced!)
+
+(use support/memory-world app-over remote-with sample-thread
+                          world-account)
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-1" (vec "INBOX") 1700000000000))))
+
+(deftest an-archive-that-cannot-reach-gmail-says-it-still-waits
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (fail-remote! (ref world) "relabel")
+    (let (outcome (run-cli-command! (mut app)
+                                    (ref (->cli-request (cli-command/relabel
+                                                          (str "archive")
+                                                          (vec (str "t-1")))
+                                                        (str world-account)
+                                                        (str "")
+                                                        false))))
+      (let (failure (unwrap-err outcome))
+        (assert (= (exit-code (ref failure)) 4))
+        (assert (= (error-message (ref failure))
+                   "1 label change still waits for Gmail; the window sends them when it next opens"))))))

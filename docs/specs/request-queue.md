@@ -184,21 +184,16 @@ WARN  operations #43 relabel ada@example.com: gave up after 1 attempt: not-found
 
 ### 7. Durable operations
 
-- **Accepting a change.** The window's relabel request runs one store transaction: apply the change to the cached summaries and threads, then insert one `operations` row per thread. The request answers once that commits, and calls `enqueue!`. Relabel requests no longer go to a worker thread.
-- **Table:** `operations (id INTEGER PRIMARY KEY, account TEXT, kind TEXT, payload TEXT, attempts INTEGER, not_before INTEGER, created_at INTEGER)`. `payload` is the kind's data as JSON.
-- **Methods on `store`:**
-  - `queue-operations!`, which applies the local effects and writes the rows;
-  - `load-queued-operations`;
-  - `postpone-queued!`;
-  - `forget-queued!`;
-  - `revert-queued!`;
-  - `queued-count`.
-
-  These go on `store` because the local effect and the row share one transaction, and because splitting the trait is blocked by the supertrait limitation.
-- **Success** deletes the row.
-- **A retry** updates `attempts` and `not_before`.
-- **Giving up** reverts the local effect and deletes the row in one transaction. It then sends an `operation-failed` event.
-- **Recovery:** the executor loads the leftover rows when it starts.
+- **Accepting a change.** The window answers a label command itself. One store transaction applies the change to the cached summaries and threads and inserts one `queued_relabels` row per thread, then the window wakes the delivery thread and sends a `queue` event with the account's count.
+- **Table:** `queued_relabels (id INTEGER PRIMARY KEY AUTOINCREMENT, account TEXT, thread_id TEXT, added TEXT, removed TEXT)`, with the label ids as JSON arrays.
+- **Methods on `store`:** `queue-relabels!`, `load-queued`, `forget-queued!`, `revert-queued!` and `queued-count`. They go on `store` because the cached change and the row share one transaction, and because splitting the trait is blocked by the supertrait limitation.
+- **Delivery.** The app delivers the oldest queued row as a relabel carrying the row's id, which makes it durable: unlimited attempts, and an expired sign-in is retried too.
+  - On success the row is forgotten.
+  - On a final failure the change is reverted and the row forgotten in one transaction, and the window gets an `operation-failed` event.
+  - On a failure worth retrying the row stays queued.
+- **Where it runs.** The executor stays generic and knows nothing of the store.
+  - **Window:** a delivery thread with its own app delivers the rows one at a time through the executor, in order, so a later change to a thread never overtakes an earlier one. It starts by delivering what an earlier run left.
+  - **CLI and memory backend:** they deliver right away on their own thread. Their inline queue has a patience limit, a minute for the CLI and none for the memory backend, after which a change is left queued.
 
 ### 8. Sync
 
@@ -217,7 +212,7 @@ WARN  operations #43 relabel ada@example.com: gave up after 1 attempt: not-found
 
 ### 10. CLI
 
-The CLI uses the inline queue. It writes durable rows like the window, then runs the queue until it is empty or 60 seconds pass. It exits non-zero and prints the count when changes are still waiting. The window finishes them the next time it opens.
+The CLI uses the inline queue. It writes durable rows like the window and delivers them for up to a minute. When changes are still waiting, it exits with code 4 and says "N label changes still wait for Gmail; the window sends them when it next opens".
 
 ## Delivery
 

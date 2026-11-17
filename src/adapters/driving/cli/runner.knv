@@ -21,6 +21,7 @@
                                send-draft!)
 
 (use domain/reply draft-kind)
+(use adapters/driving/cli/waiting all-delivered)
 
 (use ports/driving/mail-labeler mail-labeler
                                 relabel-threads!)
@@ -90,7 +91,7 @@
        (do
          (try (relabel-threads! client account thread-ids
                                 (ref (try (change-named change)))))
-         (ok cli-result/done)))
+         (all-delivered client account)))
       (sync (do
               (try (sync-account! client account))
               (ok cli-result/done)))
