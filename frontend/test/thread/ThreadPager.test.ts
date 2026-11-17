@@ -3,23 +3,26 @@ import type { Logger } from "../../src/logging/Logger";
 import type { MessageStack } from "../../src/thread/MessageStack";
 import { ThreadPager } from "../../src/thread/ThreadPager";
 
+const VIEW_HEIGHT = 600;
+const THREAD_HEIGHT = 3000;
+
 class PagerFixture {
   readonly view = document.createElement("section");
   readonly message = document.createElement("article");
-  readonly steps: number[] = [];
+  readonly focusedAt: number[] = [];
   readonly logged: string[] = [];
-  hasNeighbours = true;
 
-  constructor(messageTop: number, messageBottom: number) {
-    this.view.getBoundingClientRect = () => new DOMRect(0, 0, 800, 600);
-    this.message.getBoundingClientRect = () => new DOMRect(0, messageTop, 800, messageBottom - messageTop);
+  constructor() {
+    Object.defineProperty(this.view, "clientHeight", { value: VIEW_HEIGHT });
+    Object.defineProperty(this.view, "scrollHeight", { value: THREAD_HEIGHT });
+    this.view.getBoundingClientRect = () => new DOMRect(0, 0, 800, VIEW_HEIGHT);
+    this.message.getBoundingClientRect = () => new DOMRect(0, -100, 800, 2000);
   }
 
   pager(): ThreadPager {
     const messages = {
       focusedElement: () => this.message,
-      hasNeighbour: () => this.hasNeighbours,
-      stepBy: (offset: number) => this.steps.push(offset),
+      focusAt: (offset: number) => this.focusedAt.push(offset),
     };
     const logger = { debug: (message: string) => this.logged.push(message) };
     return new ThreadPager(this.view, messages as unknown as MessageStack, logger as unknown as Logger);
@@ -27,52 +30,37 @@ class PagerFixture {
 }
 
 describe("thread pager", () => {
-  test("j scrolls through a message that continues below the screen", () => {
-    const fixture = new PagerFixture(0, 2000);
+  test("j scrolls a line per count", () => {
+    const fixture = new PagerFixture();
     fixture.pager().down(2);
     expect(fixture.view.scrollTop).toBe(120);
-    expect(fixture.steps).toEqual([]);
   });
 
-  test("j moves to the next message once the focused one fits", () => {
-    const fixture = new PagerFixture(100, 400);
-    fixture.pager().down(1);
-    expect(fixture.steps).toEqual([1]);
-  });
-
-  test("j keeps scrolling to the end of the thread after its last message", () => {
-    const fixture = new PagerFixture(100, 400);
-    fixture.hasNeighbours = false;
-    fixture.pager().down(1);
-    expect(fixture.view.scrollTop).toBe(60);
-    expect(fixture.steps).toEqual([]);
-  });
-
-  test("k keeps scrolling to the top of the thread above its first message", () => {
-    const fixture = new PagerFixture(0, 2000);
-    fixture.hasNeighbours = false;
-    fixture.view.scrollTop = 60;
-    fixture.pager().up(1);
-    expect(fixture.view.scrollTop).toBe(0);
-    expect(fixture.steps).toEqual([]);
-  });
-
-  test("k scrolls up through a message that starts above the screen", () => {
-    const fixture = new PagerFixture(-900, 500);
+  test("k scrolls back up a line per count", () => {
+    const fixture = new PagerFixture();
     fixture.view.scrollTop = 300;
     fixture.pager().up(1);
     expect(fixture.view.scrollTop).toBe(240);
   });
 
-  test("each scroll is logged with the positions it went between", () => {
-    const fixture = new PagerFixture(0, 2000);
-    fixture.pager().down(2);
-    expect(fixture.logged).toEqual(["thread down: scrollTop 0 -> 120 of 0, view 0px, focused message spans 0..2000"]);
+  test("focus follows the message a third of the way down the view", () => {
+    const fixture = new PagerFixture();
+    fixture.pager().down(1);
+    expect(fixture.focusedAt).toEqual([60 + VIEW_HEIGHT / 3]);
   });
 
-  test("k moves to the previous message once the focused one starts on screen", () => {
-    const fixture = new PagerFixture(50, 400);
-    fixture.pager().up(1);
-    expect(fixture.steps).toEqual([-1]);
+  test("the last message takes focus once the thread is scrolled to the bottom", () => {
+    const fixture = new PagerFixture();
+    fixture.view.scrollTop = THREAD_HEIGHT - VIEW_HEIGHT - 60;
+    fixture.pager().down(1);
+    expect(fixture.focusedAt).toEqual([THREAD_HEIGHT]);
+  });
+
+  test("each scroll is logged with the positions it went between", () => {
+    const fixture = new PagerFixture();
+    fixture.pager().down(2);
+    expect(fixture.logged).toEqual([
+      "thread down: scrollTop 0 -> 120 of 2400, view 600px, focused message spans -100..1900",
+    ]);
   });
 });

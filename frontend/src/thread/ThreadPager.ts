@@ -2,8 +2,8 @@ import type { Logger } from "../logging/Logger";
 import type { MessageStack } from "./MessageStack";
 
 const LINE_SCROLL_PIXELS = 60;
-const EDGE_TOLERANCE_PIXELS = 1;
 const FOCUS_LINE_FRACTION = 3;
+const BOTTOM_TOLERANCE_PIXELS = 1;
 
 export class ThreadPager {
   constructor(
@@ -13,15 +13,11 @@ export class ThreadPager {
   ) {}
 
   down(count: number): void {
-    this.traced("down", () => {
-      for (let step = 0; step < count; step++) this.stepDown();
-    });
+    this.traced("down", () => this.scrollBy(count * LINE_SCROLL_PIXELS));
   }
 
   up(count: number): void {
-    this.traced("up", () => {
-      for (let step = 0; step < count; step++) this.stepUp();
-    });
+    this.traced("up", () => this.scrollBy(-count * LINE_SCROLL_PIXELS));
   }
 
   top(): void {
@@ -46,6 +42,19 @@ export class ThreadPager {
     this.traced("half page up", () => this.scrollBy(-this.view.clientHeight / 2));
   }
 
+  private scrollBy(pixels: number): void {
+    this.view.scrollTop += pixels;
+    this.messages.focusAt(this.isAtBottom() ? this.view.scrollHeight : this.focusLine());
+  }
+
+  private focusLine(): number {
+    return this.view.scrollTop + this.view.clientHeight / FOCUS_LINE_FRACTION;
+  }
+
+  private isAtBottom(): boolean {
+    return this.view.scrollTop + this.view.clientHeight >= this.view.scrollHeight - BOTTOM_TOLERANCE_PIXELS;
+  }
+
   private traced(action: string, move: () => void): void {
     const before = Math.round(this.view.scrollTop);
     move();
@@ -63,32 +72,5 @@ export class ThreadPager {
     if (!message) return "no focused message";
     const viewTop = this.view.getBoundingClientRect().top;
     return `focused message spans ${Math.round(message.top - viewTop)}..${Math.round(message.bottom - viewTop)}`;
-  }
-
-  private scrollBy(pixels: number): void {
-    this.view.scrollTop += pixels;
-    this.messages.focusAt(this.view.scrollTop + this.view.clientHeight / FOCUS_LINE_FRACTION);
-  }
-
-  private stepDown(): void {
-    const focused = this.messages.focusedElement();
-    const staysOnMessage = (focused && this.continuesBelow(focused)) || !this.messages.hasNeighbour(1);
-    if (staysOnMessage) this.view.scrollTop += LINE_SCROLL_PIXELS;
-    else this.messages.stepBy(1);
-  }
-
-  private stepUp(): void {
-    const focused = this.messages.focusedElement();
-    const staysOnMessage = (focused && this.continuesAbove(focused)) || !this.messages.hasNeighbour(-1);
-    if (staysOnMessage) this.view.scrollTop -= LINE_SCROLL_PIXELS;
-    else this.messages.stepBy(-1);
-  }
-
-  private continuesBelow(message: HTMLElement): boolean {
-    return message.getBoundingClientRect().bottom > this.view.getBoundingClientRect().bottom + EDGE_TOLERANCE_PIXELS;
-  }
-
-  private continuesAbove(message: HTMLElement): boolean {
-    return message.getBoundingClientRect().top < this.view.getBoundingClientRect().top - EDGE_TOLERANCE_PIXELS;
   }
 }

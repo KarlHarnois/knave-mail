@@ -26,15 +26,6 @@ export class MessageStack {
     this.focus(this.focusIndex + offset, "start");
   }
 
-  stepBy(offset: number): void {
-    this.focus(this.focusIndex + offset, "nearest");
-  }
-
-  hasNeighbour(offset: number): boolean {
-    const neighbour = this.focusIndex + offset;
-    return neighbour >= 0 && neighbour < this.cards.length;
-  }
-
   focusedElement(): HTMLElement | null {
     return this.cards[this.focusIndex]?.element ?? null;
   }
@@ -53,6 +44,7 @@ export class MessageStack {
     if (index === this.focusIndex) return;
     this.cards[this.focusIndex]?.showFocus(false);
     this.focusIndex = index;
+    this.cards[index]?.expand();
     this.cards[index]?.showFocus(true);
   }
 
