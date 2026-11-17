@@ -88,6 +88,12 @@ describe("requests and replies match the core's recordings", () => {
     exchange.expectRecordedRequest();
   });
 
+  test("archive-older", async () => {
+    const exchange = new Exchange("archive-older");
+    exchange.expectShape(await exchange.client.archiveOlder(ACCOUNT, "2026/10/01"), ProtocolShapes.archivedOlder);
+    exchange.expectRecordedRequest();
+  });
+
   test("a missing thread", async () => {
     const exchange = new Exchange("thread-missing");
     const failure = await exchange.client.thread(ACCOUNT, "t-9").catch((error: unknown) => error);

@@ -1,5 +1,14 @@
 import type { Bridge } from "./Bridge";
-import type { Account, Draft, Label, Thread, ThreadCommand, ThreadPage, ThreadSummary } from "./Protocol";
+import type {
+  Account,
+  ArchivedOlder,
+  Draft,
+  Label,
+  Thread,
+  ThreadCommand,
+  ThreadPage,
+  ThreadSummary,
+} from "./Protocol";
 
 export type ThreadQuery = { account: string; label: string; query: string; limit: number };
 
@@ -40,6 +49,10 @@ export class MailClient {
 
   async modify(command: ThreadCommand, account: string, threadIds: string[]): Promise<void> {
     await this.bridge.request(command, { account, threadIds });
+  }
+
+  archiveOlder(account: string, before: string): Promise<ArchivedOlder> {
+    return this.bridge.request("archive-older", { account, before });
   }
 
   async zoom(level: number): Promise<void> {

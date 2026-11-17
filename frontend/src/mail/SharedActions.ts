@@ -1,5 +1,5 @@
 import type { CommandLine } from "../commands/CommandLine";
-import type { CommandRunner } from "../commands/CommandRunner";
+import { CommandRunner } from "../commands/CommandRunner";
 import type { Action, SharedAction } from "../keys/KeyBindings";
 import type { ErrorReporter } from "../status/ErrorReporter";
 import type { StatusLine } from "../status/StatusLine";
@@ -9,7 +9,6 @@ import type { SyncMonitor } from "./SyncMonitor";
 
 export type SharedActionPorts = {
   commandLine: CommandLine;
-  commands: CommandRunner;
   session: MailSession;
   sync: SyncMonitor;
   errors: ErrorReporter;
@@ -18,12 +17,16 @@ export type SharedActionPorts = {
   showList: () => void;
   showHelp: () => void;
   pickLabel: () => void;
+  goBack: () => void;
+  archiveOlder: (before: string) => Promise<void>;
 };
 
 export class SharedActions {
   private readonly handlers: ReadonlyMap<Action, () => void>;
+  private readonly commands: CommandRunner;
 
   constructor(private readonly ports: SharedActionPorts) {
+    this.commands = new CommandRunner(ports);
     this.handlers = this.createHandlers();
   }
 
@@ -44,7 +47,8 @@ export class SharedActions {
   }
 
   private createHandlers(): ReadonlyMap<SharedAction, () => void> {
-    const { commandLine, commands, session, sync, status } = this.ports;
+    const { commandLine, session, sync, status } = this.ports;
+    const commands = this.commands;
     return new Map<SharedAction, () => void>([
       ["openCommandLine", () => commandLine.open(":", (input) => commands.run(input))],
       ["compose", () => this.ports.startCompose()],

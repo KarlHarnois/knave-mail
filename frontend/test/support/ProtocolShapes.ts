@@ -1,5 +1,6 @@
 import type {
   Account,
+  ArchivedOlder,
   CoreError,
   CoreEvent,
   Draft,
@@ -61,6 +62,8 @@ export class ProtocolShapes {
     body: "string",
     replyTo: "nullable string",
   };
+
+  static readonly archivedOlder: ShapeOf<ArchivedOlder> = { archived: "number" };
 
   static readonly coreError: ShapeOf<CoreError> = { kind: "error kind", message: "string" };
 

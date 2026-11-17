@@ -1,7 +1,6 @@
 import { IpcTransport } from "../bridge/IpcTransport";
 import type { ThreadSummary } from "../bridge/Protocol";
 import type { Transport } from "../bridge/Transport";
-import { CommandRunner } from "../commands/CommandRunner";
 import { ComposeScreen } from "../compose/ComposeScreen";
 import type { HelpScreen } from "../help/HelpScreen";
 import { KeyboardInput } from "../keys/KeyboardInput";
@@ -81,19 +80,8 @@ export class KnaveMail {
   }
 
   private createSharedActions(): SharedActions {
-    const commands = new CommandRunner({
-      session: this.services.session,
-      sync: this.services.sync,
-      errors: this.services.errors,
-      status: this.services.status,
-      goBack: () => this.goBack(),
-      showList: () => this.app.showList(),
-      showHelp: () => this.helpScreen.open(),
-      pickLabel: () => this.labelPicker.open(),
-    });
     return new SharedActions({
       commandLine: this.services.commandLine,
-      commands,
       session: this.services.session,
       sync: this.services.sync,
       errors: this.services.errors,
@@ -102,6 +90,8 @@ export class KnaveMail {
       showList: () => this.app.showList(),
       showHelp: () => this.helpScreen.open(),
       pickLabel: () => this.labelPicker.open(),
+      goBack: () => this.goBack(),
+      archiveOlder: (before) => this.services.olderMail.archive(before),
     });
   }
 

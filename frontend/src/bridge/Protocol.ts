@@ -46,6 +46,8 @@ export type Reply = { id: number; ok: unknown } | { id: number; error: CoreError
 
 export type ThreadPage = { threads: ThreadSummary[]; nextPageToken: string };
 
+export type ArchivedOlder = { archived: number };
+
 export type SyncedEvent = { event: "synced"; account: string };
 
 export type SyncFailedEvent = { event: "sync-failed"; account: string; error: CoreError };

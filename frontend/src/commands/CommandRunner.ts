@@ -13,6 +13,7 @@ export type CommandRunnerPorts = {
   showList: () => void;
   showHelp: () => void;
   pickLabel: () => void;
+  archiveOlder: (before: string) => Promise<void>;
 };
 
 type CommandHandlers = { [Kind in Command["kind"]]: (command: Extract<Command, { kind: Kind }>) => void };
@@ -35,6 +36,7 @@ export class CommandRunner {
   private readonly handlers: CommandHandlers = {
     account: (command) => this.changeLocation(this.ports.session.selectAccount(command.email)),
     label: (command) => this.changeLocation(this.ports.session.goToLabelNamed(command.name)),
+    "archive-older": (command) => this.ports.errors.run(this.ports.archiveOlder(command.before)),
     sync: () => this.ports.sync.sync(),
     quit: () => this.ports.goBack(),
     help: () => this.ports.showHelp(),

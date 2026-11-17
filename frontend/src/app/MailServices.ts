@@ -8,6 +8,7 @@ import { ThreadRowRenderer } from "../list/ThreadRowRenderer";
 import { Logger } from "../logging/Logger";
 import { LabelDirectory } from "../mail/LabelDirectory";
 import { MailSession } from "../mail/MailSession";
+import { OlderMailArchiver } from "../mail/OlderMailArchiver";
 import { OutboxMonitor } from "../mail/OutboxMonitor";
 import { PendingChanges } from "../mail/PendingChanges";
 import { SyncMonitor } from "../mail/SyncMonitor";
@@ -45,6 +46,7 @@ export class MailServices {
   readonly sync: SyncMonitor;
   readonly editors: VimEditorFactory;
   readonly actions: ThreadActions;
+  readonly olderMail: OlderMailArchiver;
   readonly startAccount: string;
   private readonly pending = new PendingChanges();
 
@@ -67,6 +69,7 @@ export class MailServices {
     this.watchOutbox();
     this.editors = this.createEditors();
     this.actions = this.createThreadActions();
+    this.olderMail = new OlderMailArchiver({ mail: this.mail, session: this.session, status: this.status });
     this.startAccount = (window as StartAccountWindow).knaveStartAccount ?? "";
   }
 
