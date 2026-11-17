@@ -41,11 +41,17 @@
 (def message-ids-column
   "ALTER TABLE summaries ADD COLUMN message_ids TEXT NOT NULL DEFAULT '[]'")
 
+(def message-ids-from-cached-messages
+  "UPDATE summaries SET message_ids = (SELECT json_group_array(id) FROM (SELECT id FROM messages WHERE messages.account = summaries.account AND messages.thread_id = summaries.id ORDER BY position)) WHERE message_ids = '[]' AND EXISTS (SELECT 1 FROM messages WHERE messages.account = summaries.account AND messages.thread_id = summaries.id)")
+
 (defn open-database (path)
-  (map-err (then-ok (opened-with-schema path schema)
-             (fn (connection)
-               (column-added connection message-ids-check
-                             message-ids-column)))
+  (map-err (then-ok (then-ok (opened-with-schema path schema)
+                      (fn (connection)
+                        (column-added connection
+                                      message-ids-check
+                                      message-ids-column)))
+                    (fn (connection)
+                      (batch-run connection message-ids-from-cached-messages)))
            (fn (problem)
              (mail-error/internal
                (str "cannot open the cache at " path ": " problem)))))
@@ -53,6 +59,11 @@
 (def column-added
   (rust "{0}.query_row({1}, [], |{!row}| {!row}.get::<_, i64>(0)).and_then(|{!found}| if {!found} == 0 {{ {0}.execute_batch({2}) }} else {{ Ok(()) }}).map(|_| {0}).map_err(|{!error}| {!error}.to_string())"
     (fn (sqlite-connection (ref str) (ref str))
+      (result sqlite-connection string))))
+
+(def batch-run
+  (rust "{0}.execute_batch({1}).map(|_| {0}).map_err(|{!error}| {!error}.to_string())"
+    (fn (sqlite-connection (ref str))
       (result sqlite-connection string))))
 
 (def opened-with-schema

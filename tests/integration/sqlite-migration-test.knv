@@ -1,32 +1,48 @@
-(use adapters/driven/sqlite/store open-sqlite-store)
+(use adapters/driven/sqlite/store open-sqlite-store
+                                  sqlite-store)
+
 (use domain/summary summarize)
 (use ports/driven/store load-summaries-of save-threads!)
 (use support/memory-world sample-thread)
 (use support/temporary temporary-path)
 
-(def summaries-before-message-ids
-  "CREATE TABLE summaries (account TEXT NOT NULL, id TEXT NOT NULL, subject TEXT NOT NULL, participants TEXT NOT NULL, snippet TEXT NOT NULL, date INTEGER NOT NULL, labels TEXT NOT NULL, message_count INTEGER NOT NULL, PRIMARY KEY (account, id)); INSERT INTO summaries VALUES ('ada@example.com', 't-0', 'Old', 'Grace', '', 1, '[\"INBOX\"]', 1);")
+(def cache-before-message-ids
+  "CREATE TABLE summaries (account TEXT NOT NULL, id TEXT NOT NULL, subject TEXT NOT NULL, participants TEXT NOT NULL, snippet TEXT NOT NULL, date INTEGER NOT NULL, labels TEXT NOT NULL, message_count INTEGER NOT NULL, PRIMARY KEY (account, id)); INSERT INTO summaries VALUES ('ada@example.com', 't-0', 'Downloaded', 'Grace', '', 1, '[\"INBOX\"]', 1); INSERT INTO summaries VALUES ('ada@example.com', 't-9', 'Listed only', 'Grace', '', 2, '[\"INBOX\"]', 1); CREATE TABLE messages (account TEXT NOT NULL, id TEXT NOT NULL, thread_id TEXT NOT NULL, position INTEGER NOT NULL, sender TEXT NOT NULL, recipients TEXT NOT NULL, copied TEXT NOT NULL, subject TEXT NOT NULL, date INTEGER NOT NULL, text TEXT NOT NULL, html TEXT, header_id TEXT NOT NULL, refs TEXT NOT NULL, PRIMARY KEY (account, id)); INSERT INTO messages VALUES ('ada@example.com', 'm-0', 't-0', 0, 'Grace', '[]', '[]', 'Downloaded', 1, 'Hi', NULL, '<m-0>', '');")
 
 (def cache-made-with
   (rust "rusqlite::Connection::open({0}).and_then(|{!connection}| {!connection}.execute_batch({1})).expect(\"the old cache is written\")"
     (fn ((ref str) (ref str)) unit)))
 
-(deftest an-older-cache-gains-message-ids-and-keeps-its-summaries
+(defn reopened-old-cache ()
   (let (path (temporary-path "old-cache.sqlite3"))
-    (cache-made-with (as-str path) summaries-before-message-ids)
-    (let (cache (unwrap-ok (open-sqlite-store (ref path))))
-      (local opened cache)
-      (unwrap-ok (save-threads! (mut opened)
-                                "ada@example.com"
-                                (ref (vec (summarize (ref (sample-thread
-                                                            "t-1"
-                                                            (vec "INBOX")
-                                                            100)))))))
-      (let (found (unwrap-ok (load-summaries-of (ref opened)
-                                                "ada@example.com"
-                                                (ref (vec (str "t-0")
-                                                          (str "t-1"))))))
-        (assert (= (collect (map (iter found)
-                              (fn (summary)
-                                (clone (:message-ids summary)))))
-                   (vec (vec) (vec (str "m-t-1")))))))))
+    (cache-made-with (as-str path) cache-before-message-ids)
+    (unwrap-ok (open-sqlite-store (ref path)))))
+
+(type message-ids-of
+  (fn ((ref sqlite-store) (ref str))
+    (vec string)))
+
+(defn message-ids-of (cache thread-id)
+  (match (first (ref (unwrap-ok (load-summaries-of
+                                  cache "ada@example.com"
+                                  (ref (vec (str thread-id)))))))
+    ((some summary) (clone (:message-ids summary)))
+    (none (vec (str "missing")))))
+
+(deftest an-older-cache-takes-message-ids-from-the-messages-it-holds
+  (assert (= (message-ids-of (ref (reopened-old-cache)) "t-0")
+             (vec (str "m-0")))))
+
+(deftest a-thread-the-older-cache-never-downloaded-has-no-message-ids
+  (assert (empty? (message-ids-of (ref (reopened-old-cache)) "t-9"))))
+
+(deftest an-older-cache-stores-message-ids-for-new-summaries
+  (let (cache (reopened-old-cache))
+    (local opened cache)
+    (unwrap-ok (save-threads!
+                 (mut opened)
+                 "ada@example.com"
+                 (ref (vec (summarize
+                             (ref (sample-thread "t-1" (vec "INBOX") 100)))))))
+    (assert (= (message-ids-of (ref opened) "t-1")
+               (vec (str "m-t-1"))))))
