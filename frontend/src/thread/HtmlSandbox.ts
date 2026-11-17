@@ -7,6 +7,7 @@ const ALLOWED_IMAGE_SOURCES = "data: cid: https: http:";
 const ISOLATED_FLAGS = "allow-same-origin";
 const DARKENED_FLAGS = "allow-same-origin allow-scripts";
 const DARK_READER_URL = "knave://localhost/darkreader.js";
+const TEXT_OUTSIDE_CODE = "body :not(pre, code, kbd, samp, tt, pre *, code *)";
 const BASE_STYLE = [
   "html{color-scheme:light;background:#fff;color:#111}",
   "body{margin:0;padding:12px 16px;overflow-wrap:anywhere}",
@@ -60,7 +61,11 @@ export class HtmlSandbox {
 
   private fontStyle(): string {
     const { family, size } = this.fonts.font();
-    return `body{font-family:${this.cssSafe(family)};font-size:${this.cssSafe(size)}}`;
+    const safeFamily = this.cssSafe(family);
+    return [
+      `body{font-family:${safeFamily};font-size:${this.cssSafe(size)}}`,
+      `${TEXT_OUTSIDE_CODE}{font-family:${safeFamily}!important}`,
+    ].join("");
   }
 
   private cssSafe(value: string): string {

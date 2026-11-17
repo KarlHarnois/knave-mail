@@ -192,9 +192,14 @@ describe("mail font", () => {
     expect(srcdoc).toContain('body{font-family:"IosevkaTerm Nerd Font Mono", monospace;font-size:15px}');
   });
 
-  test("the default comes before the message so its own fonts win", () => {
-    const srcdoc = new HtmlSandbox(undefined, IOSEVKA).srcdoc('<p style="font-family:Georgia">Hi</p>', false);
-    expect(srcdoc.indexOf("IosevkaTerm")).toBeLessThan(srcdoc.indexOf("Georgia"));
+  test("the theme's font replaces the fonts a message names", () => {
+    const srcdoc = new HtmlSandbox(undefined, IOSEVKA).srcdoc('<p style="font-family:Cambria,serif">Hi</p>', false);
+    expect(srcdoc).toContain('{font-family:"IosevkaTerm Nerd Font Mono", monospace!important}');
+  });
+
+  test("code keeps its own monospace font", () => {
+    const srcdoc = new HtmlSandbox(undefined, IOSEVKA).srcdoc("<pre>x</pre>", false);
+    expect(srcdoc).toContain("body :not(pre, code, kbd, samp, tt, pre *, code *){font-family:");
   });
 
   test("a font name cannot close the style or add rules", () => {
