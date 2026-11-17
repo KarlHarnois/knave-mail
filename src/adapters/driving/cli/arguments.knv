@@ -80,9 +80,7 @@
     (push! (mut positionals) (clone token))
     (assoc parsed :positionals positionals)))
 
-(def flag?
-  (rust "{0}.starts_with(\"--\")"
-    (fn ((ref string)) bool)))
+(defn flag? (token) (starts-with? token "--"))
 
 (defn value-after (tokens index)
   (match (get tokens (+ index 1))

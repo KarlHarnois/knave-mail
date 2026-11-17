@@ -94,9 +94,7 @@
        "\n\n"
        (:body written)))
 
-(def lines-of
-  (rust "{0}.join(\"\\n\")"
-    (fn ((vec string)) string)))
+(defn lines-of (lines) (join lines "\n"))
 
 (def padded
   (rust "format!(\"{{:<width$}} \", {0}.chars().take({1} - 1).collect::<String>(), width = {1} - 1)"
