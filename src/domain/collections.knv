@@ -1,4 +1,5 @@
-(export appended appended-once one-of? try-for-each)
+(export appended appended-once as-count one-of?
+        try-for-each)
 
 (defn one-of? (word words)
   (any? (iter words)
@@ -14,6 +15,9 @@
           (= (as-str known) (as-str item))))
     items
     (appended items item)))
+
+(def as-count
+  (rust "{0} as i64" (fn (usize) i64)))
 
 (def try-for-each
   (rust "{0}.try_for_each({1})"

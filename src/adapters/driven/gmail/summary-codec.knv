@@ -3,7 +3,7 @@
 (use adapters/json/value array-field empty-object json-value
                          object-field string-list-field)
 
-(use domain/collections appended-once)
+(use domain/collections appended-once as-count)
 (use domain/mail ->thread-summary thread-summary)
 (use domain/results unwrap-ok-or)
 (use domain/text join-with replaced trimmed-of)
@@ -80,6 +80,3 @@
 
 (defn labels-on (message)
   (unwrap-ok-or (string-list-field message "labelIds") (vec)))
-
-(def as-count
-  (rust "{0} as i64" (fn (usize) i64)))
