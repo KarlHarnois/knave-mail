@@ -6,14 +6,14 @@ export class ListViewport {
   readonly element: HTMLElement;
   private scrollTop = 0;
   private revealedIndex = 0;
-  private height: number;
+  private readonly fallbackHeight: number;
 
   constructor(
     document: Document,
     private readonly listWindow: ListWindow,
     private readonly onChange: () => void,
   ) {
-    this.height = FALLBACK_VIEWPORT_ROWS * listWindow.rowHeight;
+    this.fallbackHeight = FALLBACK_VIEWPORT_ROWS * listWindow.rowHeight;
     this.element = this.createElement(document);
     this.observeResizes();
   }
@@ -62,14 +62,16 @@ export class ListViewport {
     this.onChange();
   }
 
-  private observeResizes(): void {
-    if (typeof ResizeObserver === "undefined") return;
-    new ResizeObserver((entries) => this.resize(entries[0]?.contentRect.height ?? 0)).observe(this.element);
+  private get height(): number {
+    return this.element.clientHeight || this.fallbackHeight;
   }
 
-  private resize(height: number): void {
-    if (height <= 0 || height === this.height) return;
-    this.height = height;
+  private observeResizes(): void {
+    if (typeof ResizeObserver === "undefined") return;
+    new ResizeObserver(() => this.resize()).observe(this.element);
+  }
+
+  private resize(): void {
     this.reveal(this.revealedIndex);
     this.onChange();
   }

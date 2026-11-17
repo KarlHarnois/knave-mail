@@ -127,6 +127,14 @@ describe("ThreadList changes", () => {
     expect(fixture.list.element.scrollTop).toBe(firstRowOnScreen * ROW_HEIGHT);
   });
 
+  test("shrinking the list paints every row a taller viewport shows", () => {
+    const fixture = new ListFixture(100);
+    Object.defineProperty(fixture.list.element, "clientHeight", { value: 40 * ROW_HEIGHT });
+    fixture.act((list) => list.moveToLast());
+    fixture.act((list) => list.refresh(MailFixtures.summaries(36)));
+    expect(fixture.visibleRows().some((row) => row.dataset["threadId"] === "t-0")).toBe(true);
+  });
+
   test("removing another thread keeps the selection", () => {
     const fixture = new ListFixture(10);
     fixture.act((list) => list.moveTo(4));
