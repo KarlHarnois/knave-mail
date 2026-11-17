@@ -7,12 +7,16 @@
 
 (use domain/history ->mail-changes mail-changes)
 (use domain/mail-error mail-error)
+(use ports/driven/event-log log-info)
 
 (export fetched-changes! fetched-history-id!)
 
 (def users-me "/gmail/v1/users/me")
 
 (def history-page-size 500)
+
+(def history-types
+  "&historyTypes=messageAdded&historyTypes=messageDeleted&historyTypes=labelAdded&historyTypes=labelRemoved")
 
 (defn fetched-history-id! (session)
   (ok (history-id-of (ref (try (api-get! session
@@ -33,6 +37,9 @@
   (let (page (try (api-get! session
                             (ref (history-path since (ref page-token)))))
         so-far (reduce (array-field (ref page) "history") found with-entry))
+    (log-info (ref (:log session))
+              "gmail"
+              (str "history since " since ": " (history-shape (ref page))))
     (match (optional-string-field (ref page) "nextPageToken")
       ((some token) (recur session since token so-far))
       (none (ok (assoc so-far :history-id (history-id-of (ref page))))))))
@@ -42,7 +49,12 @@
        "&maxResults=" history-page-size
        (if (empty? page-token)
          (str "")
-         (str "&pageToken=" page-token))))
+         (str "&pageToken=" page-token))
+       history-types))
+
+(def history-shape
+  (rust "{{ let {!records} = {0}[\"history\"].as_array().cloned().unwrap_or_default(); let {!typed} = |{!record}: &serde_json::Value| [\"messagesAdded\", \"messagesDeleted\", \"labelsAdded\", \"labelsRemoved\"].iter().flat_map(|{!kind}| {!record}[*{!kind}].as_array().cloned().unwrap_or_default()).filter_map(|{!item}| {!item}[\"message\"][\"id\"].as_str().map(str::to_string)).collect::<std::collections::HashSet<_>>(); let {!count} = |{!kind}: &str| {!records}.iter().map(|{!record}| {!record}[{!kind}].as_array().map_or(0, Vec::len)).sum::<usize>(); let {!untyped} = {!records}.iter().map(|{!record}| {{ let {!known} = {!typed}({!record}); {!record}[\"messages\"].as_array().map_or(0, |{!messages}| {!messages}.iter().filter(|{!message}| !{!known}.contains({!message}[\"id\"].as_str().unwrap_or(\"\"))).count()) }}).sum::<usize>(); format!(\"{{}} records, {{}} messages added, {{}} deleted, {{}} labels added, {{}} labels removed, {{}} message changes without a type\", {!records}.len(), {!count}(\"messagesAdded\"), {!count}(\"messagesDeleted\"), {!count}(\"labelsAdded\"), {!count}(\"labelsRemoved\"), {!untyped}) }}"
+    (fn ((ref json-value)) string)))
 
 (def history-id-of
   (rust "{0}.get(\"historyId\").map(|{!value}| {!value}.as_str().map(str::to_string).unwrap_or_else(|| {!value}.to_string())).unwrap_or_default()"

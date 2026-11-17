@@ -4,6 +4,7 @@
 (use domain/mail-error error-kind)
 (use ports/driven/mailbox fetch-changes! fetch-history-id!)
 (use support/fake-gmail start-fake-gmail)
+(use support/gmail-requests requests-matching)
 (use support/gmail-world fixture-routes gmail-over route)
 
 (def fixtures "tests/fixtures/gmail/")
@@ -69,3 +70,11 @@
     (assert (= (str (error-kind (ref (unwrap-err (fetch-changes! (mut gmail)
                                                                  "1")))))
                "not-found"))))
+
+(deftest asks-only-for-typed-history-records
+  (let (server (start-fake-gmail (ref (history-routes)))
+        gmail (gmail-over (ref server)))
+    (unwrap-ok (fetch-changes! (mut gmail) "3999"))
+    (assert (= (len (requests-matching (ref server)
+                                       "GET /gmail/v1/users/me/history?startHistoryId=3999&maxResults=500&historyTypes=messageAdded&historyTypes=messageDeleted&historyTypes=labelAdded&historyTypes=labelRemoved"))
+               1))))
