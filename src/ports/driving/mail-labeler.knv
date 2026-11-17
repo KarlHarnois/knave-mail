@@ -14,7 +14,7 @@
 
   (deliver-next-change!
     (fn ((mut self))
-      (result delivery-step mail-error)))
+      (result (vec delivery-step) mail-error)))
 
   (waiting-changes
     (fn ((ref self) (ref str))

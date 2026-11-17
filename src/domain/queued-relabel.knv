@@ -1,8 +1,8 @@
 (use domain/labels label-change)
 (use domain/mail-error mail-error)
 
-(export ->queued-relabel ->refusal delivery-step
-        queued-relabel refusal)
+(export ->queued-relabel ->refusal delivery-finished?
+        delivery-step queued-relabel refusal step-account)
 
 (defstruct queued-relabel
   :id int
@@ -15,7 +15,24 @@
   :failure mail-error)
 
 (defenum delivery-step
-  nothing-queued
   (delivered queued-relabel)
   (kept queued-relabel)
   (refused refusal))
+
+(type delivery-finished?
+  (fn ((ref (vec delivery-step))) bool))
+
+(defn delivery-finished? (steps)
+  (or (empty? steps)
+      (any? (iter steps)
+        (fn (step)
+          (match step ((kept _) true) (_ false))))))
+
+(type step-account
+  (fn ((ref delivery-step)) string))
+
+(defn step-account (step)
+  (match step
+    ((delivered row) (clone (:account row)))
+    ((kept row) (clone (:account row)))
+    ((refused refused) (clone (:account (:queued refused))))))

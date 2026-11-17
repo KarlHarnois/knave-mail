@@ -23,7 +23,10 @@
 
 (use domain/delivery-tally counted-delivery delivery-count)
 (use domain/operation priority)
-(use domain/queued-relabel delivery-step)
+(use domain/collections appended-once)
+
+(use domain/queued-relabel delivery-finished? delivery-step
+                           step-account)
 
 (use ports/driven/event-log event-log log-info log-warn
                             share-log)
@@ -90,21 +93,46 @@
 
 (defn delivered-all! (app outbox log counts)
   (match (deliver-next-change! app)
-    ((ok (delivered row))
-     (do
-       (count-waiting! app outbox (as-str (:account row)))
-       (recur app outbox log
-              (counted-delivery counts (as-str (:account row))))))
-    ((ok (refused refused))
-     (do
-       (report-refusal! outbox (ref refused))
-       (count-waiting! app outbox
-                       (as-str (:account (:queued refused))))
-       (recur app outbox log counts)))
-    ((ok _) counts)
+    ((ok steps)
+     (let (tallied (reported-steps! app outbox (ref steps) counts))
+       (if (delivery-finished? (ref steps))
+         tallied
+         (recur app outbox log tallied))))
     ((err failure)
      (do
        (log-warn log "delivery"
                  (str "could not read queued changes: "
                       (error-message (ref failure))))
        counts))))
+
+(type reported-steps!
+  (fn ((ref mail-app)
+       (ref reply-outbox)
+       (ref (vec delivery-step))
+       (vec delivery-count))
+    (vec delivery-count)))
+
+(defn reported-steps! (app outbox steps counts)
+  (for-each (iter steps)
+    (fn (step)
+      (match step
+        ((refused refused) (report-refusal! outbox refused))
+        (_ (do)))))
+  (for-each (iter (accounts-of steps))
+    (fn (account)
+      (count-waiting! app outbox (as-str account))))
+  (reduce (iter steps) counts
+    (fn (tally step)
+      (match step
+        ((delivered row)
+         (counted-delivery tally (as-str (:account row))))
+        (_ tally)))))
+
+(type accounts-of
+  (fn ((ref (vec delivery-step)))
+    (vec string)))
+
+(defn accounts-of (steps)
+  (reduce (iter steps) (vec)
+    (fn (accounts step)
+      (appended-once accounts (step-account step)))))

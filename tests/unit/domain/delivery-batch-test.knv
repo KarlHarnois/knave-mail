@@ -1,0 +1,72 @@
+(use domain/collections as-count)
+(use domain/delivery-batch batch-from)
+(use domain/labels archive-change inbox-change label-change)
+(use domain/mail ->thread-summary thread-summary)
+(use domain/queued-relabel ->queued-relabel queued-relabel)
+
+(def account "ada@example.com")
+
+(defn row (id thread-id change)
+  (->queued-relabel :id id
+                    :account (str account)
+                    :thread-id (str thread-id)
+                    :change change))
+
+(defn summary-of (thread-id message-ids)
+  (->thread-summary :id (str thread-id)
+                    :subject (str "")
+                    :participants (str "")
+                    :snippet (str "")
+                    :date 0
+                    :labels (vec)
+                    :message-count (as-count (len message-ids))
+                    :message-ids message-ids))
+
+(defn summaries ()
+  (vec (summary-of "t-1"
+                   (vec (str "m-1a") (str "m-1b")))
+       (summary-of "t-2" (vec (str "m-2")))
+       (summary-of "t-3" (vec (str "m-3")))
+       (summary-of "t-4" (vec))))
+
+(defn batched-threads (queued pending)
+  (collect (map (iter (:rows (batch-from (ref queued)
+                                         (ref (summaries))
+                                         (ref pending))))
+                (fn (batched)
+                  (clone (:thread-id batched))))))
+
+(deftest a-run-of-one-change-goes-out-together
+  (let (queued (vec (row 1 "t-1" (archive-change))
+                    (row 2 "t-2" (archive-change))))
+    (assert (= (:message-ids (batch-from (ref queued)
+                                         (ref (summaries))
+                                         (ref (vec))))
+               (vec (str "m-1a")
+                    (str "m-1b")
+                    (str "m-2"))))))
+
+(deftest the-batch-stops-at-a-different-change
+  (assert (= (batched-threads (vec (row 1 "t-1" (archive-change))
+                                   (row 2 "t-2" (inbox-change))
+                                   (row 3 "t-3" (archive-change)))
+                              (vec))
+             (vec (str "t-1")))))
+
+(deftest a-thread-without-message-ids-waits-for-its-own-request
+  (assert (= (batched-threads (vec (row 1 "t-1" (archive-change))
+                                   (row 2 "t-4" (archive-change))
+                                   (row 3 "t-3" (archive-change)))
+                              (vec))
+             (vec (str "t-1") (str "t-3")))))
+
+(deftest a-thread-with-a-pending-download-waits-for-its-own-request
+  (assert (= (batched-threads (vec (row 1 "t-1" (archive-change))
+                                   (row 2 "t-2" (archive-change)))
+                              (vec (str "t-2")))
+             (vec (str "t-1")))))
+
+(deftest nothing-is-batched-when-the-oldest-change-cannot-be
+  (assert (empty? (batched-threads (vec (row 1 "t-4" (archive-change))
+                                        (row 2 "t-1" (archive-change)))
+                                   (vec)))))

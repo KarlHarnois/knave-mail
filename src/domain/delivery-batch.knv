@@ -1,0 +1,93 @@
+(use domain/collections concatenated)
+(use domain/mail thread-summary)
+(use domain/queued-relabel queued-relabel)
+
+(export ->delivery-batch batch-from delivery-batch
+        most-batched-messages)
+
+(def most-batched-messages 1000)
+
+(defstruct delivery-batch
+  :rows (vec queued-relabel)
+  :message-ids (vec string))
+
+(type batch-from
+  (fn ((ref (vec queued-relabel))
+       (ref (vec thread-summary))
+       (ref (vec string)))
+    delivery-batch))
+
+(defn batch-from (queued summaries pending)
+  (gathered queued 0 summaries pending
+            (->delivery-batch :rows (vec) :message-ids (vec))))
+
+(type gathered
+  (fn ((ref (vec queued-relabel))
+       usize
+       (ref (vec thread-summary))
+       (ref (vec string))
+       delivery-batch)
+    delivery-batch))
+
+(defn gathered (queued index summaries pending batch)
+  (match (get queued index)
+    ((some row)
+     (if (same-change? row (at queued 0))
+       (match (message-ids-of row summaries pending)
+         ((some ids)
+          (if (fits? (ref batch) (ref ids))
+            (recur queued
+                   (+ index 1)
+                   summaries pending
+                   (with-row batch row ids))
+            batch))
+         (none (if (= index 0)
+                 batch
+                 (recur queued (+ index 1) summaries pending batch))))
+       batch))
+    (none batch)))
+
+(type same-change?
+  (fn ((ref queued-relabel) (ref queued-relabel))
+    bool))
+
+(defn same-change? (row head)
+  (and (= (:account row) (:account head))
+       (= (:change row) (:change head))))
+
+(type message-ids-of
+  (fn ((ref queued-relabel)
+       (ref (vec thread-summary))
+       (ref (vec string)))
+    (option (vec string))))
+
+(defn message-ids-of (row summaries pending)
+  (if (contains? pending (clone (:thread-id row)))
+    none
+    (match (find (iter summaries)
+             (fn (summary)
+               (= (:id summary) (:thread-id row))))
+      ((some summary)
+       (if (empty? (:message-ids summary))
+         none
+         (some (clone (:message-ids summary)))))
+      (none none))))
+
+(type fits?
+  (fn ((ref delivery-batch)
+       (ref (vec string)))
+    bool))
+
+(defn fits? (batch ids)
+  (<= (+ (len (:message-ids batch)) (len ids))
+      most-batched-messages))
+
+(type with-row
+  (fn (delivery-batch (ref queued-relabel) (vec string))
+    delivery-batch))
+
+(defn with-row (batch row ids)
+  (->delivery-batch :rows (concatenated (clone (:rows batch))
+                                        (vec (clone row)))
+                    :message-ids (concatenated (clone (:message-ids batch))
+                                               ids)))

@@ -1,53 +1,28 @@
 (use app/mail-app mail-app)
 (use app/operations/batch-log log-batch-delivered!)
 (use domain/delivery-tally counted-delivery delivery-count)
-(use app/operations/relabel-calls delivered-queued!)
+(use app/batch-delivering batch-for delivered-as-batch!)
+(use app/single-delivering delivered-or-kept!)
 (use domain/mail-error mail-error)
-
-(use domain/queued-relabel ->refusal delivery-step
-                           queued-relabel refusal)
-
-(use ports/driven/store forget-queued! load-queued
-                        revert-queued!)
+(use domain/queued-relabel delivery-finished? delivery-step)
+(use ports/driven/store load-queued)
 
 (export deliver-everything-now! deliver-next!)
 
+(def smallest-batch 2)
+
 (type deliver-next!
   (fn ((mut mail-app))
-    (result delivery-step mail-error)))
+    (result (vec delivery-step) mail-error)))
 
 (defn deliver-next! (app)
   (let (queued (try (load-queued (ref (:store app)))))
     (if (empty? queued)
-      (ok delivery-step/nothing-queued)
-      (delivered-or-kept! app (clone (at queued 0))))))
-
-(type delivered-or-kept!
-  (fn ((mut mail-app) queued-relabel)
-    (result delivery-step mail-error)))
-
-(defn delivered-or-kept! (app row)
-  (match (delivered-queued! app (ref row))
-    ((ok _)
-     (do
-       (try (forget-queued! (mut (:store app))
-                            (:id row)))
-       (ok (delivery-step/delivered row))))
-    ((err failure)
-     (if (worth-keeping? (ref failure))
-       (ok (delivery-step/kept row))
-       (do
-         (try (revert-queued! (mut (:store app))
-                              (ref row)))
-         (ok (delivery-step/refused (->refusal :queued row
-                                               :failure failure))))))))
-
-(defn worth-keeping? (failure)
-  (match failure
-    ((network _) true)
-    ((throttled _) true)
-    ((auth-required _) true)
-    (_ false)))
+      (ok (vec))
+      (let (batch (try (batch-for app (ref queued))))
+        (if (>= (len (:rows batch)) smallest-batch)
+          (delivered-as-batch! app batch)
+          (ok (vec (try (delivered-or-kept! app (clone (at queued 0)))))))))))
 
 (type deliver-everything-now!
   (fn ((mut mail-app))
@@ -63,20 +38,43 @@
     (result unit mail-error)))
 
 (defn delivered-until-empty! (app first-refusal counts)
-  (match (try (deliver-next! app))
-    ((delivered row)
-     (recur app first-refusal
-            (counted-delivery counts (as-str (:account row)))))
-    ((refused refused)
-     (recur app
-            (if (none? first-refusal)
-              (some (clone (:failure refused)))
-              first-refusal)
-            counts))
-    (_ (do
-         (log-batch-delivered! (ref (:log app))
-                               "relabel"
-                               (ref counts))
-         (match first-refusal
-           ((some failure) (err failure))
-           (none (ok (do))))))))
+  (let (steps (try (deliver-next! app))
+        refusal (first-refusal-in (ref steps) first-refusal)
+        tallied (tallied-deliveries (ref steps) counts))
+    (if (delivery-finished? (ref steps))
+      (do
+        (log-batch-delivered! (ref (:log app))
+                              "relabel"
+                              (ref tallied))
+        (match refusal
+          ((some failure) (err failure))
+          (none (ok (do)))))
+      (recur app refusal tallied))))
+
+(type first-refusal-in
+  (fn ((ref (vec delivery-step))
+       (option mail-error))
+    (option mail-error)))
+
+(defn first-refusal-in (steps first-refusal)
+  (reduce (iter steps) first-refusal
+    (fn (found step)
+      (match step
+        ((refused refused)
+         (if (none? found)
+           (some (clone (:failure refused)))
+           found))
+        (_ found)))))
+
+(type tallied-deliveries
+  (fn ((ref (vec delivery-step))
+       (vec delivery-count))
+    (vec delivery-count)))
+
+(defn tallied-deliveries (steps counts)
+  (reduce (iter steps) counts
+    (fn (tally step)
+      (match step
+        ((delivered row)
+         (counted-delivery tally (as-str (:account row))))
+        (_ tally)))))

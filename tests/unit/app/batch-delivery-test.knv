@@ -1,0 +1,56 @@
+(use app/client/mail-labeler)
+(use app/client/mail-syncer)
+
+(use adapters/driven/memory/memory-log logged-lines
+                                       new-memory-log
+                                       same-log)
+
+(use adapters/driven/memory/memory-clock new-memory-clock)
+(use domain/labels archive-change)
+(use ports/driving/mail-labeler relabel-threads!)
+
+(use support/app-steps inbox-query listed-ids! remote-thread
+                       synced!)
+
+(use support/log-lines mentions?)
+
+(use support/memory-world app-timed-by remote-with
+                          sample-thread world-account)
+
+(use support/remote-changes delete-remotely!)
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100)
+                    (sample-thread "t-2" (vec "INBOX") 200)
+                    (sample-thread "t-3" (vec "INBOX") 300))))
+
+(defn archive-first-two! (app)
+  (relabel-threads! app world-account
+                    (ref (vec (str "t-1") (str "t-2")))
+                    (ref (archive-change))))
+
+(deftest archiving-several-threads-sends-one-batch
+  (let (world (remote)
+        log (new-memory-log)
+        app (app-timed-by (ref world)
+                          (same-log (ref log))
+                          (new-memory-clock)))
+    (synced! (mut app))
+    (unwrap-ok (archive-first-two! (mut app)))
+    (assert (mentions? (ref (logged-lines (ref log)))
+                       "relabel batch ada@example.com: queued, interactive, 2 messages in 2 threads +[] -[INBOX]"))
+    (assert (empty? (:labels (remote-thread (ref world) "t-1"))))
+    (assert (empty? (:labels (remote-thread (ref world) "t-2"))))))
+
+(deftest a-batch-gmail-refuses-goes-out-one-thread-at-a-time
+  (let (world (remote)
+        app (app-timed-by (ref world)
+                          (new-memory-log)
+                          (new-memory-clock)))
+    (synced! (mut app))
+    (delete-remotely! (ref world) "t-2")
+    (assert (err? (archive-first-two! (mut app))))
+    (assert (empty? (:labels (remote-thread (ref world) "t-1"))))
+    (assert (= (listed-ids! (mut app)
+                            (ref (inbox-query)))
+               (vec (str "t-3") (str "t-2"))))))

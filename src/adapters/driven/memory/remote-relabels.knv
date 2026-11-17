@@ -28,9 +28,25 @@
     (result unit mail-error)))
 
 (defn messages-relabeled! (remote message-ids change)
+  (try (try-for-each (iter message-ids)
+         (fn (message-id)
+           (held-somewhere remote (as-str message-id)))))
   (try-for-each (iter (threads-holding remote message-ids))
     (fn (thread-id)
       (relabeled-remotely! remote (as-str thread-id) change))))
+
+(type held-somewhere
+  (fn ((ref remote-mail) (ref str))
+    (result unit mail-error)))
+
+(defn held-somewhere (remote message-id)
+  (if (any? (iter (:threads remote))
+        (fn (held)
+          (any? (iter (:messages held))
+            (fn (message)
+              (= (:id message) message-id)))))
+    (ok (do))
+    (err (mail-error/not-found (str "no message " message-id)))))
 
 (type threads-holding
   (fn ((ref remote-mail) (ref (vec string)))
