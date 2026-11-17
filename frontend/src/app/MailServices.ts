@@ -66,7 +66,7 @@ export class MailServices {
 
   launched(): void {
     this.logger.info(`inbox shown ${Math.round(performance.now())}ms after launch`);
-    this.sync.syncOnLaunch();
+    this.sync.startSyncing();
   }
 
   private createSession(): MailSession {
@@ -108,6 +108,8 @@ export class MailServices {
       status: this.status,
       errors: this.errors,
       dates: this.dates,
+      repeat: (run, everyMilliseconds) => this.window.setInterval(run, everyMilliseconds),
+      now: () => Date.now(),
     });
     this.bridge.subscribe((event) => sync.handle(event));
     this.session.onAccountChange((account) => sync.showStateOf(account));

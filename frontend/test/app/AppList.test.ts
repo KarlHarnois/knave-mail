@@ -4,9 +4,15 @@ import { AppHarness } from "../support/AppHarness";
 import { MailFixtures } from "../support/MailFixtures";
 
 describe("app start", () => {
-  test("loads the inbox of the first account, then syncs it", async () => {
+  test("loads the inbox of the first account, then syncs every account", async () => {
     const app = await AppHarness.started();
-    expect(app.core.requests.map((request) => request.command)).toEqual(["accounts", "threads", "sync"]);
+    expect(app.core.requests.map((request) => request.command)).toEqual([
+      "accounts",
+      "threads",
+      "accounts",
+      "sync",
+      "sync",
+    ]);
     expect(app.core.lastArgsFor("threads")).toEqual({
       account: MailFixtures.ADA,
       label: "INBOX",
@@ -252,11 +258,19 @@ describe("sync", () => {
     expect(app.core.requestsFor("threads")).toHaveLength(1);
   });
 
-  test("opening the window syncs the current account", async () => {
+  test("opening the window syncs every account", async () => {
     const app = await AppHarness.started();
-    expect(app.core.requestsFor("sync")).toHaveLength(1);
-    expect(app.core.lastArgsFor("sync")).toEqual({ account: MailFixtures.ADA });
+    expect(app.core.requestsFor("sync").map((request) => request.args)).toEqual([
+      { account: MailFixtures.ADA },
+      { account: MailFixtures.GRACE },
+    ]);
     expect(app.status("sync")).toBe("syncing");
+  });
+
+  test("switching to an account synced moments ago does not sync it again", async () => {
+    const app = await AppHarness.started();
+    await app.press("<C-n>");
+    expect(app.core.requestsFor("sync")).toHaveLength(2);
   });
 
   test("a sync-progress event shows the mail synced so far and keeps syncing", async () => {
