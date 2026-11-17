@@ -23,6 +23,11 @@ export class ThreadPager {
     this.view.scrollTop = 0;
   }
 
+  bottom(): void {
+    this.messages.focusLast();
+    this.view.scrollTop = this.view.scrollHeight;
+  }
+
   halfPageDown(): void {
     this.scrollBy(this.view.clientHeight / 2);
   }

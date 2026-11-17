@@ -109,6 +109,15 @@ describe("thread view", () => {
     expect(ThreadHarness.focusedMessageId()).toBe("m-0");
   });
 
+  test("G goes to the bottom of the thread", async () => {
+    const app = await ThreadHarness.opened();
+    const view = document.querySelector<HTMLElement>('[data-test="thread-view"]');
+    Object.defineProperty(view, "scrollHeight", { value: 900 });
+    await app.press("ggG");
+    expect(view?.scrollTop).toBe(900);
+    expect(ThreadHarness.focusedMessageId()).toBe("m-2");
+  });
+
   test("plain text messages render as text", async () => {
     const app = await ThreadHarness.opened();
     expect(app.driver.text(`${FOCUSED} [data-test="message-text"]`)).toBe("Plain body of message 2\nsecond line 2");

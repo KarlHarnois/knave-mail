@@ -96,7 +96,7 @@ export class ThreadScreen implements Screen {
       ["nextThread", (count) => this.openNeighbour(count)],
       ["previousThread", (count) => this.openNeighbour(-count)],
       ["firstMessage", () => this.pager.top()],
-      ["lastMessage", () => this.messages.focusLast()],
+      ["lastMessage", () => this.pager.bottom()],
       ["lineDown", (count) => this.pager.down(count)],
       ["lineUp", (count) => this.pager.up(count)],
       ["scrollDown", () => this.pager.halfPageDown()],
