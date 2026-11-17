@@ -17,6 +17,10 @@ export class Logger {
     this.write("info", message);
   }
 
+  debug(message: string): void {
+    this.write("debug", message);
+  }
+
   private write(level: LogLevel, message: string): void {
     this.transport.send(JSON.stringify({ command: "log", args: { level, message } }));
   }
