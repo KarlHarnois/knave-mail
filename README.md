@@ -1,6 +1,6 @@
 # knave-mail
 
-[![Knave v0.15.0](https://img.shields.io/badge/knave-v0.15.0-blue.svg)](https://github.com/knave-lang/knave/releases/tag/v0.15.0)
+[![Knave v0.17.0](https://img.shields.io/badge/knave-v0.17.0-blue.svg)](https://github.com/knave-lang/knave/releases/tag/v0.17.0)
 [![Nix flake](https://img.shields.io/badge/nix-flake-5277C3.svg?logo=nixos&logoColor=white)](flake.nix)
 
 A fast, keyboard-driven Gmail client for vim users, written in [Knave](https://github.com/knave-lang/knave). It has a window and a CLI.
