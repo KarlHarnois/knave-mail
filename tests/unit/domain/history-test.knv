@@ -1,5 +1,6 @@
-(use domain/history ->mail-changes ->message-relabel echoed?
-                    history-change relabeled-only-ids)
+(use domain/history ->mail-changes ->message-relabel
+                    already-applied? history-change
+                    relabeled-only-ids)
 
 (use domain/labels ->label-change archive-change
                    inbox-change read-change star-change)
@@ -52,23 +53,24 @@
                                      (relabel "t2" "m2" (archive-change))))))
              (vec (str "t2")))))
 
-(deftest an-archive-the-cache-already-shows-is-an-echo
-  (assert (echoed? (ref (changes-of (vec)
-                                    (vec (relabel "t" "m1" (archive-change)))))
-                   "t"
-                   (ref (vec (str "UNREAD"))))))
+(deftest an-archive-the-cache-already-shows-is-already-applied
+  (assert (already-applied? (ref (changes-of
+                                   (vec)
+                                   (vec (relabel "t" "m1" (archive-change)))))
+                            "t"
+                            (ref (vec (str "UNREAD"))))))
 
-(deftest an-archive-the-cache-does-not-show-is-not-an-echo
-  (assert (not (echoed? (ref (changes-of
-                               (vec)
-                               (vec (relabel "t" "m1" (archive-change)))))
-                        "t"
-                        (ref (vec (str "INBOX")))))))
+(deftest an-archive-the-cache-does-not-show-is-not-yet-applied
+  (assert (not (already-applied?
+                 (ref (changes-of (vec)
+                                  (vec (relabel "t" "m1" (archive-change)))))
+                 "t"
+                 (ref (vec (str "INBOX")))))))
 
-(deftest a-label-added-and-removed-is-never-an-echo
-  (assert (not (echoed? (ref (changes-of (vec)
-                                         (vec
-                                           (relabel "t" "m1" (archive-change))
-                                           (relabel "t" "m2" (inbox-change)))))
-                        "t"
-                        (ref (vec (str "INBOX")))))))
+(deftest a-label-added-and-removed-is-never-already-applied
+  (assert (not (already-applied?
+                 (ref (changes-of (vec)
+                                  (vec (relabel "t" "m1" (archive-change))
+                                       (relabel "t" "m2" (inbox-change)))))
+                 "t"
+                 (ref (vec (str "INBOX")))))))

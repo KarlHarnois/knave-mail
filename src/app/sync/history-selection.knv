@@ -1,9 +1,12 @@
 (use domain/collections appended-once)
-(use domain/history echoed? history-change mail-changes)
+
+(use domain/history already-applied? history-change
+                    mail-changes)
+
 (use domain/labels label-change)
 (use domain/mail thread-summary)
 
-(export not-echoed settled-by-history with-unsettled)
+(export not-yet-applied settled-by-history with-unsettled)
 
 (type settled-by-history
   (fn ((ref mail-changes)
@@ -23,17 +26,17 @@
            settled))
         (none settled)))))
 
-(type not-echoed
+(type not-yet-applied
   (fn ((ref mail-changes)
        (ref (vec thread-summary)))
     (vec thread-summary)))
 
-(defn not-echoed (changes cached)
+(defn not-yet-applied (changes cached)
   (collect (map (filter (iter cached)
                   (fn (summary)
-                    (not (echoed? changes
-                                  (as-str (:id summary))
-                                  (ref (:labels summary))))))
+                    (not (already-applied? changes
+                                           (as-str (:id summary))
+                                           (ref (:labels summary))))))
                 (fn (summary) (clone summary)))))
 
 (type with-unsettled

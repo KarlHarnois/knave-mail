@@ -1,7 +1,7 @@
 (use domain/collections appended-once as-count)
 (use domain/labels ->label-change label-change)
 
-(export ->mail-changes ->message-relabel echoed?
+(export ->mail-changes ->message-relabel already-applied?
         history-change mail-changes message-relabel
         relabeled-only-ids)
 
@@ -30,13 +30,13 @@
                             :removed (removed-labels (ref mine))))
       none)))
 
-(type echoed?
+(type already-applied?
   (fn ((ref mail-changes)
        (ref str)
        (ref (vec string)))
     bool))
 
-(defn echoed? (changes thread-id labels)
+(defn already-applied? (changes thread-id labels)
   (let (mine (of-thread (ref (:relabels changes)) thread-id)
         added (added-labels (ref mine))
         removed (removed-labels (ref mine)))
