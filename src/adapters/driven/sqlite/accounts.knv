@@ -24,7 +24,8 @@
        "DELETE FROM summaries WHERE account = ?1"
        "DELETE FROM threads WHERE account = ?1"
        "DELETE FROM messages WHERE account = ?1"
-       "DELETE FROM checkpoints WHERE account = ?1"))
+       "DELETE FROM checkpoints WHERE account = ?1"
+       "DELETE FROM pending_downloads WHERE account = ?1"))
 
 (def select-labels
   "SELECT id, name, unread FROM labels WHERE account = ?1 ORDER BY name")

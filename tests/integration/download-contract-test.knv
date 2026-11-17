@@ -1,0 +1,54 @@
+(use adapters/driven/memory/store)
+(use adapters/driven/memory/memory-store empty-memory-store)
+(use adapters/driven/sqlite/store open-sqlite-store)
+
+(use support/contracts/download-contract forgets-a-downloaded-thread!
+                                         has-no-pending-downloads-at-first!
+                                         keeps-downloads-per-account!
+                                         keeps-each-download-once!
+                                         lists-the-newest-downloads-first!)
+
+(use support/temporary temporary-path)
+
+(defn sqlite ()
+  (unwrap-ok (open-sqlite-store (ref (temporary-path "cache.sqlite3")))))
+
+(deftest memory-store-has-no-pending-downloads-at-first
+  (let (cache (empty-memory-store))
+    (assert (has-no-pending-downloads-at-first! (mut cache)))))
+
+(deftest sqlite-store-has-no-pending-downloads-at-first
+  (let (cache (sqlite))
+    (assert (has-no-pending-downloads-at-first! (mut cache)))))
+
+(deftest memory-store-lists-the-newest-downloads-first
+  (let (cache (empty-memory-store))
+    (assert (lists-the-newest-downloads-first! (mut cache)))))
+
+(deftest sqlite-store-lists-the-newest-downloads-first
+  (let (cache (sqlite))
+    (assert (lists-the-newest-downloads-first! (mut cache)))))
+
+(deftest memory-store-keeps-each-download-once
+  (let (cache (empty-memory-store))
+    (assert (keeps-each-download-once! (mut cache)))))
+
+(deftest sqlite-store-keeps-each-download-once
+  (let (cache (sqlite))
+    (assert (keeps-each-download-once! (mut cache)))))
+
+(deftest memory-store-forgets-a-downloaded-thread
+  (let (cache (empty-memory-store))
+    (assert (forgets-a-downloaded-thread! (mut cache)))))
+
+(deftest sqlite-store-forgets-a-downloaded-thread
+  (let (cache (sqlite))
+    (assert (forgets-a-downloaded-thread! (mut cache)))))
+
+(deftest memory-store-keeps-downloads-per-account
+  (let (cache (empty-memory-store))
+    (assert (keeps-downloads-per-account! (mut cache)))))
+
+(deftest sqlite-store-keeps-downloads-per-account
+  (let (cache (sqlite))
+    (assert (keeps-downloads-per-account! (mut cache)))))

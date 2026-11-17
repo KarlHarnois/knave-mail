@@ -1,0 +1,52 @@
+(use ports/driven/store forget-pending-download!
+                        load-pending-downloads
+                        save-pending-downloads! store)
+
+(export forgets-a-downloaded-thread!
+        has-no-pending-downloads-at-first!
+        keeps-downloads-per-account!
+        keeps-each-download-once!
+        lists-the-newest-downloads-first!)
+
+(def account "ada@example.com")
+
+(type has-no-pending-downloads-at-first!
+  (where ((cache store))
+    (fn ((mut cache)) bool)))
+
+(defn has-no-pending-downloads-at-first! (cache)
+  (empty? (unwrap-ok (load-pending-downloads cache account))))
+
+(defn lists-the-newest-downloads-first! (cache)
+  (unwrap-ok (save-pending-downloads! cache account
+                                      (ref (vec (str "t-1") (str "t-2")))))
+  (unwrap-ok (save-pending-downloads! cache account
+                                      (ref (vec (str "t-3")))))
+  (= (unwrap-ok (load-pending-downloads cache account))
+     (vec (str "t-3")
+          (str "t-2")
+          (str "t-1"))))
+
+(defn keeps-each-download-once! (cache)
+  (unwrap-ok (save-pending-downloads! cache account
+                                      (ref (vec (str "t-1")))))
+  (unwrap-ok (save-pending-downloads! cache account
+                                      (ref (vec (str "t-1") (str "t-2")))))
+  (= (unwrap-ok (load-pending-downloads cache account))
+     (vec (str "t-2") (str "t-1"))))
+
+(defn forgets-a-downloaded-thread! (cache)
+  (unwrap-ok (save-pending-downloads! cache account
+                                      (ref (vec (str "t-1") (str "t-2")))))
+  (unwrap-ok (forget-pending-download! cache account "t-1"))
+  (= (unwrap-ok (load-pending-downloads cache account))
+     (vec (str "t-2"))))
+
+(defn keeps-downloads-per-account! (cache)
+  (unwrap-ok (save-pending-downloads! cache account
+                                      (ref (vec (str "t-1")))))
+  (unwrap-ok (save-pending-downloads! cache
+                                      "other@example.com"
+                                      (ref (vec (str "t-9")))))
+  (= (unwrap-ok (load-pending-downloads cache account))
+     (vec (str "t-1"))))

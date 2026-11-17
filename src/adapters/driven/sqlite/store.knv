@@ -7,6 +7,10 @@
 (use adapters/driven/sqlite/checkpoints read-checkpoint
                                         write-checkpoint)
 
+(use adapters/driven/sqlite/downloads erase-download
+                                      insert-downloads
+                                      read-downloads)
+
 (use adapters/driven/sqlite/connection open-database
                                        sqlite-connection)
 
@@ -90,6 +94,16 @@
   (save-checkpoint! (cache email history-id)
     (write-checkpoint (ref (:connection cache))
                       email history-id))
+
+  (save-pending-downloads! (cache email thread-ids)
+    (insert-downloads (ref (:connection cache))
+                      email thread-ids))
+
+  (load-pending-downloads (cache email)
+    (read-downloads (ref (:connection cache)) email))
+
+  (forget-pending-download! (cache email thread-id)
+    (erase-download (ref (:connection cache)) email thread-id))
 
   (relabel-stored! (cache relabeled change)
     (relabel-everywhere (ref (:connection cache))

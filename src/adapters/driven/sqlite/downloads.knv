@@ -1,0 +1,43 @@
+(use adapters/driven/sqlite/connection sqlite-connection)
+(use adapters/driven/sqlite/rows as-internal)
+(use adapters/driven/sqlite/statements execute-all)
+
+(export erase-download insert-downloads read-downloads)
+
+(def insert-download-row
+  "INSERT OR IGNORE INTO pending_downloads (account, thread_id) VALUES (?1, ?2)")
+
+(def select-downloads-newest-first
+  "SELECT thread_id FROM pending_downloads WHERE account = ?1 ORDER BY rowid DESC")
+
+(def delete-download-row
+  "DELETE FROM pending_downloads WHERE account = ?1 AND thread_id = ?2")
+
+(defn insert-downloads (connection account thread-ids)
+  (as-internal (rows-inserted connection insert-download-row
+                              account thread-ids)))
+
+(defn read-downloads (connection account)
+  (as-internal (thread-ids-of connection
+                              select-downloads-newest-first
+                              account)))
+
+(defn erase-download (connection account thread-id)
+  (as-internal (execute-all connection
+                            (ref (vec delete-download-row))
+                            (ref (vec account thread-id)))))
+
+(def rows-inserted
+  (rust "{0}.unchecked_transaction().and_then(|{!transaction}| {{ {{ let mut {!statement} = {!transaction}.prepare({1})?; for {!thread_id} in {3}.iter() {{ {!statement}.execute(rusqlite::params![{2}, {!thread_id}])?; }} }} {!transaction}.commit() }}).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection)
+         (ref str)
+         (ref str)
+         (ref (vec string)))
+      (result unit string))))
+
+(def thread-ids-of
+  (rust "{0}.prepare({1}).and_then(|mut {!statement}| {!statement}.query_map([{2}], |{!row}| {!row}.get::<_, String>(0))?.collect::<Result<Vec<String>, _>>()).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection)
+         (ref str)
+         (ref str))
+      (result (vec string) string))))

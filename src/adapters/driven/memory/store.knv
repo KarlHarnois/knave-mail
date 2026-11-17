@@ -25,9 +25,14 @@
 (use adapters/driven/memory/stored-queue count-queued
                                          without-queued)
 
+(use adapters/driven/memory/queueing queued-each!)
+
+(use adapters/driven/memory/stored-downloads downloads-of
+                                             with-downloads
+                                             without-download)
+
 (use domain/labels reversed-change)
 (use adapters/driven/memory/memory-store memory-store)
-(use domain/queued-relabel ->queued-relabel queued-relabel)
 (use domain/summary newest-first)
 (use ports/driven/store store)
 
@@ -100,6 +105,19 @@
     (ok (replace-checkpoint! (mut (:checkpoints cache))
                              email history-id)))
 
+  (save-pending-downloads! (cache email thread-ids)
+    (ok (set! (:pending-downloads cache)
+              (with-downloads (clone (:pending-downloads cache))
+                              email thread-ids))))
+
+  (load-pending-downloads (cache email)
+    (ok (downloads-of (ref (:pending-downloads cache)) email)))
+
+  (forget-pending-download! (cache email thread-id)
+    (ok (set! (:pending-downloads cache)
+              (without-download (ref (:pending-downloads cache))
+                                email thread-id))))
+
   (relabel-stored! (cache relabeled change)
     (ok (relabel-everywhere! (mut (:summaries cache))
                              (mut (:threads cache))
@@ -108,26 +126,7 @@
                              change)))
 
   (queue-relabels! (cache email thread-ids change)
-    (local added (vec))
-    (for-each (iter thread-ids)
-      (fn (thread-id)
-        (relabel-everywhere! (mut (:summaries cache))
-                             (mut (:threads cache))
-                             email
-                             (as-str thread-id)
-                             change)
-        (push! added
-               (->queued-relabel :id (:next-queued-id cache)
-                                 :account (str email)
-                                 :thread-id (clone thread-id)
-                                 :change (clone change)))
-        (set! (:next-queued-id cache)
-              (+ (:next-queued-id cache) 1))))
-    (for-each (iter added)
-      (fn (row)
-        (push! (mut (:queued cache))
-               (clone row))))
-    (ok added))
+    (ok (queued-each! cache email thread-ids change)))
 
   (load-queued (cache)
     (ok (clone (:queued cache))))

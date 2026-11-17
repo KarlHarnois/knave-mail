@@ -28,6 +28,8 @@
      PRIMARY KEY (account, id));
    CREATE INDEX IF NOT EXISTS messages_by_thread ON messages (account, thread_id, position);
    CREATE TABLE IF NOT EXISTS checkpoints (account TEXT PRIMARY KEY, history_id TEXT NOT NULL);
+   CREATE TABLE IF NOT EXISTS pending_downloads (
+     account TEXT NOT NULL, thread_id TEXT NOT NULL, PRIMARY KEY (account, thread_id));
    CREATE TABLE IF NOT EXISTS queued_relabels (
      id INTEGER PRIMARY KEY AUTOINCREMENT, account TEXT NOT NULL, thread_id TEXT NOT NULL,
      added TEXT NOT NULL, removed TEXT NOT NULL);")

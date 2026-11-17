@@ -1,0 +1,65 @@
+(use domain/collections appended)
+
+(export downloads-of with-downloads without-download)
+
+(type with-downloads
+  (fn ((vec (pair string string))
+       (ref str)
+       (ref (vec string)))
+    (vec (pair string string))))
+
+(defn with-downloads (pending email thread-ids)
+  (reduce (iter thread-ids) pending
+    (fn (found thread-id)
+      (if (any? (iter found)
+            (fn (row)
+              (download-of? row email (as-str thread-id))))
+        found
+        (appended found
+                  (pair (str email) (clone thread-id)))))))
+
+(type downloads-of
+  (fn ((ref (vec (pair string string)))
+       (ref str))
+    (vec string)))
+
+(defn downloads-of (pending email)
+  (newest-first (collect (map (filter (iter pending)
+                                (fn (row) (account-of? row email)))
+                              (fn (row)
+                                (let-match ((pair _ thread-id) row)
+                                  (clone thread-id)))))))
+
+(type without-download
+  (fn ((ref (vec (pair string string)))
+       (ref str)
+       (ref str))
+    (vec (pair string string))))
+
+(defn without-download (pending email thread-id)
+  (collect (map (filter (iter pending)
+                  (fn (row)
+                    (not (download-of? row email thread-id))))
+                (fn (row) (clone row)))))
+
+(type download-of?
+  (fn ((ref (pair string string))
+       (ref str)
+       (ref str))
+    bool))
+
+(defn download-of? (row email thread-id)
+  (let-match ((pair account pending-id) row)
+    (and (= account email) (= pending-id thread-id))))
+
+(type account-of?
+  (fn ((ref (pair string string)) (ref str))
+    bool))
+
+(defn account-of? (row email)
+  (let-match ((pair account _) row)
+    (= account email)))
+
+(def newest-first
+  (rust "{{ let mut {!ids} = {0}; {!ids}.reverse(); {!ids} }}"
+    (fn ((vec string)) (vec string))))

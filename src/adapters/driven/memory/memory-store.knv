@@ -13,11 +13,13 @@
   :summaries (vec stored-summary)
   :threads (vec stored-thread)
   :checkpoints (vec (pair string string))
+  :pending-downloads (vec (pair string string))
   :queued (vec queued-relabel)
   :next-queued-id i64)
 
 (defn empty-memory-store ()
   (->memory-store (vec)
+                  (vec)
                   (vec)
                   (vec)
                   (vec)

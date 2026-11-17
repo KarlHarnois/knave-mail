@@ -1,0 +1,35 @@
+(use adapters/driven/memory/memory-store memory-store)
+(use adapters/driven/memory/stored-labels relabel-everywhere!)
+(use domain/labels label-change)
+(use domain/queued-relabel ->queued-relabel queued-relabel)
+
+(export queued-each!)
+
+(type queued-each!
+  (fn ((mut memory-store)
+       (ref str)
+       (ref (vec string))
+       (ref label-change))
+    (vec queued-relabel)))
+
+(defn queued-each! (cache email thread-ids change)
+  (local added (vec))
+  (for-each (iter thread-ids)
+    (fn (thread-id)
+      (relabel-everywhere! (mut (:summaries cache))
+                           (mut (:threads cache))
+                           email
+                           (as-str thread-id)
+                           change)
+      (push! added
+             (->queued-relabel :id (:next-queued-id cache)
+                               :account (str email)
+                               :thread-id (clone thread-id)
+                               :change (clone change)))
+      (set! (:next-queued-id cache)
+            (+ (:next-queued-id cache) 1))))
+  (for-each (iter added)
+    (fn (row)
+      (push! (mut (:queued cache))
+             (clone row))))
+  added)
