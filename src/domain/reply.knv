@@ -88,10 +88,11 @@
     (vec string)))
 
 (defn others (addresses own-address)
-  (collect (map (filter (iter addresses)
-                  (fn (address)
-                    (not (address-of? address own-address))))
-                (fn (address) (clone address)))))
+  (-> (iter addresses)
+      (filter (fn (address)
+                (not (address-of? address own-address))))
+      (map (fn (address) (clone address)))
+      collect))
 
 (type address-of?
   (fn ((ref str) (ref str)) bool))

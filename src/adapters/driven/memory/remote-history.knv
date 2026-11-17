@@ -65,16 +65,17 @@
      (err (mail-error/not-found (str "no history from " since))))))
 
 (defn changes-after (remote start)
-  (collect (map (filter (iter (:changes remote))
-                  (fn (change) (> (:at change) start)))
-                (fn (change) (clone change)))))
+  (-> (iter (:changes remote))
+      (filter (fn (change) (> (:at change) start)))
+      (map (fn (change) (clone change)))
+      collect))
 
 (defn refetched-after (remote start)
-  (reduce (filter (iter (changes-after remote start))
-            (fn (change) (none? (:relabel change))))
-          (vec)
-          (fn (found change)
-            (appended-once found (clone (:thread-id change))))))
+  (-> (iter (changes-after remote start))
+      (filter (fn (change) (none? (:relabel change))))
+      (reduce (vec)
+        (fn (found change)
+          (appended-once found (clone (:thread-id change)))))))
 
 (defn relabels-after (remote start)
   (reduce (iter (changes-after remote start)) (vec)
@@ -99,10 +100,10 @@
     (vec string)))
 
 (defn message-ids-of (remote thread-id)
-  (reduce (filter (iter (:threads remote))
-            (fn (thread) (= (:id thread) thread-id)))
-          (vec)
-          (fn (ids thread)
-            (reduce (iter (:messages thread)) ids
-              (fn (found message)
-                (appended found (clone (:id message))))))))
+  (-> (iter (:threads remote))
+      (filter (fn (thread) (= (:id thread) thread-id)))
+      (reduce (vec)
+        (fn (ids thread)
+          (reduce (iter (:messages thread)) ids
+            (fn (found message)
+              (appended found (clone (:id message)))))))))

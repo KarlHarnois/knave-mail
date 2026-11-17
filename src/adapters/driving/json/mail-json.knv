@@ -27,8 +27,9 @@
     (fn (json-value (ref str)) json-value)))
 
 (defn summaries-json (summaries)
-  (json-array (collect (map (iter summaries)
-                         (fn (summary) (summary-json summary))))))
+  (json-array (-> (iter summaries)
+                  (map (fn (summary) (summary-json summary)))
+                  collect)))
 
 (defn summary-json (summary)
   (summary-object summary

@@ -62,16 +62,18 @@
   (let (token (try (access-token! session))
         started (clock-milliseconds)
         replies (fetched-all! session paths (ref token)))
-    (for-each (enumerate (iter replies))
-      (fn (numbered)
-        (let-match ((pair index outcome) numbered)
-          (log-outcome! (ref (:log session))
-                        "GET"
-                        (at paths index)
-                        outcome started))))
-    (collect-results (collect (map (owned-items replies)
-                                (fn (outcome)
-                                  (checked (try (sent outcome)))))))))
+    (-> (iter replies)
+        enumerate
+        (for-each (fn (numbered)
+                    (let-match ((pair index outcome) numbered)
+                      (log-outcome! (ref (:log session))
+                                    "GET"
+                                    (at paths index)
+                                    outcome started)))))
+    (collect-results (-> (owned-items replies)
+                         (map (fn (outcome)
+                                (checked (try (sent outcome)))))
+                         collect))))
 
 (defn api-post! (session path body)
   (let (first-reply (try (post-one! session path body)))

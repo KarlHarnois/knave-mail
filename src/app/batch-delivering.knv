@@ -34,9 +34,10 @@
     (vec string)))
 
 (defn thread-ids-in (account queued)
-  (collect (map (filter (iter queued)
-                  (fn (row) (= (:account row) account)))
-                (fn (row) (clone (:thread-id row))))))
+  (-> (iter queued)
+      (filter (fn (row) (= (:account row) account)))
+      (map (fn (row) (clone (:thread-id row))))
+      collect))
 
 (type delivered-as-batch!
   (fn ((mut mail-app) delivery-batch)
@@ -77,6 +78,7 @@
          (fn (row)
            (forget-queued! (mut (:store app))
                            (:id row)))))
-  (ok (collect (map (iter rows)
-                 (fn (row)
-                   (delivery-step/delivered (clone row)))))))
+  (ok (-> (iter rows)
+          (map (fn (row)
+                 (delivery-step/delivered (clone row))))
+          collect)))

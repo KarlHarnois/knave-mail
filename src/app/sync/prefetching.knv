@@ -17,8 +17,9 @@
     unit))
 
 (defn prefetch-threads! (app account summaries)
-  (for-each (take (iter summaries) prefetch-limit)
-    (fn (summary) (prefetch-or-warn! app account summary))))
+  (-> (iter summaries)
+      (take prefetch-limit)
+      (for-each (fn (summary) (prefetch-or-warn! app account summary)))))
 
 (type prefetch-or-warn!
   (fn ((mut mail-app)

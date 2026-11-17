@@ -10,10 +10,11 @@
     (vec thread-summary)))
 
 (defn ready-for-batches (summaries)
-  (collect (map (filter (iter summaries)
-                  (fn (summary)
-                    (not (inbox-without-message-ids? summary))))
-                (fn (summary) (clone summary)))))
+  (-> (iter summaries)
+      (filter (fn (summary)
+                (not (inbox-without-message-ids? summary))))
+      (map (fn (summary) (clone summary)))
+      collect))
 
 (type inbox-without-message-ids?
   (fn ((ref thread-summary)) bool))
@@ -28,11 +29,12 @@
     (vec string)))
 
 (defn ids-without-summary (ids known)
-  (collect (map (filter (iter ids)
-                  (fn (id)
-                    (not (any? (iter known)
-                           (fn (summary) (= (:id summary) id))))))
-                (fn (id) (clone id)))))
+  (-> (iter ids)
+      (filter (fn (id)
+                (not (any? (iter known)
+                       (fn (summary) (= (:id summary) id))))))
+      (map (fn (id) (clone id)))
+      collect))
 
 (defn in-listed-order (ids known)
   (reduce (iter ids) (vec)
@@ -51,9 +53,10 @@
     (fn (summary) (= (:id summary) id))))
 
 (defn missing-from-listing (cached listed limit)
-  (collect (map (filter (iter cached)
-                  (fn (summary) (missing-from? summary listed limit)))
-                (fn (summary) (clone (:id summary))))))
+  (-> (iter cached)
+      (filter (fn (summary) (missing-from? summary listed limit)))
+      (map (fn (summary) (clone (:id summary))))
+      collect))
 
 (type missing-from?
   (fn ((ref thread-summary)

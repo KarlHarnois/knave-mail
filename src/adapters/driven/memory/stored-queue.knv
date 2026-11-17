@@ -9,25 +9,28 @@
     (vec queued-relabel)))
 
 (defn without-queued (queued id)
-  (collect (map (filter (iter queued)
-                  (fn (row) (not= (:id row) id)))
-                (fn (row) (clone row)))))
+  (-> (iter queued)
+      (filter (fn (row) (not= (:id row) id)))
+      (map (fn (row) (clone row)))
+      collect))
 
 (type count-queued
   (fn ((ref (vec queued-relabel)) (ref str))
     int))
 
 (defn count-queued (queued email)
-  (as-count (len (collect (filter (iter queued)
-                            (fn (row) (= (:account row) email)))))))
+  (as-count (len (-> (iter queued)
+                     (filter (fn (row) (= (:account row) email)))
+                     collect))))
 
 (type queued-changes-of
   (fn ((ref (vec queued-relabel)) (ref str))
     (vec (pair string label-change))))
 
 (defn queued-changes-of (queued email)
-  (collect (map (filter (iter queued)
-                  (fn (row) (= (:account row) email)))
-                (fn (row)
-                  (pair (clone (:thread-id row))
-                        (clone (:change row)))))))
+  (-> (iter queued)
+      (filter (fn (row) (= (:account row) email)))
+      (map (fn (row)
+             (pair (clone (:thread-id row))
+                   (clone (:change row)))))
+      collect))

@@ -20,9 +20,10 @@
                       :date (date-of (ref messages))
                       :labels (thread-labels thread)
                       :message-count (as-count (len messages))
-                      :message-ids (collect (map (iter messages)
-                                              (fn (message)
-                                                (text-at message "id")))))))
+                      :message-ids (-> (iter messages)
+                                       (map (fn (message)
+                                              (text-at message "id")))
+                                       collect))))
 
 (defn subject-of (messages)
   (match (first messages)
@@ -46,8 +47,9 @@
                      (sender-name (as-str (header-of message "From")))))))
 
 (defn sender-name (from)
-  (let (name (trimmed-of (trim (unwrap-or (find (split from "<") (fn (_) true))
-                                          ""))
+  (let (name (trimmed-of (trim (-> (split from "<")
+                                   (find (fn (_) true))
+                                   (unwrap-or "")))
                          "\""))
     (if (empty? name) (trimmed-of from "<>") name)))
 

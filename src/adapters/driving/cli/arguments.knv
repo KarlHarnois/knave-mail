@@ -52,9 +52,10 @@
     (vec string)))
 
 (defn values-of (parsed name)
-  (collect (map (filter (iter (:options parsed))
-                  (fn (option) (= (key-of option) name)))
-                (fn (option) (clone (value-in option))))))
+  (-> (iter (:options parsed))
+      (filter (fn (option) (= (key-of option) name)))
+      (map (fn (option) (clone (value-in option))))
+      collect))
 
 (type switch?
   (fn ((ref parsed-arguments) (ref str))
@@ -102,4 +103,4 @@
   (let-match ((pair _ value) option) value))
 
 (defn last-value (values)
-  (map-some (last values) clone))
+  (-> values last (map-some clone)))

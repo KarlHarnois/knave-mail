@@ -11,8 +11,9 @@
 (defn log-lines-of (path)
   (match (slurp path)
     ((ok text)
-     (collect (map (lines (as-str text))
-                (fn (line) (str line)))))
+     (-> (lines (as-str text))
+         (map (fn (line) (str line)))
+         collect))
     ((err _) (vec))))
 
 (defn synced-with-debug-log ()

@@ -20,8 +20,9 @@
   (fn ((ref summary-page)) (vec string)))
 
 (defn ids-of (page)
-  (collect (map (iter (:summaries page))
-             (fn (summary) (clone (:id summary))))))
+  (-> (iter (:summaries page))
+      (map (fn (summary) (clone (:id summary))))
+      collect))
 
 (deftest the-first-page-lists-the-newest-threads-and-points-to-the-next
   (let (world (remote)

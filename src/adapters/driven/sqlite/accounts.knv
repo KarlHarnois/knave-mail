@@ -38,8 +38,9 @@
 
 (defn read-accounts (connection)
   (let (emails (try (as-internal (account-emails connection select-emails))))
-    (ok (collect (map (iter emails)
-                   (fn (email) (->account (clone email))))))))
+    (ok (-> (iter emails)
+            (map (fn (email) (->account (clone email))))
+            collect))))
 
 (defn write-account (connection saved)
   (as-internal (execute-all connection
@@ -53,12 +54,13 @@
 
 (defn read-labels (connection account)
   (let (rows (try (as-internal (label-rows connection select-labels account))))
-    (ok (collect (map (iter rows)
-                   (fn (row)
-                     (->label (clone (:id row))
-                              (clone (:name row))
-                              (:unread row)
-                              (:total row))))))))
+    (ok (-> (iter rows)
+            (map (fn (row)
+                   (->label (clone (:id row))
+                            (clone (:name row))
+                            (:unread row)
+                            (:total row))))
+            collect))))
 
 (defn write-labels (connection account labels)
   (as-internal (replace-labels connection delete-labels

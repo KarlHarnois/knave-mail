@@ -3,8 +3,9 @@
 (export addresses sample-message)
 
 (defn addresses (written)
-  (collect (map (iter written)
-             (fn (address) (str address)))))
+  (-> (iter written)
+      (map (fn (address) (str address)))
+      collect))
 
 (defn sample-message ()
   (->message :id (str "m-1")

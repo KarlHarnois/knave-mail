@@ -34,19 +34,21 @@
 (deftest a-sync-lists-inbox-threads-newest-first
   (let (app (app-over (ref (remote))))
     (unwrap-ok (sync-account! (mut app) world-account))
-    (assert (= (collect (map (iter (unwrap-ok (list-threads! (mut app)
-                                                             world-account
-                                                             (ref (inbox-query))
-                                                             freshness/cached)))
-                             (fn (summary) (clone (:id summary)))))
+    (assert (= (-> (iter (unwrap-ok (list-threads! (mut app)
+                                                   world-account
+                                                   (ref (inbox-query))
+                                                   freshness/cached)))
+                   (map (fn (summary) (clone (:id summary))))
+                   collect)
                (vec (str "t-2") (str "t-1"))))))
 
 (defn busy-remote ()
-  (remote-with (collect (map (range 0 (+ prefetch-limit 5))
-                          (fn (number)
-                            (sample-thread (ref (str "t-" number))
-                                           (vec "INBOX")
-                                           (as-count (+ 1000 number))))))))
+  (remote-with (-> (range 0 (+ prefetch-limit 5))
+                   (map (fn (number)
+                          (sample-thread (ref (str "t-" number))
+                                         (vec "INBOX")
+                                         (as-count (+ 1000 number)))))
+                   collect)))
 
 (deftest a-sync-downloads-the-newest-threads-in-full
   (let (world (busy-remote)

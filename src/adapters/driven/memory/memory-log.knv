@@ -40,6 +40,7 @@
     (vec string)))
 
 (defn entry-lines (entries)
-  (collect (map (iter entries)
-             (fn (entry)
-               (str (:area entry) " " (:message entry))))))
+  (-> (iter entries)
+      (map (fn (entry)
+             (str (:area entry) " " (:message entry))))
+      collect))

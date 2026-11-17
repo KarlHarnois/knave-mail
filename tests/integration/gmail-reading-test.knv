@@ -16,9 +16,10 @@
 (deftest fetches-labels-with-unread-counts
   (let (server (start-fake-gmail (ref (fixture-routes)))
         gmail (gmail-over (ref server)))
-    (assert (= (collect (map (iter (unwrap-ok (fetch-labels! (mut gmail))))
-                          (fn (label)
-                            (str (:name label) " " (:unread label)))))
+    (assert (= (-> (iter (unwrap-ok (fetch-labels! (mut gmail))))
+                   (map (fn (label)
+                          (str (:name label) " " (:unread label))))
+                   collect)
                (addresses (vec "INBOX 2" "Receipts 0"))))))
 
 (deftest asks-google-for-an-access-token-first
@@ -93,10 +94,10 @@
 (deftest fetches-every-message-of-a-thread-in-order
   (let (server (start-fake-gmail (ref (fixture-routes)))
         gmail (gmail-over (ref server)))
-    (assert (= (collect (map (iter (:messages (unwrap-ok (fetch-thread! (mut
-                                                                          gmail)
-                                                                        "t1"))))
-                             (fn (message) (clone (:id message)))))
+    (assert (= (-> (iter (:messages (unwrap-ok (fetch-thread! (mut gmail)
+                                                              "t1"))))
+                   (map (fn (message) (clone (:id message))))
+                   collect)
                (addresses (vec "m1" "m2"))))))
 
 (deftest decodes-encoded-subjects-and-addresses

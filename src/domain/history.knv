@@ -62,10 +62,11 @@
     (vec message-relabel)))
 
 (defn of-thread (relabels thread-id)
-  (collect (map (filter (iter relabels)
-                  (fn (relabel)
-                    (= (:thread-id relabel) thread-id)))
-                (fn (relabel) (clone relabel)))))
+  (-> (iter relabels)
+      (filter (fn (relabel)
+                (= (:thread-id relabel) thread-id)))
+      (map (fn (relabel) (clone relabel)))
+      collect))
 
 (type added-labels
   (fn ((ref (vec message-relabel)))
@@ -97,14 +98,13 @@
     int))
 
 (defn messages-losing (relabels label)
-  (as-count (len (reduce (filter (iter relabels)
-                           (fn (relabel)
-                             (holds? (ref (:removed (:change relabel)))
-                                     label)))
-                         (vec)
-                         (fn (ids relabel)
-                           (appended-once ids
-                                          (clone (:message-id relabel))))))))
+  (as-count (len (-> (iter relabels)
+                     (filter (fn (relabel)
+                               (holds? (ref (:removed (:change relabel)))
+                                       label)))
+                     (reduce (vec)
+                       (fn (ids relabel)
+                         (appended-once ids (clone (:message-id relabel)))))))))
 
 (type holds?
   (fn ((ref (vec string)) (ref str)) bool))

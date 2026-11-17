@@ -60,13 +60,13 @@
                                              select-thread-messages
                                              account
                                              thread-id))))
-    (ok (collect (map (iter rows) message-from)))))
+    (ok (-> (iter rows) (map message-from) collect))))
 
 (defn read-message (connection account message-id)
   (let (rows (try (as-internal (message-rows
                                  connection select-message
                                  account message-id))))
-    (ok (map-some (first rows) message-from))))
+    (ok (-> rows first (map-some message-from)))))
 
 (defn write-thread (connection account saved)
   (as-internal (replace-thread-rows

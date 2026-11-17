@@ -23,8 +23,9 @@
                   10))
 
 (defn inbox-ids (cache)
-  (collect (map (iter (unwrap-ok (load-threads cache account (ref (inbox)))))
-             (fn (summary) (clone (:id summary))))))
+  (-> (iter (unwrap-ok (load-threads cache account (ref (inbox)))))
+      (map (fn (summary) (clone (:id summary))))
+      collect))
 
 (defn cached-in-inbox! (cache thread-id)
   (let (saved (sample-thread thread-id (vec "INBOX") 100))

@@ -11,8 +11,9 @@
                   20))
 
 (defn requests-matching (server prefix)
-  (collect (filter (owned-items (requests-seen server))
-             (fn (request) (starts-with? request prefix)))))
+  (-> (owned-items (requests-seen server))
+      (filter (fn (request) (starts-with? request prefix)))
+      collect))
 
 (def sent-mime
   (rust "{{ use base64::Engine; let {!body} = {0}.splitn(3, '\\n').nth(2).unwrap_or(\"\"); let {!json}: serde_json::Value = serde_json::from_str({!body}).unwrap_or_default(); let {!raw} = {!json}[\"raw\"].as_str().unwrap_or(\"\"); String::from_utf8_lossy(&base64::engine::general_purpose::URL_SAFE.decode({!raw}).unwrap_or_default()).into_owned() }}"

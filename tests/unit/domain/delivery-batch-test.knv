@@ -30,11 +30,12 @@
        (summary-of "t-4" (vec))))
 
 (defn batched-threads (queued pending)
-  (collect (map (iter (:rows (batch-from (ref queued)
-                                         (ref (summaries))
-                                         (ref pending))))
-                (fn (batched)
-                  (clone (:thread-id batched))))))
+  (-> (iter (:rows (batch-from (ref queued)
+                               (ref (summaries))
+                               (ref pending))))
+      (map (fn (batched)
+             (clone (:thread-id batched))))
+      collect))
 
 (deftest a-run-of-one-change-goes-out-together
   (let (queued (vec (row 1 "t-1" (archive-change))

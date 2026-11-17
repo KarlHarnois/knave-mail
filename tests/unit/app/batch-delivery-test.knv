@@ -77,12 +77,13 @@
                               world-account
                               (ref (inbox-query))
                               freshness/fresh))
-    (assert (= (collect (map (iter (unwrap-ok (load-summaries-of (ref (:store
-                                                                        app))
-                                                                 world-account
-                                                                 (ref (vec (str "t-1"))))))
-                             (fn (summary)
-                               (clone (:message-ids summary)))))
+    (assert (= (-> (iter (unwrap-ok (load-summaries-of (ref (:store app))
+                                                       world-account
+                                                       (ref (vec (str
+                                                                   "t-1"))))))
+                   (map (fn (summary)
+                          (clone (:message-ids summary))))
+                   collect)
                (vec (vec (str "m-t-1")))))))
 
 (type without-message-ids

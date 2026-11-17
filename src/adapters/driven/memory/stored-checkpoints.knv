@@ -1,11 +1,11 @@
 (export checkpoint-of replace-checkpoint!)
 
 (defn checkpoint-of (checkpoints email)
-  (map-some (find (iter checkpoints)
-              (fn (checkpoint) (checkpoint-of? checkpoint email)))
-            (fn (checkpoint)
-              (let-match ((pair _ history-id) checkpoint)
-                (clone history-id)))))
+  (-> (iter checkpoints)
+      (find (fn (checkpoint) (checkpoint-of? checkpoint email)))
+      (map-some (fn (checkpoint)
+                  (let-match ((pair _ history-id) checkpoint)
+                    (clone history-id))))))
 
 (defn replace-checkpoint! (checkpoints email history-id)
   (set! checkpoints (checkpoints-without checkpoints email))
@@ -18,10 +18,11 @@
     (vec (pair string string))))
 
 (defn checkpoints-without (checkpoints email)
-  (collect (map (filter (iter checkpoints)
-                  (fn (checkpoint)
-                    (not (checkpoint-of? checkpoint email))))
-                (fn (checkpoint) (clone checkpoint)))))
+  (-> (iter checkpoints)
+      (filter (fn (checkpoint)
+                (not (checkpoint-of? checkpoint email))))
+      (map (fn (checkpoint) (clone checkpoint)))
+      collect))
 
 (type checkpoint-of?
   (fn ((ref (pair string string)) (ref str))

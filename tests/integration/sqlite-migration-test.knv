@@ -51,8 +51,9 @@
                (vec (str "m-t-1"))))))
 
 (deftest an-older-cache-keeps-its-labels-with-no-total-yet
-  (assert (= (collect (map (iter (unwrap-ok (load-labels (ref (reopened-old-cache))
-                                                         "ada@example.com")))
-                           (fn (label)
-                             (pair (:unread label) (:total label)))))
+  (assert (= (-> (iter (unwrap-ok (load-labels (ref (reopened-old-cache))
+                                               "ada@example.com")))
+                 (map (fn (label)
+                        (pair (:unread label) (:total label))))
+                 collect)
              (vec (pair 2 0)))))

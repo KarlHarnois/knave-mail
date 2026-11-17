@@ -40,10 +40,10 @@
   (unwrap-ok (sync-account! app world-account)))
 
 (defn listed-ids! (app query)
-  (collect (map (iter (unwrap-ok (list-threads!
-                                   app world-account query
-                                   freshness/cached)))
-                (fn (summary) (clone (:id summary))))))
+  (-> (iter (unwrap-ok
+              (list-threads! app world-account query freshness/cached)))
+      (map (fn (summary) (clone (:id summary))))
+      collect))
 
 (defn throttle-remote-times! (remote operation times delay)
   (with-shared! remote

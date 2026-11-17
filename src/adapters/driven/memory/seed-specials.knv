@@ -38,9 +38,10 @@
   (->thread :id (str "long")
             :subject (str "Re: The never-ending design thread")
             :labels (vec (label-id system-label/inbox))
-            :messages (collect (map (range 0 12)
-                                 (fn (index)
-                                   (long-thread-message account date index))))))
+            :messages (-> (range 0 12)
+                          (map (fn (index)
+                                 (long-thread-message account date index)))
+                          collect)))
 
 (defn long-thread-message (account date index)
   (->message :id (str "m-long-" index)

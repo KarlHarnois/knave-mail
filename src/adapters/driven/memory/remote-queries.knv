@@ -15,8 +15,9 @@
   (fn ((ref remote-mail)) (vec label)))
 
 (defn labels-of (remote)
-  (collect (map (iter (distinct-labels (ref (:threads remote))))
-             (fn (name) (label-named remote name)))))
+  (-> (iter (distinct-labels (ref (:threads remote))))
+      (map (fn (name) (label-named remote name)))
+      collect))
 
 (type label-named
   (fn ((ref remote-mail) (ref string))
@@ -33,13 +34,15 @@
     (vec thread-summary)))
 
 (defn matching-summaries (remote query)
-  (let (summaries (collect (map (filter (iter (:threads remote))
-                                  (fn (candidate)
-                                    (mentions? candidate (:query query))))
-                                (fn (matched) (summarize matched))))
-        labelled (collect (filter (owned-items summaries)
-                            (fn (summary)
-                              (in-scope? summary (ref (:scope query)))))))
+  (let (summaries (-> (iter (:threads remote))
+                      (filter (fn (candidate)
+                                (mentions? candidate (:query query))))
+                      (map (fn (matched) (summarize matched)))
+                      collect)
+        labelled (-> (owned-items summaries)
+                     (filter (fn (summary)
+                               (in-scope? summary (ref (:scope query)))))
+                     collect))
     (newest-first labelled query)))
 
 (type matching-page
@@ -56,8 +59,9 @@
                               :scope (clone (:scope query))
                               :query (clone (:query query))
                               :limit (+ offset (:limit query) 1))))
-        ids (page-slice (ref (collect (map (iter through-next)
-                                        (fn (summary) (clone (:id summary))))))
+        ids (page-slice (ref (-> (iter through-next)
+                                 (map (fn (summary) (clone (:id summary))))
+                                 collect))
                         offset
                         (:limit query)))
     (->thread-page :ids ids
@@ -81,23 +85,25 @@
     (vec thread-summary)))
 
 (defn summaries-with-ids (remote ids)
-  (collect (map (filter (iter (:threads remote))
-                  (fn (candidate)
-                    (any? (iter ids)
-                      (fn (id) (= id (:id candidate))))))
-                (fn (matched) (summarize matched)))))
+  (-> (iter (:threads remote))
+      (filter (fn (candidate)
+                (any? (iter ids)
+                  (fn (id) (= id (:id candidate))))))
+      (map (fn (matched) (summarize matched)))
+      collect))
 
 (type thread-position
   (fn ((ref remote-mail) (ref str))
     (option usize)))
 
 (defn thread-position (remote thread-id)
-  (map-some (find (enumerate (iter (:threads remote)))
-              (fn (numbered)
-                (let-match ((pair _ candidate) numbered)
-                  (= (:id candidate) thread-id))))
-            (fn (numbered)
-              (let-match ((pair index _) numbered) index))))
+  (-> (iter (:threads remote))
+      enumerate
+      (find (fn (numbered)
+              (let-match ((pair _ candidate) numbered)
+                (= (:id candidate) thread-id))))
+      (map-some (fn (numbered)
+                  (let-match ((pair index _) numbered) index)))))
 
 (type distinct-labels
   (fn ((ref (vec thread))) (vec string)))

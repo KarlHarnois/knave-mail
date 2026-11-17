@@ -86,10 +86,11 @@
     (vec string)))
 
 (defn without-removed (labels removed)
-  (collect (map (filter (iter labels)
-                  (fn (label)
-                    (not (holds? removed label))))
-                (fn (label) (clone label)))))
+  (-> (iter labels)
+      (filter (fn (label)
+                (not (holds? removed label))))
+      (map (fn (label) (clone label)))
+      collect))
 
 (defn with-added (labels added)
   (let (missing (without-removed added labels))
@@ -108,10 +109,11 @@
     (vec string)))
 
 (defn labels-missing-from (labels others)
-  (collect (map (filter (iter labels)
-                  (fn (label)
-                    (not (contains? others (clone label)))))
-                (fn (label) (clone label)))))
+  (-> (iter labels)
+      (filter (fn (label)
+                (not (contains? others (clone label)))))
+      (map (fn (label) (clone label)))
+      collect))
 
 (type no-change?
   (fn ((ref label-change)) bool))

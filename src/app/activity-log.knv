@@ -38,9 +38,10 @@
             (str account ": a Gmail listing found "
                  (len fetched)
                  " threads the cache did not hold: "
-                 (join (collect (map (iter fetched)
-                                  (fn (summary) (clone (:id summary)))))
-                       " "))))
+                 (-> (iter fetched)
+                     (map (fn (summary) (clone (:id summary))))
+                     collect
+                     (join " ")))))
 
 (defn log-incremental-sync-started! (log account since)
   (log-info log sync-area

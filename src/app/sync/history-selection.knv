@@ -32,12 +32,13 @@
     (vec thread-summary)))
 
 (defn not-yet-applied (changes cached)
-  (collect (map (filter (iter cached)
-                  (fn (summary)
-                    (not (already-applied? changes
-                                           (as-str (:id summary))
-                                           (ref (:labels summary))))))
-                (fn (summary) (clone summary)))))
+  (-> (iter cached)
+      (filter (fn (summary)
+                (not (already-applied? changes
+                                       (as-str (:id summary))
+                                       (ref (:labels summary))))))
+      (map (fn (summary) (clone summary)))
+      collect))
 
 (type with-unsettled
   (fn ((vec string)

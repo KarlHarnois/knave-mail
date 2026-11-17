@@ -94,10 +94,10 @@
   (if (= mode "system")
     (str "color-scheme: light dark")
     (str "color-scheme: " mode ";\n  "
-         (join (ref (collect (map (iter color-names)
-                               (fn (name)
-                                 (str "--" name ": var(--"
-                                      mode "-" name ")")))))
+         (join (ref (-> (iter color-names)
+                        (map (fn (name)
+                               (str "--" name ": var(--" mode "-" name ")")))
+                        collect))
                ";\n  "))))
 
 (def root-rule

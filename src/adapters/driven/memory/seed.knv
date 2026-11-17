@@ -33,8 +33,9 @@
 (def hour-milliseconds 3600000)
 
 (defn seeded-threads (account count)
-  (let (generated (collect (map (range 0 count)
-                             (fn (index) (generated-thread account index)))))
+  (let (generated (-> (range 0 count)
+                      (map (fn (index) (generated-thread account index)))
+                      collect))
     (with-specials generated account)))
 
 (defn with-specials (generated account)

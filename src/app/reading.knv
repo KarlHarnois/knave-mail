@@ -85,11 +85,12 @@
     (vec thread-summary)))
 
 (defn ids-without-summary-in (fetched stored)
-  (collect (map (filter (iter fetched)
-                  (fn (summary)
-                    (not (any? (iter stored)
-                           (fn (held) (= (:id held) (:id summary)))))))
-                (fn (summary) (clone summary)))))
+  (-> (iter fetched)
+      (filter (fn (summary)
+                (not (any? (iter stored)
+                       (fn (held) (= (:id held) (:id summary)))))))
+      (map (fn (summary) (clone summary)))
+      collect))
 
 (type missing-summaries!
   (fn ((mut mail-app)

@@ -20,12 +20,13 @@
                 :thread-id (str thread-id)))
 
 (defn ids (cache)
-  (collect (map (iter (unwrap-ok (load-threads cache account
-                                               (ref (->thread-query (label-scope/only
-                                                                      (str "INBOX"))
-                                                                    (str "")
-                                                                    10)))))
-                (fn (summary) (clone (:id summary))))))
+  (-> (iter (unwrap-ok (load-threads cache account
+                                     (ref (->thread-query (label-scope/only (str
+                                                                              "INBOX"))
+                                                          (str "")
+                                                          10)))))
+      (map (fn (summary) (clone (:id summary))))
+      collect))
 
 (defn finds-summaries-by-id! (cache)
   (unwrap-ok
@@ -37,12 +38,12 @@
                cache "other@example.com"
                (ref (vec (summarize
                            (ref (sample-thread "t-3" (vec "INBOX") 300)))))))
-  (= (collect (map (iter (unwrap-ok (load-summaries-of
-                                      cache account
-                                      (ref (vec (str "t-2")
-                                                (str "t-3")
-                                                (str "t-9"))))))
-                   (fn (summary) (clone (:id summary)))))
+  (= (-> (iter (unwrap-ok (load-summaries-of cache account
+                                             (ref (vec (str "t-2")
+                                                       (str "t-3")
+                                                       (str "t-9"))))))
+         (map (fn (summary) (clone (:id summary))))
+         collect)
      (vec (str "t-2"))))
 
 (defn relabels-a-summary-without-its-thread! (cache)
@@ -71,9 +72,9 @@
                cache account
                (ref (vec (summarize
                            (ref (sample-thread "t-1" (vec "INBOX") 100)))))))
-  (= (collect (map (iter (unwrap-ok (load-summaries-of
-                                      cache account
-                                      (ref (vec (str "t-1"))))))
-                   (fn (summary)
-                     (clone (:message-ids summary)))))
+  (= (-> (iter (unwrap-ok (load-summaries-of cache account
+                                             (ref (vec (str "t-1"))))))
+         (map (fn (summary)
+                (clone (:message-ids summary))))
+         collect)
      (vec (vec (str "m-t-1")))))

@@ -53,12 +53,13 @@
     (vec string)))
 
 (defn threads-holding (remote message-ids)
-  (collect (map (filter (iter (:threads remote))
-                  (fn (held)
-                    (any? (iter (:messages held))
-                      (fn (message)
-                        (contains? message-ids (clone (:id message)))))))
-                (fn (held) (clone (:id held))))))
+  (-> (iter (:threads remote))
+      (filter (fn (held)
+                (any? (iter (:messages held))
+                  (fn (message)
+                    (contains? message-ids (clone (:id message)))))))
+      (map (fn (held) (clone (:id held))))
+      collect))
 
 (type found-thread
   (fn ((ref remote-mail) (ref str))

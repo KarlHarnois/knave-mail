@@ -19,10 +19,9 @@
                             surface-remotely!)
 
 (defn fresh-ids! (app query)
-  (collect (map (iter (unwrap-ok (list-threads!
-                                   app world-account query
-                                   freshness/fresh)))
-                (fn (summary) (clone (:id summary))))))
+  (-> (iter (unwrap-ok (list-threads! app world-account query freshness/fresh)))
+      (map (fn (summary) (clone (:id summary))))
+      collect))
 
 (defn remote ()
   (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100)

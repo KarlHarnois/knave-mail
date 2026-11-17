@@ -4,8 +4,9 @@
                    unread? unstar-change untrash-change)
 
 (defn labels (names)
-  (collect (map (iter names)
-             (fn (name) (str name)))))
+  (-> (iter names)
+      (map (fn (name) (str name)))
+      collect))
 
 (defn changed (names change)
   (apply-label-change (ref (labels names))

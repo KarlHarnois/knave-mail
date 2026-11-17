@@ -14,8 +14,9 @@
   (fn ((vec thread-summary)) (vec string)))
 
 (defn ids-of (summaries)
-  (collect (map (iter summaries)
-             (fn (summary) (clone (:id summary))))))
+  (-> (iter summaries)
+      (map (fn (summary) (clone (:id summary))))
+      collect))
 
 (deftest ids-without-a-summary-are-the-ones-to-fetch
   (assert (= (ids-without-summary (ref (vec (str "a") (str "b") (str "c")))

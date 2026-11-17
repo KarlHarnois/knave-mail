@@ -17,9 +17,9 @@
                       :date (:date latest)
                       :labels (clone (:labels summarized))
                       :message-count (message-count summarized)
-                      :message-ids (collect (map (iter (:messages summarized))
-                                              (fn (held)
-                                                (clone (:id held))))))))
+                      :message-ids (-> (iter (:messages summarized))
+                                       (map (fn (held) (clone (:id held))))
+                                       collect))))
 
 (type in-scope?
   (fn ((ref thread-summary) (ref label-scope))

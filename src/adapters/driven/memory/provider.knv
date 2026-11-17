@@ -21,9 +21,10 @@
       (none (err (mail-error/auth-required (str "no account " email)))))))
 
 (defn email-position (emails email)
-  (map-some (find (enumerate (iter emails))
-              (fn (numbered)
-                (let-match ((pair _ candidate) numbered)
-                  (= (as-str candidate) email))))
-            (fn (numbered)
-              (let-match ((pair index _) numbered) index))))
+  (-> (iter emails)
+      enumerate
+      (find (fn (numbered)
+              (let-match ((pair _ candidate) numbered)
+                (= (as-str candidate) email))))
+      (map-some (fn (numbered)
+                  (let-match ((pair index _) numbered) index)))))

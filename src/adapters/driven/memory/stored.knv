@@ -22,12 +22,13 @@
     (vec thread-summary)))
 
 (defn summaries-of (stored email query)
-  (collect (map (filter (iter stored)
-                  (fn (entry)
-                    (and (= (:account entry) email)
-                         (in-scope? (ref (:summary entry))
-                                    (ref (:scope query))))))
-                (fn (entry) (clone (:summary entry))))))
+  (-> (iter stored)
+      (filter (fn (entry)
+                (and (= (:account entry) email)
+                     (in-scope? (ref (:summary entry))
+                                (ref (:scope query))))))
+      (map (fn (entry) (clone (:summary entry))))
+      collect))
 
 (type replace-summaries!
   (fn ((mut (vec stored-summary))
@@ -62,10 +63,11 @@
     (vec stored-summary)))
 
 (defn other-summaries (stored email thread-id)
-  (collect (map (filter (iter stored)
-                  (fn (entry)
-                    (not (summary-entry? entry email thread-id))))
-                (fn (entry) (clone entry)))))
+  (-> (iter stored)
+      (filter (fn (entry)
+                (not (summary-entry? entry email thread-id))))
+      (map (fn (entry) (clone entry)))
+      collect))
 
 (type other-threads
   (fn ((ref (vec stored-thread))
@@ -74,10 +76,11 @@
     (vec stored-thread)))
 
 (defn other-threads (stored email thread-id)
-  (collect (map (filter (iter stored)
-                  (fn (entry)
-                    (not (thread-entry? entry email thread-id))))
-                (fn (entry) (clone entry)))))
+  (-> (iter stored)
+      (filter (fn (entry)
+                (not (thread-entry? entry email thread-id))))
+      (map (fn (entry) (clone entry)))
+      collect))
 
 (type summary-entry?
   (fn ((ref stored-summary)
@@ -106,17 +109,18 @@
     (vec thread-summary)))
 
 (defn summaries-with-ids (stored email ids)
-  (collect (map (filter (iter stored)
-                  (fn (entry)
-                    (and (= (:account entry) email)
-                         (any? (iter ids)
-                           (fn (id) (= id (:id (:summary entry))))))))
-                (fn (entry) (clone (:summary entry))))))
+  (-> (iter stored)
+      (filter (fn (entry)
+                (and (= (:account entry) email)
+                     (any? (iter ids)
+                       (fn (id) (= id (:id (:summary entry))))))))
+      (map (fn (entry) (clone (:summary entry))))
+      collect))
 
 (defn thread-in (stored email thread-id)
-  (map-some (find (iter stored)
-              (fn (entry) (thread-entry? entry email thread-id)))
-            (fn (entry) (clone (:thread entry)))))
+  (-> (iter stored)
+      (find (fn (entry) (thread-entry? entry email thread-id)))
+      (map-some (fn (entry) (clone (:thread entry))))))
 
 (type message-in
   (fn ((ref (vec stored-thread))
@@ -125,19 +129,19 @@
     (option message)))
 
 (defn message-in (stored email message-id)
-  (then-some (find (map (filter (iter stored)
-                          (fn (entry) (= (:account entry) email)))
-                        (fn (entry)
-                          (message-with-id (ref (:thread entry)) message-id)))
-                   some?)
-             (fn (found) found)))
+  (-> (iter stored)
+      (filter (fn (entry) (= (:account entry) email)))
+      (map (fn (entry)
+             (message-with-id (ref (:thread entry)) message-id)))
+      (find some?)
+      (then-some (fn (found) found))))
 
 (type message-with-id
   (fn ((ref thread) (ref str))
     (option message)))
 
 (defn message-with-id (held message-id)
-  (map-some (find (iter (:messages held))
-              (fn (candidate)
-                (= (:id candidate) message-id)))
-            (fn (found) (clone found))))
+  (-> (iter (:messages held))
+      (find (fn (candidate)
+              (= (:id candidate) message-id)))
+      (map-some (fn (found) (clone found)))))

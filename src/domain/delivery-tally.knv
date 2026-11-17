@@ -14,8 +14,9 @@
   (if (any? (iter counts)
         (fn (count)
           (= (:account count) account)))
-    (collect (map (iter counts)
-               (fn (count) (counted-once-more count account))))
+    (-> (iter counts)
+        (map (fn (count) (counted-once-more count account)))
+        collect)
     (appended counts
               (->delivery-count :account (str account) :delivered 1))))
 

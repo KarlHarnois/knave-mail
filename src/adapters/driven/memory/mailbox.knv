@@ -44,8 +44,9 @@
     (with-shared! (ref (:remote box))
       (fn (remote)
         (try (guard! remote "list-thread-ids"))
-        (ok (collect (map (iter (matching-summaries remote query))
-                       (fn (summary) (clone (:id summary)))))))))
+        (ok (-> (iter (matching-summaries remote query))
+                (map (fn (summary) (clone (:id summary))))
+                collect)))))
 
   (fetch-thread-page! (box query page-token)
     (with-shared! (ref (:remote box))

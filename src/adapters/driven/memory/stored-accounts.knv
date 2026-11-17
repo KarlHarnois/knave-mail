@@ -12,7 +12,8 @@
     (vec account)))
 
 (defn accounts-without (accounts email)
-  (collect (map (filter (iter accounts)
-                  (fn (account)
-                    (not= (:email account) email)))
-                (fn (account) (clone account)))))
+  (-> (iter accounts)
+      (filter (fn (account)
+                (not= (:email account) email)))
+      (map (fn (account) (clone account)))
+      collect))

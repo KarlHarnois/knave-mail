@@ -49,10 +49,11 @@
   (with-shared! remote
     (fn (state)
       (set! (:threads state)
-            (collect (map (filter (iter (:threads state))
-                            (fn (thread)
-                              (not= (:id thread) thread-id)))
-                          (fn (thread) (clone thread)))))
+            (-> (iter (:threads state))
+                (filter (fn (thread)
+                          (not= (:id thread) thread-id)))
+                (map (fn (thread) (clone thread)))
+                collect))
       (record-change! state thread-id))))
 
 (type relabel-remotely!
@@ -65,11 +66,12 @@
   (with-shared! remote
     (fn (state)
       (set! (:threads state)
-            (collect (map (iter (:threads state))
-                       (fn (held)
-                         (if (= (:id held) thread-id)
-                           (relabeled held (ref change))
-                           (clone held))))))
+            (-> (iter (:threads state))
+                (map (fn (held)
+                       (if (= (:id held) thread-id)
+                         (relabeled held (ref change))
+                         (clone held))))
+                collect))
       (record-relabel! state thread-id (ref change)))))
 
 (type relabeled
