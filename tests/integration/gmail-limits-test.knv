@@ -1,6 +1,6 @@
 (use domain/label-scope label-scope)
 (use adapters/driven/gmail/mailbox gmail-mailbox)
-(use domain/mail-error error-kind mail-error)
+(use domain/mail-error error-kind error-message mail-error)
 (use domain/mail ->thread-query)
 (use ports/driven/mailbox fetch-labels! fetch-threads!)
 (use support/fake-gmail start-fake-gmail)
@@ -40,6 +40,21 @@
                  ((throttled throttle) (:retry-after-milliseconds throttle))
                  (_ 0))
                2000))))
+
+(deftest a-throttled-request-keeps-gmails-message
+  (let (server (start-fake-gmail (ref (routes-answering-labels-with "403 tests/fixtures/gmail/rate-limited.json")))
+        gmail (gmail-over (ref server)))
+    (assert (= (str (error-message (ref (unwrap-err (fetch-labels! (mut
+                                                                     gmail))))))
+               "Gmail is rate limiting this account: Quota exceeded for quota metric 'Total Query Cost' and limit 'Units per minute per user' of service 'gmail.googleapis.com'."))))
+
+(deftest a-throttled-request-waits-until-the-time-in-gmails-message
+  (let (server (start-fake-gmail (ref (routes-answering-labels-with "403 tests/fixtures/gmail/user-rate-limited.json")))
+        gmail (gmail-over (ref server)))
+    (assert (> (match (unwrap-err (fetch-labels! (mut gmail)))
+                 ((throttled throttle) (:retry-after-milliseconds throttle))
+                 (_ 0))
+               0))))
 
 (deftest a-used-up-daily-limit-is-a-network-error
   (let (server (start-fake-gmail (ref (routes-answering-labels-with "403 tests/fixtures/gmail/daily-limit.json")))

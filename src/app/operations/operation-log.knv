@@ -58,11 +58,12 @@
                           "; attempt " next-attempt " in "
                           delay "ms"
                           (if (from-retry-after? failure delay)
-                            " (Retry-After)" "")))))
+                            ", as Gmail asked" "")))))
 
 (defn waiting-step (failure)
   (match failure
-    ((throttled _) (str "throttled"))
+    ((throttled throttle)
+     (str "throttled: " (:message throttle)))
     (_ (str "failed, will retry: " (failure-text failure)))))
 
 (defn from-retry-after? (failure delay)

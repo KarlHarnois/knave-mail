@@ -96,7 +96,8 @@ After each attempt, a pure function picks the next step:
 
 - **Retryable failures:** `throttled` and `network`. A durable operation also keeps waiting on `auth-required`, because signing in again fixes it.
 - **Final failures:** `not-found`, `usage` and `internal`, or a retryable failure once `most-attempts` runs out.
-- **Backoff:** the `Retry-After` delay when Gmail sends one. Otherwise it doubles from 1 second, up to 60 seconds.
+- **Backoff:** the `Retry-After` delay when Gmail sends one, or the time after "Retry after" in Gmail's error message. Otherwise it doubles from 1 second, up to 60 seconds.
+- **Long waits:** when Gmail asks for a wait longer than 60 seconds, an operation that isn't durable stops at once with the throttled error. A durable operation waits.
 
 ### 3. Performing
 
@@ -155,7 +156,7 @@ A new driven port lets the app hand work over without knowing where it runs:
 | recovered | info | the attempt it resumes at, for durable operations loaded at start |
 | started | debug | attempt number out of the most attempts, time spent waiting since it was queued |
 | finished | debug | how long the attempt took, the attempt number, total time since it was queued |
-| throttled | info | the next attempt number and the delay, and whether the delay came from `Retry-After` |
+| throttled | info | Gmail's message, the next attempt number and the delay, and whether Gmail asked for that delay |
 | failed, will retry | info | the error kind and message, the next attempt number and the delay |
 | failed | info | the error kind and message, and the attempt, when the failure is not worth retrying, such as an expired history the caller handles |
 | gave up | warn | the error kind and message, the attempts made, and "local change reverted" for a durable operation |
@@ -165,7 +166,7 @@ Example lines for one relabel:
 ```
 DEBUG operations #42 relabel ada@example.com: queued, interactive, thread t-42 +[] -[INBOX]
 DEBUG operations #42 relabel ada@example.com: started, attempt 1 of unlimited, waited 120ms
-INFO  operations #42 relabel ada@example.com: throttled; attempt 2 in 4000ms (Retry-After)
+INFO  operations #42 relabel ada@example.com: throttled: Gmail is rate limiting this account: User-rate limit exceeded. Retry after 2026-11-17T16:05:12.123Z; attempt 2 in 4000ms, as Gmail asked
 INFO  operations #42 relabel ada@example.com: failed, will retry: network: connection reset; attempt 3 in 8000ms
 DEBUG operations #42 relabel ada@example.com: finished in 280ms, attempt 3, 12400ms since queued
 WARN  operations #43 relabel ada@example.com: gave up after 1 attempt: not-found: Gmail has no such item; local change reverted

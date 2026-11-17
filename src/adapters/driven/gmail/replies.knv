@@ -3,7 +3,8 @@
                                       rate-limited?)
 
 (use adapters/json/value json-value parse-json)
-(use domain/mail-error ->throttling mail-error)
+(use adapters/driven/gmail/throttling throttling-of)
+(use domain/mail-error mail-error)
 
 (export as-internal checked collect-results into-replies
         sent)
@@ -15,10 +16,7 @@
       ((and (>= status 200) (< status 300))
        (as-internal (parse-json (ref (non-empty-json body)))))
       ((rate-limited? (ref reply))
-       (err (mail-error/throttled
-              (->throttling
-                :message (str "Gmail is rate limiting this account")
-                :retry-after-milliseconds (unwrap-or (:retry-after reply) 0)))))
+       (err (mail-error/throttled (throttling-of (ref reply)))))
       ((quota-exhausted? (ref reply))
        (err (mail-error/network (str "Gmail's usage quota is used up; try again later"))))
       ((= status 404)

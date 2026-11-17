@@ -42,4 +42,4 @@
     (assert (= (len (remote-sent (ref world))) 1))
     (assert (= (pauses-of (ref clock)) (vec 7000)))
     (assert (mentions? (ref (logged-lines (ref log)))
-                       "send ada@example.com: throttled; attempt 2 in 7000ms (Retry-After)"))))
+                       "send ada@example.com: throttled: simulated throttling of deliver; attempt 2 in 7000ms, as Gmail asked"))))

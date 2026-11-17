@@ -114,3 +114,15 @@
                                  (ref (policy-of (ref (relabel-kind))))
                                  (ref (mail-error/auth-required (str "sign in again"))))
              next-step/stop)))
+
+(deftest a-read-gives-up-when-gmail-asks-for-a-long-wait
+  (assert (= (step-after-failure 1
+                                 (ref (policy-of (ref operation-kind/fetch-labels)))
+                                 (ref (throttled-for 120000)))
+             next-step/stop)))
+
+(deftest a-queued-relabel-waits-as-long-as-gmail-asks
+  (assert (= (step-after-failure 1
+                                 (ref (policy-of (ref (queued-relabel-kind))))
+                                 (ref (throttled-for 120000)))
+             (next-step/retry-after 120000))))

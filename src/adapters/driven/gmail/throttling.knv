@@ -1,0 +1,51 @@
+(use adapters/driven/gmail/http-reply http-reply)
+(use domain/mail-error ->throttling throttling)
+
+(export retry-wait-in throttling-of)
+
+(def retry-marker "Retry after ")
+
+(def rate-limit-notice
+  "Gmail is rate limiting this account")
+
+(type throttling-of
+  (fn ((ref http-reply)) throttling))
+
+(defn throttling-of (reply)
+  (let (gmail-message (gmail-error-message (ref (:body reply))))
+    (->throttling :message (notice-with (ref gmail-message))
+                  :retry-after-milliseconds (asked-wait (:retry-after reply)
+                                                        (as-str
+                                                          gmail-message)))))
+
+(defn notice-with (gmail-message)
+  (if (empty? gmail-message)
+    (str rate-limit-notice)
+    (str rate-limit-notice ": " gmail-message)))
+
+(defn asked-wait (header-wait gmail-message)
+  (match header-wait
+    ((some milliseconds) milliseconds)
+    (none (unwrap-or (retry-wait-in gmail-message (now-milliseconds))
+                     0))))
+
+(type retry-wait-in
+  (fn ((ref str) i64) (option i64)))
+
+(defn retry-wait-in (gmail-message now)
+  (match (utc-milliseconds-after gmail-message retry-marker)
+    ((some retry-at)
+     (some (if (> retry-at now) (- retry-at now) 0)))
+    (none none)))
+
+(def gmail-error-message
+  (rust "serde_json::from_str::<serde_json::Value>({0}).ok().and_then(|{!answer}| {!answer}[\"error\"][\"message\"].as_str().map(|{!message}| {!message}.split_whitespace().collect::<Vec<_>>().join(\" \"))).unwrap_or_default()"
+    (fn ((ref str)) string)))
+
+(def utc-milliseconds-after
+  (rust "{0}.find({1}).and_then(|{!at}| {{ let {!stamp} = &{0}[{!at} + {1}.len()..]; let {!field} = |{!from}: usize, {!to}: usize| {!stamp}.get({!from}..{!to}).and_then(|{!digits}| {!digits}.parse::<i64>().ok()); let ({!year}, {!month}, {!day}) = ({!field}(0, 4)?, {!field}(5, 7)?, {!field}(8, 10)?); let ({!hour}, {!minute}, {!second}) = ({!field}(11, 13)?, {!field}(14, 16)?, {!field}(17, 19)?); let {!fraction} = if {!stamp}.get(19..20) == Some(\".\") {{ {!field}(20, 23).unwrap_or(0) }} else {{ 0 }}; let {!march_year} = if {!month} <= 2 {{ {!year} - 1 }} else {{ {!year} }}; let {!era} = {!march_year}.div_euclid(400); let {!year_of_era} = {!march_year} - {!era} * 400; let {!day_of_year} = (153 * ({!month} + if {!month} > 2 {{ -3 }} else {{ 9 }}) + 2) / 5 + {!day} - 1; let {!day_of_era} = {!year_of_era} * 365 + {!year_of_era} / 4 - {!year_of_era} / 100 + {!day_of_year}; let {!days} = {!era} * 146097 + {!day_of_era} - 719468; Some(((({!days} * 24 + {!hour}) * 60 + {!minute}) * 60 + {!second}) * 1000 + {!fraction}) }})"
+    (fn ((ref str) (ref str)) (option i64))))
+
+(def now-milliseconds
+  (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as i64).unwrap_or(0)"
+    (fn () i64)))

@@ -61,10 +61,16 @@
   stop)
 
 (defn step-after-failure (attempt policy failure)
-  (if (and (retryable? policy failure)
-           (attempts-left? (:most-attempts policy) attempt))
-    (next-step/retry-after (delay-after attempt failure))
-    next-step/stop))
+  (let (delay (delay-after attempt failure))
+    (if (and (retryable? policy failure)
+             (attempts-left? (:most-attempts policy) attempt)
+             (worth-the-wait? policy delay))
+      (next-step/retry-after delay)
+      next-step/stop)))
+
+(defn worth-the-wait? (policy delay)
+  (or (:durable policy)
+      (<= delay longest-backoff-milliseconds)))
 
 (defn attempts-left? (most-attempts attempt)
   (match most-attempts
