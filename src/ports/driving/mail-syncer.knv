@@ -3,7 +3,10 @@
 (export mail-syncer)
 
 (deftrait mail-syncer
-  (sync-account! (fn ((mut self) (ref str))
-                   (result unit mail-error)))
-  (preview-account! (fn ((mut self) (ref str))
-                      (result bool mail-error))))
+  (sync-account!
+    (fn ((mut self) (ref str))
+      (result unit mail-error)))
+
+  (preview-account!
+    (fn ((mut self) (ref str))
+      (result bool mail-error))))

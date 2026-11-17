@@ -5,7 +5,10 @@
 (export mail-writer)
 
 (deftrait mail-writer
-  (draft! (fn ((mut self) (ref message-ref) draft-kind)
-            (result draft mail-error)))
-  (send-draft! (fn ((mut self) (ref str) (ref draft))
-                 (result unit mail-error))))
+  (draft!
+    (fn ((mut self) (ref message-ref) draft-kind)
+      (result draft mail-error)))
+
+  (send-draft!
+    (fn ((mut self) (ref str) (ref draft))
+      (result unit mail-error))))

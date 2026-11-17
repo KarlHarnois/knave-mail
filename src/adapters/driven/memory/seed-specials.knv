@@ -4,8 +4,7 @@
 (export html-newsletter long-thread unicode-thread)
 
 (defn html-newsletter (account date)
-  (single-message-thread account
-                         (->message :id (str "m-newsletter")
+  (single-message-thread (->message :id (str "m-newsletter")
                                     :thread-id (str "newsletter")
                                     :from (str "The Weekly Byte <news@example.com>")
                                     :to (vec (str account))
@@ -20,8 +19,7 @@
                               (label-id system-label/unread))))
 
 (defn unicode-thread (account date)
-  (single-message-thread account
-                         (->message :id (str "m-unicode")
+  (single-message-thread (->message :id (str "m-unicode")
                                     :thread-id (str "unicode")
                                     :from (str
                                             "Yūki Matsumoto <yuki@example.jp>")
@@ -61,10 +59,9 @@
              :references (str "")))
 
 (type single-message-thread
-  (fn ((ref str) message (vec string))
-    thread))
+  (fn (message (vec string)) thread))
 
-(defn single-message-thread (account only labels)
+(defn single-message-thread (only labels)
   (->thread :id (clone (:thread-id only))
             :subject (clone (:subject only))
             :labels labels

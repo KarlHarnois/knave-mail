@@ -13,8 +13,11 @@
   :message string)
 
 (deftrait event-log
-  (record! (fn ((ref self) (ref log-entry)) unit))
-  (share-log (fn ((ref self)) (box event-log))))
+  (record!
+    (fn ((ref self) (ref log-entry)) unit))
+
+  (share-log
+    (fn ((ref self)) (box event-log))))
 
 (type severity
   (fn ((ref log-level)) u8))

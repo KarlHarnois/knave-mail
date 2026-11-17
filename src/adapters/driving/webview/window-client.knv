@@ -3,7 +3,12 @@
 (export window-client)
 
 (deftrait window-client
-  (answer-request! (fn ((mut self) (ref str)) string))
-  (sync-mail! (fn ((mut self) (ref str))
-                (result unit mail-error)))
-  (waiting-changes-of (fn ((ref self) (ref str)) i64)))
+  (answer-request!
+    (fn ((mut self) (ref str)) string))
+
+  (sync-mail!
+    (fn ((mut self) (ref str))
+      (result unit mail-error)))
+
+  (waiting-changes-of
+    (fn ((ref self) (ref str)) i64)))

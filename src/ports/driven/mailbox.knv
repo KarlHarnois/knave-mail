@@ -9,27 +9,46 @@
 (export mailbox)
 
 (deftrait mailbox
-  (fetch-labels! (fn ((mut self))
-                   (result (vec label) mail-error)))
-  (fetch-threads! (fn ((mut self) (ref thread-query))
-                    (result (vec thread-summary) mail-error)))
-  (fetch-thread-ids! (fn ((mut self) (ref thread-query))
-                       (result (vec string) mail-error)))
-  (fetch-thread-page! (fn ((mut self)
-                           (ref thread-query)
-                           (ref str))
-                        (result thread-page mail-error)))
-  (fetch-summaries! (fn ((mut self) (ref (vec string)))
-                      (result (vec thread-summary) mail-error)))
-  (fetch-thread! (fn ((mut self) (ref str))
-                   (result thread mail-error)))
-  (fetch-history-id! (fn ((mut self))
-                       (result string mail-error)))
-  (fetch-changes! (fn ((mut self) (ref str))
-                    (result mail-changes mail-error)))
-  (deliver! (fn ((mut self) (ref outgoing))
-              (result string mail-error)))
-  (relabel! (fn ((mut self)
-                 (ref str)
-                 (ref label-change))
-              (result unit mail-error))))
+  (fetch-labels!
+    (fn ((mut self))
+      (result (vec label) mail-error)))
+
+  (fetch-threads!
+    (fn ((mut self) (ref thread-query))
+      (result (vec thread-summary) mail-error)))
+
+  (fetch-thread-ids!
+    (fn ((mut self) (ref thread-query))
+      (result (vec string) mail-error)))
+
+  (fetch-thread-page!
+    (fn ((mut self)
+         (ref thread-query)
+         (ref str))
+      (result thread-page mail-error)))
+
+  (fetch-summaries!
+    (fn ((mut self) (ref (vec string)))
+      (result (vec thread-summary) mail-error)))
+
+  (fetch-thread!
+    (fn ((mut self) (ref str))
+      (result thread mail-error)))
+
+  (fetch-history-id!
+    (fn ((mut self))
+      (result string mail-error)))
+
+  (fetch-changes!
+    (fn ((mut self) (ref str))
+      (result mail-changes mail-error)))
+
+  (deliver!
+    (fn ((mut self) (ref outgoing))
+      (result string mail-error)))
+
+  (relabel!
+    (fn ((mut self)
+         (ref str)
+         (ref label-change))
+      (result unit mail-error))))

@@ -9,16 +9,17 @@
         reply-sink)
 
 (deftrait listing-runner
-  (hand-off! (fn ((mut self) (ref str)) bool)))
+  (hand-off!
+    (fn ((mut self) (ref str)) bool)))
 
 (deftrait reply-sink
-  (deliver-reply! (fn ((ref self) string) unit)))
+  (deliver-reply!
+    (fn ((ref self) string) unit)))
 
-(defstruct inline-listing
-  :handed-off i64)
+(defstruct inline-listing)
 
 (impl listing-runner inline-listing
-  (hand-off! (runner request-text) false))
+  (hand-off! (_runner _request-text) false))
 
 (defstruct outbox-sink
   :outbox reply-outbox)

@@ -5,12 +5,17 @@
 (export mail-labeler)
 
 (deftrait mail-labeler
-  (relabel-threads! (fn ((mut self)
-                         (ref str)
-                         (ref (vec string))
-                         (ref label-change))
-                      (result unit mail-error)))
-  (deliver-next-change! (fn ((mut self))
-                          (result delivery-step mail-error)))
-  (waiting-changes (fn ((ref self) (ref str))
-                     (result i64 mail-error))))
+  (relabel-threads!
+    (fn ((mut self)
+         (ref str)
+         (ref (vec string))
+         (ref label-change))
+      (result unit mail-error)))
+
+  (deliver-next-change!
+    (fn ((mut self))
+      (result delivery-step mail-error)))
+
+  (waiting-changes
+    (fn ((ref self) (ref str))
+      (result i64 mail-error))))

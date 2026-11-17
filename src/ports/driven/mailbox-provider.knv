@@ -4,5 +4,6 @@
 (export mailbox-provider)
 
 (deftrait mailbox-provider
-  (connect-mailbox! (fn ((mut self) (ref str))
-                      (result (box mailbox) mail-error))))
+  (connect-mailbox!
+    (fn ((mut self) (ref str))
+      (result (box mailbox) mail-error))))

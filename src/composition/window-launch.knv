@@ -65,8 +65,8 @@
 
 (defn serve-memory-window! (chosen log inbox outbox)
   (local running (memory-app chosen (share-log log)))
-  (local runner (->inline-sync 0))
-  (local lister (->inline-listing 0))
+  (local runner (->inline-sync))
+  (local lister (->inline-listing))
   (local deliverer (->inline-delivery))
   (serve-requests! (mut running)
                    (mut runner)

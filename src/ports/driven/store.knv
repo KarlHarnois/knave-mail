@@ -9,62 +9,107 @@
 (export store)
 
 (deftrait store
-  (load-accounts (fn ((ref self))
-                   (result (vec account) mail-error)))
-  (save-account! (fn ((mut self) (ref account))
-                   (result unit mail-error)))
-  (forget-account! (fn ((mut self) (ref str))
-                     (result unit mail-error)))
-  (load-labels (fn ((ref self) (ref str))
-                 (result (vec label) mail-error)))
-  (save-labels! (fn ((mut self) (ref str) (ref (vec label)))
-                  (result unit mail-error)))
-  (load-threads (fn ((ref self)
-                     (ref str)
-                     (ref thread-query))
-                  (result (vec thread-summary) mail-error)))
-  (save-threads! (fn ((mut self)
-                      (ref str)
-                      (ref (vec thread-summary)))
-                   (result unit mail-error)))
-  (load-summaries-of (fn ((ref self)
-                          (ref str)
-                          (ref (vec string)))
-                       (result (vec thread-summary) mail-error)))
-  (load-thread (fn ((ref self) (ref thread-ref))
-                 (result (option thread) mail-error)))
-  (load-message (fn ((ref self) (ref message-ref))
-                  (result (option message) mail-error)))
-  (save-thread! (fn ((mut self) (ref str) (ref thread))
-                  (result unit mail-error)))
-  (forget-thread! (fn ((mut self) (ref thread-ref))
-                    (result unit mail-error)))
-  (load-checkpoint (fn ((ref self) (ref str))
-                     (result (option string) mail-error)))
-  (save-checkpoint! (fn ((mut self) (ref str) (ref str))
-                      (result unit mail-error)))
-  (save-pending-downloads! (fn ((mut self)
-                                (ref str)
-                                (ref (vec string)))
-                             (result unit mail-error)))
-  (load-pending-downloads (fn ((ref self) (ref str))
-                            (result (vec string) mail-error)))
-  (forget-pending-download! (fn ((mut self) (ref str) (ref str))
-                              (result unit mail-error)))
-  (relabel-stored! (fn ((mut self)
-                        (ref thread-ref)
-                        (ref label-change))
-                     (result unit mail-error)))
-  (queue-relabels! (fn ((mut self)
-                        (ref str)
-                        (ref (vec string))
-                        (ref label-change))
-                     (result (vec queued-relabel) mail-error)))
-  (load-queued (fn ((ref self))
-                 (result (vec queued-relabel) mail-error)))
-  (forget-queued! (fn ((mut self) i64)
-                    (result unit mail-error)))
-  (revert-queued! (fn ((mut self) (ref queued-relabel))
-                    (result unit mail-error)))
-  (queued-count (fn ((ref self) (ref str))
-                  (result i64 mail-error))))
+  (load-accounts
+    (fn ((ref self))
+      (result (vec account) mail-error)))
+
+  (save-account!
+    (fn ((mut self) (ref account))
+      (result unit mail-error)))
+
+  (forget-account!
+    (fn ((mut self) (ref str))
+      (result unit mail-error)))
+
+  (load-labels
+    (fn ((ref self) (ref str))
+      (result (vec label) mail-error)))
+
+  (save-labels!
+    (fn ((mut self) (ref str) (ref (vec label)))
+      (result unit mail-error)))
+
+  (load-threads
+    (fn ((ref self)
+         (ref str)
+         (ref thread-query))
+      (result (vec thread-summary) mail-error)))
+
+  (save-threads!
+    (fn ((mut self)
+         (ref str)
+         (ref (vec thread-summary)))
+      (result unit mail-error)))
+
+  (load-summaries-of
+    (fn ((ref self)
+         (ref str)
+         (ref (vec string)))
+      (result (vec thread-summary) mail-error)))
+
+  (load-thread
+    (fn ((ref self) (ref thread-ref))
+      (result (option thread) mail-error)))
+
+  (load-message
+    (fn ((ref self) (ref message-ref))
+      (result (option message) mail-error)))
+
+  (save-thread!
+    (fn ((mut self) (ref str) (ref thread))
+      (result unit mail-error)))
+
+  (forget-thread!
+    (fn ((mut self) (ref thread-ref))
+      (result unit mail-error)))
+
+  (load-checkpoint
+    (fn ((ref self) (ref str))
+      (result (option string) mail-error)))
+
+  (save-checkpoint!
+    (fn ((mut self) (ref str) (ref str))
+      (result unit mail-error)))
+
+  (save-pending-downloads!
+    (fn ((mut self)
+         (ref str)
+         (ref (vec string)))
+      (result unit mail-error)))
+
+  (load-pending-downloads
+    (fn ((ref self) (ref str))
+      (result (vec string) mail-error)))
+
+  (forget-pending-download!
+    (fn ((mut self) (ref str) (ref str))
+      (result unit mail-error)))
+
+  (relabel-stored!
+    (fn ((mut self)
+         (ref thread-ref)
+         (ref label-change))
+      (result unit mail-error)))
+
+  (queue-relabels!
+    (fn ((mut self)
+         (ref str)
+         (ref (vec string))
+         (ref label-change))
+      (result (vec queued-relabel) mail-error)))
+
+  (load-queued
+    (fn ((ref self))
+      (result (vec queued-relabel) mail-error)))
+
+  (forget-queued!
+    (fn ((mut self) i64)
+      (result unit mail-error)))
+
+  (revert-queued!
+    (fn ((mut self) (ref queued-relabel))
+      (result unit mail-error)))
+
+  (queued-count
+    (fn ((ref self) (ref str))
+      (result i64 mail-error))))

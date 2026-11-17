@@ -6,5 +6,6 @@
 (export operation-queue)
 
 (deftrait operation-queue
-  (submit! (fn ((mut self) (ref str) operation-kind priority)
-             (result operation-result mail-error))))
+  (submit!
+    (fn ((mut self) (ref str) operation-kind priority)
+      (result operation-result mail-error))))

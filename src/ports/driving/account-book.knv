@@ -4,9 +4,14 @@
 (export account-book)
 
 (deftrait account-book
-  (list-accounts! (fn ((mut self))
-                    (result (vec account) mail-error)))
-  (add-account! (fn ((mut self))
-                  (result account mail-error)))
-  (remove-account! (fn ((mut self) (ref str))
-                     (result unit mail-error))))
+  (list-accounts!
+    (fn ((mut self))
+      (result (vec account) mail-error)))
+
+  (add-account!
+    (fn ((mut self))
+      (result account mail-error)))
+
+  (remove-account!
+    (fn ((mut self) (ref str))
+      (result unit mail-error))))

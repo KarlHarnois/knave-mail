@@ -3,8 +3,9 @@
 (export ->system-browser consent-browser system-browser)
 
 (deftrait consent-browser
-  (open-url! (fn ((mut self) (ref str))
-               (result unit mail-error))))
+  (open-url!
+    (fn ((mut self) (ref str))
+      (result unit mail-error))))
 
 (defstruct system-browser
   :opener string)
