@@ -243,3 +243,30 @@ describe("label changes in flight", () => {
     await app.driver.whenIdle();
   });
 });
+
+describe("label change log", () => {
+  test("an archive logs its thread ids", async () => {
+    const app = await AppHarness.started();
+    await app.press("jVje");
+    expect(app.core.logged).toContainEqual({
+      level: "info",
+      message: `archive 2 thread(s) in ${MailFixtures.ADA}: t-1 t-2`,
+    });
+  });
+
+  test("the archive toggle logs which way it went", async () => {
+    const app = await AppHarness.started();
+    await app.press("e");
+    expect(app.core.logged).toContainEqual({ level: "info", message: "archive toggle on 1 thread(s): archiving them" });
+  });
+
+  test("an undo logs what it reverts", async () => {
+    const app = await AppHarness.started();
+    await app.press("e");
+    await app.press("u");
+    expect(app.core.logged).toContainEqual({
+      level: "info",
+      message: `undo: move-to-inbox 1 thread(s) in ${MailFixtures.ADA}: t-0`,
+    });
+  });
+});

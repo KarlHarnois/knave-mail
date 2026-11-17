@@ -1,6 +1,7 @@
 import type { MailClient } from "../bridge/MailClient";
 import type { ThreadSummary } from "../bridge/Protocol";
 import type { ThreadList } from "../list/ThreadList";
+import type { Logger } from "../logging/Logger";
 import type { ErrorReporter } from "../status/ErrorReporter";
 import { ArchiveRule } from "./ArchiveRule";
 import { INBOX } from "./LabelDirectory";
@@ -15,6 +16,7 @@ export type ThreadActionPorts = {
   errors: ErrorReporter;
   pending: PendingChanges;
   notify: (notice: string) => void;
+  logger: Logger;
 };
 
 export class ThreadActions {
@@ -27,6 +29,7 @@ export class ThreadActions {
 
   toggleArchive(summary: ThreadSummary): ThreadSummary {
     const archived = this.archiveRule.isArchived(summary);
+    this.logToggle([summary], archived);
     const updated = archived ? this.moveToInboxAll([summary]) : this.markArchivedAll([summary]);
     return updated[0] ?? summary;
   }
@@ -36,8 +39,15 @@ export class ThreadActions {
   }
 
   toggleArchiveAll(summaries: ThreadSummary[]): void {
-    if (this.archiveRule.allArchived(summaries)) this.moveToInboxAll(summaries);
+    const archived = this.archiveRule.allArchived(summaries);
+    this.logToggle(summaries, archived);
+    if (archived) this.moveToInboxAll(summaries);
     else this.archiveAll(summaries);
+  }
+
+  private logToggle(summaries: ThreadSummary[], archived: boolean): void {
+    const decision = archived ? "all were archived, so they go back to the inbox" : "archiving them";
+    this.ports.logger.info(`archive toggle on ${summaries.length} thread(s): ${decision}`);
   }
 
   archiveAll(summaries: ThreadSummary[]): void {

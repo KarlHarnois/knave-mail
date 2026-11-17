@@ -88,6 +88,7 @@ export class MailServices {
       errors: this.errors,
       pending: this.pending,
       notify: (notice) => this.status.showNotice(notice),
+      logger: this.logger,
     });
   }
 
