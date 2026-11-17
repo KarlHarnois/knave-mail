@@ -8,6 +8,7 @@ import { ThreadRowRenderer } from "../list/ThreadRowRenderer";
 import { Logger } from "../logging/Logger";
 import { LabelDirectory } from "../mail/LabelDirectory";
 import { MailSession } from "../mail/MailSession";
+import { OutboxMonitor } from "../mail/OutboxMonitor";
 import { PendingChanges } from "../mail/PendingChanges";
 import { SyncMonitor } from "../mail/SyncMonitor";
 import { ThreadActions } from "../mail/ThreadActions";
@@ -63,6 +64,7 @@ export class MailServices {
     this.labels = new LabelDirectory(this.mail);
     this.session = this.createSession();
     this.sync = this.createSyncMonitor();
+    this.watchOutbox();
     this.editors = this.createEditors();
     this.actions = this.createThreadActions();
     this.startAccount = (window as StartAccountWindow).knaveStartAccount ?? "";
@@ -118,6 +120,12 @@ export class MailServices {
     this.bridge.subscribe((event) => sync.handle(event));
     this.session.onAccountChange((account) => sync.showStateOf(account));
     return sync;
+  }
+
+  private watchOutbox(): void {
+    const outbox = new OutboxMonitor({ session: this.session, status: this.status, errors: this.errors });
+    this.bridge.subscribe((event) => outbox.handle(event));
+    this.session.onAccountChange((account) => outbox.showStateOf(account));
   }
 
   private createEditors(): VimEditorFactory {

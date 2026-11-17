@@ -48,7 +48,7 @@ export class SyncMonitor {
   handle(event: CoreEvent): void {
     if (event.event === "synced") this.finishSync(event.account);
     else if (event.event === "sync-progress") this.showProgress(event.account);
-    else this.failSync(event);
+    else if (event.event === "sync-failed") this.failSync(event);
   }
 
   private showProgress(account: string): void {

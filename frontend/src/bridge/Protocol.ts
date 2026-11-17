@@ -52,7 +52,17 @@ export type SyncFailedEvent = { event: "sync-failed"; account: string; error: Co
 
 export type SyncProgressEvent = { event: "sync-progress"; account: string };
 
-export type CoreEvent = SyncedEvent | SyncProgressEvent | SyncFailedEvent;
+export type QueueEvent = { event: "queue"; account: string; waiting: number };
+
+export type OperationFailedEvent = {
+  event: "operation-failed";
+  account: string;
+  name: string;
+  threadIds: string[];
+  error: CoreError;
+};
+
+export type CoreEvent = SyncedEvent | SyncProgressEvent | SyncFailedEvent | QueueEvent | OperationFailedEvent;
 
 export type ThreadCommand =
   | "archive"

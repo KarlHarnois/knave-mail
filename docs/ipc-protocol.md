@@ -30,7 +30,11 @@ An event has no `id`, and the core sends it on its own:
 ```json
 {"event": "synced", "account": "ada@example.com"}
 {"event": "sync-failed", "account": "ada@example.com", "error": {"kind": "network", "message": "..."}}
+{"event": "queue", "account": "ada@example.com", "waiting": 3}
+{"event": "operation-failed", "account": "ada@example.com", "name": "relabel", "threadIds": ["t-1"], "error": {"kind": "not-found", "message": "..."}}
 ```
+
+`queue` says how many label changes wait to reach Gmail for an account. `operation-failed` says Gmail refused a queued change for good, and that the core reverted it.
 
 ## Types
 

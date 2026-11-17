@@ -1,6 +1,6 @@
-export type StatusField = "mode" | "account" | "label" | "sync" | "keys" | "notice" | "error";
+export type StatusField = "mode" | "account" | "label" | "sync" | "waiting" | "keys" | "notice" | "error";
 
-const FIELD_ORDER: readonly StatusField[] = ["mode", "account", "label", "sync", "keys", "notice", "error"];
+const FIELD_ORDER: readonly StatusField[] = ["mode", "account", "label", "sync", "waiting", "keys", "notice", "error"];
 const MESSAGE_LIFETIME_MILLISECONDS = 8000;
 
 export class StatusLine {
@@ -32,6 +32,10 @@ export class StatusLine {
 
   showSync(state: string): void {
     this.write("sync", state);
+  }
+
+  showWaiting(waiting: string): void {
+    this.write("waiting", waiting);
   }
 
   showPendingKeys(keys: string): void {

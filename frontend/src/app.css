@@ -343,6 +343,7 @@ body {
 }
 
 .status-notice:empty,
+.status-waiting:empty,
 .status-error:empty,
 .status-keys:empty {
   display: none;
