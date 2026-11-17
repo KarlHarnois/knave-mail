@@ -1,13 +1,46 @@
+(use app/operations/operation-log labels-changed)
 (use domain/mail-error error-kind error-message)
-(use ports/driven/event-log log-debug log-info log-warn)
+(use domain/mail thread-summary)
 
-(export log-changes! log-full-sync-done!
-        log-full-sync-started! log-history-expired!
-        log-incremental-sync-started! log-preview!
-        log-sent-but-uncached! log-skipped-prefetch!
-        log-still-unread! log-vanished-thread!)
+(use ports/driven/event-log event-log log-debug log-info
+                            log-warn)
+
+(export log-changes! log-first-listed! log-full-sync-done!
+        log-full-sync-started! log-gmail-relabel!
+        log-history-expired! log-incremental-sync-started!
+        log-new-thread! log-preview! log-sent-but-uncached!
+        log-skipped-prefetch! log-still-unread!
+        log-vanished-thread!)
 
 (def sync-area "sync")
+
+(defn log-gmail-relabel! (log account thread-id change)
+  (log-info log sync-area
+            (str account ": Gmail has " thread-id " "
+                 (labels-changed change)
+                 " compared with the cache")))
+
+(defn log-new-thread! (log account thread-id labels)
+  (log-info log sync-area
+            (str account ": cached " thread-id
+                 " for the first time with ["
+                 (join labels ",")
+                 "]")))
+
+(type log-first-listed!
+  (fn ((ref (box event-log))
+       (ref str)
+       (ref (vec thread-summary)))
+    unit))
+
+(defn log-first-listed! (log account fetched)
+  (log-info log sync-area
+            (str account ": a Gmail listing found "
+                 (len fetched)
+                 " threads the cache did not hold: "
+                 (join (collect (map (iter fetched)
+                                  (fn (summary) (clone (:id summary)))))
+                       " "))))
 
 (defn log-incremental-sync-started! (log account since)
   (log-info log sync-area

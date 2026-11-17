@@ -63,8 +63,7 @@
   (try (queue-relabels! (mut (:store app))
                         account thread-ids change))
   (log-batch-queued! (ref (:log app))
-                     account "relabel"
-                     (len thread-ids))
+                     account "relabel" change thread-ids)
   (match (:delivery app)
     (deliver-now (deliver-everything-now! app))
     (deliver-later (ok (do)))))

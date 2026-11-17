@@ -1,3 +1,4 @@
+(use app/operations/operation-log labels-changed)
 (use domain/delivery-tally delivery-count)
 (use ports/driven/event-log event-log log-info)
 
@@ -5,9 +6,14 @@
 
 (def operations-area "operations")
 
-(defn log-batch-queued! (log account name count)
+(defn log-batch-queued! (log account name change thread-ids)
   (log-info log operations-area
-            (str name " " account ": queued " count)))
+            (str name " " account ": queued "
+                 (len thread-ids)
+                 " "
+                 (labels-changed change)
+                 " for "
+                 (join thread-ids " "))))
 
 (type log-batch-delivered!
   (fn ((ref (box event-log))

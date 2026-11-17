@@ -1,3 +1,4 @@
+(use app/activity-log log-first-listed!)
 (use app/mail-app mail-app)
 (use domain/collections concatenated)
 (use app/marking-read marked-read!)
@@ -68,6 +69,10 @@
     (try (save-threads! (mut (:store app))
                         account
                         (ref fetched)))
+    (when (not (empty? fetched))
+      (log-first-listed! (ref (:log app))
+                         account
+                         (ref fetched)))
     (ok (in-listed-order ids (ref (concatenated known fetched))))))
 
 (type missing-summaries!

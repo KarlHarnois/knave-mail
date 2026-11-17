@@ -1,10 +1,10 @@
 (use domain/collections concatenated)
 
 (export ->label-change apply-label-change archive-change
-        inbox-change label-change label-id label-removal
-        read-change reversed-change star-change starred?
-        system-label trash-change unread-change unread?
-        unstar-change untrash-change)
+        inbox-change label-change label-difference label-id
+        label-removal no-change? read-change reversed-change
+        star-change starred? system-label trash-change
+        unread-change unread? unstar-change untrash-change)
 
 (defenum system-label
   inbox
@@ -94,3 +94,28 @@
 (defn with-added (labels added)
   (let (missing (without-removed added labels))
     (concatenated (clone labels) missing)))
+
+(type label-difference
+  (fn ((ref (vec string)) (ref (vec string)))
+    label-change))
+
+(defn label-difference (before after)
+  (->label-change :added (labels-missing-from after before)
+                  :removed (labels-missing-from before after)))
+
+(type labels-missing-from
+  (fn ((ref (vec string)) (ref (vec string)))
+    (vec string)))
+
+(defn labels-missing-from (labels others)
+  (collect (map (filter (iter labels)
+                  (fn (label)
+                    (not (contains? others (clone label)))))
+                (fn (label) (clone label)))))
+
+(type no-change?
+  (fn ((ref label-change)) bool))
+
+(defn no-change? (change)
+  (and (empty? (:added change))
+       (empty? (:removed change))))

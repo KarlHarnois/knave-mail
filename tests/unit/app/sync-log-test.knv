@@ -113,8 +113,9 @@
                                  world-account
                                  (ref (vec (str "t-1") (str "t-2")))
                                  (ref (archive-change))))
-    (assert (mentions? (ref (logged-lines (ref log)))
-                       "relabel ada@example.com: queued 2"))
+    (assert (mentions?
+              (ref (logged-lines (ref log)))
+              "relabel ada@example.com: queued 2 +[] -[INBOX] for t-1 t-2"))
     (assert (mentions? (ref (logged-lines (ref log)))
                        "relabel ada@example.com: queued, interactive, thread t-2 +[] -[INBOX]"))))
 

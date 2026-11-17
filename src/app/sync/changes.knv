@@ -1,5 +1,8 @@
 (use domain/mail ->thread-ref thread-summary)
-(use app/activity-log log-changes! log-vanished-thread!)
+
+(use app/activity-log log-changes! log-gmail-relabel!
+                      log-vanished-thread!)
+
 (use domain/collections appended-once try-for-each)
 (use app/caching cache-thread!)
 (use app/mail-app mail-app)
@@ -112,6 +115,8 @@
 
 (defn relabel-from-history! (app account relabel)
   (let-match ((pair thread-id change) relabel)
+    (log-gmail-relabel! (ref (:log app))
+                        account thread-id change)
     (relabel-stored! (mut (:store app))
                      (ref (->thread-ref :account (str account)
                                         :thread-id (clone thread-id)))

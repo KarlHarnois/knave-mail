@@ -1,8 +1,13 @@
+(use app/activity-log log-gmail-relabel! log-new-thread!)
 (use app/mail-app mail-app)
+(use domain/labels label-difference no-change?)
 (use domain/mail-error mail-error)
+(use domain/mail thread-summary)
 (use domain/summary summarize)
 (use app/operations/calls fetched-thread!)
-(use ports/driven/store save-thread! save-threads!)
+
+(use ports/driven/store load-summaries-of save-thread!
+                        save-threads!)
 
 (export cache-thread!)
 
@@ -11,10 +16,37 @@
     (result unit mail-error)))
 
 (defn cache-thread! (app account thread-id)
-  (let (fetched (try (fetched-thread! app account thread-id)))
+  (let (cached (try (load-summaries-of (ref (:store app))
+                                       account
+                                       (ref (vec (str thread-id)))))
+        fetched (try (fetched-thread! app account thread-id)))
+    (log-difference! app account
+                     (ref cached)
+                     (ref (:labels fetched))
+                     thread-id)
     (try (save-thread! (mut (:store app))
                        account
                        (ref fetched)))
     (save-threads! (mut (:store app))
                    account
                    (ref (vec (summarize (ref fetched)))))))
+
+(type log-difference!
+  (fn ((ref mail-app)
+       (ref str)
+       (ref (vec thread-summary))
+       (ref (vec string))
+       (ref str))
+    unit))
+
+(defn log-difference! (app account cached gmail-labels thread-id)
+  (match (first cached)
+    ((some summary)
+     (let (change (label-difference (ref (:labels summary)) gmail-labels))
+       (when (not (no-change? (ref change)))
+         (log-gmail-relabel! (ref (:log app))
+                             account thread-id
+                             (ref change)))))
+    (none (log-new-thread! (ref (:log app))
+                           account thread-id
+                           gmail-labels))))
