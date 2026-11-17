@@ -1,0 +1,33 @@
+(use domain/mail-error ->throttling mail-error)
+(use domain/operation operation-kind priority)
+
+(use domain/operation-policy next-step policy-for
+                             step-after-failure)
+
+(defn throttled-for (milliseconds)
+  (mail-error/throttled (->throttling :message (str "slow down")
+                                      :retry-after-milliseconds milliseconds)))
+
+(deftest an-interactive-read-waits-out-a-short-throttle
+  (assert (= (step-after-failure 1
+                                 (ref (policy-for (ref
+                                                    operation-kind/fetch-labels)
+                                                  priority/interactive))
+                                 (ref (throttled-for 5000)))
+             (next-step/retry-after 5000))))
+
+(deftest an-interactive-read-gives-up-rather-than-hold-the-window
+  (assert (= (step-after-failure 1
+                                 (ref (policy-for (ref
+                                                    operation-kind/fetch-labels)
+                                                  priority/interactive))
+                                 (ref (throttled-for 30000)))
+             next-step/stop)))
+
+(deftest a-background-read-keeps-waiting-out-the-quota
+  (assert (= (step-after-failure 5
+                                 (ref (policy-for (ref
+                                                    operation-kind/fetch-labels)
+                                                  priority/background))
+                                 (ref (throttled-for 50000)))
+             (next-step/retry-after 50000))))

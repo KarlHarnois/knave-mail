@@ -22,3 +22,10 @@
   (assert (= (retry-wait-in "Quota exceeded for quota metric 'Queries'"
                             five-past-four)
              none)))
+
+(def twenty-six-past-five-past-four 1794931526000)
+
+(deftest a-per-minute-quota-asks-to-wait-for-the-next-minute
+  (assert (= (retry-wait-in "Quota exceeded for quota metric 'Total Query Cost' and limit 'Units per minute per user'"
+                            twenty-six-past-five-past-four)
+             (some 34500))))

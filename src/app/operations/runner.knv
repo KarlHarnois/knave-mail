@@ -10,7 +10,7 @@
 (use domain/operation ->operation operation operation-kind
                       operation-result priority)
 
-(use domain/operation-policy next-step policy-of retryable?
+(use domain/operation-policy next-step policy-for retryable?
                              step-after-failure)
 
 (use domain/operation-schedule scheduled)
@@ -56,7 +56,8 @@
 (defn attempt-once! (runner entry)
   (let (queued (ref (:operation entry))
         attempt (:attempt entry)
-        policy (policy-of (ref (:kind queued)))
+        policy (policy-for (ref (:kind queued))
+                           (:priority queued))
         started (now-milliseconds (ref (:clock runner))))
     (log-started! (ref (:log runner))
                   queued

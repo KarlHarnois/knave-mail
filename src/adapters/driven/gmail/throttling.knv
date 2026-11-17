@@ -5,6 +5,12 @@
 
 (def retry-marker "Retry after ")
 
+(def per-minute-marker "per minute")
+
+(def milliseconds-per-minute 60000)
+
+(def past-the-minute-milliseconds 500)
+
 (def rate-limit-notice
   "Gmail is rate limiting this account")
 
@@ -33,7 +39,14 @@
   (match (utc-milliseconds-after gmail-message retry-marker)
     ((some retry-at)
      (some (if (> retry-at now) (- retry-at now) 0)))
-    (none none)))
+    (none (if (contains? gmail-message per-minute-marker)
+            (some (until-next-minute now))
+            none))))
+
+(defn until-next-minute (now)
+  (+ (- milliseconds-per-minute
+        (rem now milliseconds-per-minute))
+     past-the-minute-milliseconds))
 
 (def gmail-error-message
   (rust "serde_json::from_str::<serde_json::Value>({0}).ok().and_then(|{!answer}| {!answer}[\"error\"][\"message\"].as_str().map(|{!message}| {!message}.split_whitespace().collect::<Vec<_>>().join(\" \"))).unwrap_or_default()"

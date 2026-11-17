@@ -1,8 +1,8 @@
 (use domain/mail-error mail-error)
-(use domain/operation operation-kind)
+(use domain/operation operation-kind priority)
 
 (export ->operation-policy backoff-after next-step
-        operation-policy policy-of retryable?
+        operation-policy policy-for policy-of retryable?
         step-after-failure)
 
 (def read-attempts 3)
@@ -15,11 +15,31 @@
 
 (def longest-backoff-milliseconds 60000)
 
+(def background-attempts 10)
+
+(def interactive-wait-milliseconds 15000)
+
+(def background-wait-milliseconds 120000)
+
 (defstruct operation-policy
   :name string
   :most-attempts (option int)
   :retries-network bool
-  :durable bool)
+  :durable bool
+  :longest-wait (option int))
+
+(defn policy-for (kind rank)
+  (paced-for (policy-of kind) rank))
+
+(defn paced-for (policy rank)
+  (if (:durable policy)
+    policy
+    (match rank
+      (interactive (assoc policy
+                          :longest-wait (some interactive-wait-milliseconds)))
+      (background (assoc policy
+                         :most-attempts (some background-attempts)
+                         :longest-wait (some background-wait-milliseconds))))))
 
 (defn policy-of (kind)
   (match kind
@@ -35,14 +55,16 @@
      (->operation-policy :name (str "send")
                          :most-attempts (some send-attempts)
                          :retries-network false
-                         :durable false))
+                         :durable false
+                         :longest-wait (some longest-backoff-milliseconds)))
     ((relabel work) (relabel-policy (:queued-id work)))))
 
 (defn read-policy (name)
   (->operation-policy :name (str name)
                       :most-attempts (some read-attempts)
                       :retries-network true
-                      :durable false))
+                      :durable false
+                      :longest-wait (some longest-backoff-milliseconds)))
 
 (defn relabel-policy (queued-id)
   (match queued-id
@@ -50,11 +72,14 @@
      (->operation-policy :name (str "relabel")
                          :most-attempts none
                          :retries-network true
-                         :durable true))
+                         :durable true
+                         :longest-wait none))
     (none (->operation-policy :name (str "relabel")
                               :most-attempts (some relabel-attempts)
                               :retries-network true
-                              :durable false))))
+                              :durable false
+                              :longest-wait (some
+                                              longest-backoff-milliseconds)))))
 
 (defenum next-step
   (retry-after int)
@@ -69,8 +94,9 @@
       next-step/stop)))
 
 (defn worth-the-wait? (policy delay)
-  (or (:durable policy)
-      (<= delay longest-backoff-milliseconds)))
+  (match (:longest-wait policy)
+    ((some longest) (<= delay longest))
+    (none true)))
 
 (defn attempts-left? (most-attempts attempt)
   (match most-attempts
