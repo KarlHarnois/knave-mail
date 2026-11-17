@@ -43,8 +43,8 @@
                                        account
                                        (ref (relabeled-only-ids (ref
                                                                   changes)))))
-        settled (settled-by-history (ref changes) (ref cached))
         unechoed (not-echoed (ref changes) (ref cached))
+        settled (settled-by-history (ref changes) (ref unechoed))
         downloads (with-unsettled (clone (:refetch changes))
                                   (ref unechoed)
                                   (ref settled)))
