@@ -1,3 +1,4 @@
+import type { Logger } from "../logging/Logger";
 import type { MessageStack } from "./MessageStack";
 
 const LINE_SCROLL_PIXELS = 60;
@@ -8,32 +9,60 @@ export class ThreadPager {
   constructor(
     private readonly view: HTMLElement,
     private readonly messages: MessageStack,
+    private readonly logger: Logger,
   ) {}
 
   down(count: number): void {
-    for (let step = 0; step < count; step++) this.stepDown();
+    this.traced("down", () => {
+      for (let step = 0; step < count; step++) this.stepDown();
+    });
   }
 
   up(count: number): void {
-    for (let step = 0; step < count; step++) this.stepUp();
+    this.traced("up", () => {
+      for (let step = 0; step < count; step++) this.stepUp();
+    });
   }
 
   top(): void {
-    this.messages.focusFirst();
-    this.view.scrollTop = 0;
+    this.traced("top", () => {
+      this.messages.focusFirst();
+      this.view.scrollTop = 0;
+    });
   }
 
   bottom(): void {
-    this.messages.focusLast();
-    this.view.scrollTop = this.view.scrollHeight;
+    this.traced("bottom", () => {
+      this.messages.focusLast();
+      this.view.scrollTop = this.view.scrollHeight;
+    });
   }
 
   halfPageDown(): void {
-    this.scrollBy(this.view.clientHeight / 2);
+    this.traced("half page down", () => this.scrollBy(this.view.clientHeight / 2));
   }
 
   halfPageUp(): void {
-    this.scrollBy(-this.view.clientHeight / 2);
+    this.traced("half page up", () => this.scrollBy(-this.view.clientHeight / 2));
+  }
+
+  private traced(action: string, move: () => void): void {
+    const before = Math.round(this.view.scrollTop);
+    move();
+    this.logger.debug(`thread ${action}: ${this.scrollReport(before)}`);
+  }
+
+  private scrollReport(before: number): string {
+    const after = Math.round(this.view.scrollTop);
+    const farthest = this.view.scrollHeight - this.view.clientHeight;
+    return `scrollTop ${before} -> ${after} of ${farthest}, view ${this.view.clientHeight}px, ${this.focusedSpan()}`;
+  }
+
+  private focusedSpan(): string {
+    const message = this.messages.focusedElement()?.getBoundingClientRect();
+    if (!message) return "no focused message";
+    const viewTop = this.view.getBoundingClientRect().top;
+    return `focused message spans ${Math.round(message.top - viewTop)}..${Math.round(message.bottom - viewTop)}`;
   }
 
   private scrollBy(pixels: number): void {

@@ -123,6 +123,7 @@ export class KnaveMail {
       session: this.services.session,
       actions: this.services.actions,
       errors: this.services.errors,
+      logger: this.services.logger,
       cards: this.factory.messageCardServices(),
       openDraft: (draft) => this.composeScreen.open(draft),
       neighbourThread: (offset) => this.selectNeighbour(offset),

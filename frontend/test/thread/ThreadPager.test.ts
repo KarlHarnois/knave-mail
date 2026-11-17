@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import type { Logger } from "../../src/logging/Logger";
 import type { MessageStack } from "../../src/thread/MessageStack";
 import { ThreadPager } from "../../src/thread/ThreadPager";
 
@@ -6,6 +7,7 @@ class PagerFixture {
   readonly view = document.createElement("section");
   readonly message = document.createElement("article");
   readonly steps: number[] = [];
+  readonly logged: string[] = [];
 
   constructor(messageTop: number, messageBottom: number) {
     this.view.getBoundingClientRect = () => new DOMRect(0, 0, 800, 600);
@@ -14,7 +16,8 @@ class PagerFixture {
 
   pager(): ThreadPager {
     const messages = { focusedElement: () => this.message, stepBy: (offset: number) => this.steps.push(offset) };
-    return new ThreadPager(this.view, messages as unknown as MessageStack);
+    const logger = { debug: (message: string) => this.logged.push(message) };
+    return new ThreadPager(this.view, messages as unknown as MessageStack, logger as unknown as Logger);
   }
 }
 
@@ -37,6 +40,12 @@ describe("thread pager", () => {
     fixture.view.scrollTop = 300;
     fixture.pager().up(1);
     expect(fixture.view.scrollTop).toBe(240);
+  });
+
+  test("each scroll is logged with the positions it went between", () => {
+    const fixture = new PagerFixture(0, 2000);
+    fixture.pager().down(2);
+    expect(fixture.logged).toEqual(["thread down: scrollTop 0 -> 120 of 0, view 0px, focused message spans 0..2000"]);
   });
 
   test("k moves to the previous message once the focused one starts on screen", () => {
