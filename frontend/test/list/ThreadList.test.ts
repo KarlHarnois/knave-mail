@@ -233,3 +233,25 @@ describe("screen-relative moves", () => {
     expect(selectedId(fixture)).toBe("t-29");
   });
 });
+
+describe("ThreadList trace", () => {
+  test("a jump logs the scroll state it painted", () => {
+    const traced: string[] = [];
+    const scheduler = new RenderScheduler(() => {});
+    const list = new ThreadList({
+      document,
+      listWindow: new ListWindow(ROW_HEIGHT, OVERSCAN),
+      rows: new ThreadRowRenderer(document, new DateLabel()),
+      scheduler,
+      trace: (message) => traced.push(message),
+    });
+    document.body.replaceChildren(list.element);
+    list.show(MailFixtures.summaries(100));
+    scheduler.flush();
+    list.moveToLast();
+    scheduler.flush();
+    expect(traced.at(-1)).toBe(
+      `list last row: 100 rows, cursor 99, scroll ${100 * ROW_HEIGHT - FALLBACK_VIEWPORT_ROWS * ROW_HEIGHT} (element ${100 * ROW_HEIGHT - FALLBACK_VIEWPORT_ROWS * ROW_HEIGHT}), viewport ${FALLBACK_VIEWPORT_ROWS * ROW_HEIGHT}px, content ${100 * ROW_HEIGHT}px, painting rows 65..100`,
+    );
+  });
+});

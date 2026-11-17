@@ -104,6 +104,7 @@ export class MailServices {
       listWindow: new ListWindow(ROW_HEIGHT, OVERSCAN_ROWS),
       rows,
       scheduler: this.scheduler,
+      trace: (message) => this.logger.info(message),
     });
   }
 

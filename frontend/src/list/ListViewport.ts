@@ -36,6 +36,12 @@ export class ListViewport {
     if (this.scrollTop > lowestScrollTop) this.scrollTo(lowestScrollTop);
   }
 
+  describe(rowCount: number): string {
+    const { start, end } = this.visibleRange(rowCount);
+    const content = this.listWindow.contentHeight(rowCount);
+    return `scroll ${this.scrollTop} (element ${this.element.scrollTop}), viewport ${this.height}px, content ${content}px, painting rows ${start}..${end}`;
+  }
+
   halfPage(): number {
     return Math.max(1, Math.floor(this.listWindow.rowsPerPage(this.height) / 2));
   }

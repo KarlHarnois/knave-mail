@@ -12,6 +12,7 @@ export type ThreadListParts = {
   listWindow: ListWindow;
   rows: ThreadRowRenderer;
   scheduler: RenderScheduler;
+  trace?: (message: string) => void;
 };
 
 export class ThreadList {
@@ -23,11 +24,11 @@ export class ThreadList {
   private readonly renderTask = () => this.render();
   private summaries: ThreadSummary[] = [];
 
-  constructor({ document, listWindow, rows, scheduler }: ThreadListParts) {
+  constructor({ document, listWindow, rows, scheduler, trace = () => {} }: ThreadListParts) {
     this.scheduler = scheduler;
     this.viewport = new ListViewport(document, listWindow, () => this.scheduleRender());
     this.element = this.viewport.element;
-    this.painter = new ListPainter({ document, viewport: this.viewport, listWindow, rows });
+    this.painter = new ListPainter({ document, viewport: this.viewport, listWindow, rows, trace });
   }
 
   get length(): number {
@@ -63,9 +64,11 @@ export class ThreadList {
   show(summaries: ThreadSummary[]): void {
     this.replaceSummaries(summaries);
     this.moveToFirst();
+    this.painter.trace.mark("show");
   }
 
   refresh(summaries: ThreadSummary[]): void {
+    this.painter.trace.mark("refresh");
     const kept = KeptSelection.of(this.summaries, this.cursor);
     this.replaceSummaries(summaries);
     this.moveTo(kept.cursorIndexIn(summaries) ?? this.cursor.index);
@@ -96,10 +99,12 @@ export class ThreadList {
 
   moveToFirst(): void {
     this.moveTo(0);
+    this.painter.trace.mark("first row");
   }
 
   moveToLast(): void {
     this.moveTo(this.summaries.length - 1);
+    this.painter.trace.mark("last row");
   }
 
   moveToScreenTop(rowsBelow: number): void {

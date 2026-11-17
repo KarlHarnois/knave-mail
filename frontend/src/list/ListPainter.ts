@@ -1,5 +1,6 @@
 import type { ThreadSummary } from "../bridge/Protocol";
 import type { ListCursor } from "./ListCursor";
+import { ListTrace } from "./ListTrace";
 import type { ListViewport } from "./ListViewport";
 import type { ListWindow } from "./ListWindow";
 import { RowRecycler } from "./RowRecycler";
@@ -10,6 +11,7 @@ export type ListPainterParts = {
   viewport: ListViewport;
   listWindow: ListWindow;
   rows: ThreadRowRenderer;
+  trace: (message: string) => void;
 };
 
 export class ListPainter {
@@ -18,13 +20,19 @@ export class ListPainter {
   private readonly emptyNotice: HTMLElement;
   private readonly staleThreadIds = new Set<string>();
   private everyRowStale = false;
+  private readonly tracing: ListTrace;
 
   constructor(private readonly parts: ListPainterParts) {
     this.recycler = new RowRecycler(parts.viewport.element, parts.rows, parts.listWindow);
+    this.tracing = new ListTrace(parts.trace);
     this.spacer = this.appendChild("thread-list-spacer");
     this.emptyNotice = this.appendChild("thread-list-empty");
     this.emptyNotice.textContent = "No threads";
     this.emptyNotice.dataset["test"] = "empty-list";
+  }
+
+  get trace(): ListTrace {
+    return this.tracing;
   }
 
   markStale(threadId: string): void {
@@ -45,6 +53,9 @@ export class ListPainter {
     for (let index = range.start; index < range.end; index++) this.paintRow(summaries, cursor, index);
     this.staleThreadIds.clear();
     this.everyRowStale = false;
+    this.trace.afterPaint(
+      () => `${summaries.length} rows, cursor ${cursor.index}, ${this.parts.viewport.describe(summaries.length)}`,
+    );
   }
 
   private paintRow(summaries: readonly ThreadSummary[], cursor: ListCursor, index: number): void {
