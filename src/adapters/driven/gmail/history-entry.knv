@@ -15,12 +15,8 @@
 (def downloaded-records
   (vec "messagesAdded" "messagesDeleted"))
 
-(def typed-records
-  (vec "messagesAdded" "messagesDeleted" "labelsAdded"
-       "labelsRemoved"))
-
 (defn with-entry (changes entry)
-  (->mail-changes :refetch (reduce (iter (refetched-threads (ref entry)))
+  (->mail-changes :refetch (reduce (iter (downloaded-threads (ref entry)))
                                    (clone (:refetch changes))
                                    (fn (found thread-id)
                                      (appended-once found (clone thread-id))))
@@ -30,29 +26,12 @@
                                       (appended found (clone relabel))))
                   :history-id (str "")))
 
-(defn refetched-threads (entry)
-  (let (typed (record-message-ids entry))
-    (reduce (array-field entry "messages") (downloaded-threads entry)
-      (fn (found message)
-        (if (listed? (ref typed)
-                     (as-str (message-id-of message)))
-          found
-          (with-thread-of found message))))))
-
 (defn downloaded-threads (entry)
   (reduce (iter downloaded-records) (vec)
     (fn (found record)
       (reduce (array-field entry record) found
         (fn (threads item)
           (with-thread-of threads (ref (message-of item))))))))
-
-(defn record-message-ids (entry)
-  (reduce (iter typed-records) (vec)
-    (fn (found record)
-      (reduce (array-field entry record) found
-        (fn (ids item)
-          (appended-once ids
-                         (message-id-of (ref (message-of item)))))))))
 
 (defn entry-relabels (entry)
   (reduce (array-field entry "labelsRemoved")
@@ -87,13 +66,6 @@
 
 (defn labels-of (item)
   (unwrap-ok-or (string-list-field item "labelIds") (vec)))
-
-(type listed?
-  (fn ((ref (vec string)) (ref str)) bool))
-
-(defn listed? (ids wanted)
-  (any? (iter ids)
-    (fn (id) (= id wanted))))
 
 (defn with-thread-of (found message)
   (match (optional-string-field message "threadId")

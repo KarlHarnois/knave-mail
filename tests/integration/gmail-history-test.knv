@@ -34,11 +34,11 @@
     (assert (= (unwrap-ok (fetch-history-id! (mut gmail)))
                "4000"))))
 
-(deftest downloads-threads-with-new-or-unexplained-message-changes
+(deftest downloads-only-threads-with-added-or-deleted-messages
   (let (server (start-fake-gmail (ref (history-routes)))
         gmail (gmail-over (ref server)))
     (assert (= (:refetch (unwrap-ok (fetch-changes! (mut gmail) "4000")))
-               (vec (str "t5") (str "t1") (str "t6"))))))
+               (vec (str "t5"))))))
 
 (deftest reads-label-changes-per-message
   (let (server (start-fake-gmail (ref (history-routes)))
