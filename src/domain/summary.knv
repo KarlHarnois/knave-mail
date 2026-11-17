@@ -42,9 +42,6 @@
   (expect (last (:messages summarized))
           "a thread holds at least one message"))
 
-(type message-count
-  (fn ((ref thread)) int))
-
 (defn message-count (summarized)
   (as-count (len (:messages summarized))))
 

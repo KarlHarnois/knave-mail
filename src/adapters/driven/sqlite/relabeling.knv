@@ -22,13 +22,6 @@
 (export queued-together reapply-queued relabel-everywhere
         reverted)
 
-(type queued-together
-  (fn ((ref sqlite-connection)
-       (ref str)
-       (ref (vec string))
-       (ref label-change))
-    (result (vec queued-relabel) mail-error)))
-
 (defn queued-together (connection email thread-ids change)
   (try (begin! connection))
   (match (queued-each connection email thread-ids change)
@@ -56,10 +49,6 @@
            (ok (do)))))
   (ok rows))
 
-(type reverted
-  (fn ((ref sqlite-connection) (ref queued-relabel))
-    (result unit mail-error)))
-
 (defn reverted (connection queued)
   (try (begin! connection))
   (match (reverted-in-place connection queued)
@@ -79,10 +68,6 @@
                            (as-str (:thread-id queued))
                            (ref (reversed-change (ref (:change queued))))))
   (erase-queued connection (:id queued)))
-
-(type reapply-queued
-  (fn ((ref sqlite-connection) (ref str))
-    (result unit mail-error)))
 
 (defn reapply-queued (connection email)
   (try-for-each (iter (try (read-queued-of connection email)))

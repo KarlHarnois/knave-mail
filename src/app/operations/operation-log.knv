@@ -117,16 +117,10 @@
           (labels-changed (ref (:change work)))))
     (_ (str ""))))
 
-(type listing-of
-  (fn ((ref thread-query)) string))
-
 (defn listing-of (query)
   (match (label-of (ref (:scope query)))
     ((some label) (str "label " label))
     (none (str "all mail"))))
-
-(type labels-changed
-  (fn ((ref label-change)) string))
 
 (defn labels-changed (change)
   (str "+["

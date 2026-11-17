@@ -53,9 +53,6 @@
   (->label-change (vec)
                   (vec (label-id system-label/unread))))
 
-(type reversed-change
-  (fn ((ref label-change)) label-change))
-
 (defn reversed-change (change)
   (->label-change (clone (:removed change))
                   (clone (:added change))))

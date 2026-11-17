@@ -45,13 +45,6 @@
                (vec)
                (vec))))
 
-(type executed!
-  (fn ((mut operation-runner)
-       (ref submission-inbox)
-       (vec scheduled)
-       (vec (pair int submission)))
-    unit))
-
 (defn executed! (runner inbox waiting replies)
   (let-match ((pair queued answers) (with-arrivals!
                                       runner inbox waiting

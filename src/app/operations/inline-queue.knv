@@ -33,10 +33,6 @@
                    (:patience queue)
                    (->scheduled :operation queued :attempt 1 :not-before 0)))))
 
-(type run-to-end!
-  (fn ((mut operation-runner) (option int) scheduled)
-    (result operation-result mail-error)))
-
 (defn run-to-end! (runner patience entry)
   (match (attempt-once! runner (ref entry))
     ((finished outcome) (ok outcome))

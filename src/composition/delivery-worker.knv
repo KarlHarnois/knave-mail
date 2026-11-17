@@ -75,13 +75,6 @@
                  (str "queued changes wait for the next start: "
                       (error-message (ref failure))))))))
 
-(type kept-delivering!
-  (fn ((mut mail-app)
-       (ref wake-inbox)
-       (ref reply-outbox)
-       (ref (box event-log)))
-    unit))
-
 (defn kept-delivering! (app wakeups outbox log)
   (log-batch-delivered! log "relabel"
                         (ref (delivered-all! app outbox log (vec))))

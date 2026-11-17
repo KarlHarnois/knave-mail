@@ -32,17 +32,10 @@
           (drain! (mut (:quota session))))
         (concatenated replies fetched)))))
 
-(type units-of-gets
-  (fn ((ref (vec string))) int))
-
 (defn units-of-gets (paths)
   (reduce (iter paths) 0
     (fn (total path)
       (+ total (units-for "GET" (as-str path))))))
-
-(type any-rate-limited?
-  (fn ((ref (vec (result http-reply string))))
-    bool))
 
 (defn any-rate-limited? (outcomes)
   (any? (iter outcomes)

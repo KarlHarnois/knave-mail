@@ -14,9 +14,6 @@
   :relabels (vec message-relabel)
   :history-id string)
 
-(type relabeled-only-ids
-  (fn ((ref mail-changes)) (vec string)))
-
 (defn relabeled-only-ids (changes)
   (reduce (iter (:relabels changes)) (vec)
     (fn (found relabel)

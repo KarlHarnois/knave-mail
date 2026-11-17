@@ -7,10 +7,6 @@
   :attempt int
   :not-before int)
 
-(type next-ready
-  (fn ((ref (vec scheduled)) int)
-    (option usize)))
-
 (defn next-ready (waiting now)
   (loop (index 0
          best none)
@@ -22,12 +18,6 @@
                (some index)
                best)))))
 
-(type runs-before?
-  (fn ((ref (vec scheduled))
-       usize
-       (option usize))
-    bool))
-
 (defn runs-before? (waiting index best)
   (match best
     ((some chosen)
@@ -37,10 +27,6 @@
 
 (defn interactive? (rank)
   (match rank (interactive true) (background false)))
-
-(type wait-until-due
-  (fn ((ref (vec scheduled)) int)
-    (option int)))
 
 (defn wait-until-due (waiting now)
   (reduce (iter waiting) none

@@ -30,10 +30,6 @@
       ((some outcome) outcome)
       (none (err (mail-error/internal (str "the Gmail worker stopped")))))))
 
-(type threaded-operations
-  (fn ((ref submission-sender))
-    (box operation-queue)))
-
 (defn threaded-operations (executor)
   (the (box operation-queue)
        (box (->threaded-queue :sender (share-sender executor)))))

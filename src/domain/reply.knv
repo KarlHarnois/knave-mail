@@ -46,9 +46,6 @@
            :body (forwarded-body original)
            :reply-to none))
 
-(type prefixed-subject
-  (fn ((ref str) (ref str)) string))
-
 (defn prefixed-subject (subject prefix)
   (if (prefixed-ignoring-case? subject (trim prefix))
     (str subject)

@@ -56,13 +56,6 @@
                                  (ref inbox)
                                  (ref outbox))))))))
 
-(type serve-memory-window!
-  (fn ((ref settings)
-       (ref (box event-log))
-       (ref request-inbox)
-       (ref reply-outbox))
-    unit))
-
 (defn serve-memory-window! (chosen log inbox outbox)
   (local running (memory-app chosen (share-log log)))
   (local runner (->inline-sync))
@@ -73,13 +66,6 @@
                    (mut lister)
                    (mut deliverer)
                    log inbox outbox))
-
-(type serve-gmail-window!
-  (fn ((ref settings)
-       (ref (box event-log))
-       (ref request-inbox)
-       (ref reply-outbox))
-    unit))
 
 (defn serve-gmail-window! (chosen log inbox outbox)
   (let (executor (start-gmail-executor (clone chosen)))

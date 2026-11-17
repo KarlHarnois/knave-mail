@@ -69,12 +69,6 @@
     ((some made) (appended found made))
     (none found)))
 
-(type relabel-of
-  (fn ((ref json-value)
-       (vec string)
-       (vec string))
-    (option message-relabel)))
-
 (defn relabel-of (item added removed)
   (let (message (message-of item))
     (match (optional-string-field (ref message) "threadId")
@@ -85,20 +79,11 @@
                                                         :removed removed))))
       (none none))))
 
-(type message-of
-  (fn ((ref json-value)) json-value))
-
 (defn message-of (item)
   (unwrap-ok-or (object-field item "message") (empty-object)))
 
-(type message-id-of
-  (fn ((ref json-value)) string))
-
 (defn message-id-of (message)
   (unwrap-or (optional-string-field message "id") (str "")))
-
-(type labels-of
-  (fn ((ref json-value)) (vec string)))
 
 (defn labels-of (item)
   (unwrap-ok-or (string-list-field item "labelIds") (vec)))

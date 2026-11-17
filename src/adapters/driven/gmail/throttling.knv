@@ -29,9 +29,6 @@
     (none (unwrap-or (retry-wait-in gmail-message (now-milliseconds))
                      0))))
 
-(type retry-wait-in
-  (fn ((ref str) int) (option int)))
-
 (defn retry-wait-in (gmail-message now)
   (match (utc-milliseconds-after gmail-message retry-marker)
     ((some retry-at)
