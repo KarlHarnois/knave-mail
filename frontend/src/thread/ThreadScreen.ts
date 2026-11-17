@@ -11,8 +11,6 @@ import { ThreadTriage } from "./ThreadTriage";
 
 type Handler = (count: number) => void;
 
-const FOCUS_LINE_FRACTION = 3;
-
 export class ThreadScreen implements Screen {
   readonly keyMode = "thread" as const;
   readonly element: HTMLElement;
@@ -97,12 +95,12 @@ export class ThreadScreen implements Screen {
       ["previousMessage", (count) => this.messages.focusBy(-count)],
       ["nextThread", (count) => this.openNeighbour(count)],
       ["previousThread", (count) => this.openNeighbour(-count)],
-      ["firstMessage", () => this.scrollToTop()],
+      ["firstMessage", () => this.pager.top()],
       ["lastMessage", () => this.messages.focusLast()],
       ["lineDown", (count) => this.pager.down(count)],
       ["lineUp", (count) => this.pager.up(count)],
-      ["scrollDown", () => this.scrollBy(this.element.clientHeight / 2)],
-      ["scrollUp", () => this.scrollBy(-this.element.clientHeight / 2)],
+      ["scrollDown", () => this.pager.halfPageDown()],
+      ["scrollUp", () => this.pager.halfPageUp()],
     ];
   }
 
@@ -121,16 +119,6 @@ export class ThreadScreen implements Screen {
     if (!neighbour || neighbour.id === this.header.threadId) return;
     this.triage.putAway();
     this.open(neighbour);
-  }
-
-  private scrollToTop(): void {
-    this.messages.focusFirst();
-    this.element.scrollTop = 0;
-  }
-
-  private scrollBy(pixels: number): void {
-    this.element.scrollTop += pixels;
-    this.messages.focusAt(this.element.scrollTop + this.element.clientHeight / FOCUS_LINE_FRACTION);
   }
 
   private close(): void {
