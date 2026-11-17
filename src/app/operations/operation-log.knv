@@ -7,9 +7,9 @@
 (use domain/text join-with)
 (use ports/driven/event-log log-debug log-info log-warn)
 
-(export labels-changed log-batch-queued! log-failed!
-        log-finished! log-gave-up! log-left-queued!
-        log-queued! log-started! log-waiting!)
+(export labels-changed log-failed! log-finished!
+        log-gave-up! log-left-queued! log-queued!
+        log-started! log-waiting!)
 
 (def operations-area "operations")
 
@@ -24,10 +24,6 @@
   (match rank
     (interactive (str "interactive"))
     (background (str "background"))))
-
-(defn log-batch-queued! (log account name count)
-  (log-info log operations-area
-            (str name " " account ": queued " count)))
 
 (defn log-started! (log queued policy attempt waited)
   (log-debug log operations-area

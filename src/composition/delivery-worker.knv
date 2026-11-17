@@ -4,13 +4,8 @@
                                     submission-sender
                                     threaded-operations)
 
-(use adapters/driving/json/envelope operation-failed-event
-                                    queue-event)
-
 (use adapters/driving/webview/change-delivery change-delivery)
-
-(use adapters/driving/webview/window reply-outbox
-                                     send-reply)
+(use adapters/driving/webview/window reply-outbox)
 
 (use composition/delivery-channel spawn-delivery wake!
                                   wake-inbox wake-sender
@@ -20,17 +15,20 @@
 (use composition/gmail-backend gmail-app)
 (use composition/logging chosen-log)
 (use composition/settings settings-from)
-(use domain/mail-error error-kind error-message)
-(use domain/operation priority)
+(use domain/mail-error error-message)
+(use app/operations/batch-log log-batch-delivered!)
 
-(use domain/queued-relabel delivery-step queued-relabel
-                           refusal)
+(use composition/delivery-events count-waiting!
+                                 report-refusal!)
+
+(use domain/delivery-tally counted-delivery delivery-count)
+(use domain/operation priority)
+(use domain/queued-relabel delivery-step)
 
 (use ports/driven/event-log event-log log-info log-warn
                             share-log)
 
-(use ports/driving/mail-labeler deliver-next-change!
-                                waiting-changes)
+(use ports/driving/mail-labeler deliver-next-change!)
 
 (export ->background-delivery background-delivery
         start-delivery-worker)
@@ -85,59 +83,35 @@
     unit))
 
 (defn kept-delivering! (app wakeups outbox log)
-  (delivered-all! app outbox log)
+  (log-batch-delivered! log "relabel"
+                        (ref (delivered-all! app outbox log (vec))))
   (when (woken? wakeups retry-milliseconds)
     (recur app wakeups outbox log)))
 
 (type delivered-all!
   (fn ((mut mail-app)
        (ref reply-outbox)
-       (ref (box event-log)))
-    unit))
+       (ref (box event-log))
+       (vec delivery-count))
+    (vec delivery-count)))
 
-(defn delivered-all! (app outbox log)
+(defn delivered-all! (app outbox log counts)
   (match (deliver-next-change! app)
     ((ok (delivered row))
      (do
        (count-waiting! app outbox (as-str (:account row)))
-       (recur app outbox log)))
+       (recur app outbox log
+              (counted-delivery counts (as-str (:account row))))))
     ((ok (refused refused))
      (do
        (report-refusal! outbox (ref refused))
        (count-waiting! app outbox
                        (as-str (:account (:queued refused))))
-       (recur app outbox log)))
-    ((ok _) (do))
+       (recur app outbox log counts)))
+    ((ok _) counts)
     ((err failure)
-     (log-warn log "delivery"
-               (str "could not read queued changes: "
-                    (error-message (ref failure)))))))
-
-(type count-waiting!
-  (fn ((ref mail-app)
-       (ref reply-outbox)
-       (ref str))
-    unit))
-
-(defn count-waiting! (app outbox account)
-  (send-reply outbox
-              (queue-event account
-                           (unwrap-ok-or-zero (waiting-changes app account)))))
-
-(type report-refusal!
-  (fn ((ref reply-outbox) (ref refusal))
-    unit))
-
-(defn report-refusal! (outbox refused)
-  (send-reply outbox
-              (operation-failed-event (as-str (:account (:queued refused)))
-                                      "relabel"
-                                      (ref (vec (clone (:thread-id (:queued refused)))))
-                                      (error-kind (ref (:failure refused)))
-                                      (error-message (ref (:failure
-                                                            refused))))))
-
-(defn unwrap-ok-or-zero (counted)
-  (match counted
-    ((ok count) count)
-    ((err _) 0)))
+     (do
+       (log-warn log "delivery"
+                 (str "could not read queued changes: "
+                      (error-message (ref failure))))
+       counts))))

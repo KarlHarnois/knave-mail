@@ -1,0 +1,18 @@
+(use domain/delivery-tally ->delivery-count
+                           counted-delivery)
+
+(deftest a-first-delivery-starts-a-count-for-its-account
+  (assert (= (counted-delivery (vec) "ada@example.com")
+             (vec (->delivery-count :account (str "ada@example.com")
+                                    :delivered 1)))))
+
+(deftest each-account-keeps-its-own-count
+  (let (counts (counted-delivery (counted-delivery
+                                   (counted-delivery (vec) "ada@example.com")
+                                   "bob@example.com")
+                                 "ada@example.com"))
+    (assert (= counts
+               (vec (->delivery-count :account (str "ada@example.com")
+                                      :delivered 2)
+                    (->delivery-count :account (str "bob@example.com")
+                                      :delivered 1))))))

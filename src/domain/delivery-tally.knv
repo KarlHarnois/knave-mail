@@ -1,0 +1,30 @@
+(use domain/collections appended)
+
+(export ->delivery-count counted-delivery delivery-count)
+
+(defstruct delivery-count
+  :account string
+  :delivered i64)
+
+(type counted-delivery
+  (fn ((vec delivery-count) (ref str))
+    (vec delivery-count)))
+
+(defn counted-delivery (counts account)
+  (if (any? (iter counts)
+        (fn (count)
+          (= (:account count) account)))
+    (collect (map (iter counts)
+               (fn (count) (counted-once-more count account))))
+    (appended counts
+              (->delivery-count :account (str account) :delivered 1))))
+
+(type counted-once-more
+  (fn ((ref delivery-count) (ref str))
+    delivery-count))
+
+(defn counted-once-more (count account)
+  (->delivery-count :account (clone (:account count))
+                    :delivered (if (= (:account count) account)
+                                 (+ (:delivered count) 1)
+                                 (:delivered count))))

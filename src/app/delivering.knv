@@ -1,4 +1,6 @@
 (use app/mail-app mail-app)
+(use app/operations/batch-log log-batch-delivered!)
+(use domain/delivery-tally counted-delivery delivery-count)
 (use app/operations/relabel-calls delivered-queued!)
 (use domain/mail-error mail-error)
 
@@ -48,17 +50,33 @@
     (_ false)))
 
 (type deliver-everything-now!
-  (fn ((mut mail-app) (option mail-error))
+  (fn ((mut mail-app))
     (result unit mail-error)))
 
-(defn deliver-everything-now! (app first-refusal)
+(defn deliver-everything-now! (app)
+  (delivered-until-empty! app none (vec)))
+
+(type delivered-until-empty!
+  (fn ((mut mail-app)
+       (option mail-error)
+       (vec delivery-count))
+    (result unit mail-error)))
+
+(defn delivered-until-empty! (app first-refusal counts)
   (match (try (deliver-next! app))
-    ((delivered _) (recur app first-refusal))
+    ((delivered row)
+     (recur app first-refusal
+            (counted-delivery counts (as-str (:account row)))))
     ((refused refused)
      (recur app
             (if (none? first-refusal)
               (some (clone (:failure refused)))
-              first-refusal)))
-    (_ (match first-refusal
-         ((some failure) (err failure))
-         (none (ok (do)))))))
+              first-refusal)
+            counts))
+    (_ (do
+         (log-batch-delivered! (ref (:log app))
+                               "relabel"
+                               (ref counts))
+         (match first-refusal
+           ((some failure) (err failure))
+           (none (ok (do))))))))

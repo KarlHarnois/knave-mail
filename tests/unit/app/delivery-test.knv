@@ -87,3 +87,17 @@
     (assert (match (unwrap-ok (deliver-next-change! (mut app)))
               (nothing-queued true)
               (_ false)))))
+
+(deftest a-delivered-batch-is-logged-once-with-its-count
+  (let (world (remote)
+        log (new-memory-log)
+        app (app-timed-by (ref world)
+                          (same-log (ref log))
+                          (new-memory-clock)))
+    (synced! (mut app))
+    (unwrap-ok (relabel-threads! (mut app)
+                                 world-account
+                                 (ref (vec (str "t-1") (str "t-2")))
+                                 (ref (archive-change))))
+    (assert (mentions? (ref (logged-lines (ref log)))
+                       "relabel ada@example.com: delivered 2"))))

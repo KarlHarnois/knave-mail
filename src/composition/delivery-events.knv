@@ -1,0 +1,43 @@
+(use app/client/mail-labeler)
+
+(use adapters/driving/json/envelope operation-failed-event
+                                    queue-event)
+
+(use adapters/driving/webview/window reply-outbox
+                                     send-reply)
+
+(use app/mail-app mail-app)
+(use domain/mail-error error-kind error-message)
+(use domain/queued-relabel refusal)
+(use ports/driving/mail-labeler waiting-changes)
+
+(export count-waiting! report-refusal!)
+
+(type count-waiting!
+  (fn ((ref mail-app)
+       (ref reply-outbox)
+       (ref str))
+    unit))
+
+(defn count-waiting! (app outbox account)
+  (send-reply outbox
+              (queue-event account
+                           (unwrap-ok-or-zero (waiting-changes app account)))))
+
+(type report-refusal!
+  (fn ((ref reply-outbox) (ref refusal))
+    unit))
+
+(defn report-refusal! (outbox refused)
+  (send-reply outbox
+              (operation-failed-event (as-str (:account (:queued refused)))
+                                      "relabel"
+                                      (ref (vec (clone (:thread-id (:queued refused)))))
+                                      (error-kind (ref (:failure refused)))
+                                      (error-message (ref (:failure
+                                                            refused))))))
+
+(defn unwrap-ok-or-zero (counted)
+  (match counted
+    ((ok count) count)
+    ((err _) 0)))

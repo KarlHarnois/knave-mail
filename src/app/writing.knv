@@ -1,5 +1,5 @@
 (use app/activity-log log-sent-but-uncached!)
-(use app/operations/operation-log log-batch-queued!)
+(use app/operations/batch-log log-batch-queued!)
 (use app/delivering deliver-everything-now!)
 (use app/mail-app delivery mail-app)
 (use domain/labels label-change)
@@ -66,7 +66,7 @@
                      account "relabel"
                      (len thread-ids))
   (match (:delivery app)
-    (deliver-now (deliver-everything-now! app none))
+    (deliver-now (deliver-everything-now! app))
     (deliver-later (ok (do)))))
 
 (type stored-message
