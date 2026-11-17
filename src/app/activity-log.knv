@@ -28,15 +28,16 @@
   (log-info log sync-area
             (str account ": full sync done at history " history-id)))
 
-(defn log-changes! (log account changes)
+(defn log-changes! (log account history-id relabeled downloads)
   (log-info log sync-area
-            (str account ": "
-                 (len (:thread-ids changes))
-                 " threads changed, now at history "
-                 (:history-id changes)))
+            (str account ": " relabeled
+                 " threads relabeled from history, "
+                 (len downloads)
+                 " threads to download, now at history "
+                 history-id))
   (log-debug log sync-area
-             (str account ": changed threads "
-                  (join-with (ref (:thread-ids changes)) " "))))
+             (str account ": threads to download "
+                  (join-with downloads " "))))
 
 (defn log-vanished-thread! (log account thread-id)
   (log-debug log sync-area

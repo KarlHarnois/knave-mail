@@ -1,6 +1,8 @@
-(use adapters/driven/memory/remote-mail expire-history!
-                                        fail-when!
-                                        record-change!
+(use adapters/driven/memory/remote-history expire-history!
+                                           record-change!
+                                           record-relabel!)
+
+(use adapters/driven/memory/remote-mail fail-when!
                                         remote-mail)
 
 (use adapters/driven/memory/shared shared with-shared!)
@@ -68,7 +70,7 @@
                          (if (= (:id held) thread-id)
                            (relabeled held (ref change))
                            (clone held))))))
-      (record-change! state thread-id))))
+      (record-relabel! state thread-id (ref change)))))
 
 (type relabeled
   (fn ((ref thread) (ref label-change))

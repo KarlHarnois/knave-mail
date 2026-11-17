@@ -21,7 +21,8 @@
                           sample-thread world-account)
 
 (use support/remote-changes arrive-remotely!
-                            expire-remote-history!)
+                            expire-remote-history!
+                            relabel-remotely!)
 
 (use support/sample-mail addresses)
 
@@ -38,7 +39,7 @@
     (assert (mentions? (ref (logged-lines (ref log)))
                        "full sync, no checkpoint yet"))))
 
-(deftest a-later-sync-logs-how-many-threads-changed
+(deftest a-later-sync-logs-how-many-threads-it-downloads
   (let (world (remote)
         log (new-memory-log)
         app (app-logging-to (ref world)
@@ -48,7 +49,19 @@
                       (sample-thread "t-3" (vec "INBOX") 300))
     (synced! (mut app))
     (assert (mentions? (ref (logged-lines (ref log)))
-                       "1 threads changed"))))
+                       "1 threads to download"))))
+
+(deftest a-later-sync-logs-label-changes-it-applied-from-history
+  (let (world (remote)
+        log (new-memory-log)
+        app (app-logging-to (ref world)
+                            (same-log (ref log))))
+    (synced! (mut app))
+    (relabel-remotely! (ref world) "t-1" (archive-change))
+    (synced! (mut app))
+    (assert (mentions?
+              (ref (logged-lines (ref log)))
+              "1 threads relabeled from history, 0 threads to download"))))
 
 (deftest an-expired-history-logs-the-fallback
   (let (world (remote)

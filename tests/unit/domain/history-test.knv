@@ -1,0 +1,53 @@
+(use domain/history ->mail-changes ->message-relabel
+                    history-change relabeled-only-ids)
+
+(use domain/labels ->label-change archive-change read-change
+                   star-change)
+
+(defn relabel (thread-id message-id change)
+  (->message-relabel :thread-id (str thread-id)
+                     :message-id (str message-id)
+                     :change change))
+
+(defn changes-of (refetch relabels)
+  (->mail-changes :refetch refetch
+                  :relabels relabels
+                  :history-id (str "9")))
+
+(deftest a-label-removed-from-every-message-settles-the-thread
+  (assert (= (history-change (ref (changes-of
+                                    (vec)
+                                    (vec (relabel "t" "m1" (archive-change))
+                                         (relabel "t" "m2" (archive-change)))))
+                             "t" 2)
+             (some (archive-change)))))
+
+(deftest a-label-removed-from-some-messages-needs-a-download
+  (assert (none? (history-change (ref (changes-of
+                                        (vec)
+                                        (vec (relabel "t" "m1" (read-change)))))
+                                 "t" 2))))
+
+(deftest an-added-label-settles-the-thread
+  (assert (= (history-change (ref (changes-of
+                                    (vec)
+                                    (vec (relabel "t" "m1" (star-change)))))
+                             "t" 3)
+             (some (star-change)))))
+
+(deftest a-label-added-and-removed-in-one-batch-needs-a-download
+  (assert (none? (history-change (ref (changes-of
+                                        (vec)
+                                        (vec (relabel "t" "m1" (archive-change))
+                                             (relabel
+                                               "t" "m1"
+                                               (->label-change :added (vec (str "INBOX"))
+                                                               :removed (vec))))))
+                                 "t" 1))))
+
+(deftest threads-to-download-are-not-relabeled-from-history
+  (assert (= (relabeled-only-ids
+               (ref (changes-of (vec (str "t1"))
+                                (vec (relabel "t1" "m1" (archive-change))
+                                     (relabel "t2" "m2" (archive-change))))))
+             (vec (str "t2")))))

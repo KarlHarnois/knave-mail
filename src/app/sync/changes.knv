@@ -1,12 +1,19 @@
-(use domain/mail ->thread-ref)
+(use domain/mail ->thread-ref thread-summary)
 (use app/activity-log log-changes! log-vanished-thread!)
-(use domain/collections try-for-each)
+(use domain/collections appended-once try-for-each)
 (use app/caching cache-thread!)
 (use app/mail-app mail-app)
 (use app/mailboxes open-mailbox!)
+
+(use domain/history history-change mail-changes
+                    relabeled-only-ids)
+
+(use domain/labels label-change)
 (use domain/mail-error error-kind mail-error)
 (use ports/driven/mailbox fetch-changes!)
-(use ports/driven/store forget-thread! save-checkpoint!)
+
+(use ports/driven/store forget-thread! load-summaries-of
+                        relabel-stored! save-checkpoint!)
 
 (export sync-changes!)
 
@@ -17,15 +24,74 @@
 (defn sync-changes! (app account since)
   (let (changes (try (fetch-changes! (try (open-mailbox! (mut (:mailboxes app))
                                                          account))
-                                     since)))
+                                     since))
+        cached (try (load-summaries-of (ref (:store app))
+                                       account
+                                       (ref (relabeled-only-ids (ref
+                                                                  changes)))))
+        settled (settled-by-history (ref changes) (ref cached))
+        downloads (with-unsettled (clone (:refetch changes))
+                                  (ref cached)
+                                  (ref settled)))
     (log-changes! (ref (:log app))
                   account
-                  (ref changes))
-    (try (try-for-each (iter (:thread-ids changes))
+                  (as-str (:history-id changes))
+                  (len settled)
+                  (ref downloads))
+    (try (try-for-each (iter settled)
+           (fn (relabel) (relabel-from-history! app account relabel))))
+    (try (try-for-each (iter downloads)
            (fn (thread-id) (refresh-thread! app account thread-id))))
     (save-checkpoint! (mut (:store app))
                       account
                       (ref (:history-id changes)))))
+
+(type settled-by-history
+  (fn ((ref mail-changes)
+       (ref (vec thread-summary)))
+    (vec (pair string label-change))))
+
+(defn settled-by-history (changes cached)
+  (reduce (iter cached) (vec)
+    (fn (settled summary)
+      (match (history-change changes
+                             (as-str (:id summary))
+                             (:message-count summary))
+        ((some change)
+         (do
+           (push! (mut settled)
+                  (pair (clone (:id summary)) change))
+           settled))
+        (none settled)))))
+
+(type with-unsettled
+  (fn ((vec string)
+       (ref (vec thread-summary))
+       (ref (vec (pair string label-change))))
+    (vec string)))
+
+(defn with-unsettled (downloads cached settled)
+  (reduce (iter cached) downloads
+    (fn (found summary)
+      (if (any? (iter settled)
+            (fn (relabel)
+              (let-match ((pair thread-id _) relabel)
+                (= thread-id (:id summary)))))
+        found
+        (appended-once found (clone (:id summary)))))))
+
+(type relabel-from-history!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref (pair string label-change)))
+    (result unit mail-error)))
+
+(defn relabel-from-history! (app account relabel)
+  (let-match ((pair thread-id change) relabel)
+    (relabel-stored! (mut (:store app))
+                     (ref (->thread-ref :account (str account)
+                                        :thread-id (clone thread-id)))
+                     change)))
 
 (type refresh-thread!
   (fn ((mut mail-app) (ref str) (ref str))

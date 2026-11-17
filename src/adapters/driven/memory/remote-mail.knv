@@ -1,10 +1,8 @@
-(use domain/mail ->mail-changes ->message mail-changes
-                 message outgoing thread)
-
+(use adapters/driven/memory/remote-change remote-change)
+(use domain/mail ->message message outgoing thread)
 (use domain/mail-error mail-error)
 
-(export ->remote-mail changes-since expire-history!
-        fail-when! guard record-change! remote-mail
+(export ->remote-mail fail-when! guard remote-mail
         sent-from)
 
 (defstruct remote-mail
@@ -15,50 +13,7 @@
   :next-id i64
   :history-id i64
   :history-floor i64
-  :changes (vec (pair i64 string)))
-
-(type expire-history!
-  (fn ((mut remote-mail)) unit))
-
-(defn expire-history! (remote)
-  (set! (:history-floor remote) (:history-id remote))
-  (set! (:changes remote) (vec)))
-
-(type record-change!
-  (fn ((mut remote-mail) (ref str)) unit))
-
-(defn record-change! (remote thread-id)
-  (set! (:history-id remote)
-        (+ (:history-id remote) 1))
-  (push! (mut (:changes remote))
-         (pair (:history-id remote) (str thread-id))))
-
-(type changes-since
-  (fn ((ref remote-mail) (ref str))
-    (result mail-changes mail-error)))
-
-(defn changes-since (remote since)
-  (match (the (result i64 parse-int-error) (parse since))
-    ((ok start)
-     (if (< start (:history-floor remote))
-       (err (mail-error/not-found (str "history " since " has expired")))
-       (ok (->mail-changes :thread-ids (threads-changed-after remote start)
-                           :history-id (str (:history-id remote))))))
-    ((err _)
-     (err (mail-error/not-found (str "no history from " since))))))
-
-(defn threads-changed-after (remote start)
-  (reduce (filter (iter (:changes remote))
-            (fn (change)
-              (let-match ((pair id _) change)
-                (> id start))))
-          (vec)
-          (fn (changed change)
-            (let-match ((pair _ thread-id) change)
-              (unless (any? (iter changed)
-                        (fn (known) (= known thread-id)))
-                (push! changed (clone thread-id)))
-              changed))))
+  :changes (vec remote-change))
 
 (type guard
   (fn ((ref remote-mail) (ref str))

@@ -1,11 +1,11 @@
 (use adapters/driven/gmail/session api-get!)
 (use adapters/driven/gmail/session-state gmail-session)
+(use adapters/driven/gmail/history-entry with-entry)
 
 (use adapters/json/value array-field json-value
                          optional-string-field)
 
-(use domain/collections appended-once)
-(use domain/mail ->mail-changes mail-changes)
+(use domain/history ->mail-changes mail-changes)
 (use domain/mail-error mail-error)
 
 (export fetched-changes! fetched-history-id!)
@@ -19,23 +19,23 @@
                                          (ref (str users-me "/profile"))))))))
 
 (defn fetched-changes! (session since)
-  (collected-pages! session since (str "") (vec)))
+  (collected-pages! session since
+                    (str "")
+                    (->mail-changes :refetch (vec)
+                                    :relabels (vec)
+                                    :history-id (str ""))))
 
 (type collected-pages!
-  (fn ((mut gmail-session)
-       (ref str)
-       string
-       (vec string))
+  (fn ((mut gmail-session) (ref str) string mail-changes)
     (result mail-changes mail-error)))
 
-(defn collected-pages! (session since page-token thread-ids)
+(defn collected-pages! (session since page-token found)
   (let (page (try (api-get! session
                             (ref (history-path since (ref page-token)))))
-        found (with-changed-threads thread-ids (ref page)))
+        so-far (reduce (array-field (ref page) "history") found with-entry))
     (match (optional-string-field (ref page) "nextPageToken")
-      ((some token) (recur session since token found))
-      (none (ok (->mail-changes :thread-ids found
-                                :history-id (history-id-of (ref page))))))))
+      ((some token) (recur session since token so-far))
+      (none (ok (assoc so-far :history-id (history-id-of (ref page))))))))
 
 (defn history-path (since page-token)
   (str users-me "/history?startHistoryId=" since
@@ -47,13 +47,3 @@
 (def history-id-of
   (rust "{0}.get(\"historyId\").map(|{!value}| {!value}.as_str().map(str::to_string).unwrap_or_else(|| {!value}.to_string())).unwrap_or_default()"
     (fn ((ref json-value)) string)))
-
-(defn with-changed-threads (thread-ids page)
-  (reduce (array-field page "history") thread-ids
-    (fn (found entry)
-      (reduce (array-field entry "messages") found with-thread-of))))
-
-(defn with-thread-of (found message)
-  (match (optional-string-field message "threadId")
-    ((some thread-id) (appended-once found thread-id))
-    (none found)))

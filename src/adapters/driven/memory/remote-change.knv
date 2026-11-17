@@ -1,0 +1,8 @@
+(use domain/labels label-change)
+
+(export ->remote-change remote-change)
+
+(defstruct remote-change
+  :at i64
+  :thread-id string
+  :relabel (option label-change))

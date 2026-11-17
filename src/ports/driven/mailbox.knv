@@ -1,7 +1,8 @@
 (use domain/labels label-change)
+(use domain/history mail-changes)
 
-(use domain/mail label mail-changes outgoing thread
-                 thread-page thread-query thread-summary)
+(use domain/mail label outgoing thread thread-page
+                 thread-query thread-summary)
 
 (use domain/mail-error mail-error)
 

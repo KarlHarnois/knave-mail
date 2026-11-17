@@ -1,11 +1,11 @@
 (use domain/label-scope label-scope)
 
-(export ->account ->draft ->label ->mail-changes ->message
-        ->message-ref ->outgoing ->summary-page ->thread
-        ->thread-page ->thread-query ->thread-ref
-        ->thread-summary account draft label mail-changes
-        message message-ref outgoing summary-page thread
-        thread-page thread-query thread-ref thread-summary)
+(export ->account ->draft ->label ->message ->message-ref
+        ->outgoing ->summary-page ->thread ->thread-page
+        ->thread-query ->thread-ref ->thread-summary account
+        draft label message message-ref outgoing
+        summary-page thread thread-page thread-query
+        thread-ref thread-summary)
 
 (defstruct account
   :email string)
@@ -70,10 +70,6 @@
 (defstruct summary-page
   :summaries (vec thread-summary)
   :next-token string)
-
-(defstruct mail-changes
-  :thread-ids (vec string)
-  :history-id string)
 
 (defstruct outgoing
   :from string

@@ -17,6 +17,30 @@
           "threadId": "t6"
         }
       ]
+    },
+    {
+      "id": "4005",
+      "messages": [
+        {
+          "id": "m7",
+          "threadId": "t7"
+        }
+      ],
+      "labelsAdded": [
+        {
+          "message": {
+            "id": "m7",
+            "threadId": "t7",
+            "labelIds": [
+              "INBOX",
+              "STARRED"
+            ]
+          },
+          "labelIds": [
+            "STARRED"
+          ]
+        }
+      ]
     }
   ],
   "historyId": "4010"

@@ -1,6 +1,8 @@
-(use adapters/driven/memory/remote-mail changes-since guard
-                                        record-change!
-                                        remote-mail
+(use adapters/driven/memory/remote-history changes-since
+                                           record-change!
+                                           record-relabel!)
+
+(use adapters/driven/memory/remote-mail guard remote-mail
                                         sent-from)
 
 (use adapters/driven/memory/remote-queries labelled?
@@ -86,7 +88,7 @@
         (let (index (try (found-thread remote thread-id))
               changed (relabeled-thread (at (:threads remote) index) change))
           (set! (at (:threads remote) index) changed)
-          (ok (record-change! remote thread-id)))))))
+          (ok (record-relabel! remote thread-id change)))))))
 
 (type found-thread
   (fn ((ref remote-mail) (ref str))

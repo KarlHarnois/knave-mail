@@ -1,0 +1,108 @@
+(use adapters/driven/memory/remote-change ->remote-change
+                                          remote-change)
+
+(use adapters/driven/memory/remote-mail remote-mail)
+(use domain/collections appended appended-once)
+
+(use domain/history ->mail-changes ->message-relabel
+                    mail-changes)
+
+(use domain/labels label-change)
+(use domain/mail-error mail-error)
+
+(export changes-since expire-history! record-change!
+        record-relabel!)
+
+(type expire-history!
+  (fn ((mut remote-mail)) unit))
+
+(defn expire-history! (remote)
+  (set! (:history-floor remote) (:history-id remote))
+  (set! (:changes remote) (vec)))
+
+(type record-change!
+  (fn ((mut remote-mail) (ref str)) unit))
+
+(defn record-change! (remote thread-id)
+  (recorded! remote thread-id none))
+
+(type record-relabel!
+  (fn ((mut remote-mail)
+       (ref str)
+       (ref label-change))
+    unit))
+
+(defn record-relabel! (remote thread-id change)
+  (recorded! remote thread-id (some (clone change))))
+
+(type recorded!
+  (fn ((mut remote-mail)
+       (ref str)
+       (option label-change))
+    unit))
+
+(defn recorded! (remote thread-id relabel)
+  (set! (:history-id remote)
+        (+ (:history-id remote) 1))
+  (push! (mut (:changes remote))
+         (->remote-change :at (:history-id remote)
+                          :thread-id (str thread-id)
+                          :relabel relabel)))
+
+(type changes-since
+  (fn ((ref remote-mail) (ref str))
+    (result mail-changes mail-error)))
+
+(defn changes-since (remote since)
+  (match (the (result i64 parse-int-error) (parse since))
+    ((ok start)
+     (if (< start (:history-floor remote))
+       (err (mail-error/not-found (str "history " since " has expired")))
+       (ok (->mail-changes :refetch (refetched-after remote start)
+                           :relabels (relabels-after remote start)
+                           :history-id (str (:history-id remote))))))
+    ((err _)
+     (err (mail-error/not-found (str "no history from " since))))))
+
+(defn changes-after (remote start)
+  (collect (map (filter (iter (:changes remote))
+                  (fn (change) (> (:at change) start)))
+                (fn (change) (clone change)))))
+
+(defn refetched-after (remote start)
+  (reduce (filter (iter (changes-after remote start))
+            (fn (change) (none? (:relabel change))))
+          (vec)
+          (fn (found change)
+            (appended-once found (clone (:thread-id change))))))
+
+(defn relabels-after (remote start)
+  (reduce (iter (changes-after remote start)) (vec)
+    (fn (found change)
+      (match (ref (:relabel change))
+        ((some relabel)
+         (with-message-relabels found remote
+                                (as-str (:thread-id change))
+                                relabel))
+        (none found)))))
+
+(defn with-message-relabels (found remote thread-id relabel)
+  (reduce (message-ids-of remote thread-id) found
+    (fn (relabels message-id)
+      (appended relabels
+                (->message-relabel :thread-id (str thread-id)
+                                   :message-id (clone message-id)
+                                   :change (clone relabel))))))
+
+(type message-ids-of
+  (fn ((ref remote-mail) (ref str))
+    (vec string)))
+
+(defn message-ids-of (remote thread-id)
+  (reduce (filter (iter (:threads remote))
+            (fn (thread) (= (:id thread) thread-id)))
+          (vec)
+          (fn (ids thread)
+            (reduce (iter (:messages thread)) ids
+              (fn (found message)
+                (appended found (clone (:id message))))))))

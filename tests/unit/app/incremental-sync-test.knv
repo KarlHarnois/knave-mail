@@ -15,7 +15,8 @@
 (use support/remote-changes arrive-remotely!
                             delete-remotely!
                             expire-remote-history!
-                            heal-remote! surface-remotely!)
+                            heal-remote! relabel-remotely!
+                            surface-remotely!)
 
 (defn fresh-ids! (app query)
   (collect (map (iter (unwrap-ok (list-threads!
@@ -61,6 +62,17 @@
                                  (ref (vec (str "t-1")))
                                  (ref (archive-change))))
     (synced! (mut app))
+    (assert (= (listed-ids! (mut app)
+                            (ref (inbox-query)))
+               (vec (str "t-2"))))))
+
+(deftest a-later-sync-applies-label-changes-made-in-gmail-without-downloading
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (relabel-remotely! (ref world) "t-1" (archive-change))
+    (fail-remote! (ref world) "fetch-thread")
+    (unwrap-ok (sync-account! (mut app) world-account))
     (assert (= (listed-ids! (mut app)
                             (ref (inbox-query)))
                (vec (str "t-2"))))))

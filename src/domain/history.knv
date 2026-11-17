@@ -1,0 +1,97 @@
+(use domain/collections appended-once as-count)
+(use domain/labels ->label-change label-change)
+
+(export ->mail-changes ->message-relabel history-change
+        mail-changes message-relabel relabeled-only-ids)
+
+(defstruct message-relabel
+  :thread-id string
+  :message-id string
+  :change label-change)
+
+(defstruct mail-changes
+  :refetch (vec string)
+  :relabels (vec message-relabel)
+  :history-id string)
+
+(type relabeled-only-ids
+  (fn ((ref mail-changes)) (vec string)))
+
+(defn relabeled-only-ids (changes)
+  (reduce (iter (:relabels changes)) (vec)
+    (fn (found relabel)
+      (if (holds? (ref (:refetch changes))
+                  (as-str (:thread-id relabel)))
+        found
+        (appended-once found (clone (:thread-id relabel)))))))
+
+(defn history-change (changes thread-id message-count)
+  (let (mine (of-thread (ref (:relabels changes)) thread-id))
+    (if (settled? (ref mine) message-count)
+      (some (->label-change :added (added-labels (ref mine))
+                            :removed (removed-labels (ref mine))))
+      none)))
+
+(defn settled? (relabels message-count)
+  (let (added (added-labels relabels)
+        removed (removed-labels relabels))
+    (every? (iter removed)
+      (fn (label)
+        (and (not (holds? (ref added) (as-str label)))
+             (= (messages-losing relabels (as-str label)) message-count))))))
+
+(type of-thread
+  (fn ((ref (vec message-relabel)) (ref str))
+    (vec message-relabel)))
+
+(defn of-thread (relabels thread-id)
+  (collect (map (filter (iter relabels)
+                  (fn (relabel)
+                    (= (:thread-id relabel) thread-id)))
+                (fn (relabel) (clone relabel)))))
+
+(type added-labels
+  (fn ((ref (vec message-relabel)))
+    (vec string)))
+
+(defn added-labels (relabels)
+  (reduce (iter relabels) (vec)
+    (fn (labels relabel)
+      (with-each labels
+                 (ref (:added (:change relabel)))))))
+
+(type removed-labels
+  (fn ((ref (vec message-relabel)))
+    (vec string)))
+
+(defn removed-labels (relabels)
+  (reduce (iter relabels) (vec)
+    (fn (labels relabel)
+      (with-each labels
+                 (ref (:removed (:change relabel)))))))
+
+(defn with-each (labels more)
+  (reduce (iter more) labels
+    (fn (found label)
+      (appended-once found (clone label)))))
+
+(type messages-losing
+  (fn ((ref (vec message-relabel)) (ref str))
+    i64))
+
+(defn messages-losing (relabels label)
+  (as-count (len (reduce (filter (iter relabels)
+                           (fn (relabel)
+                             (holds? (ref (:removed (:change relabel)))
+                                     label)))
+                         (vec)
+                         (fn (ids relabel)
+                           (appended-once ids
+                                          (clone (:message-id relabel))))))))
+
+(type holds?
+  (fn ((ref (vec string)) (ref str)) bool))
+
+(defn holds? (labels wanted)
+  (any? (iter labels)
+    (fn (label) (= label wanted))))

@@ -1,4 +1,6 @@
 (use adapters/driven/gmail/mailbox gmail-mailbox)
+(use domain/history ->message-relabel)
+(use domain/labels ->label-change label-removal)
 (use domain/mail-error error-kind)
 (use ports/driven/mailbox fetch-changes! fetch-history-id!)
 (use support/fake-gmail start-fake-gmail)
@@ -31,11 +33,23 @@
     (assert (= (unwrap-ok (fetch-history-id! (mut gmail)))
                "4000"))))
 
-(deftest lists-each-changed-thread-once-across-pages
+(deftest downloads-threads-with-new-or-unexplained-message-changes
   (let (server (start-fake-gmail (ref (history-routes)))
         gmail (gmail-over (ref server)))
-    (assert (= (:thread-ids (unwrap-ok (fetch-changes! (mut gmail) "4000")))
-               (vec (str "t1") (str "t5") (str "t6"))))))
+    (assert (= (:refetch (unwrap-ok (fetch-changes! (mut gmail) "4000")))
+               (vec (str "t5") (str "t1") (str "t6"))))))
+
+(deftest reads-label-changes-per-message
+  (let (server (start-fake-gmail (ref (history-routes)))
+        gmail (gmail-over (ref server)))
+    (assert (= (:relabels (unwrap-ok (fetch-changes! (mut gmail) "4000")))
+               (vec (->message-relabel :thread-id (str "t1")
+                                       :message-id (str "m1")
+                                       :change (label-removal "UNREAD"))
+                    (->message-relabel :thread-id (str "t7")
+                                       :message-id (str "m7")
+                                       :change (->label-change :added (vec (str "STARRED"))
+                                                               :removed (vec))))))))
 
 (deftest returns-the-history-id-to-resume-from
   (let (server (start-fake-gmail (ref (history-routes)))
@@ -46,8 +60,8 @@
 (deftest no-changes-means-no-threads
   (let (server (start-fake-gmail (ref (history-routes)))
         gmail (gmail-over (ref server)))
-    (assert (empty? (:thread-ids (unwrap-ok (fetch-changes! (mut gmail)
-                                                            "3999")))))))
+    (assert (empty? (:refetch (unwrap-ok (fetch-changes! (mut gmail)
+                                                         "3999")))))))
 
 (deftest an-expired-history-is-not-found
   (let (server (start-fake-gmail (ref (history-routes)))
