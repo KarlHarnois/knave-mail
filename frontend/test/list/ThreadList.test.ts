@@ -118,6 +118,15 @@ describe("ThreadList changes", () => {
     expect(fixture.list.length).toBe(9);
   });
 
+  test("shrinking the list while scrolled to its end keeps the screen filled", () => {
+    const fixture = new ListFixture(100);
+    fixture.act((list) => list.moveToLast());
+    fixture.act((list) => list.refresh(MailFixtures.summaries(40)));
+    const firstRowOnScreen = 40 - FALLBACK_VIEWPORT_ROWS;
+    expect(fixture.visibleRows().some((row) => row.dataset["threadId"] === `t-${firstRowOnScreen}`)).toBe(true);
+    expect(fixture.list.element.scrollTop).toBe(firstRowOnScreen * ROW_HEIGHT);
+  });
+
   test("removing another thread keeps the selection", () => {
     const fixture = new ListFixture(10);
     fixture.act((list) => list.moveTo(4));

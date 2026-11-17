@@ -35,6 +35,10 @@ export class ListWindow {
     return Math.max(1, Math.floor(viewportHeight / this.rowHeight));
   }
 
+  lowestScrollTop(total: number, viewportHeight: number): number {
+    return Math.max(0, this.contentHeight(total) - viewportHeight);
+  }
+
   contentHeight(total: number): number {
     return total * this.rowHeight;
   }

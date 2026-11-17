@@ -28,14 +28,22 @@ export class ListViewport {
 
   reveal(index: number): void {
     this.revealedIndex = index;
-    const target = this.listWindow.scrollTopToReveal(index, this.scrollTop, this.height);
-    if (target === this.scrollTop) return;
-    this.scrollTop = target;
-    this.element.scrollTop = target;
+    this.scrollTo(this.listWindow.scrollTopToReveal(index, this.scrollTop, this.height));
+  }
+
+  fit(rowCount: number): void {
+    const lowestScrollTop = this.listWindow.lowestScrollTop(rowCount, this.height);
+    if (this.scrollTop > lowestScrollTop) this.scrollTo(lowestScrollTop);
   }
 
   halfPage(): number {
     return Math.max(1, Math.floor(this.listWindow.rowsPerPage(this.height) / 2));
+  }
+
+  private scrollTo(target: number): void {
+    if (target === this.scrollTop) return;
+    this.scrollTop = target;
+    this.element.scrollTop = target;
   }
 
   private createElement(document: Document): HTMLElement {

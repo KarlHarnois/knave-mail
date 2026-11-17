@@ -36,8 +36,9 @@ export class ListPainter {
   }
 
   paint(summaries: readonly ThreadSummary[], cursor: ListCursor): void {
-    const range = this.parts.viewport.visibleRange(summaries.length);
     this.spacer.style.height = `${this.parts.listWindow.contentHeight(summaries.length)}px`;
+    this.parts.viewport.fit(summaries.length);
+    const range = this.parts.viewport.visibleRange(summaries.length);
     this.parts.viewport.element.dataset["threadCount"] = String(summaries.length);
     this.emptyNotice.hidden = summaries.length > 0;
     this.recycler.recycleOutside(range);
