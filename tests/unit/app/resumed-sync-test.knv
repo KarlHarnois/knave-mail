@@ -1,0 +1,28 @@
+(use app/client/mail-syncer)
+(use ports/driving/mail-reader open-thread!)
+(use ports/driving/mail-syncer sync-account!)
+(use support/app-steps ada-thread fail-remote! synced!)
+
+(use support/memory-world app-over remote-with sample-thread
+                          world-account)
+
+(use support/remote-changes arrive-remotely!
+                            expire-remote-history!)
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100))))
+
+(deftest a-sync-cut-short-downloads-the-rest-without-rereading-history
+  (let (world (remote)
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (arrive-remotely! (ref world)
+                      (sample-thread "t-2" (vec "INBOX") 200))
+    (fail-remote! (ref world) "fetch-thread")
+    (assert (err? (sync-account! (mut app) world-account)))
+    (expire-remote-history! (ref world))
+    (fail-remote! (ref world) "fetch-threads")
+    (unwrap-ok (sync-account! (mut app) world-account))
+    (fail-remote! (ref world) "fetch-thread")
+    (assert (ok? (open-thread! (mut app)
+                               (ref (ada-thread "t-2")))))))
