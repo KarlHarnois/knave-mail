@@ -107,7 +107,20 @@
                       (ref (inbox-holding (ref (vec (str "{\"id\":8,\"command\":\"archive\",\"args\":{\"account\":\"ada@example.com\",\"threadIds\":[\"t-9\"]}}")))))
                       (ref sink))
     (assert (mentions? (ref (logged-lines (ref log)))
-                       "relabel failed"))))
+                       "archive failed"))))
+
+(deftest a-failed-listing-is-logged-under-its-command
+  (let (world (remote)
+        app (app-over (ref world))
+        log (new-memory-log)
+        sink (->collected-replies (share (vec))))
+    (answer-relabels! (mut app)
+                      (ref (the (box event-log)
+                                (box (same-log (ref log)))))
+                      (ref (inbox-holding (ref (vec (str "{\"id\":9,\"command\":\"thread-page\",\"args\":{\"account\":\"nobody@example.com\",\"label\":\"INBOX\",\"query\":\"x\",\"pageToken\":\"\"}}")))))
+                      (ref sink))
+    (assert (mentions? (ref (logged-lines (ref log)))
+                       "thread-page failed"))))
 
 (deftest a-worker-that-cannot-start-refuses-each-request-by-its-id
   (let (sink (->collected-replies (share (vec))))

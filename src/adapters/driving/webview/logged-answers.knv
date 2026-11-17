@@ -13,7 +13,7 @@
 (use adapters/driving/json/envelope failure-reply null-id
                                     request-id)
 
-(use adapters/json/value parse-json)
+(use adapters/json/value parse-json string-field)
 (use domain/mail-error mail-error)
 (use domain/results unwrap-ok-or)
 (use ports/driven/event-log event-log log-debug log-warn)
@@ -21,6 +21,8 @@
 
 (export answer-relabels! answered-and-logged!
         refuse-relabels!)
+
+(def unnamed-request "request")
 
 (defn answer-relabels! (client log inbox sink)
   (log-debug log "window"
@@ -33,7 +35,9 @@
   (match (next-request inbox)
     ((some request)
      (deliver-reply! sink
-                     (answered-and-logged! client log (ref request) "relabel"))
+                     (answered-and-logged! client log
+                                           (ref request)
+                                           (ref (command-of (as-str request)))))
      (recur client log inbox sink))
     (none (do))))
 
@@ -50,6 +54,13 @@
   (match (parse-json request-text)
     ((ok request) (request-id (ref request)))
     ((err _) (null-id))))
+
+(defn command-of (request-text)
+  (match (parse-json request-text)
+    ((ok request)
+     (unwrap-ok-or (string-field (ref request) "command")
+                   (str unnamed-request)))
+    ((err _) (str unnamed-request))))
 
 (type answered-and-logged!
   (where ((client window-client))
