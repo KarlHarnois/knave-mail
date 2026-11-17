@@ -1,3 +1,4 @@
+(use app/caching cached-thread!)
 (use app/listing listed-threads!)
 (use app/mail-app mail-app)
 (use app/marking-read marked-read!)
@@ -7,7 +8,6 @@
                  thread-summary)
 
 (use domain/mail-error mail-error)
-(use app/operations/calls fetched-thread!)
 
 (use ports/driven/store load-thread load-threads
                         save-thread!)
@@ -44,15 +44,4 @@
                            (ref (->thread-ref :account (str account)
                                               :thread-id (str thread-id)))))
     ((some stored) (ok stored))
-    (none (fetch-and-store-thread! app account thread-id))))
-
-(type fetch-and-store-thread!
-  (fn ((mut mail-app) (ref str) (ref str))
-    (result thread mail-error)))
-
-(defn fetch-and-store-thread! (app account thread-id)
-  (let (fetched (try (fetched-thread! app account thread-id)))
-    (try (save-thread! (mut (:store app))
-                       account
-                       (ref fetched)))
-    (ok fetched)))
+    (none (cached-thread! app account thread-id))))

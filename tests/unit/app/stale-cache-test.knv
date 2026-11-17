@@ -2,7 +2,10 @@
 (use app/client/mail-syncer)
 (use domain/labels archive-change inbox-change)
 (use ports/driving/mail-labeler relabel-threads!)
-(use support/app-steps inbox-query listed-ids! synced!)
+(use ports/driving/mail-reader open-thread!)
+
+(use support/app-steps ada-thread inbox-query listed-ids!
+                       synced!)
 
 (use support/memory-world app-over remote-with sample-thread
                           world-account)
@@ -28,3 +31,12 @@
     (assert (= (listed-ids! (mut app)
                             (ref (inbox-query)))
                (vec (str "t-2") (str "t-1"))))))
+
+(deftest opening-a-thread-fetched-from-gmail-lists-it-under-its-labels
+  (let (world (remote)
+        app (app-over (ref world)))
+    (unwrap-ok (open-thread! (mut app)
+                             (ref (ada-thread "t-1"))))
+    (assert (= (listed-ids! (mut app)
+                            (ref (inbox-query)))
+               (vec (str "t-1"))))))

@@ -2,20 +2,28 @@
 (use app/mail-app mail-app)
 (use domain/labels label-difference no-change?)
 (use domain/mail-error mail-error)
-(use domain/mail thread-summary)
+(use domain/mail thread thread-summary)
 (use domain/summary summarize)
 (use app/operations/calls fetched-thread!)
 
 (use ports/driven/store load-summaries-of save-thread!
                         save-threads!)
 
-(export cache-thread!)
+(export cache-thread! cached-thread!)
 
 (type cache-thread!
   (fn ((mut mail-app) (ref str) (ref str))
     (result unit mail-error)))
 
 (defn cache-thread! (app account thread-id)
+  (map-ok (cached-thread! app account thread-id)
+    (fn (_) (do))))
+
+(type cached-thread!
+  (fn ((mut mail-app) (ref str) (ref str))
+    (result thread mail-error)))
+
+(defn cached-thread! (app account thread-id)
   (let (cached (try (load-summaries-of (ref (:store app))
                                        account
                                        (ref (vec (str thread-id)))))
@@ -27,9 +35,10 @@
     (try (save-thread! (mut (:store app))
                        account
                        (ref fetched)))
-    (save-threads! (mut (:store app))
-                   account
-                   (ref (vec (summarize (ref fetched)))))))
+    (try (save-threads! (mut (:store app))
+                        account
+                        (ref (vec (summarize (ref fetched))))))
+    (ok fetched)))
 
 (type log-difference!
   (fn ((ref mail-app)
