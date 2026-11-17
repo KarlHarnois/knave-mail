@@ -6,6 +6,7 @@ import { AccountRoster } from "./AccountRoster";
 import { INBOX, type LabelDirectory, type LabelRef } from "./LabelDirectory";
 import { GMAIL_PAGE, ListingPages, SEARCH_PAGE, THREAD_LIMIT } from "./ListingPages";
 import { LocationStatus } from "./LocationStatus";
+import { PagingGate } from "./PagingGate";
 import type { PendingChanges } from "./PendingChanges";
 
 export { THREAD_LIMIT } from "./ListingPages";
@@ -26,8 +27,8 @@ export class MailSession {
   private query = "";
   private loadGeneration = 0;
   private navigation = 0;
-  private loadingMore = false;
   private readonly pages = new ListingPages();
+  private readonly paging = new PagingGate();
   private readonly accountListeners: AccountListener[] = [];
   private readonly location: LocationStatus;
 
@@ -98,13 +99,7 @@ export class MailSession {
   }
 
   async showMore(): Promise<void> {
-    if (this.loadingMore || !this.pages.mayHaveMore) return;
-    this.loadingMore = true;
-    try {
-      await this.loadNextPage();
-    } finally {
-      this.loadingMore = false;
-    }
+    if (this.pages.mayHaveMore) await this.paging.load(() => this.loadNextPage());
   }
 
   private async loadNextPage(): Promise<void> {

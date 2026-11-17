@@ -96,4 +96,13 @@ describe("loading older threads from Gmail", () => {
     await app.driver.whenIdle();
     expect(app.driver.count('[data-thread-id="t-99"]')).toBe(0);
   });
+
+  test("a page Gmail throttles is not asked for again right away", async () => {
+    const app = await AppHarness.started((core) =>
+      core.failNext("thread-page", { kind: "throttled", message: "Gmail is rate limiting this account" }),
+    );
+    await app.press("G");
+    await app.press("ggG");
+    expect(app.core.requestsFor("thread-page")).toHaveLength(1);
+  });
 });
