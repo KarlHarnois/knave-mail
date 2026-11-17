@@ -1,0 +1,52 @@
+(use app/mail-app mail-app)
+
+(use app/operations/calls fetched-message-page!
+                          fetched-thread-page!)
+
+(use domain/collections appended-once concatenated)
+(use domain/mail ->message-page message-page thread-query)
+(use domain/mail-error mail-error)
+
+(export all-messages! all-thread-ids!)
+
+(type all-messages!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref thread-query)
+       string message-page)
+    (result message-page mail-error)))
+
+(defn all-messages! (app account query page-token found)
+  (let (page (try (fetched-message-page! app account query
+                                         (as-str page-token)))
+        merged (merged-pages found (ref page)))
+    (if (empty? (:next-token page))
+      (ok merged)
+      (recur app account query (clone (:next-token page)) merged))))
+
+(type merged-pages
+  (fn (message-page (ref message-page)) message-page))
+
+(defn merged-pages (found page)
+  (->message-page :message-ids (concatenated (clone (:message-ids found))
+                                             (clone (:message-ids page)))
+                  :thread-ids (reduce (iter (:thread-ids page))
+                                      (clone (:thread-ids found))
+                                      (fn (ids thread-id)
+                                        (appended-once ids (clone thread-id))))
+                  :next-token (str "")))
+
+(type all-thread-ids!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref thread-query)
+       string
+       (vec string))
+    (result (vec string) mail-error)))
+
+(defn all-thread-ids! (app account query page-token found)
+  (let (page (try (fetched-thread-page! app account query (as-str page-token)))
+        ids (concatenated found (clone (:ids page))))
+    (if (empty? (:next-token page))
+      (ok ids)
+      (recur app account query (clone (:next-token page)) ids))))

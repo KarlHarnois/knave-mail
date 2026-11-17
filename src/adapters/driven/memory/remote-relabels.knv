@@ -2,7 +2,8 @@
 (use adapters/driven/memory/remote-mail remote-mail)
 (use adapters/driven/memory/remote-queries thread-position)
 (use domain/collections try-for-each)
-(use domain/labels label-change)
+(use domain/labels ->label-change label-change no-change?)
+(use domain/mail thread)
 (use domain/mail-error mail-error)
 (use domain/relabel relabeled-thread)
 
@@ -33,7 +34,26 @@
            (held-somewhere remote (as-str message-id)))))
   (try-for-each (iter (threads-holding remote message-ids))
     (fn (thread-id)
-      (relabeled-remotely! remote (as-str thread-id) change))))
+      (let (index (try (found-thread remote (as-str thread-id)))
+            shown (change-on-thread (at (:threads remote) index)
+                                    message-ids change))
+        (if (no-change? (ref shown))
+          (ok (do))
+          (relabeled-remotely! remote (as-str thread-id) (ref shown)))))))
+
+(type change-on-thread
+  (fn ((ref thread)
+       (ref (vec string))
+       (ref label-change))
+    label-change))
+
+(defn change-on-thread (held message-ids change)
+  (if (every? (iter (:messages held))
+        (fn (message)
+          (contains? message-ids (clone (:id message)))))
+    (clone change)
+    (->label-change :added (clone (:added change))
+                    :removed (vec))))
 
 (type held-somewhere
   (fn ((ref remote-mail) (ref str))

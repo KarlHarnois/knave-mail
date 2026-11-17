@@ -5,7 +5,8 @@
 (use support/app-steps inbox-query listed-ids! remote-thread
                        synced!)
 
-(use support/memory-world app-over remote-with sample-thread
+(use support/memory-world app-over remote-with
+                          sample-conversation sample-thread
                           world-account)
 
 (def september-21 1790000000000)
@@ -35,3 +36,18 @@
     (assert (= (listed-ids! (mut app)
                             (ref (inbox-query)))
                (vec (str "t-new"))))))
+
+(deftest archiving-older-mail-keeps-threads-with-newer-inbox-mail
+  (let (world (remote-with (vec (sample-conversation "t-mixed"
+                                                     (vec "INBOX")
+                                                     (vec september-21
+                                                          november-18))))
+        app (app-over (ref world)))
+    (synced! (mut app))
+    (assert (= (unwrap-ok (archive-older! (mut app) world-account "2026/10/01"))
+               0))
+    (assert (= (:labels (remote-thread (ref world) "t-mixed"))
+               (vec (str "INBOX"))))
+    (assert (= (listed-ids! (mut app)
+                            (ref (inbox-query)))
+               (vec (str "t-mixed"))))))

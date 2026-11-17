@@ -27,7 +27,7 @@
 (use support/sample-mail addresses)
 
 (export app-logging-to app-over app-timed-by remote-with
-        sample-thread world-account)
+        sample-conversation sample-thread world-account)
 
 (def fake-patience-milliseconds 600000)
 
@@ -37,17 +37,33 @@
   (->thread :id (str id)
             :subject (str "Subject of " id)
             :labels (addresses labels)
-            :messages (vec (->message :id (str "m-" id)
-                                      :thread-id (str id)
-                                      :from (str "Grace <grace@example.com>")
-                                      :to (addresses (vec world-account))
-                                      :cc (vec)
-                                      :subject (str "Subject of " id)
-                                      :date date
-                                      :text (str "Body of " id)
-                                      :html none
-                                      :header-id (str "<m-" id "@example.com>")
-                                      :references (str "")))))
+            :messages (vec (sample-message id (str "m-" id) date))))
+
+(defn sample-conversation (id labels dates)
+  (->thread :id (str id)
+            :subject (str "Subject of " id)
+            :labels (addresses labels)
+            :messages (-> (iter dates)
+                          enumerate
+                          (map (fn (numbered)
+                                 (let-match ((pair position date) numbered)
+                                   (sample-message id
+                                                   (str "m-" id "-" position)
+                                                   (deref date)))))
+                          collect)))
+
+(defn sample-message (thread-id message-id date)
+  (->message :id (str message-id)
+             :thread-id (str thread-id)
+             :from (str "Grace <grace@example.com>")
+             :to (addresses (vec world-account))
+             :cc (vec)
+             :subject (str "Subject of " thread-id)
+             :date date
+             :text (str "Body of " thread-id)
+             :html none
+             :header-id (str "<" message-id "@example.com>")
+             :references (str "")))
 
 (defn remote-with (threads)
   (share (->remote-mail :threads threads

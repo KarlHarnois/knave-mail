@@ -1,18 +1,15 @@
 (use app/mail-app mail-app)
-(use app/operations/batch-log log-archived-older!)
-(use app/operations/calls fetched-message-page!)
+
+(use app/operations/batch-log log-archived-older!
+                              log-kept-in-inbox!)
+
+(use app/gmail-pages all-messages! all-thread-ids!)
 (use app/operations/relabel-calls delivered-batch!)
-
-(use domain/collections appended-once as-count concatenated
-                        in-chunks try-for-each)
-
+(use domain/collections as-count in-chunks try-for-each)
 (use domain/delivery-batch most-batched-messages)
 (use domain/label-scope label-scope)
 (use domain/labels archive-change label-id system-label)
-
-(use domain/mail ->message-page ->thread-query ->thread-ref
-                 message-page thread-query)
-
+(use domain/mail ->message-page ->thread-query ->thread-ref)
 (use domain/mail-error mail-error)
 (use domain/operation ->message-batch)
 (use ports/driven/store relabel-stored!)
@@ -27,59 +24,76 @@
 
 (defn archived-older! (app account before)
   (let (found (try (all-messages! app account
-                                  (ref (older-inbox-query before))
+                                  (ref (inbox-query (str "before:" before)))
                                   (str "")
                                   (->message-page :message-ids (vec)
                                                   :thread-ids (vec)
                                                   :next-token (str ""))))
-        chunks (in-chunks (ref (:message-ids found)) most-batched-messages))
-    (try (try-for-each (iter chunks)
-           (fn (chunk)
-             (delivered-batch! app account
-                               (->message-batch :message-ids (clone chunk)
-                                                :thread-ids (vec)
-                                                :change (archive-change))))))
-    (try (try-for-each (iter (:thread-ids found))
+        requests (try (archived-in-gmail! app account
+                                          (ref (:message-ids found))))
+        inboxed (try (all-thread-ids! app account
+                                      (ref (inbox-query (str "")))
+                                      (str "")
+                                      (vec)))
+        kept (in-inbox (ref (:thread-ids found))
+                       (ref inboxed))
+        left (out-of-inbox (ref (:thread-ids found))
+                           (ref inboxed)))
+    (try (try-for-each (iter left)
            (fn (thread-id)
              (archived-in-cache! app account (as-str thread-id)))))
     (log-archived-older! (ref (:log app))
                          account before
                          (len (:thread-ids found))
                          (len (:message-ids found))
-                         (len chunks))
-    (ok (as-count (len (:thread-ids found))))))
+                         requests)
+    (when (not (empty? kept))
+      (log-kept-in-inbox! (ref (:log app))
+                          account
+                          (ref kept)))
+    (ok (as-count (len left)))))
 
-(defn older-inbox-query (before)
+(defn inbox-query (search)
   (->thread-query (label-scope/only (label-id system-label/inbox))
-                  (str "before:" before)
-                  message-page-size))
+                  search message-page-size))
 
-(type all-messages!
+(type archived-in-gmail!
   (fn ((mut mail-app)
        (ref str)
-       (ref thread-query)
-       string message-page)
-    (result message-page mail-error)))
+       (ref (vec string)))
+    (result usize mail-error)))
 
-(defn all-messages! (app account query page-token found)
-  (let (page (try (fetched-message-page! app account query
-                                         (as-str page-token)))
-        merged (merged-pages found (ref page)))
-    (if (empty? (:next-token page))
-      (ok merged)
-      (recur app account query (clone (:next-token page)) merged))))
+(defn archived-in-gmail! (app account message-ids)
+  (let (chunks (in-chunks message-ids most-batched-messages))
+    (try (try-for-each (iter chunks)
+           (fn (chunk)
+             (delivered-batch! app account
+                               (->message-batch :message-ids (clone chunk)
+                                                :thread-ids (vec)
+                                                :change (archive-change))))))
+    (ok (len chunks))))
 
-(type merged-pages
-  (fn (message-page (ref message-page)) message-page))
+(type in-inbox
+  (fn ((ref (vec string)) (ref (vec string)))
+    (vec string)))
 
-(defn merged-pages (found page)
-  (->message-page :message-ids (concatenated (clone (:message-ids found))
-                                             (clone (:message-ids page)))
-                  :thread-ids (reduce (iter (:thread-ids page))
-                                      (clone (:thread-ids found))
-                                      (fn (ids thread-id)
-                                        (appended-once ids (clone thread-id))))
-                  :next-token (str "")))
+(defn in-inbox (thread-ids inboxed)
+  (-> (iter thread-ids)
+      (filter (fn (thread-id)
+                (contains? inboxed (clone thread-id))))
+      (map (fn (thread-id) (clone thread-id)))
+      collect))
+
+(type out-of-inbox
+  (fn ((ref (vec string)) (ref (vec string)))
+    (vec string)))
+
+(defn out-of-inbox (thread-ids inboxed)
+  (-> (iter thread-ids)
+      (filter (fn (thread-id)
+                (not (contains? inboxed (clone thread-id)))))
+      (map (fn (thread-id) (clone thread-id)))
+      collect))
 
 (type archived-in-cache!
   (fn ((mut mail-app) (ref str) (ref str))

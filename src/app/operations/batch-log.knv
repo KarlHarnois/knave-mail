@@ -3,7 +3,8 @@
 (use ports/driven/event-log event-log log-info)
 
 (export log-archived-older! log-batch-delivered!
-        log-batch-queued! log-batch-sent!)
+        log-batch-queued! log-batch-sent!
+        log-kept-in-inbox!)
 
 (def operations-area "operations")
 
@@ -20,6 +21,13 @@
                  " inbox threads before " before ", "
                  messages " messages in " requests
                  " requests")))
+
+(defn log-kept-in-inbox! (log account thread-ids)
+  (log-info log operations-area
+            (str "archive older " account ": "
+                 (len thread-ids)
+                 " threads stay in the inbox with newer mail: "
+                 (join thread-ids " "))))
 
 (defn log-batch-queued! (log account name change thread-ids)
   (log-info log operations-area
