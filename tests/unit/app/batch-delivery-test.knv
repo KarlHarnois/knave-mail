@@ -1,5 +1,11 @@
 (use app/client/mail-labeler)
 (use app/client/mail-syncer)
+(use app/client/mail-reader)
+(use domain/freshness freshness)
+(use domain/mail thread-summary)
+(use domain/summary summarize)
+(use ports/driving/mail-reader list-threads!)
+(use ports/driven/store load-summaries-of save-threads!)
 
 (use adapters/driven/memory/memory-log logged-lines
                                        new-memory-log
@@ -54,3 +60,33 @@
     (assert (= (listed-ids! (mut app)
                             (ref (inbox-query)))
                (vec (str "t-3") (str "t-2"))))))
+
+(deftest a-listing-fills-in-message-ids-an-inbox-summary-lacks
+  (let (world (remote)
+        app (app-timed-by (ref world)
+                          (new-memory-log)
+                          (new-memory-clock)))
+    (unwrap-ok (save-threads! (mut (:store app))
+                              world-account
+                              (ref (vec (without-message-ids
+                                          (summarize (ref (sample-thread
+                                                            "t-1"
+                                                            (vec "INBOX")
+                                                            100))))))))
+    (unwrap-ok (list-threads! (mut app)
+                              world-account
+                              (ref (inbox-query))
+                              freshness/fresh))
+    (assert (= (collect (map (iter (unwrap-ok (load-summaries-of (ref (:store
+                                                                        app))
+                                                                 world-account
+                                                                 (ref (vec (str "t-1"))))))
+                             (fn (summary)
+                               (clone (:message-ids summary)))))
+               (vec (vec (str "m-t-1")))))))
+
+(type without-message-ids
+  (fn (thread-summary) thread-summary))
+
+(defn without-message-ids (summary)
+  (assoc summary :message-ids (vec)))

@@ -1,8 +1,26 @@
 (use domain/collections appended as-count)
+(use domain/labels label-id system-label)
 (use domain/mail thread-summary)
 
 (export ids-without-summary in-listed-order
-        missing-from-listing)
+        missing-from-listing ready-for-batches)
+
+(type ready-for-batches
+  (fn ((ref (vec thread-summary)))
+    (vec thread-summary)))
+
+(defn ready-for-batches (summaries)
+  (collect (map (filter (iter summaries)
+                  (fn (summary)
+                    (not (inbox-without-message-ids? summary))))
+                (fn (summary) (clone summary)))))
+
+(type inbox-without-message-ids?
+  (fn ((ref thread-summary)) bool))
+
+(defn inbox-without-message-ids? (summary)
+  (and (empty? (:message-ids summary))
+       (contains? (:labels summary) (label-id system-label/inbox))))
 
 (type ids-without-summary
   (fn ((ref (vec string))

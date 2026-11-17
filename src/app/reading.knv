@@ -8,7 +8,9 @@
                  thread thread-query thread-summary)
 
 (use domain/mail-error mail-error)
-(use domain/listing ids-without-summary in-listed-order)
+
+(use domain/listing ids-without-summary in-listed-order
+                    ready-for-batches)
 
 (use app/operations/calls fetched-summaries! fetched-thread!
                           fetched-thread-ids!
@@ -62,18 +64,32 @@
     (result (vec thread-summary) mail-error)))
 
 (defn summaries-for! (app account ids)
-  (let (known (try (load-summaries-of (ref (:store app)) account ids))
+  (let (stored (try (load-summaries-of (ref (:store app)) account ids))
+        known (ready-for-batches (ref stored))
         fetched (try (missing-summaries!
                        app account
-                       (ref (ids-without-summary ids (ref known))))))
+                       (ref (ids-without-summary ids (ref known)))))
+        first-seen (ids-without-summary-in (ref fetched) (ref stored)))
     (try (save-threads! (mut (:store app))
                         account
                         (ref fetched)))
-    (when (not (empty? fetched))
+    (when (not (empty? first-seen))
       (log-first-listed! (ref (:log app))
                          account
-                         (ref fetched)))
+                         (ref first-seen)))
     (ok (in-listed-order ids (ref (concatenated known fetched))))))
+
+(type ids-without-summary-in
+  (fn ((ref (vec thread-summary))
+       (ref (vec thread-summary)))
+    (vec thread-summary)))
+
+(defn ids-without-summary-in (fetched stored)
+  (collect (map (filter (iter fetched)
+                  (fn (summary)
+                    (not (any? (iter stored)
+                           (fn (held) (= (:id held) (:id summary)))))))
+                (fn (summary) (clone summary)))))
 
 (type missing-summaries!
   (fn ((mut mail-app)
