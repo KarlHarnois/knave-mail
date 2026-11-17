@@ -6,7 +6,7 @@
 (use domain/collections appended-once as-count)
 (use domain/mail ->thread-summary thread-summary)
 (use domain/results unwrap-ok-or)
-(use domain/text join-with replaced trimmed-of)
+(use domain/text replaced trimmed-of)
 
 (export summary-from thread-labels)
 
@@ -14,8 +14,8 @@
   (let (messages (array-field thread "messages"))
     (->thread-summary :id (text-at thread "id")
                       :subject (subject-of (ref messages))
-                      :participants (join-with (ref (senders (ref messages)))
-                                               ", ")
+                      :participants (join (ref (senders (ref messages)))
+                                          ", ")
                       :snippet (snippet-of (ref messages))
                       :date (date-of (ref messages))
                       :labels (thread-labels thread)

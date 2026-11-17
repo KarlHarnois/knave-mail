@@ -1,4 +1,3 @@
-(use support/gmail-requests contains?)
 (use adapters/driving/webview/theme/theme-css theme-css)
 
 (defn css-of (text)

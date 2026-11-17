@@ -11,7 +11,7 @@
 (use support/gmail-world fixture-routes gmail-over route)
 (use support/sample-mail addresses)
 
-(use support/gmail-requests contains? inbox mime-header
+(use support/gmail-requests inbox mime-header
                             requests-matching sent-mime)
 
 (deftest sends-a-reply-as-raw-mime-in-its-thread

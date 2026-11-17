@@ -1,7 +1,6 @@
 (use adapters/driving/cli/cli-result cli-result)
 (use domain/labels starred? unread?)
 (use domain/mail draft label message thread thread-summary)
-(use domain/text join-with)
 
 (export result-text)
 
@@ -65,7 +64,7 @@
        "\n" "From: "
        (:from shown)
        "\n" "To: "
-       (join-with (:to shown) ", ")
+       (join (:to shown) ", ")
        "\n" "Date: "
        (date-text (:date shown))
        "\n" "Subject: "
@@ -87,9 +86,9 @@
 
 (defn draft-text (written)
   (str "To: "
-       (join-with (:to written) ", ")
+       (join (:to written) ", ")
        "\n" "Cc: "
-       (join-with (:cc written) ", ")
+       (join (:cc written) ", ")
        "\n" "Subject: "
        (:subject written)
        "\n\n"

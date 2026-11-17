@@ -8,7 +8,6 @@
                                                  mode?)
 
 (use domain/collections appended one-of?)
-(use domain/text join-with)
 
 (export ->themed theme-css themed)
 
@@ -95,11 +94,11 @@
   (if (= mode "system")
     (str "color-scheme: light dark")
     (str "color-scheme: " mode ";\n  "
-         (join-with (ref (collect
-                           (map (iter color-names)
-                             (fn (name)
-                               (str "--" name ": var(--" mode "-" name ")")))))
-                    ";\n  "))))
+         (join (ref (collect (map (iter color-names)
+                               (fn (name)
+                                 (str "--" name ": var(--"
+                                      mode "-" name ")")))))
+               ";\n  "))))
 
 (def root-rule
   (rust "if {0}.is_empty() {{ String::new() }} else {{ format!(\":root {{{{\\n  {{}};\\n}}}}\\n\", {0}.join(\";\\n  \")) }}"

@@ -1,6 +1,5 @@
 (use adapters/driven/file-log/file-log open-file-log)
 (use ports/driven/event-log ->log-entry log-level record!)
-(use support/gmail-requests contains?)
 (use support/temporary temporary-path)
 
 (defn read-file (path)

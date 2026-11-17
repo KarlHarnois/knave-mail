@@ -1,5 +1,4 @@
 (use domain/mail-error error-kind error-message)
-(use domain/text join-with)
 (use ports/driven/event-log log-debug log-info log-warn)
 
 (export log-changes! log-full-sync-done!
@@ -35,8 +34,7 @@
                  " threads to download, now at history "
                  history-id))
   (log-debug log sync-area
-             (str account ": threads to download "
-                  (join-with downloads " "))))
+             (str account ": threads to download " (join downloads " "))))
 
 (defn log-vanished-thread! (log account thread-id)
   (log-debug log sync-area

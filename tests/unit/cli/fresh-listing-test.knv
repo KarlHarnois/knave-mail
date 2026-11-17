@@ -7,7 +7,6 @@
 
 (use adapters/driving/cli/text-presenter result-text)
 (use support/app-steps synced!)
-(use support/gmail-requests contains?)
 
 (use support/memory-world app-over remote-with sample-thread
                           world-account)

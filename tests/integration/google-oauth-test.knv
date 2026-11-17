@@ -17,7 +17,6 @@
 (use support/fake-gmail fake-gmail fake-gmail-base
                         requests-seen start-fake-gmail)
 
-(use support/gmail-requests contains?)
 (use support/gmail-world route)
 (use support/temporary temporary-path)
 

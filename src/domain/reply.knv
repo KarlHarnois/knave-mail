@@ -1,5 +1,5 @@
 (use domain/mail ->draft draft message)
-(use domain/text join-with prefixed-ignoring-case? quoted)
+(use domain/text prefixed-ignoring-case? quoted)
 
 (export draft-for draft-kind forward-draft reply-all-draft
         reply-draft)
@@ -73,7 +73,7 @@
        "\n" "Subject: "
        (:subject original)
        "\n" "To: "
-       (join-with (:to original) ", ")
+       (join (:to original) ", ")
        "\n\n"
        (:text original)))
 

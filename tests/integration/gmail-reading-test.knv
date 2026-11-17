@@ -11,9 +11,7 @@
 (use support/fake-gmail requests-seen start-fake-gmail)
 (use support/gmail-world fixture-routes gmail-over route)
 (use support/sample-mail addresses)
-
-(use support/gmail-requests contains? inbox
-                            requests-matching)
+(use support/gmail-requests inbox requests-matching)
 
 (deftest fetches-labels-with-unread-counts
   (let (server (start-fake-gmail (ref (fixture-routes)))

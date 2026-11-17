@@ -120,12 +120,8 @@
 
 (defn operation-id-of (lines step)
   (match (find (iter lines)
-           (fn (line) (contains-text? line step)))
+           (fn (line) (contains? line step)))
     ((some line)
      (str (unwrap-or (find (split line step) (fn (_) true))
                      "")))
     (none (str "no such line"))))
-
-(def contains-text?
-  (rust "{0}.contains({1})"
-    (fn ((ref str) (ref str)) bool)))

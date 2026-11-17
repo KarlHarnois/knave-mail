@@ -1,6 +1,5 @@
 (use adapters/driving/webview/sync-requests missing-account-reply)
 (use adapters/json/value parse-json)
-(use support/gmail-requests contains?)
 
 (defn reply-to (request-text)
   (missing-account-reply (ref (unwrap-ok (parse-json request-text)))))

@@ -3,8 +3,6 @@
 (use domain/mail ->thread-summary message thread
                  thread-query thread-summary)
 
-(use domain/text join-with)
-
 (export in-scope? message-count newest-first summarize)
 
 (def snippet-length 120)
@@ -36,8 +34,8 @@
     (first-few sorted (:limit query))))
 
 (defn participants (summarized)
-  (join-with (ref (distinct-senders (ref (:messages summarized))))
-             ", "))
+  (join (ref (distinct-senders (ref (:messages summarized))))
+        ", "))
 
 (defn last-message (summarized)
   (expect (last (:messages summarized))

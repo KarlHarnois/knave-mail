@@ -4,7 +4,6 @@
 (use domain/mail-error error-kind error-message mail-error)
 (use domain/operation operation operation-kind priority)
 (use domain/operation-policy operation-policy policy-of)
-(use domain/text join-with)
 (use ports/driven/event-log log-debug log-info log-warn)
 
 (export labels-changed log-failed! log-finished!
@@ -131,9 +130,9 @@
 
 (defn labels-changed (change)
   (str "+["
-       (join-with (ref (:added change)) ",")
+       (join (ref (:added change)) ",")
        "] -["
-       (join-with (ref (:removed change)) ",")
+       (join (ref (:removed change)) ",")
        "]"))
 
 (defn failure-text (failure)

@@ -21,7 +21,6 @@
 (use adapters/driving/webview/window request-inbox)
 (use ports/driven/event-log event-log)
 (use support/app-steps synced!)
-(use support/gmail-requests contains?)
 (use support/log-lines mentions?)
 
 (use support/memory-world app-over remote-with sample-thread

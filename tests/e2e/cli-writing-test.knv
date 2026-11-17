@@ -5,7 +5,7 @@
                        signed-in-tokens)
 
 (use support/fake-gmail start-fake-gmail)
-(use support/gmail-requests contains? requests-matching)
+(use support/gmail-requests requests-matching)
 (use support/gmail-world fixture-routes)
 (use support/sample-mail addresses)
 (use support/temporary temporary-path)

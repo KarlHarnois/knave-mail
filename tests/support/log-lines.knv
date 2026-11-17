@@ -1,5 +1,3 @@
-(use support/gmail-requests contains?)
-
 (export mentions-none? mentions?)
 
 (type mentions?

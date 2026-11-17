@@ -61,17 +61,13 @@
     ((ends-with? path "/messages/send") 100)
     ((ends-with? path "/modify") 10)
     ((= method "POST") 10)
-    ((contains-text? path "/threads") 10)
-    ((contains-text? path "/messages") 5)
-    ((contains-text? path "/history") 2)
+    ((contains? path "/threads") 10)
+    ((contains? path "/messages") 5)
+    ((contains? path "/history") 2)
     (else 1)))
 
 (def ends-with?
   (rust "{0}.ends_with({1})"
-    (fn ((ref str) (ref str)) bool)))
-
-(def contains-text?
-  (rust "{0}.contains({1})"
     (fn ((ref str) (ref str)) bool)))
 
 (def wall-milliseconds

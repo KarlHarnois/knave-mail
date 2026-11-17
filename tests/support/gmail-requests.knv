@@ -2,8 +2,7 @@
 (use domain/mail ->thread-query thread-query)
 (use support/fake-gmail fake-gmail requests-seen)
 
-(export contains? inbox mime-header requests-matching
-        sent-mime)
+(export inbox mime-header requests-matching sent-mime)
 
 (defn inbox ()
   (->thread-query (label-scope/only (str "INBOX"))
@@ -17,14 +16,6 @@
 (def into-iter
   (rust "{0}.into_iter()"
     (fn ((vec string)) (iterator string))))
-
-(def starts-with?
-  (rust "{0}.starts_with({1})"
-    (fn ((ref string) (ref str)) bool)))
-
-(def contains?
-  (rust "{0}.contains({1})"
-    (fn ((ref str) (ref str)) bool)))
 
 (def sent-mime
   (rust "{{ use base64::Engine; let {!body} = {0}.splitn(3, '\\n').nth(2).unwrap_or(\"\"); let {!json}: serde_json::Value = serde_json::from_str({!body}).unwrap_or_default(); let {!raw} = {!json}[\"raw\"].as_str().unwrap_or(\"\"); String::from_utf8_lossy(&base64::engine::general_purpose::URL_SAFE.decode({!raw}).unwrap_or_default()).into_owned() }}"
