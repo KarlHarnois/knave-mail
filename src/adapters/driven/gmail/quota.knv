@@ -84,6 +84,7 @@
 (defn units-for (method path)
   (cond
     ((ends-with? path "/messages/send") 100)
+    ((ends-with? path "/batchModify") 50)
     ((ends-with? path "/modify") 10)
     ((= method "POST") 10)
     ((contains? path "/threads") 10)

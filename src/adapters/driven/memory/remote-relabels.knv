@@ -1,0 +1,53 @@
+(use adapters/driven/memory/remote-history record-relabel!)
+(use adapters/driven/memory/remote-mail remote-mail)
+(use adapters/driven/memory/remote-queries thread-position)
+(use domain/collections try-for-each)
+(use domain/labels label-change)
+(use domain/mail-error mail-error)
+(use domain/relabel relabeled-thread)
+
+(export found-thread messages-relabeled!
+        relabeled-remotely!)
+
+(type relabeled-remotely!
+  (fn ((mut remote-mail)
+       (ref str)
+       (ref label-change))
+    (result unit mail-error)))
+
+(defn relabeled-remotely! (remote thread-id change)
+  (let (index (try (found-thread remote thread-id))
+        changed (relabeled-thread (at (:threads remote) index) change))
+    (set! (at (:threads remote) index) changed)
+    (ok (record-relabel! remote thread-id change))))
+
+(type messages-relabeled!
+  (fn ((mut remote-mail)
+       (ref (vec string))
+       (ref label-change))
+    (result unit mail-error)))
+
+(defn messages-relabeled! (remote message-ids change)
+  (try-for-each (iter (threads-holding remote message-ids))
+    (fn (thread-id)
+      (relabeled-remotely! remote (as-str thread-id) change))))
+
+(type threads-holding
+  (fn ((ref remote-mail) (ref (vec string)))
+    (vec string)))
+
+(defn threads-holding (remote message-ids)
+  (collect (map (filter (iter (:threads remote))
+                  (fn (held)
+                    (any? (iter (:messages held))
+                      (fn (message)
+                        (contains? message-ids (clone (:id message)))))))
+                (fn (held) (clone (:id held))))))
+
+(type found-thread
+  (fn ((ref remote-mail) (ref str))
+    (result usize mail-error)))
+
+(defn found-thread (remote thread-id)
+  (ok-or (thread-position remote thread-id)
+         (mail-error/not-found (str "no thread " thread-id))))

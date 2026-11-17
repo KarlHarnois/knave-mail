@@ -7,7 +7,9 @@
 
 (use adapters/driven/gmail/codec thread-ids)
 
-(use adapters/driven/gmail/requests label-path labels-path
+(use adapters/driven/gmail/requests batch-modify-body
+                                    batch-modify-path
+                                    label-path labels-path
                                     message-path modify-body
                                     modify-path send-body
                                     send-path
@@ -80,6 +82,13 @@
       (try (api-post! (mut (:session box))
                       (ref (modify-path thread-id))
                       (ref (modify-body change))))
+      (ok (do))))
+
+  (relabel-messages! (box message-ids change)
+    (do
+      (try (api-post! (mut (:session box))
+                      (ref (batch-modify-path))
+                      (ref (batch-modify-body message-ids change))))
       (ok (do)))))
 
 (defn listed-thread-ids! (session query)

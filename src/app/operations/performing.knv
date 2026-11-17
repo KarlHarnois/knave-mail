@@ -9,7 +9,8 @@
                           fetch-summaries! fetch-thread!
                           fetch-thread-ids!
                           fetch-thread-page! fetch-threads!
-                          mailbox relabel!)
+                          mailbox relabel!
+                          relabel-messages!)
 
 (export performed!)
 
@@ -60,4 +61,9 @@
      (map-ok (relabel! mailbox
                        (as-str (:thread-id work))
                        (ref (:change work)))
+             (fn (_) operation-result/relabeled)))
+    ((relabel-messages batch)
+     (map-ok (relabel-messages! mailbox
+                                (ref (:message-ids batch))
+                                (ref (:change batch)))
              (fn (_) operation-result/relabeled)))))

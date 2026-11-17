@@ -4,13 +4,19 @@
 (use domain/mail label outgoing thread thread-page
                  thread-query thread-summary)
 
-(export ->operation ->page-request ->relabel-work operation
+(export ->message-batch ->operation ->page-request
+        ->relabel-work message-batch operation
         operation-kind operation-result page-request
         priority relabel-work)
 
 (defstruct page-request
   :listing thread-query
   :page-token string)
+
+(defstruct message-batch
+  :message-ids (vec string)
+  :thread-ids (vec string)
+  :change label-change)
 
 (defstruct relabel-work
   :thread-id string
@@ -27,7 +33,8 @@
   fetch-history-id
   (fetch-history string)
   (send outgoing)
-  (relabel relabel-work))
+  (relabel relabel-work)
+  (relabel-messages message-batch))
 
 (defenum priority
   interactive

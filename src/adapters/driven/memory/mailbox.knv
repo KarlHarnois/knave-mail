@@ -1,6 +1,9 @@
 (use adapters/driven/memory/remote-history changes-since
-                                           record-change!
-                                           record-relabel!)
+                                           record-change!)
+
+(use adapters/driven/memory/remote-relabels found-thread
+                                            messages-relabeled!
+                                            relabeled-remotely!)
 
 (use adapters/driven/memory/remote-mail guard! remote-mail
                                         sent-from)
@@ -16,7 +19,6 @@
 (use domain/labels label-change label-id system-label)
 (use domain/mail ->thread message outgoing thread)
 (use domain/mail-error mail-error)
-(use domain/relabel relabeled-thread)
 (use ports/driven/mailbox mailbox)
 
 (export ->memory-mailbox memory-mailbox)
@@ -85,18 +87,13 @@
     (with-shared! (ref (:remote box))
       (fn (remote)
         (try (guard! remote "relabel"))
-        (let (index (try (found-thread remote thread-id))
-              changed (relabeled-thread (at (:threads remote) index) change))
-          (set! (at (:threads remote) index) changed)
-          (ok (record-relabel! remote thread-id change)))))))
+        (relabeled-remotely! remote thread-id change))))
 
-(type found-thread
-  (fn ((ref remote-mail) (ref str))
-    (result usize mail-error)))
-
-(defn found-thread (remote thread-id)
-  (ok-or (thread-position remote thread-id)
-         (mail-error/not-found (str "no thread " thread-id))))
+  (relabel-messages! (box message-ids change)
+    (with-shared! (ref (:remote box))
+      (fn (remote)
+        (try (guard! remote "relabel"))
+        (messages-relabeled! remote message-ids change)))))
 
 (type record-delivery!
   (fn ((mut remote-mail) (ref outgoing))

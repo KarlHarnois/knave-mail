@@ -5,7 +5,7 @@
 
 (use ports/driven/mailbox deliver! fetch-labels!
                           fetch-thread! fetch-threads!
-                          relabel!)
+                          relabel! relabel-messages!)
 
 (use support/fake-gmail requests-seen start-fake-gmail)
 (use support/gmail-world fixture-routes gmail-over route)
@@ -77,6 +77,18 @@
                              "POST /gmail/v1/users/me/threads/t1/modify")
                            0)
                        "{\"addLabelIds\":[],\"removeLabelIds\":[\"INBOX\"]}"))))
+
+(deftest relabels-many-messages-in-one-request
+  (let (server (start-fake-gmail (ref (fixture-routes)))
+        gmail (gmail-over (ref server)))
+    (unwrap-ok (relabel-messages! (mut gmail)
+                                  (ref (vec (str "m1") (str "m2") (str "m3")))
+                                  (ref (archive-change))))
+    (assert (contains? (at (requests-matching
+                             (ref server)
+                             "POST /gmail/v1/users/me/messages/batchModify")
+                           0)
+                       "{\"addLabelIds\":[],\"ids\":[\"m1\",\"m2\",\"m3\"],\"removeLabelIds\":[\"INBOX\"]}"))))
 
 (deftest a-missing-thread-is-not-found
   (let (server (start-fake-gmail (ref (fixture-routes)))

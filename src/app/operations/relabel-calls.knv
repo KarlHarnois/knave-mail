@@ -3,12 +3,22 @@
 (use domain/labels label-change)
 (use domain/mail-error mail-error)
 
-(use domain/operation ->relabel-work operation-kind
-                      operation-result)
+(use domain/operation ->relabel-work message-batch
+                      operation-kind operation-result)
 
 (use domain/queued-relabel queued-relabel)
 
-(export delivered-queued! relabeled!)
+(export delivered-batch! delivered-queued! relabeled!)
+
+(type delivered-batch!
+  (fn ((mut mail-app) (ref str) message-batch)
+    (result unit mail-error)))
+
+(defn delivered-batch! (app account batch)
+  (match (try (run-operation! app account
+                              (operation-kind/relabel-messages batch)))
+    (relabeled (ok (do)))
+    (_ (unexpected "relabel batch"))))
 
 (type relabeled!
   (fn ((mut mail-app)

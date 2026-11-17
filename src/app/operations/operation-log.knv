@@ -115,6 +115,12 @@
           (:thread-id work)
           " "
           (labels-changed (ref (:change work)))))
+    ((relabel-messages batch)
+     (str (len (:message-ids batch))
+          " messages in "
+          (len (:thread-ids batch))
+          " threads "
+          (labels-changed (ref (:change batch)))))
     (_ (str ""))))
 
 (defn listing-of (query)

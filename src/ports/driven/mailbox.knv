@@ -51,4 +51,10 @@
     (fn ((mut self)
          (ref str)
          (ref label-change))
+      (result unit mail-error)))
+
+  (relabel-messages!
+    (fn ((mut self)
+         (ref (vec string))
+         (ref label-change))
       (result unit mail-error))))

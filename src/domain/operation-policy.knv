@@ -57,7 +57,15 @@
                          :retries-network false
                          :durable false
                          :longest-wait (some longest-backoff-milliseconds)))
-    ((relabel work) (relabel-policy (:queued-id work)))))
+    ((relabel work) (relabel-policy (:queued-id work)))
+    ((relabel-messages _) (queued-batch-policy))))
+
+(defn queued-batch-policy ()
+  (->operation-policy :name (str "relabel batch")
+                      :most-attempts none
+                      :retries-network true
+                      :durable true
+                      :longest-wait none))
 
 (defn read-policy (name)
   (->operation-policy :name (str name)

@@ -53,7 +53,9 @@
        (route "POST /gmail/v1/users/me/messages/send"
               (ref (str "200 " fixtures "sent.json")))
        (route "POST /gmail/v1/users/me/threads/t1/modify"
-              (ref (str "200 " fixtures "empty.json")))))
+              (ref (str "200 " fixtures "empty.json")))
+       (route "POST /gmail/v1/users/me/messages/batchModify"
+              (ref (str "204 " fixtures "empty.json")))))
 
 (def unlimited-units-per-second 1000000)
 
