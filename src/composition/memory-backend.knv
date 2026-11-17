@@ -35,14 +35,13 @@
 (def sync-limit 500)
 
 (defn memory-app (chosen log)
-  (let (app (new-mail-app (box (store-with-accounts))
-                          (the (box operation-queue)
-                               (box (new-inline-queue (box (->memory-provider (account-emails)
-                                                                              (seeded-remotes
-                                                                                chosen)))
-                                                      (box (->system-clock))
-                                                      (share-log (ref log))
-                                                      (some 0))))
+  (let (provider (->memory-provider (account-emails) (seeded-remotes chosen))
+        operations (new-inline-queue (box provider)
+                                     (box (->system-clock))
+                                     (share-log (ref log))
+                                     (some 0))
+        app (new-mail-app (box (store-with-accounts))
+                          (the (box operation-queue) (box operations))
                           (box (->memory-authorizer (vec)))
                           log priority/interactive
                           delivery/deliver-now sync-limit))
@@ -65,14 +64,17 @@
     store))
 
 (defn account-emails ()
-  (collect (map (iter seed-accounts)
-             (fn (email) (str email)))))
+  (-> (iter seed-accounts)
+      (map (fn (email) (str email)))
+      collect))
 
 (defn seeded-remotes (chosen)
-  (collect (map (enumerate (iter seed-accounts))
-             (fn (numbered)
-               (let-match ((pair position email) numbered)
-                 (seeded-remote chosen email position))))))
+  (-> (iter seed-accounts)
+      enumerate
+      (map (fn (numbered)
+             (let-match ((pair position email) numbered)
+               (seeded-remote chosen email position))))
+      collect))
 
 (type seeded-remote
   (fn ((ref settings) (ref str) usize)
