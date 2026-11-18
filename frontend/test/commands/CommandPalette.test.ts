@@ -8,6 +8,8 @@ class PaletteFixture {
   constructor() {
     this.palette.open({
       prompt: ":",
+      mode: "COMMAND",
+      takesArguments: true,
       entries: [this.entry("sync", "R"), this.entry("label", "<name>", true), this.entry("labels", "gl")],
       runTyped: (text) => this.ran.push(`typed ${text}`),
       isCommand: (text) => ["sync", "label", "labels", "q"].includes(text.split(" ")[0] ?? ""),

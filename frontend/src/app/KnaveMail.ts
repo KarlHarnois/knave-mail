@@ -5,7 +5,7 @@ import { ComposeScreen } from "../compose/ComposeScreen";
 import type { HelpScreen } from "../help/HelpScreen";
 import { KeyboardInput } from "../keys/KeyboardInput";
 import { KeyNotation } from "../keys/KeyNotation";
-import type { LabelPickerScreen } from "../labels/LabelPickerScreen";
+import type { LabelPalette } from "../labels/LabelPalette";
 import { ListScreen } from "../list/ListScreen";
 import { GlobalErrorLog } from "../logging/GlobalErrorLog";
 import { SharedActions } from "../mail/SharedActions";
@@ -27,7 +27,7 @@ export class KnaveMail {
   private readonly threadScreen: ThreadScreen;
   private readonly composeScreen: ComposeScreen;
   private readonly helpScreen: HelpScreen;
-  private readonly labelPicker: LabelPickerScreen;
+  private readonly labelPalette: LabelPalette;
 
   constructor(
     private readonly window: Window,
@@ -42,7 +42,7 @@ export class KnaveMail {
     this.threadScreen = this.createThreadScreen();
     this.composeScreen = this.createComposeScreen();
     this.helpScreen = this.factory.helpScreen(this.app);
-    this.labelPicker = this.factory.labelPicker(this.app, (label) => this.shared.goToLabel(label));
+    this.labelPalette = this.factory.labelPalette(this.app, (label) => this.shared.goToLabel(label));
   }
 
   start(): void {
@@ -94,7 +94,7 @@ export class KnaveMail {
       startCompose: () => this.composeScreen.resume(),
       showList: () => this.app.showList(),
       showHelp: () => this.helpScreen.open(),
-      pickLabel: () => this.labelPicker.open(),
+      pickLabel: () => this.labelPalette.open(),
       goBack: () => this.goBack(),
       archiveOlder: (before) => this.services.olderMail.archive(before),
     });

@@ -333,8 +333,7 @@ body {
   display: none;
 }
 
-.help-view,
-.label-picker {
+.help-view {
   height: 100%;
   overflow-y: auto;
   padding: var(--space-half-line) var(--space-text-inset);
@@ -364,28 +363,17 @@ body {
   white-space: pre;
 }
 
-.help-description,
-.label-unread {
+.help-description {
   color: var(--color-text-secondary);
 }
 
 .help-description,
-.label-name {
+.palette-name {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.list-item[aria-selected="true"] :is(.help-description, .label-unread) {
+.list-item[aria-selected="true"] .help-description {
   color: inherit;
-}
-
-.label-row {
-  display: grid;
-  grid-template-columns: minmax(12ch, 40ch) 6ch;
-  gap: var(--space-group);
-}
-
-.label-unread {
-  text-align: right;
 }

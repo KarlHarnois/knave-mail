@@ -79,6 +79,8 @@ export class SharedActions {
     });
     this.ports.palette.open({
       prompt: ":",
+      mode: "COMMAND",
+      takesArguments: true,
       entries: entries.all(),
       runTyped: (input) => this.commands.run(input),
       isCommand: (input) => parser.knows(input),

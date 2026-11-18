@@ -192,10 +192,11 @@ describe("list locations", () => {
     expect(app.status("error")).toBe("");
   });
 
-  test(":labels opens the label picker", async () => {
+  test(":labels opens the label palette", async () => {
     const app = await AppHarness.started();
     await app.press(":labels<CR>");
-    expect(app.isVisible('[data-test="label-picker"]')).toBe(true);
+    expect(app.isVisible('[data-test="palette"]')).toBe(true);
+    expect(app.status("mode")).toBe("LABELS");
   });
 
   test("escape clears the last error", async () => {

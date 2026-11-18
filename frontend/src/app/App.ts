@@ -84,7 +84,7 @@ export class App implements ScreenHost {
   }
 
   private modeName(): string {
-    if (this.ports.palette.isOpen) return PROMPT_MODES[":"] ?? "COMMAND";
+    if (this.ports.palette.isOpen) return this.ports.palette.modeName;
     const commandLine = this.ports.commandLine;
     return commandLine.isOpen ? (PROMPT_MODES[commandLine.prompt] ?? "COMMAND") : this.screen().modeName();
   }

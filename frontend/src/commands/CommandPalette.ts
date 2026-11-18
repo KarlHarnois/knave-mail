@@ -1,31 +1,18 @@
-import { LineEditor } from "./LineEditor";
-import { LineView } from "./LineView";
 import { PaletteList } from "./PaletteList";
+import { PalettePrompt } from "./PalettePrompt";
+import { PaletteQuery } from "./PaletteQuery";
 
-export type PaletteEntry = {
-  readonly name: string;
-  readonly keys: string;
-  readonly takesArgument: boolean;
-  readonly run: () => void;
-};
+import type { PaletteEntry, PaletteRequest } from "./PaletteRequest";
 
-export type PaletteRequest = {
-  readonly prompt: string;
-  readonly entries: readonly PaletteEntry[];
-  readonly runTyped: (text: string) => void;
-  readonly isCommand: (text: string) => boolean;
-};
-
-const ARGUMENT_SEPARATOR = " ";
+export type { PaletteEntry, PaletteRequest } from "./PaletteRequest";
 
 export class CommandPalette {
   readonly element: HTMLElement;
   private readonly list: PaletteList;
-  private readonly promptElement: HTMLElement;
-  private readonly count: HTMLElement;
-  private readonly line: LineEditor = new LineEditor();
-  private readonly view: LineView;
+  private readonly prompt: PalettePrompt;
   private request: PaletteRequest | null = null;
+  private entries: readonly PaletteEntry[] = [];
+  private keysWhileLoading: string[] | null = null;
   private matches: readonly PaletteEntry[] = [];
   private selected = 0;
 
@@ -34,36 +21,61 @@ export class CommandPalette {
     this.element.dataset["test"] = "palette";
     this.element.hidden = true;
     this.list = new PaletteList(document);
-    this.promptElement = this.create("span", "command-line-prompt");
-    this.view = new LineView(document);
-    this.count = this.create("span", "command-line-count");
-    const prompt = this.create("label", "palette-prompt command-line");
-    prompt.append(this.promptElement, this.view.element, this.count);
-    this.element.append(this.list.element, prompt);
+    this.prompt = new PalettePrompt(document);
+    this.element.append(this.list.element, this.prompt.element);
   }
 
   get isOpen(): boolean {
     return this.request !== null;
   }
 
+  get modeName(): string {
+    return this.request?.mode ?? "";
+  }
+
   open(request: PaletteRequest): void {
     this.request = request;
-    this.promptElement.textContent = request.prompt;
-    this.line.replace("");
+    this.prompt.start(request.prompt);
     this.element.hidden = false;
+    this.entries = [];
     this.refresh();
+    if (Array.isArray(request.entries)) this.fill(request, request.entries);
+    else this.waitFor(request, request.entries as Promise<readonly PaletteEntry[]>);
+  }
+
+  private waitFor(request: PaletteRequest, entries: Promise<readonly PaletteEntry[]>): void {
+    this.keysWhileLoading = [];
+    entries.then((loaded) => this.fill(request, loaded)).catch(() => this.close());
+  }
+
+  private fill(request: PaletteRequest, entries: readonly PaletteEntry[]): void {
+    if (this.request !== request) return;
+    const waiting = this.keysWhileLoading ?? [];
+    this.keysWhileLoading = null;
+    this.entries = entries;
+    this.refresh(this.currentIndex());
+    for (const token of waiting) this.press(token);
+  }
+
+  private currentIndex(): number {
+    return Math.max(
+      0,
+      this.entries.findIndex((entry) => entry.isCurrent),
+    );
   }
 
   close(): void {
     this.request = null;
+    this.keysWhileLoading = null;
     this.element.hidden = true;
   }
 
   press(token: string): void {
+    if (this.keysWhileLoading) return void this.keysWhileLoading.push(token);
     const action = this.actions()[token];
     if (action) action();
-    else if (this.closesOnDelete(token)) this.close();
-    else if (this.line.press(token)) this.refresh();
+    else if (this.prompt.isDeletingPastStart(token)) this.close();
+    else if (this.prompt.edit(token)) this.refresh();
   }
 
   private actions(): Readonly<Record<string, () => void>> {
@@ -81,27 +93,23 @@ export class CommandPalette {
     };
   }
 
-  private closesOnDelete(token: string): boolean {
-    return (token === "<BS>" || token === "<C-h>") && this.line.text === "";
-  }
-
   private accept(): void {
     const request = this.request;
     const entry = this.matches[this.selected];
     if (request === null) return;
-    if (this.hasArgument() || entry === undefined || request.isCommand(this.line.text)) this.runTyped(request);
+    if (this.query().hasArgument || entry === undefined || request.isCommand(this.prompt.text)) this.runTyped(request);
     else if (entry.takesArgument) this.askArgument(entry);
     else this.run(entry);
   }
 
   private runTyped(request: PaletteRequest): void {
-    const text = this.line.text;
+    const text = this.prompt.text;
     this.close();
     request.runTyped(text);
   }
 
   private askArgument(entry: PaletteEntry): void {
-    this.line.replace(entry.name + ARGUMENT_SEPARATOR);
+    this.prompt.replace(PaletteQuery.withArgumentOf(entry));
     this.refresh();
   }
 
@@ -110,34 +118,20 @@ export class CommandPalette {
     entry.run();
   }
 
-  private refresh(): void {
-    this.view.show(this.line);
-    this.matches = (this.request?.entries ?? []).filter((entry) => this.matchesTyped(entry));
-    this.select(0);
+  private refresh(selected = 0): void {
+    const query = this.query();
+    this.matches = this.entries.filter((entry) => query.matches(entry));
+    this.select(selected);
   }
 
-  private matchesTyped(entry: PaletteEntry): boolean {
-    const typed = this.typedName();
-    return this.hasArgument() ? entry.name === typed : entry.name.includes(typed);
-  }
-
-  private typedName(): string {
-    return (this.line.text.split(ARGUMENT_SEPARATOR)[0] ?? "").toLowerCase();
-  }
-
-  private hasArgument(): boolean {
-    return this.line.text.includes(ARGUMENT_SEPARATOR);
+  private query(): PaletteQuery {
+    return new PaletteQuery(this.prompt.text, this.request?.takesArguments ?? false);
   }
 
   private select(index: number): void {
     this.selected = Math.min(Math.max(index, 0), Math.max(this.matches.length - 1, 0));
-    this.list.show(this.matches, this.selected, this.typedName());
-    this.count.textContent = this.countText();
-  }
-
-  private countText(): string {
-    const position = this.matches.length === 0 ? 0 : this.selected + 1;
-    return `${position}/${this.matches.length}`;
+    this.list.show(this.matches, this.selected, this.query().name);
+    this.prompt.showCount(this.selected, this.matches.length);
   }
 
   private create(tag: string, className: string): HTMLElement {

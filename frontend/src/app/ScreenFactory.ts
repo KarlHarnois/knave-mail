@@ -2,7 +2,7 @@ import { DarkReaderWarmup } from "../darkmail/DarkReaderWarmup";
 import { MailDarkening } from "../darkmail/MailDarkening";
 import { HelpScreen } from "../help/HelpScreen";
 import { WhichKeyPopup } from "../keys/WhichKeyPopup";
-import { LabelPickerScreen } from "../labels/LabelPickerScreen";
+import { LabelPalette } from "../labels/LabelPalette";
 import type { LabelRef } from "../mail/LabelDirectory";
 import { TestDriver } from "../testing/TestDriver";
 import { HtmlSandbox } from "../thread/HtmlSandbox";
@@ -51,15 +51,16 @@ export class ScreenFactory {
     return stage;
   }
 
-  labelPicker(host: ScreenHost, goToLabel: (label: LabelRef) => void): LabelPickerScreen {
-    return new LabelPickerScreen({
-      document: this.services.document,
-      host,
-      labels: this.services.labels,
-      session: this.services.session,
-      errors: this.services.errors,
-      askSearch: (submit) => this.services.commandLine.open("/", submit),
+  labelPalette(host: ScreenHost, goToLabel: (label: LabelRef) => void): LabelPalette {
+    const { palette, labels, session, errors, status } = this.services;
+    return new LabelPalette({
+      palette,
+      labels,
+      session,
+      errors,
+      status,
       goToLabel,
+      opened: () => host.refreshStatus(),
     });
   }
 
