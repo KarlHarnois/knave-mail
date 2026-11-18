@@ -308,12 +308,19 @@ body {
   font: inherit;
 }
 
-.command-line {
-  padding: 0 var(--component-status-bar-padding-inline);
-  font-family: var(--message-font);
+.status-bar:has(> .command-line:not([hidden])) > :not(.status-bar-mode, .command-line) {
+  display: none;
 }
 
-.command-line-cursor::after {
+.command-line-text {
+  white-space: pre;
+}
+
+.command-line-text.is-selected {
+  background: var(--color-selection);
+}
+
+.command-line-cursor:empty::after {
   content: " ";
 }
 

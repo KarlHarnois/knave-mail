@@ -49,6 +49,11 @@ describe("CommandLine", () => {
     expect(submitted).toEqual(["q"]);
   });
 
+  test("ctrl-w deletes the word before the cursor", () => {
+    for (const token of ["l", "a", "b", " ", "w", "o", "<C-w>", "x", "<CR>"]) commandLine.press(token);
+    expect(submitted).toEqual(["lab x"]);
+  });
+
   test("ctrl-u clears the line", () => {
     for (const token of ["a", "b", "<C-u>", "c", "<CR>"]) commandLine.press(token);
     expect(submitted).toEqual(["c"]);

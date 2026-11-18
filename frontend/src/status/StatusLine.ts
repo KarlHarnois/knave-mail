@@ -31,6 +31,10 @@ export class StatusLine {
     this.addFields(document, MESSAGE_FIELDS);
   }
 
+  holdCommandLine(commandLine: HTMLElement): void {
+    this.fieldElement("mode").after(commandLine);
+  }
+
   showMode(mode: string): void {
     this.write("mode", mode);
   }

@@ -60,7 +60,8 @@ export class KnaveMail {
   private mount(): void {
     const root = this.services.document.createElement("div");
     root.className = "app";
-    root.append(this.stage, this.services.commandLine.element, this.services.status.element);
+    this.services.status.holdCommandLine(this.services.commandLine.element);
+    root.append(this.stage, this.services.status.element);
     this.services.document.body.append(root);
     this.app.focusScreen();
   }
