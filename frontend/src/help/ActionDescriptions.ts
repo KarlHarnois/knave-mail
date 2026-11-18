@@ -12,6 +12,7 @@ export const ACTION_DESCRIPTIONS: Readonly<Record<Action, string>> = {
   goToInbox: "Go to the inbox",
   goToAllMail: "Go to all mail",
   goToSent: "Go to sent mail",
+  goToSpam: "Go to spam",
   pickLabel: "Pick a label to show",
   nextAccount: "Next account",
   previousAccount: "Previous account",

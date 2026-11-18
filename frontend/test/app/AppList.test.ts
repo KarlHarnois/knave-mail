@@ -176,6 +176,13 @@ describe("list locations", () => {
     expect(app.status("label")).toBe("Sent");
   });
 
+  test("g! lists spam", async () => {
+    const app = await AppHarness.started();
+    await app.press("g!");
+    expect(app.core.lastArgsFor("threads")["label"]).toBe("SPAM");
+    expect(app.status("label")).toBe("Spam");
+  });
+
   test("the next key clears a wrong command error", async () => {
     const app = await AppHarness.started();
     await app.press(":labelz<CR>");

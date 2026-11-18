@@ -3,7 +3,7 @@ import { CommandRunner } from "../commands/CommandRunner";
 import type { Action, SharedAction } from "../keys/KeyBindings";
 import type { ErrorReporter } from "../status/ErrorReporter";
 import type { StatusLine } from "../status/StatusLine";
-import { ALL_MAIL, INBOX, type LabelRef, SENT } from "./LabelDirectory";
+import { ALL_MAIL, INBOX, type LabelRef, SENT, SPAM } from "./LabelDirectory";
 import type { MailSession } from "./MailSession";
 import type { SyncMonitor } from "./SyncMonitor";
 
@@ -55,6 +55,7 @@ export class SharedActions {
       ["goToInbox", () => this.changeLocation(session.goToLabel(INBOX))],
       ["goToAllMail", () => this.changeLocation(session.goToLabel(ALL_MAIL))],
       ["goToSent", () => this.changeLocation(session.goToLabel(SENT))],
+      ["goToSpam", () => this.changeLocation(session.goToLabel(SPAM))],
       ["pickLabel", () => this.ports.pickLabel()],
       ["nextAccount", () => this.changeLocation(session.cycleAccount(1))],
       ["previousAccount", () => this.changeLocation(session.cycleAccount(-1))],

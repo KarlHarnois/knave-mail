@@ -10,6 +10,7 @@ export type SharedAction =
   | "goToInbox"
   | "goToAllMail"
   | "goToSent"
+  | "goToSpam"
   | "pickLabel"
   | "nextAccount"
   | "previousAccount"
@@ -68,6 +69,7 @@ const SHARED_BINDINGS: ReadonlyArray<readonly [string, SharedAction]> = [
   ["gi", "goToInbox"],
   ["ga", "goToAllMail"],
   ["gs", "goToSent"],
+  ["g!", "goToSpam"],
   ["gl", "pickLabel"],
   ["<C-n>", "nextAccount"],
   ["<C-p>", "previousAccount"],
