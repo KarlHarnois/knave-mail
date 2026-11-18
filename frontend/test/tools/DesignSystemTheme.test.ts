@@ -2,42 +2,41 @@ import { describe, expect, test } from "bun:test";
 import { DesignSystemTheme } from "../../tools/DesignSystemTheme";
 import glossary from "./fixtures/glossary.json";
 
-const theme = new DesignSystemTheme(glossary).render();
-const darkSection = theme.slice(theme.indexOf("(dark"));
+const css = new DesignSystemTheme(glossary).css();
 
 describe("design system theme", () => {
-  test("the interface font is the first mono family", () => {
-    expect(theme).toContain(':font "Fixture Mono"');
+  test("the interface font is the mono family", () => {
+    expect(css).toContain('--theme-font: "Fixture Mono", "Fixture Term", monospace;');
   });
 
-  test("the message font is the first prose family", () => {
-    expect(theme).toContain(':message-font "Fixture Sans"');
+  test("the message font is the prose family", () => {
+    expect(css).toContain('--theme-message-font: "Fixture Sans", sans-serif;');
   });
 
-  test("the font size is the body size in pixels", () => {
-    expect(theme).toContain(":font-size 10");
+  test("the font size is the body size", () => {
+    expect(css).toContain("--font-size: 10px;");
   });
 
   test("each mode takes its own background", () => {
-    expect(theme).toContain('(light :background "#ffffff"');
-    expect(darkSection).toStartWith('(dark :background "#000000"');
+    expect(css).toContain("--light-background: #ffffff;");
+    expect(css).toContain("--dark-background: #000000;");
   });
 
   test("muted text is the secondary text color", () => {
-    expect(darkSection).toContain(':muted "#808080"');
+    expect(css).toContain("--dark-muted: #808080;");
   });
 
   test("accents, errors and stars all take the focus color", () => {
-    expect(darkSection).toContain(':accent "#fefefe"');
-    expect(darkSection).toContain(':error "#fefefe"');
-    expect(darkSection).toContain(':star "#fefefe"');
+    expect(css).toContain("--dark-accent: #fefefe;");
+    expect(css).toContain("--dark-error: #fefefe;");
+    expect(css).toContain("--dark-star: #fefefe;");
   });
 
   test("HTML mail keeps the document canvas in the dark mode", () => {
-    expect(darkSection).toContain(':html-mail "#ffffff"');
+    expect(css).toContain("--dark-html-mail: #ffffff;");
   });
 
   test("a missing token names the token", () => {
-    expect(() => new DesignSystemTheme([]).render()).toThrow("font.family.mono");
+    expect(() => new DesignSystemTheme([]).css()).toThrow("font.family.mono");
   });
 });

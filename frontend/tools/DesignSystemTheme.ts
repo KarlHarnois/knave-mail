@@ -1,6 +1,6 @@
 type ThemeName = "light" | "dark";
 
-type GlossaryEntry = {
+export type GlossaryEntry = {
   readonly id: string;
   readonly values: Readonly<Record<ThemeName, string>>;
 };
@@ -20,11 +20,12 @@ const COLOR_TOKEN_FOR_KEY: readonly (readonly [string, string])[] = [
 ];
 
 const THEME_NAMES: readonly ThemeName[] = ["light", "dark"];
-const INTERFACE_FONT_TOKEN = "font.family.mono";
-const MESSAGE_FONT_TOKEN = "font.family.prose";
-const FONT_SIZE_TOKEN = "font.size.body";
-const INDENT = "       ";
-const PIXELS = /^(\d+(?:\.\d+)?)px$/;
+const FONT_TOKEN_FOR_PROPERTY: readonly (readonly [string, string])[] = [
+  ["--theme-font", "font.family.mono"],
+  ["--theme-message-font", "font.family.prose"],
+  ["--font-size", "font.size.body"],
+];
+const THEME_INDEPENDENT_VALUES: ThemeName = "dark";
 
 export class DesignSystemTheme {
   private readonly entries: ReadonlyMap<string, GlossaryEntry>;
@@ -33,41 +34,24 @@ export class DesignSystemTheme {
     this.entries = new Map(glossary.map((entry) => [entry.id, entry]));
   }
 
-  render(): string {
-    const lines = [
-      `(theme :font ${this.quoted(this.firstFamily(INTERFACE_FONT_TOKEN))}`,
-      `${INDENT}:message-font ${this.quoted(this.firstFamily(MESSAGE_FONT_TOKEN))}`,
-      `${INDENT}:font-size ${this.fontSize()}`,
-      ...THEME_NAMES.map((themeName) => `${INDENT}${this.section(themeName)}`),
-    ];
-    return `${lines.join("\n")})\n`;
+  css(): string {
+    const declarations = [...this.fontDeclarations(), ...THEME_NAMES.flatMap((name) => this.colorDeclarations(name))];
+    return `:root {\n${declarations.map((declaration) => `  ${declaration};`).join("\n")}\n}\n`;
   }
 
-  private section(themeName: ThemeName): string {
-    const continuation = `\n${INDENT} ${" ".repeat(themeName.length + 1)}`;
-    const pairs = COLOR_TOKEN_FOR_KEY.map(([key, tokenId]) => `:${key} ${this.quoted(this.value(tokenId, themeName))}`);
-    return `(${themeName} ${pairs.join(continuation)})`;
+  private fontDeclarations(): string[] {
+    return FONT_TOKEN_FOR_PROPERTY.map(
+      ([property, tokenId]) => `${property}: ${this.value(tokenId, THEME_INDEPENDENT_VALUES)}`,
+    );
   }
 
-  private firstFamily(tokenId: string): string {
-    const [first = ""] = this.value(tokenId, "dark").split(",");
-    return first.trim().replace(/^"|"$/g, "");
-  }
-
-  private fontSize(): string {
-    const size = this.value(FONT_SIZE_TOKEN, "dark");
-    const pixels = PIXELS.exec(size)?.[1];
-    if (pixels === undefined) throw new Error(`${FONT_SIZE_TOKEN} is ${size}, but knave-mail needs pixels`);
-    return pixels;
+  private colorDeclarations(themeName: ThemeName): string[] {
+    return COLOR_TOKEN_FOR_KEY.map(([key, tokenId]) => `--${themeName}-${key}: ${this.value(tokenId, themeName)}`);
   }
 
   private value(tokenId: string, themeName: ThemeName): string {
     const entry = this.entries.get(tokenId);
     if (entry === undefined) throw new Error(`The design system glossary has no token ${tokenId}`);
     return entry.values[themeName];
-  }
-
-  private quoted(text: string): string {
-    return `"${text}"`;
   }
 }

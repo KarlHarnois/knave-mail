@@ -32,7 +32,7 @@ Press `?` in the window for every key.
 
 Copy [docs/theme.example.knv](docs/theme.example.knv) and [docs/keymap.example.knv](docs/keymap.example.knv) to `~/.config/knave-mail/` as `theme.knv` and `keymap.knv`, and keep only what you change.
 
-For the black and white look of the [design system](https://github.com/KarlHarnois/design-system), copy [docs/theme.design-system.knv](docs/theme.design-system.knv) to `~/.config/knave-mail/theme.knv` instead. Run `knave task design-system-theme` after `nix flake update design-system` to regenerate it.
+The default theme comes from the [design system](https://github.com/KarlHarnois/design-system) version pinned in `flake.lock`. The frontend build reads it from the Nix dev shell, so run `nix flake update design-system` and rebuild to pick up a new version.
 
 ### CLI
 
