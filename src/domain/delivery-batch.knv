@@ -29,21 +29,49 @@
        delivery-batch)
     delivery-batch))
 
+(defenum gather-step
+  (take :row queued-relabel :ids (vec string))
+  skip
+  stop)
+
 (defn gathered (queued index summaries pending batch)
+  (match (step-at queued index summaries pending (ref batch))
+    ((take row ids)
+     (recur queued
+            (inc index)
+            summaries pending
+            (with-row batch row (clone ids))))
+    (skip (recur queued (inc index) summaries pending batch))
+    (stop batch)))
+
+(defn step-at (queued index summaries pending batch)
   (match (get queued index)
     ((some row)
-     (if (same-change? row (at queued 0))
-       (match (message-ids-of row summaries pending)
-         ((some ids)
-          (if (fits? (ref batch) (ref ids))
-            (recur queued
-                   (inc index)
-                   summaries pending
-                   (with-row batch row ids))
-            batch))
-         (none (recur queued (inc index) summaries pending batch)))
-       batch))
-    (none batch)))
+     (step-for row (at queued 0) summaries pending batch))
+    (none gather-step/stop)))
+
+(defn step-for (row head summaries pending batch)
+  (if (same-change? row head)
+    (step-with-ids row
+                   (message-ids-of row summaries pending)
+                   batch)
+    gather-step/stop))
+
+(type step-with-ids
+  (fn ((ref queued-relabel)
+       (option (vec string))
+       (ref delivery-batch))
+    gather-step))
+
+(defn step-with-ids (row found batch)
+  (match found
+    ((some ids) (taken-if-it-fits row ids batch))
+    (none gather-step/skip)))
+
+(defn taken-if-it-fits (row ids batch)
+  (if (fits? batch (ref ids))
+    (gather-step/take :row (clone row) :ids ids)
+    gather-step/stop))
 
 (type same-change?
   (fn ((ref queued-relabel) (ref queued-relabel))
@@ -62,14 +90,28 @@
 (defn message-ids-of (row summaries pending)
   (if (contains? pending (clone (:thread-id row)))
     none
-    (match (find (iter summaries)
-             (fn (summary)
-               (= (:id summary) (:thread-id row))))
-      ((some summary)
-       (if (empty? (:message-ids summary))
-         none
-         (some (clone (:message-ids summary)))))
-      (none none))))
+    (listed-ids row summaries)))
+
+(type listed-ids
+  (fn ((ref queued-relabel)
+       (ref (vec thread-summary)))
+    (option (vec string))))
+
+(defn listed-ids (row summaries)
+  (match (find (iter summaries)
+           (fn (summary)
+             (= (:id summary) (:thread-id row))))
+    ((some summary) (ids-of summary))
+    (none none)))
+
+(type ids-of
+  (fn ((ref thread-summary))
+    (option (vec string))))
+
+(defn ids-of (summary)
+  (if (empty? (:message-ids summary))
+    none
+    (some (clone (:message-ids summary)))))
 
 (type fits?
   (fn ((ref delivery-batch)

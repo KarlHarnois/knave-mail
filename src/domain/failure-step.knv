@@ -49,11 +49,13 @@
 
 (defn delay-after (attempt failure)
   (match failure
-    ((throttled throttle)
-     (if (pos? (:retry-after-milliseconds throttle))
-       (:retry-after-milliseconds throttle)
-       (backoff-after attempt)))
+    ((throttled throttle) (throttled-delay attempt throttle))
     (_ (backoff-after attempt))))
+
+(defn throttled-delay (attempt throttle)
+  (if (pos? (:retry-after-milliseconds throttle))
+    (:retry-after-milliseconds throttle)
+    (backoff-after attempt)))
 
 (defn backoff-after (attempt)
   (let (doubled (doubled-times first-backoff-milliseconds (dec attempt)))

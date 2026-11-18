@@ -12,11 +12,13 @@
          best none)
     (if (>= index (len waiting))
       best
-      (recur (inc index)
-             (if (and (<= (:not-before (at waiting index)) now)
-                      (runs-before? waiting index best))
-               (some index)
-               best)))))
+      (recur (inc index) (better-ready waiting index now best)))))
+
+(defn better-ready (waiting index now best)
+  (if (and (<= (:not-before (at waiting index)) now)
+           (runs-before? waiting index best))
+    (some index)
+    best))
 
 (defn runs-before? (waiting index best)
   (match best
@@ -31,9 +33,10 @@
 (defn wait-until-due (waiting now)
   (reduce (iter waiting) none
     (fn (soonest entry)
-      (let (wait (if (> (:not-before entry) now)
-                   (- (:not-before entry) now)
-                   0))
-        (match soonest
-          ((some known) (if (< wait known) (some wait) (some known)))
-          (none (some wait)))))))
+      (sooner soonest
+              (max 0 (- (:not-before entry) now))))))
+
+(defn sooner (soonest wait)
+  (match soonest
+    ((some known) (some (min wait known)))
+    (none (some wait))))
