@@ -4,6 +4,7 @@ import type { Transport } from "../bridge/Transport";
 import { ComposeScreen } from "../compose/ComposeScreen";
 import type { HelpScreen } from "../help/HelpScreen";
 import { KeyboardInput } from "../keys/KeyboardInput";
+import { KeyNotation } from "../keys/KeyNotation";
 import type { LabelPickerScreen } from "../labels/LabelPickerScreen";
 import { ListScreen } from "../list/ListScreen";
 import { GlobalErrorLog } from "../logging/GlobalErrorLog";
@@ -61,9 +62,13 @@ export class KnaveMail {
     const root = this.services.document.createElement("div");
     root.className = "app";
     this.services.status.holdCommandLine(this.services.commandLine.element);
-    root.append(this.stage, this.services.status.element);
+    root.append(this.stage, this.services.palette.element, this.services.status.element);
     this.services.document.body.append(root);
     this.app.focusScreen();
+  }
+
+  private pressKeys(keys: string): void {
+    for (const token of new KeyNotation().tokenize(keys)) this.app.press(token);
   }
 
   private goBack(): void {
@@ -83,6 +88,9 @@ export class KnaveMail {
   private createSharedActions(): SharedActions {
     return new SharedActions({
       commandLine: this.services.commandLine,
+      palette: this.services.palette,
+      pressKeys: (keys) => this.pressKeys(keys),
+      keyMode: () => this.navigator.current.keyMode,
       session: this.services.session,
       sync: this.services.sync,
       errors: this.services.errors,
@@ -100,6 +108,7 @@ export class KnaveMail {
     return new App({
       status: this.services.status,
       commandLine: this.services.commandLine,
+      palette: this.services.palette,
       keys: new AppKeyMaps().create(),
       navigator: this.navigator,
       errors: this.services.errors,

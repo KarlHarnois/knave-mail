@@ -109,7 +109,8 @@ describe("list locations", () => {
     const app = await AppHarness.started();
     await app.press(":lab");
     expect(app.status("mode")).toBe("COMMAND");
-    expect(app.driver.text('[data-test="command-line"]')).toBe(":lab");
+    expect(app.isVisible('[data-test="palette"]')).toBe(true);
+    expect(app.driver.text('[data-test="palette"] .palette-prompt')).toBe(":lab1/2");
     await app.press("<Esc>");
     expect(app.status("mode")).toBe("LIST");
   });

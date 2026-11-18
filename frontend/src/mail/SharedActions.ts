@@ -1,6 +1,9 @@
+import { CommandEntries } from "../commands/CommandEntries";
 import type { CommandLine } from "../commands/CommandLine";
+import type { CommandPalette } from "../commands/CommandPalette";
+import { CommandParser } from "../commands/CommandParser";
 import { CommandRunner } from "../commands/CommandRunner";
-import type { Action, SharedAction } from "../keys/KeyBindings";
+import type { Action, KeyMode, SharedAction } from "../keys/KeyBindings";
 import type { ErrorReporter } from "../status/ErrorReporter";
 import type { StatusLine } from "../status/StatusLine";
 import { ALL_MAIL, INBOX, type LabelRef, SENT, SPAM } from "./LabelDirectory";
@@ -9,6 +12,9 @@ import type { SyncMonitor } from "./SyncMonitor";
 
 export type SharedActionPorts = {
   commandLine: CommandLine;
+  palette: CommandPalette;
+  pressKeys: (keys: string) => void;
+  keyMode: () => KeyMode | null;
   session: MailSession;
   sync: SyncMonitor;
   errors: ErrorReporter;
@@ -47,10 +53,9 @@ export class SharedActions {
   }
 
   private createHandlers(): ReadonlyMap<SharedAction, () => void> {
-    const { commandLine, session, sync, status } = this.ports;
-    const commands = this.commands;
+    const { session, sync, status } = this.ports;
     return new Map<SharedAction, () => void>([
-      ["openCommandLine", () => commandLine.open(":", (input) => commands.run(input))],
+      ["openCommandLine", () => this.openPalette()],
       ["compose", () => this.ports.startCompose()],
       ["goToInbox", () => this.changeLocation(session.goToLabel(INBOX))],
       ["goToAllMail", () => this.changeLocation(session.goToLabel(ALL_MAIL))],
@@ -63,6 +68,21 @@ export class SharedActions {
       ["showHelp", () => this.ports.showHelp()],
       ["clearError", () => status.clearError()],
     ]);
+  }
+
+  private openPalette(): void {
+    const parser = new CommandParser();
+    const entries = new CommandEntries({
+      runCommand: (input) => this.commands.run(input),
+      pressKeys: this.ports.pressKeys,
+      keyMode: this.ports.keyMode,
+    });
+    this.ports.palette.open({
+      prompt: ":",
+      entries: entries.all(),
+      runTyped: (input) => this.commands.run(input),
+      isCommand: (input) => parser.knows(input),
+    });
   }
 
   private changeLocation(change: Promise<void>): void {
