@@ -9,9 +9,10 @@ export class ListingPages {
   private readonly loaded = new Map<string, ThreadSummary>();
   private nextToken = "";
   private finished = false;
+  private gmailTotal = 0;
 
   get mayHaveMore(): boolean {
-    return !this.finished;
+    return !this.finished && !this.holdsGmailTotal();
   }
 
   get pageToken(): string {
@@ -23,6 +24,11 @@ export class ListingPages {
     this.loaded.clear();
     this.nextToken = "";
     this.finished = false;
+    this.gmailTotal = 0;
+  }
+
+  expectTotal(total: number): void {
+    this.gmailTotal = total;
   }
 
   showBase(summaries: ThreadSummary[]): void {
@@ -54,6 +60,10 @@ export class ListingPages {
     const listed = new Set(this.base.map((summary) => summary.id));
     const older = [...this.loaded.values()].filter((summary) => !listed.has(summary.id));
     return [...this.base, ...older].sort((left, right) => right.date - left.date);
+  }
+
+  private holdsGmailTotal(): boolean {
+    return this.gmailTotal > 0 && this.listing().length >= this.gmailTotal;
   }
 
   private dropLoadedCoveredByBase(): void {

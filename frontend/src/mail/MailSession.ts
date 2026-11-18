@@ -85,7 +85,7 @@ export class MailSession {
   async reload(): Promise<void> {
     const summaries = await this.fetchThreads();
     if (summaries) this.ports.list.refresh(summaries);
-    await this.location.showCount(this.account, this.label, this.query);
+    await this.showCount();
   }
 
   removeThread(threadId: string): void {
@@ -106,7 +106,7 @@ export class MailSession {
     this.pages.addPage(page.threads, page.nextPageToken);
     if (!addsRows && this.pages.hasPageAfter(token)) return await this.loadNextPage();
     this.ports.list.refresh(this.ports.pending.applyTo(this.pages.listing(), this.label.id));
-    await this.location.showCount(this.account, this.label, this.query);
+    await this.showCount();
   }
 
   private async goTo(label: LabelRef, query: string): Promise<void> {
@@ -117,7 +117,14 @@ export class MailSession {
     this.location.showWhere(this.account, this.label, this.query);
     const summaries = await this.fetchThreads();
     if (summaries) this.ports.list.show(summaries);
-    await this.location.showCount(this.account, this.label, this.query);
+    await this.showCount();
+  }
+
+  private async showCount(): Promise<void> {
+    if (this.query) return;
+    const total = await this.ports.labels.totalOf(this.account, this.label.id).catch(() => 0);
+    this.pages.expectTotal(total);
+    this.location.showCount(this.label, total);
   }
 
   private async enterAccount(index: number): Promise<void> {

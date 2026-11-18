@@ -29,6 +29,11 @@ export class LabelDirectory {
     return await this.labelsOf(account);
   }
 
+  async totalOf(account: string, labelId: string): Promise<number> {
+    const labels = await this.labelsOf(account);
+    return labels.find((label) => label.id === labelId)?.total ?? 0;
+  }
+
   forget(account: string): void {
     this.labelsByAccount.delete(account);
   }
