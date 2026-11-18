@@ -4,8 +4,8 @@ import { MailHtmlCleaner } from "./MailHtmlCleaner";
 
 const BLOCKED_IMAGE_SOURCES = "data: cid:";
 const ALLOWED_IMAGE_SOURCES = "data: cid: https: http:";
-const ISOLATED_FLAGS = "allow-same-origin";
-const DARKENED_FLAGS = "allow-same-origin allow-scripts";
+const ISOLATED_FLAGS = "allow-same-origin allow-popups";
+const DARKENED_FLAGS = "allow-same-origin allow-popups allow-scripts";
 const DARK_READER_URL = "knave://localhost/darkreader.js";
 const TEXT_OUTSIDE_CODE = "body :not(pre, code, kbd, samp, tt, pre *, code *)";
 const BASE_STYLE = [
@@ -47,6 +47,7 @@ export class HtmlSandbox {
     const nonce = darkening ? this.newNonce() : null;
     const head = [
       '<meta charset="utf-8">',
+      '<base target="_blank">',
       `<meta http-equiv="Content-Security-Policy" content="${this.policy(remoteImages, nonce)}">`,
       `<style>${BASE_STYLE}${this.fontStyle()}</style>`,
       darkening && nonce ? this.darkReaderScripts(darkening, nonce) : "",

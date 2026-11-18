@@ -224,7 +224,7 @@ describe("HTML messages", () => {
   test("render in a sandboxed iframe with remote images blocked", async () => {
     await ThreadHarness.opened(withHtml);
     const frame = document.querySelector<HTMLIFrameElement>('[data-test="message-html"]');
-    expect(frame?.getAttribute("sandbox")).toBe("allow-same-origin");
+    expect(frame?.getAttribute("sandbox")).toBe("allow-same-origin allow-popups");
     expect(frame?.tabIndex).toBe(-1);
     expect(frame?.srcdoc).toContain("img-src data: cid:;");
   });

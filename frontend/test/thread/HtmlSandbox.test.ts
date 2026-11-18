@@ -47,6 +47,12 @@ describe("HtmlSandbox.srcdoc", () => {
     expect(PolicyReader.directive(policy, "script-src")).toBe("script-src 'none'");
   });
 
+  test("opens every link as a new window, which the core hands to the browser", () => {
+    expect(
+      FrameDocument.of(sandbox.srcdoc('<a href="https://example.com">x</a>', false)).querySelector("base")?.target,
+    ).toBe("_blank");
+  });
+
   test("blocks remote images by default", () => {
     const images = PolicyReader.directive(PolicyReader.of(sandbox.srcdoc("", false)), "img-src");
     expect(images).toBe("img-src data: cid:");
@@ -142,7 +148,7 @@ describe("dark mail", () => {
 
   test("a darkened frame may run scripts and stays hidden until it has loaded", () => {
     const frame = new MessageFrame({ document, sandbox, links, darkening: DARK, html: "<p>Hi</p>" });
-    expect(frame.element.getAttribute("sandbox")).toBe("allow-same-origin allow-scripts");
+    expect(frame.element.getAttribute("sandbox")).toBe("allow-same-origin allow-popups allow-scripts");
     expect(frame.element.style.visibility).toBe("hidden");
   });
 });
@@ -166,7 +172,7 @@ describe("Dark Reader warm-up", () => {
 describe("MessageFrame", () => {
   test("is a sandboxed iframe without scripts that cannot take keyboard focus", () => {
     const frame = new MessageFrame({ document, sandbox, links, darkening: LIGHT, html: "<p>Hi</p>" });
-    expect(frame.element.getAttribute("sandbox")).toBe("allow-same-origin");
+    expect(frame.element.getAttribute("sandbox")).toBe("allow-same-origin allow-popups");
     expect(frame.element.getAttribute("sandbox")).not.toContain("allow-scripts");
     expect(frame.element.tabIndex).toBe(-1);
   });

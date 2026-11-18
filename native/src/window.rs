@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::sync::mpsc::{self, Receiver};
+use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 
 use tao::dpi::LogicalSize;
@@ -8,13 +8,14 @@ use tao::event_loop::{ControlFlow, EventLoopBuilder, EventLoopProxy};
 use tao::platform::unix::WindowExtUnix;
 use tao::window::WindowBuilder;
 use wry::http::{Request, Response};
-use wry::{WebView, WebViewBuilder, WebViewBuilderExtUnix};
+use wry::{NewWindowResponse, WebView, WebViewBuilder, WebViewBuilderExtUnix};
 
 const WIDTH: f64 = 1100.0;
 const HEIGHT: f64 = 760.0;
 const EXIT_COMMAND: &str = "\u{1}exit ";
 const ZOOM_COMMAND: &str = "\u{1}zoom ";
 const FOCUS_COMMAND: &str = "\u{1}focus";
+const IN_APP_SCHEMES: [&str; 2] = ["knave:", "about:"];
 
 pub fn open_window(
     title: &str,
@@ -32,6 +33,8 @@ pub fn open_window(
         .build(&event_loop)
         .expect("the window opens");
     let theme_css = theme_css.to_string();
+    let navigation_sender = sender.clone();
+    let new_window_sender = sender.clone();
     let webview = WebViewBuilder::new()
         .with_custom_protocol("knave".into(), move |_, request| {
             asset_response(&request, &theme_css)
@@ -39,6 +42,11 @@ pub fn open_window(
         .with_clipboard(true)
         .with_initialization_script(startup_script)
         .with_ipc_handler(move |request| drop(sender.send(request.into_body())))
+        .with_navigation_handler(move |url| stays_in_app(&url, &navigation_sender))
+        .with_new_window_req_handler(move |url, _| {
+            hand_link_to_core(&url, &new_window_sender);
+            NewWindowResponse::Deny
+        })
         .with_url("knave://localhost/")
         .build_gtk(window.default_vbox().expect("the window has a box"))
         .expect("the webview opens");
@@ -53,6 +61,19 @@ pub fn open_window(
             _ => {}
         }
     })
+}
+
+fn stays_in_app(url: &str, sender: &Sender<String>) -> bool {
+    let in_app = IN_APP_SCHEMES.iter().any(|scheme| url.starts_with(scheme));
+    if !in_app {
+        hand_link_to_core(url, sender);
+    }
+    in_app
+}
+
+fn hand_link_to_core(url: &str, sender: &Sender<String>) {
+    let request = serde_json::json!({ "command": "open-link", "args": { "url": url } });
+    drop(sender.send(request.to_string()));
 }
 
 fn asset_response(request: &Request<Vec<u8>>, theme_css: &str) -> Response<Cow<'static, [u8]>> {
