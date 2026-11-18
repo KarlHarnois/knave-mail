@@ -217,7 +217,6 @@ body {
   min-height: calc(2 * var(--space-line));
   border: 0;
   background: var(--color-surface-document);
-  pointer-events: none;
 }
 
 .message-text {
