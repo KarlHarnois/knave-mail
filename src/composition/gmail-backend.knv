@@ -10,7 +10,7 @@
 (use adapters/driven/browser/system-browser ->system-browser)
 (use adapters/driven/keyring/credentials ->keyring-credentials)
 (use adapters/driven/sqlite/store open-sqlite-store)
-(use adapters/driven/system-clock ->system-clock)
+(use ports/driven/clock clock)
 (use app/mail-app new-mail-app)
 (use app/operations/inline-queue new-inline-queue)
 (use ports/driven/event-log event-log share-log)
@@ -65,7 +65,7 @@
 (defn gmail-operations (chosen log)
   (the (box operation-queue)
        (box (new-inline-queue (gmail-provider-for chosen log)
-                              (box (->system-clock))
+                              clock/system
                               (share-log log)
                               (some cli-patience-milliseconds)))))
 

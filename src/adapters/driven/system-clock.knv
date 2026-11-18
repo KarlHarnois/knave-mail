@@ -1,13 +1,4 @@
-(use ports/driven/clock clock)
-
-(export ->system-clock system-clock)
-
-(defstruct system-clock)
-
-(impl clock system-clock
-  (now-milliseconds (_system) (wall-milliseconds))
-
-  (pause! (_system milliseconds) (sleep-for milliseconds)))
+(export sleep-for wall-milliseconds)
 
 (def wall-milliseconds
   (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as i64).unwrap_or(0)"

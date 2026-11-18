@@ -1,10 +1,8 @@
 (use adapters/driven/memory/shared handle share shared
                                    with-shared!)
 
-(use ports/driven/clock clock)
-
-(export ->memory-clock memory-clock new-memory-clock
-        pauses-of same-clock)
+(export ->memory-clock memory-clock memory-now memory-pause!
+        new-memory-clock pauses-of same-clock)
 
 (defstruct clock-state
   :now int
@@ -13,17 +11,22 @@
 (defstruct memory-clock
   :state (shared clock-state))
 
-(impl clock memory-clock
-  (now-milliseconds (fake)
-    (with-shared! (ref (:state fake))
-      (fn (state) (:now state))))
+(type memory-now
+  (fn ((ref memory-clock)) int))
 
-  (pause! (fake milliseconds)
-    (with-shared! (ref (:state fake))
-      (fn (state)
-        (set! (:now state)
-              (+ (:now state) milliseconds))
-        (push! (mut (:pauses state)) milliseconds)))))
+(defn memory-now (fake)
+  (with-shared! (ref (:state fake))
+    (fn (state) (:now state))))
+
+(type memory-pause!
+  (fn ((ref memory-clock) int) unit))
+
+(defn memory-pause! (fake milliseconds)
+  (with-shared! (ref (:state fake))
+    (fn (state)
+      (set! (:now state)
+            (+ (:now state) milliseconds))
+      (push! (mut (:pauses state)) milliseconds))))
 
 (defn new-memory-clock ()
   (->memory-clock :state (share (->clock-state :now 0 :pauses (vec)))))

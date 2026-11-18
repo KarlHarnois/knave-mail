@@ -1,7 +1,22 @@
-(export clock)
+(use adapters/driven/memory/memory-clock memory-clock
+                                         memory-now
+                                         memory-pause!)
 
-(deftrait clock
-  (now-milliseconds
-    (fn ((ref self)) int))
+(use adapters/driven/system-clock sleep-for
+                                  wall-milliseconds)
 
-  (pause! (fn ((ref self) int) unit)))
+(export clock now-milliseconds pause!)
+
+(defenum clock
+  system
+  (memory memory-clock))
+
+(defn now-milliseconds (chosen)
+  (match chosen
+    (system (wall-milliseconds))
+    ((memory fake) (memory-now fake))))
+
+(defn pause! (chosen milliseconds)
+  (match chosen
+    (system (sleep-for milliseconds))
+    ((memory fake) (memory-pause! fake milliseconds))))

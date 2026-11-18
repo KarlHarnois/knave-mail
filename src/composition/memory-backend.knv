@@ -13,7 +13,7 @@
 (use adapters/driven/memory/memory-store empty-memory-store
                                          memory-store)
 
-(use adapters/driven/system-clock ->system-clock)
+(use ports/driven/clock clock)
 (use app/mail-app mail-app new-mail-app)
 (use app/operations/inline-queue new-inline-queue)
 (use app/mail-app delivery)
@@ -36,7 +36,7 @@
 (defn memory-app (chosen log)
   (let (provider (->memory-provider (account-emails) (seeded-remotes chosen))
         operations (new-inline-queue (box provider)
-                                     (box (->system-clock))
+                                     clock/system
                                      (share-log (ref log))
                                      (some 0))
         app (new-mail-app (box (store-with-accounts))

@@ -97,7 +97,7 @@
                      (box (new-inline-queue (box (->memory-provider (vec (str world-account))
                                                                     (vec (handle
                                                                            remote))))
-                                            (the (box clock) (box clock))
+                                            (clock/memory clock)
                                             (share-log (ref log))
                                             (some fake-patience-milliseconds))))
                 (box (->memory-authorizer (vec (->account (str "new@example.com")))))
