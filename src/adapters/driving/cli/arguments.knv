@@ -29,8 +29,8 @@
            (recur (+ index 2)
                   (with-option parsed token (value-after tokens index))))
           ((flag? token)
-           (recur (+ index 1) (with-switch parsed token)))
-          (else (recur (+ index 1) (with-positional parsed token))))))))
+           (recur (inc index) (with-switch parsed token)))
+          (else (recur (inc index) (with-positional parsed token))))))))
 
 (defn positional (parsed index)
   (if (< index (len (:positionals parsed)))
@@ -41,7 +41,7 @@
   (loop (index 1
          words (vec))
     (match (positional parsed index)
-      ((some word) (recur (+ index 1) (appended words word)))
+      ((some word) (recur (inc index) (appended words word)))
       (none words))))
 
 (defn value-of (parsed name)
@@ -84,7 +84,7 @@
 (defn flag? (token) (starts-with? token "--"))
 
 (defn value-after (tokens index)
-  (match (get tokens (+ index 1))
+  (match (get tokens (inc index))
     ((some value) (clone value))
     (none (str ""))))
 

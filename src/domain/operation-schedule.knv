@@ -12,7 +12,7 @@
          best none)
     (if (>= index (len waiting))
       best
-      (recur (+ index 1)
+      (recur (inc index)
              (if (and (<= (:not-before (at waiting index)) now)
                       (runs-before? waiting index best))
                (some index)

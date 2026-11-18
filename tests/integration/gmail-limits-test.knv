@@ -51,10 +51,9 @@
 (deftest a-throttled-request-waits-until-the-time-in-gmails-message
   (let (server (start-fake-gmail (ref (routes-answering-labels-with "403 tests/fixtures/gmail/user-rate-limited.json")))
         gmail (gmail-over (ref server)))
-    (assert (> (match (unwrap-err (fetch-labels! (mut gmail)))
-                 ((throttled throttle) (:retry-after-milliseconds throttle))
-                 (_ 0))
-               0))))
+    (assert (pos? (match (unwrap-err (fetch-labels! (mut gmail)))
+                    ((throttled throttle) (:retry-after-milliseconds throttle))
+                    (_ 0))))))
 
 (deftest a-used-up-daily-limit-is-a-network-error
   (let (server (start-fake-gmail (ref (routes-answering-labels-with "403 tests/fixtures/gmail/daily-limit.json")))

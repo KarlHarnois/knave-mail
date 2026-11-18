@@ -83,7 +83,7 @@
         pace (pace-at bucket now)
         earned (/ (* (- now (:refilled-at bucket)) pace)
                   1000))
-    (when (> earned 0)
+    (when (pos? earned)
       (set! (:available bucket)
             (min pace (+ (:available bucket) earned)))
       (set! (:refilled-at bucket) now))))
@@ -92,9 +92,8 @@
   (fn ((ref quota-bucket) int) int))
 
 (defn milliseconds-until (bucket units)
-  (+ 1
-     (/ (* (- units (:available bucket)) 1000)
-        (current-pace bucket))))
+  (inc (/ (* (- units (:available bucket)) 1000)
+          (current-pace bucket))))
 
 (type units-for
   (fn ((ref str) (ref str)) int))

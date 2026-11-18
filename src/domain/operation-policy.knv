@@ -122,17 +122,17 @@
 (defn delay-after (attempt failure)
   (match failure
     ((throttled throttle)
-     (if (> (:retry-after-milliseconds throttle) 0)
+     (if (pos? (:retry-after-milliseconds throttle))
        (:retry-after-milliseconds throttle)
        (backoff-after attempt)))
     (_ (backoff-after attempt))))
 
 (defn backoff-after (attempt)
-  (let (doubled (doubled-times first-backoff-milliseconds (- attempt 1)))
+  (let (doubled (doubled-times first-backoff-milliseconds (dec attempt)))
     (if (> doubled longest-backoff-milliseconds)
       longest-backoff-milliseconds doubled)))
 
 (defn doubled-times (milliseconds times)
   (if (<= times 0)
     milliseconds
-    (recur (* milliseconds 2) (- times 1))))
+    (recur (* milliseconds 2) (dec times))))

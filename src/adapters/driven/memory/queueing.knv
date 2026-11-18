@@ -27,7 +27,7 @@
                                :thread-id (clone thread-id)
                                :change (clone change)))
       (set! (:next-queued-id cache)
-            (+ (:next-queued-id cache) 1))))
+            (inc (:next-queued-id cache)))))
   (for-each (iter added)
     (fn (row)
       (push! (mut (:queued cache))

@@ -73,4 +73,4 @@
   (archived! cache
              (vec (str "t-1") (str "t-2")))
   (and (= (unwrap-ok (queued-count cache account)) 2)
-       (= (unwrap-ok (queued-count cache "grace@example.com")) 0)))
+       (zero? (unwrap-ok (queued-count cache "grace@example.com")))))

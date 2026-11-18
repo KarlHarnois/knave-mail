@@ -81,7 +81,7 @@
             (log-waiting! (ref (:log runner))
                           queued
                           (ref failure)
-                          (+ attempt 1)
+                          (inc attempt)
                           delay)
             (attempt-outcome/retry (->retry-plan :delay delay
                                                  :failure failure))))

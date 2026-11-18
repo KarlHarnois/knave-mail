@@ -66,7 +66,7 @@
                   ((directory? path) (try (knave-files-under path)))
                   ((ends-with? path knave-extension) (vec (str path)))
                   (else (vec))))
-      (recur entries (+ index 1) (appended files found)))))
+      (recur entries (inc index) (appended files found)))))
 
 (defn files-over-limit (files index too-long)
   (if (>= index (len files))
@@ -74,7 +74,7 @@
     (let (path (as-str (at files index))
           lines (try (line-count path)))
       (recur files
-             (+ index 1)
+             (inc index)
              (if (> lines line-limit)
                (appended too-long
                          (vec (str "  " path ": " lines " lines")))

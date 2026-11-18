@@ -44,8 +44,8 @@
                                                           november-18))))
         app (app-over (ref world)))
     (synced! (mut app))
-    (assert (= (unwrap-ok (archive-older! (mut app) world-account "2026/10/01"))
-               0))
+    (assert (zero? (unwrap-ok
+                     (archive-older! (mut app) world-account "2026/10/01"))))
     (assert (= (:labels (remote-thread (ref world) "t-mixed"))
                (vec (str "INBOX"))))
     (assert (= (listed-ids! (mut app)

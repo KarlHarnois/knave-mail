@@ -36,9 +36,9 @@
       (let (entry (at entries index))
         (match (declaration entry)
           ((ok written)
-           (recur (+ index 1) (appended declarations written) warnings))
+           (recur (inc index) (appended declarations written) warnings))
           ((err problem)
-           (recur (+ index 1)
+           (recur (inc index)
                   declarations
                   (appended warnings (str "theme.knv: " problem)))))))))
 

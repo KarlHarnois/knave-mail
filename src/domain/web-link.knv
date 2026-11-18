@@ -28,7 +28,7 @@
 
 (defn after-last (text separator)
   (let (parts (collect (split text separator)))
-    (str (at parts (- (len parts) 1)))))
+    (str (at parts (dec (len parts))))))
 
 (defn non-empty (host)
   (if (empty? (as-str (ref host)))

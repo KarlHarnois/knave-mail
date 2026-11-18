@@ -51,7 +51,7 @@
            (pause! (ref (:clock runner))
                    (:delay plan))
            (recur runner patience
-                  (assoc entry :attempt (+ (:attempt entry) 1)))))))
+                  (assoc entry :attempt (inc (:attempt entry))))))))
     ((failed failure) (err failure))))
 
 (defn out-of-patience? (patience waited)

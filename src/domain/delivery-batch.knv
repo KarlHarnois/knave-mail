@@ -37,11 +37,11 @@
          ((some ids)
           (if (fits? (ref batch) (ref ids))
             (recur queued
-                   (+ index 1)
+                   (inc index)
                    summaries pending
                    (with-row batch row ids))
             batch))
-         (none (recur queued (+ index 1) summaries pending batch)))
+         (none (recur queued (inc index) summaries pending batch)))
        batch))
     (none batch)))
 

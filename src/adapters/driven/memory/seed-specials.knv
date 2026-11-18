@@ -46,7 +46,7 @@
 (defn long-thread-message (account date index)
   (->message :id (str "m-long-" index)
              :thread-id (str "long")
-             :from (str (if (= (rem index 2) 0)
+             :from (str (if (even? index)
                           "Alan Turing <alan@example.com>"
                           "Edsger Dijkstra <edsger@example.com>"))
              :to (vec (str account))

@@ -52,7 +52,7 @@
        (push! (mut taken) step)
        (if kept
          (ok taken)
-         (recur app rows (+ index 1) taken))))
+         (recur app rows (inc index) taken))))
     (none (ok steps))))
 
 (defn kept? (step)

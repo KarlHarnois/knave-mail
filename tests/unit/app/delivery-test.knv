@@ -61,8 +61,7 @@
     (assert (match (first (ref (unwrap-ok (deliver-next-change! (mut app)))))
               ((some (delivered _)) true)
               (_ false)))
-    (assert (= (unwrap-ok (waiting-changes (ref app) world-account))
-               0))
+    (assert (zero? (unwrap-ok (waiting-changes (ref app) world-account))))
     (assert (empty? (:labels (remote-thread (ref world) "t-1"))))))
 
 (deftest an-archive-gmail-refuses-is-undone-and-reported
@@ -73,8 +72,7 @@
     (synced! (mut app))
     (delete-remotely! (ref world) "t-1")
     (assert (err? (archive-t-1! (mut app))))
-    (assert (= (unwrap-ok (waiting-changes (ref app) world-account))
-               0))
+    (assert (zero? (unwrap-ok (waiting-changes (ref app) world-account))))
     (assert (= (listed-ids! (mut app)
                             (ref (inbox-query)))
                (vec (str "t-2") (str "t-1"))))))

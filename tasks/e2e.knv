@@ -20,7 +20,7 @@
                   (run-command! "knave" (vec (str "build")))))
   (let (scenarios (try (scenario-files scenario-directory runner-script))
         failures (count-failures (ref scenarios) 0 0))
-    (if (= failures 0)
+    (if (zero? failures)
       (ok (println "All " (len scenarios) " GUI scenarios passed."))
       (err (str failures " of "
                 (len scenarios)
@@ -34,8 +34,8 @@
     failures
     (let (passed (run-scenario (at scenarios index)))
       (recur scenarios
-             (+ index 1)
-             (if passed failures (+ failures 1))))))
+             (inc index)
+             (if passed failures (inc failures))))))
 
 (type run-scenario
   (fn ((ref str)) bool))

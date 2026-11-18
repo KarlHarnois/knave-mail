@@ -13,7 +13,7 @@
 
 (defn all-delivered (client account)
   (let (waiting (try (waiting-changes client account)))
-    (if (> waiting 0)
+    (if (pos? waiting)
       (err (mail-error/network (str waiting
                                     (if (= waiting 1)
                                       " label change still waits"

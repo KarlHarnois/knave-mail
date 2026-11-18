@@ -43,7 +43,7 @@
 
 (defn recorded! (remote thread-id relabel)
   (set! (:history-id remote)
-        (+ (:history-id remote) 1))
+        (inc (:history-id remote)))
   (push! (mut (:changes remote))
          (->remote-change :at (:history-id remote)
                           :thread-id (str thread-id)

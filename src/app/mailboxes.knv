@@ -34,7 +34,7 @@
     (cond
       ((>= index (len emails)) none)
       ((= (at emails index) wanted) (some index))
-      (else (recur (+ index 1))))))
+      (else (recur (inc index))))))
 
 (def last-opened!
   (rust "{0}.opened.last_mut().expect(\"a mailbox was just opened\")"

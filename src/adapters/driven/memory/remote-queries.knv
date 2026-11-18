@@ -122,14 +122,14 @@
   (reduce (iter threads) 0
     (fn (count held)
       (if (labelled? held (as-str name))
-        (+ count 1)
+        (inc count)
         count))))
 
 (defn unread-count (threads name)
   (reduce (iter threads) 0
     (fn (unread held)
       (if (unread-in? held (as-str name))
-        (+ unread 1)
+        (inc unread)
         unread))))
 
 (defn unread-in? (held name)

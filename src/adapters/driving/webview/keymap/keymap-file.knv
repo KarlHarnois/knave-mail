@@ -34,7 +34,7 @@
                    (vec (str "keymap.knv: the file must be one (keymap ...) form"))))))
 
 (defn read-entries (tokens index entries warnings)
-  (if (>= (+ index 1) (len tokens))
+  (if (>= (inc index) (len tokens))
     (->keymapped entries warnings)
     (match (entry-at tokens index)
       ((ok entry)
@@ -50,7 +50,7 @@
 
 (defn entry-at (tokens index)
   (let (opening (token-at tokens index)
-        mode (token-at tokens (+ index 1))
+        mode (token-at tokens (inc index))
         keys (token-at tokens (+ index 2))
         action (token-at tokens (+ index 3))
         closing (token-at tokens (+ index 4)))
@@ -104,8 +104,8 @@
   (fn ((ref (vec string)) usize) usize))
 
 (defn next-entry (tokens index)
-  (loop (position (+ index 1))
+  (loop (position (inc index))
     (cond
       ((>= position (len tokens)) (len tokens))
       ((= (at tokens position) "(") position)
-      (else (recur (+ position 1))))))
+      (else (recur (inc position))))))

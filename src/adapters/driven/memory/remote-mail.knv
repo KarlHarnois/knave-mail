@@ -49,7 +49,7 @@
     ((some 1) (fail-when! remote none))
     ((some left)
      (set! (:failures-left remote)
-           (some (- left 1))))
+           (some (dec left))))
     (none (do))))
 
 (type fail-when!

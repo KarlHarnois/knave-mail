@@ -121,7 +121,7 @@
       ((retry plan)
        (pair (replaced-at waiting index
                           (assoc entry
-                                 :attempt (+ (:attempt entry) 1)
+                                 :attempt (inc (:attempt entry))
                                  :not-before (+ now (:delay plan))))
              replies)))))
 

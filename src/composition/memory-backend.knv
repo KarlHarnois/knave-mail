@@ -93,5 +93,5 @@
                         :changes (vec))))
 
 (defn thread-count (position)
-  (if (= position 0)
+  (if (zero? position)
     first-account-thread-count other-account-thread-count))

@@ -117,7 +117,7 @@
                            (ref message-id)
                            (ref thread-id)
                            (now-milliseconds)))
-    (set! (:next-id remote) (+ number 1))
+    (set! (:next-id remote) (inc number))
     (push! (mut (:sent remote))
            (clone sent))
     (record-change! remote (ref thread-id))
