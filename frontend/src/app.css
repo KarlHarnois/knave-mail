@@ -383,3 +383,14 @@ body {
 .list-item[aria-selected="true"] .help-description {
   color: inherit;
 }
+
+.link-hint {
+  position: fixed;
+  z-index: 1;
+  padding-inline: var(--space-marker);
+  border-radius: var(--radius-control);
+  background: var(--component-container-marker-background);
+  color: var(--component-container-marker-text);
+  font-family: var(--font);
+  pointer-events: none;
+}

@@ -1,5 +1,6 @@
 import type { Thread } from "../bridge/Protocol";
 import { MessageCard, type MessageCardServices } from "./MessageCard";
+import type { LinkTarget } from "./MessageLinks";
 
 export class MessageStack {
   readonly element: HTMLElement;
@@ -46,6 +47,10 @@ export class MessageStack {
     this.focusIndex = index;
     this.cards[index]?.expand();
     this.cards[index]?.showFocus(true);
+  }
+
+  linkTargets(): LinkTarget[] {
+    return this.cards.flatMap((card) => card.linkTargets());
   }
 
   withFocused(act: (card: MessageCard) => void): void {

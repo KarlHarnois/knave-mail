@@ -1,4 +1,5 @@
 export type LinkOpener = { openLink(url: string): void };
+export type LinkTarget = { url: string; top: number; left: number };
 
 const WEB_PROTOCOLS = new Set(["http:", "https:"]);
 const LINK_SELECTOR = "a[href]";
@@ -9,6 +10,17 @@ export class MessageLinks {
   follow(mail: Document): void {
     mail.addEventListener("click", (event) => this.openClicked(event), true);
     mail.addEventListener("auxclick", (event) => this.openClicked(event), true);
+  }
+
+  targetsIn(frame: HTMLIFrameElement): LinkTarget[] {
+    const anchors = [...(frame.contentDocument?.querySelectorAll<HTMLAnchorElement>(LINK_SELECTOR) ?? [])];
+    const origin = frame.getBoundingClientRect();
+    return anchors.filter((anchor) => this.isWebLink(anchor)).map((anchor) => this.targetOf(anchor, origin));
+  }
+
+  private targetOf(anchor: HTMLAnchorElement, origin: DOMRect): LinkTarget {
+    const place = anchor.getBoundingClientRect();
+    return { url: anchor.href, top: origin.top + place.top, left: origin.left + place.left };
   }
 
   private openClicked(event: Event): void {

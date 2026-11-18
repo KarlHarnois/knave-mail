@@ -5,7 +5,7 @@ import type { VimEditor, VimEditorOptions } from "../vim/VimEditor";
 import type { VimEditorFactory } from "../vim/VimEditorFactory";
 import type { HtmlSandbox } from "./HtmlSandbox";
 import { MessageFrame } from "./MessageFrame";
-import type { MessageLinks } from "./MessageLinks";
+import type { LinkTarget, MessageLinks } from "./MessageLinks";
 
 export type MessageCardServices = {
   document: Document;
@@ -77,6 +77,10 @@ export class MessageCard {
 
   pressInReader(token: string): void {
     this.reader?.press(token);
+  }
+
+  linkTargets(): LinkTarget[] {
+    return this.frame && !this.isInTextMode ? this.frame.linkTargets() : [];
   }
 
   allowRemoteImages(): void {

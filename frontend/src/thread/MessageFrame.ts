@@ -1,7 +1,7 @@
 import { ColorTone } from "../darkmail/ColorTone";
 import type { MailColorSource, MailColors } from "../darkmail/MailDarkening";
 import type { HtmlSandbox } from "./HtmlSandbox";
-import type { MessageLinks } from "./MessageLinks";
+import type { LinkTarget, MessageLinks } from "./MessageLinks";
 
 export type MessageFrameParts = {
   document: Document;
@@ -39,6 +39,10 @@ export class MessageFrame {
 
   get allowsRemoteImages(): boolean {
     return this.remoteImages;
+  }
+
+  linkTargets(): LinkTarget[] {
+    return this.links.targetsIn(this.element);
   }
 
   allowRemoteImages(): void {

@@ -1,6 +1,7 @@
 import type { Screen } from "../app/Screen";
 import type { ThreadSummary } from "../bridge/Protocol";
 import type { Action, ThreadAction } from "../keys/KeyBindings";
+import { LinkHints } from "./LinkHints";
 import { MessageReplies } from "./MessageReplies";
 import { MessageStack } from "./MessageStack";
 import { ThreadHeader } from "./ThreadHeader";
@@ -20,6 +21,7 @@ export class ThreadScreen implements Screen {
   private readonly pager: ThreadPager;
   private readonly handlers: ReadonlyMap<Action, Handler>;
   private readonly textMode: ThreadTextMode;
+  private readonly linkHints: LinkHints;
   private readonly triage: ThreadTriage;
   private openGeneration = 0;
 
@@ -35,6 +37,7 @@ export class ThreadScreen implements Screen {
     this.pager = new ThreadPager(this.element, this.messages, ports.logger);
     this.element.append(this.header.element, this.messages.element);
     this.textMode = new ThreadTextMode(ports.host, () => this.focus());
+    this.linkHints = new LinkHints(document, ports.host);
     this.triage = new ThreadTriage(this.header, ports.actions, () => this.close());
     this.handlers = this.createHandlers();
   }
@@ -51,15 +54,15 @@ export class ThreadScreen implements Screen {
   }
 
   modeName(): string {
-    return this.textMode.isActive ? this.textMode.modeName() : "THREAD";
+    return this.capturingMode()?.modeName() ?? "THREAD";
   }
 
   capturesKeys(): boolean {
-    return this.textMode.isActive;
+    return this.capturingMode() !== null;
   }
 
   pressCaptured(token: string): void {
-    this.textMode.press(token);
+    this.capturingMode()?.press(token);
   }
 
   perform(action: Action, count: number | null): void {
@@ -68,6 +71,10 @@ export class ThreadScreen implements Screen {
 
   focus(): void {
     this.element.focus({ preventScroll: true });
+  }
+
+  private capturingMode(): LinkHints | ThreadTextMode | null {
+    return [this.linkHints, this.textMode].find((mode) => mode.isActive) ?? null;
   }
 
   private isShown(): boolean {
@@ -111,6 +118,7 @@ export class ThreadScreen implements Screen {
       ["forward", () => this.messages.withFocused((card) => this.replies.forward(card))],
       ["toggleTextMode", () => this.messages.withFocused((card) => this.textMode.enter(card))],
       ["loadRemoteImages", () => this.messages.withFocused((card) => card.allowRemoteImages())],
+      ["openLink", () => this.linkHints.show(this.messages.linkTargets(), (url) => this.ports.mail.openLink(url))],
     ];
   }
 
@@ -130,6 +138,7 @@ export class ThreadScreen implements Screen {
   private closeCards(): void {
     this.openGeneration++;
     this.textMode.leave();
+    this.linkHints.leave();
     this.messages.clear();
   }
 }
