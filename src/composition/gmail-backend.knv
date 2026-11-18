@@ -1,3 +1,4 @@
+(use ports/driven/authorizer authorizer)
 (use adapters/driven/file-credentials/credentials ->file-credentials)
 (use adapters/driven/gmail/http new-agent)
 (use adapters/driven/gmail/provider ->gmail-provider)
@@ -35,17 +36,18 @@
   (ok (new-mail-app
         (box (try (open-sqlite-store (ref (:cache-path chosen)))))
         operations
-        (box (->google-authorizer
-               :agent (new-agent)
-               :settings (->oauth-settings
-                           :auth-url (clone (:auth-url chosen))
-                           :token-url (clone (:token-url chosen))
-                           :api-base (clone (:api-base chosen))
-                           :client-id (clone (:client-id chosen))
-                           :client-secret (clone (:client-secret chosen))
-                           :sign-in-wait-milliseconds sign-in-wait-milliseconds)
-               :credentials (chosen-credentials chosen)
-               :browser (box (->system-browser (clone (:browser chosen))))))
+        (authorizer/google
+          (->google-authorizer
+            :agent (new-agent)
+            :settings (->oauth-settings
+                        :auth-url (clone (:auth-url chosen))
+                        :token-url (clone (:token-url chosen))
+                        :api-base (clone (:api-base chosen))
+                        :client-id (clone (:client-id chosen))
+                        :client-secret (clone (:client-secret chosen))
+                        :sign-in-wait-milliseconds sign-in-wait-milliseconds)
+            :credentials (chosen-credentials chosen)
+            :browser (box (->system-browser (clone (:browser chosen))))))
         log rank delivery sync-limit)))
 
 (type gmail-provider-for

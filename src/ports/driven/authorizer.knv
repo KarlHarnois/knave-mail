@@ -1,9 +1,23 @@
+(use adapters/driven/google-oauth/authorizer consented-account!
+                                             google-authorizer)
+
+(use adapters/driven/memory/authorizer granted-account!
+                                       memory-authorizer)
+
 (use domain/mail account)
 (use domain/mail-error mail-error)
 
-(export authorizer)
+(export authorize! authorizer)
 
-(deftrait authorizer
-  (authorize!
-    (fn ((mut self))
-      (result account mail-error))))
+(defenum authorizer
+  (google google-authorizer)
+  (memory memory-authorizer))
+
+(type authorize!
+  (fn ((mut authorizer))
+    (result account mail-error)))
+
+(defn authorize! (chosen)
+  (match chosen
+    ((google granting) (consented-account! granting))
+    ((memory granting) (granted-account! granting))))

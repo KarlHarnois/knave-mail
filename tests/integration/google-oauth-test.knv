@@ -3,12 +3,12 @@
 (use adapters/driven/gmail/http new-agent)
 
 (use adapters/driven/google-oauth/authorizer ->google-authorizer
+                                             consented-account!
                                              google-authorizer)
 
 (use adapters/driven/google-oauth/oauth-settings ->oauth-settings)
 (use adapters/driven/google-oauth/pkce challenge-of)
 (use domain/mail-error error-kind)
-(use ports/driven/authorizer authorize!)
 (use ports/driven/credentials load-token)
 
 (use support/fake-browser ->idle-browser browser-answering
@@ -53,7 +53,7 @@
   (let (server (consent-server)
         path (temporary-path "tokens.json")
         granting (authorizer-over (ref server) (ref path) "code=fake-code"))
-    (assert (= (:email (unwrap-ok (authorize! (mut granting))))
+    (assert (= (:email (unwrap-ok (consented-account! (mut granting))))
                "ada@example.com"))))
 
 (deftest consent-keeps-the-refresh-token
@@ -61,7 +61,7 @@
         path (temporary-path "tokens.json")
         granting (authorizer-over (ref server) (ref path) "code=fake-code")
         credentials (->file-credentials (clone path)))
-    (unwrap-ok (authorize! (mut granting)))
+    (unwrap-ok (consented-account! (mut granting)))
     (assert (= (unwrap-ok (load-token (ref credentials) "ada@example.com"))
                (some (str "fake-refresh-token"))))))
 
@@ -69,7 +69,7 @@
   (let (server (consent-server)
         path (temporary-path "tokens.json")
         granting (authorizer-over (ref server) (ref path) "code=fake-code"))
-    (unwrap-ok (authorize! (mut granting)))
+    (unwrap-ok (consented-account! (mut granting)))
     (assert (contains? (at (requests-seen (ref server)) 0)
                        "code=fake-code"))
     (assert (contains? (at (requests-seen (ref server)) 0)
@@ -81,7 +81,8 @@
         granting (authorizer-over (ref server)
                                   (ref path)
                                   "error=access_denied"))
-    (assert (= (error-kind (ref (unwrap-err (authorize! (mut granting)))))
+    (assert (= (error-kind (ref (unwrap-err (consented-account! (mut
+                                                                  granting)))))
                "auth-required"))))
 
 (deftest a-forged-state-is-rejected
@@ -90,7 +91,8 @@
         granting (authorizer-over (ref server)
                                   (ref path)
                                   "code=fake-code&wrong-state"))
-    (assert (= (error-kind (ref (unwrap-err (authorize! (mut granting)))))
+    (assert (= (error-kind (ref (unwrap-err (consented-account! (mut
+                                                                  granting)))))
                "auth-required"))))
 
 (deftest a-stray-request-does-not-end-the-sign-in
@@ -99,7 +101,7 @@
                                   (box (browser-answering "/favicon.ico"
                                                           "code=fake-code"))
                                   5000))
-    (assert (ok? (ref (authorize! (mut granting)))))))
+    (assert (ok? (ref (consented-account! (mut granting)))))))
 
 (deftest a-forged-state-shows-an-error-page
   (let (server (consent-server)
@@ -107,7 +109,7 @@
         granting (authorizer-with (ref server)
                                   (box (sharing-page (ref browser)))
                                   5000))
-    (authorize! (mut granting))
+    (consented-account! (mut granting))
     (assert (contains? (ref (shown-page (ref browser)))
                        "Sign-in failed"))))
 
@@ -117,7 +119,8 @@
                                   (box (browser-answering "/?state=%a\u{e9}x"
                                                           "code=fake-code"))
                                   5000))
-    (assert (= (error-kind (ref (unwrap-err (authorize! (mut granting)))))
+    (assert (= (error-kind (ref (unwrap-err (consented-account! (mut
+                                                                  granting)))))
                "auth-required"))))
 
 (deftest a-browser-that-never-answers-ends-the-sign-in
@@ -125,7 +128,8 @@
         granting (authorizer-with (ref server)
                                   (box (->idle-browser))
                                   200))
-    (assert (= (error-kind (ref (unwrap-err (authorize! (mut granting)))))
+    (assert (= (error-kind (ref (unwrap-err (consented-account! (mut
+                                                                  granting)))))
                "auth-required"))))
 
 (deftest a-pkce-challenge-is-the-hashed-verifier

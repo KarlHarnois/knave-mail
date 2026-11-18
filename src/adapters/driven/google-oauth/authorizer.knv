@@ -21,19 +21,16 @@
 
 (use domain/mail ->account account)
 (use domain/mail-error mail-error)
-(use ports/driven/authorizer authorizer)
 (use ports/driven/credentials credentials save-token!)
 
-(export ->google-authorizer google-authorizer)
+(export ->google-authorizer consented-account!
+        google-authorizer)
 
 (defstruct google-authorizer
   :agent http-agent
   :settings oauth-settings
   :credentials (box credentials)
   :browser (box consent-browser))
-
-(impl authorizer google-authorizer
-  (authorize! (granting) (consented-account! granting)))
 
 (type consented-account!
   (fn ((mut google-authorizer))
