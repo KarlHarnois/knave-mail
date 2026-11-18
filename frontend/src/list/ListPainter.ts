@@ -5,6 +5,7 @@ import type { ListViewport } from "./ListViewport";
 import type { ListWindow } from "./ListWindow";
 import { RowRecycler } from "./RowRecycler";
 import type { ThreadRowRenderer } from "./ThreadRowRenderer";
+import { ThreadTable } from "./ThreadTable";
 
 export type ListPainterParts = {
   document: Document;
@@ -16,16 +17,17 @@ export type ListPainterParts = {
 
 export class ListPainter {
   private readonly recycler: RowRecycler;
-  private readonly spacer: HTMLElement;
+  private readonly table: ThreadTable;
   private readonly emptyNotice: HTMLElement;
   private readonly staleThreadIds = new Set<string>();
   private everyRowStale = false;
   private readonly tracing: ListTrace;
 
   constructor(private readonly parts: ListPainterParts) {
-    this.recycler = new RowRecycler(parts.viewport.element, parts.rows, parts.listWindow);
+    this.table = new ThreadTable(parts.document);
+    parts.viewport.element.append(this.table.element);
+    this.recycler = new RowRecycler(this.table.body, parts.rows, parts.listWindow);
     this.tracing = new ListTrace(parts.trace);
-    this.spacer = this.appendChild("thread-list-spacer");
     this.emptyNotice = this.appendChild("thread-list-empty");
     this.emptyNotice.textContent = "No threads";
     this.emptyNotice.dataset["test"] = "empty-list";
@@ -44,7 +46,7 @@ export class ListPainter {
   }
 
   paint(summaries: readonly ThreadSummary[], cursor: ListCursor): void {
-    this.spacer.style.height = `${this.parts.listWindow.contentHeight(summaries.length)}px`;
+    this.table.body.style.height = `${this.parts.listWindow.contentHeight(summaries.length)}px`;
     this.parts.viewport.fit(summaries.length);
     const range = this.parts.viewport.visibleRange(summaries.length);
     this.parts.viewport.element.dataset["threadCount"] = String(summaries.length);

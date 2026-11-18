@@ -94,7 +94,7 @@ describe("help navigation", () => {
   test("a search without a match reports it", async () => {
     const app = await AppHarness.started();
     await app.press("?/zebra<CR>");
-    expect(app.status("error")).toBe("help: no match for zebra");
+    expect(app.status("error")).toBe("Pattern not found: zebra");
   });
 
   test("escape clears a search before it closes the page", async () => {

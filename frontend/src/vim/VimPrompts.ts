@@ -1,8 +1,10 @@
 import type { CodeMirror } from "@replit/codemirror-vim";
-import type { CommandLine, PromptSymbol } from "../commands/CommandLine";
+import type { CommandLine, PromptOptions, PromptSymbol } from "../commands/CommandLine";
 import type { StatusLine } from "../status/StatusLine";
+import { EditorSearchCount, type SearchDirection } from "./EditorSearchCount";
 
 type DialogCallback = ((text: string) => void) | undefined;
+type DialogEditor = { readonly cm: CodeMirror; readonly refocus: () => void };
 
 const PROMPTS: ReadonlySet<string> = new Set([":", "/", "?"]);
 const DEFAULT_PROMPT: PromptSymbol = ":";
@@ -19,16 +21,27 @@ export class VimPrompts {
   install(cm: CodeMirror, refocus: () => void): void {
     const adapter = cm as unknown as Record<string, unknown>;
     adapter["openDialog"] = (template: HTMLElement, callback: DialogCallback) =>
-      this.dialog(template, callback, refocus);
+      this.dialog(template, callback, { cm, refocus });
     adapter["openNotification"] = (template: HTMLElement) => this.notify(template);
   }
 
-  private dialog(template: HTMLElement, callback: DialogCallback, refocus: () => void): () => void {
+  private dialog(template: HTMLElement, callback: DialogCallback, editor: DialogEditor): () => void {
     const input = template.querySelector("input");
     if (!input) return this.notify(template);
     this.leaveEditor();
-    this.ports.commandLine.open(this.promptOf(input), (text) => callback?.(text), refocus);
+    const prompt = this.promptOf(input);
+    this.ports.commandLine.open(prompt, (text) => callback?.(text), this.optionsFor(editor, prompt));
     return () => this.ports.commandLine.cancel();
+  }
+
+  private optionsFor(editor: DialogEditor, prompt: PromptSymbol): PromptOptions {
+    if (prompt === DEFAULT_PROMPT) return { closed: editor.refocus };
+    const direction = prompt === "?" ? "backward" : "forward";
+    return { closed: editor.refocus, counter: (text) => this.matchCount(editor.cm, text, direction) };
+  }
+
+  private matchCount(cm: CodeMirror, query: string, direction: SearchDirection): string {
+    return new EditorSearchCount(cm.getValue(), cm.indexFromPos(cm.getCursor())).count(query, direction);
   }
 
   private notify(template: HTMLElement): () => void {

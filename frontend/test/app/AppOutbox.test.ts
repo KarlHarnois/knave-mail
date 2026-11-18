@@ -44,6 +44,6 @@ describe("queued changes", () => {
   test("a queue event is not mistaken for a failed sync", async () => {
     const app = await AppHarness.started();
     app.core.emit({ event: "queue", account: MailFixtures.ADA, waiting: 2 });
-    expect(app.status("sync")).toBe("syncing");
+    expect(app.status("sync")).toBe("syncing…");
   });
 });

@@ -23,11 +23,11 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1794967481,
-        "narHash": "sha256-dm9HDpd1yP65wHHHgjKL7y28ecAlOwktZApAn3YGOTM=",
+        "lastModified": 1794973287,
+        "narHash": "sha256-ZK1CYeKiFe+ika3gDMz90qKdYXpHm9gD9KF05fBVBN0=",
         "owner": "KarlHarnois",
         "repo": "design-system",
-        "rev": "ff4bc652e6707da09c65b4860871db4e9a411352",
+        "rev": "5d88a07c3644fb9b4fb87ce4efef1350e0d7f2cd",
         "type": "github"
       },
       "original": {

@@ -2,6 +2,7 @@ import { Bridge } from "../bridge/Bridge";
 import { MailClient } from "../bridge/MailClient";
 import type { Transport } from "../bridge/Transport";
 import { CommandLine } from "../commands/CommandLine";
+import { CommandPalette } from "../commands/CommandPalette";
 import { ListWindow } from "../list/ListWindow";
 import { ThreadList } from "../list/ThreadList";
 import { ThreadRowRenderer } from "../list/ThreadRowRenderer";
@@ -28,13 +29,14 @@ import { VimPrompts } from "../vim/VimPrompts";
 
 type StartAccountWindow = Window & { knaveStartAccount?: string };
 
-const ROW_HEIGHT_TOKEN = "--component-list-item-height";
+const ROW_HEIGHT_TOKEN = "--component-table-row-height";
 const OVERSCAN_ROWS = 10;
 
 export class MailServices {
   readonly document: Document;
   readonly status: StatusLine;
   readonly commandLine: CommandLine;
+  readonly palette: CommandPalette;
   readonly errors: ErrorReporter;
   readonly logger: Logger;
   readonly bridge: Bridge;
@@ -58,6 +60,7 @@ export class MailServices {
     this.document = window.document;
     this.status = new StatusLine(this.document);
     this.commandLine = new CommandLine(this.document);
+    this.palette = new CommandPalette(this.document);
     this.logger = new Logger(transport);
     this.errors = new ErrorReporter(this.status, this.logger);
     this.bridge = new Bridge(transport);
@@ -102,11 +105,10 @@ export class MailServices {
   }
 
   private createThreadList(): ThreadList {
-    const rows = new ThreadRowRenderer(this.document, this.dates);
     return new ThreadList({
       document: this.document,
       listWindow: new ListWindow(new DesignToken(this.window).pixels(ROW_HEIGHT_TOKEN), OVERSCAN_ROWS),
-      rows,
+      rows: new ThreadRowRenderer(this.document, this.dates),
       scheduler: this.scheduler,
       trace: (message) => this.logger.info(message),
     });
@@ -141,9 +143,7 @@ export class MailServices {
     new VimClipboard(clipboard).install();
     const keymap = new VimKeymap();
     keymap.apply(keymap.entriesOf(this.window));
-    return new VimEditorFactory(
-      exCommands,
-      new VimPrompts({ document: this.document, commandLine: this.commandLine, status: this.status }),
-    );
+    const prompts = new VimPrompts({ document: this.document, commandLine: this.commandLine, status: this.status });
+    return new VimEditorFactory(exCommands, prompts);
   }
 }

@@ -1,7 +1,8 @@
 import { DarkReaderWarmup } from "../darkmail/DarkReaderWarmup";
 import { MailDarkening } from "../darkmail/MailDarkening";
 import { HelpScreen } from "../help/HelpScreen";
-import { LabelPickerScreen } from "../labels/LabelPickerScreen";
+import { WhichKeyPopup } from "../keys/WhichKeyPopup";
+import { LabelPalette } from "../labels/LabelPalette";
 import type { LabelRef } from "../mail/LabelDirectory";
 import { TestDriver } from "../testing/TestDriver";
 import { HtmlSandbox } from "../thread/HtmlSandbox";
@@ -12,7 +13,20 @@ import type { ScreenHost } from "./ScreenHost";
 import { ZoomControl } from "./ZoomControl";
 
 export class ScreenFactory {
-  constructor(private readonly services: MailServices) {}
+  readonly whichKey: WhichKeyPopup;
+
+  constructor(private readonly services: MailServices) {
+    this.whichKey = new WhichKeyPopup(services.document.defaultView ?? window);
+  }
+
+  mount(stage: HTMLElement): void {
+    const { document, status, commandLine, palette } = this.services;
+    const root = document.createElement("div");
+    root.className = "app";
+    status.holdCommandLine(commandLine.element);
+    root.append(stage, palette.element, this.whichKey.element, status.element);
+    document.body.append(root);
+  }
 
   testDriver(pressToken: (token: string) => void, startup: Promise<unknown>): TestDriver {
     return new TestDriver({
@@ -37,15 +51,17 @@ export class ScreenFactory {
     return stage;
   }
 
-  labelPicker(host: ScreenHost, goToLabel: (label: LabelRef) => void): LabelPickerScreen {
-    return new LabelPickerScreen({
-      document: this.services.document,
-      host,
-      labels: this.services.labels,
-      session: this.services.session,
-      errors: this.services.errors,
-      askSearch: (submit) => this.services.commandLine.open("/", submit),
+  labelPalette(host: ScreenHost, goToLabel: (label: LabelRef) => void): LabelPalette {
+    const { palette, labels, session, errors, status } = this.services;
+    return new LabelPalette({
+      palette,
+      labels,
+      session,
+      errors,
+      status,
       goToLabel,
+      passKey: (token) => host.press(token),
+      closed: () => host.refreshStatus(),
     });
   }
 
@@ -53,7 +69,7 @@ export class ScreenFactory {
     return new HelpScreen({
       document: this.services.document,
       host,
-      askSearch: (submit) => this.services.commandLine.open("/", submit),
+      askSearch: (submit, counter) => this.services.commandLine.open("/", submit, { counter }),
       showError: (message) => this.services.status.showError(message),
     });
   }

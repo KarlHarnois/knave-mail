@@ -36,6 +36,9 @@ class FrontendBuild {
   }
 }
 
+const FONT_URL = /url\("[^"]+\.woff2"\)/g;
+const FONT_URL_PARTS = /^url\("([^"]+)"\)$/;
+
 class DesignSystemPackage {
   private readonly directory = this.packageDirectory();
 
@@ -44,15 +47,28 @@ class DesignSystemPackage {
   }
 
   async stylesheets(): Promise<string> {
+    const grid = await this.withFontsInlined(join(this.directory, "grid"), "grid.css");
     const tokens = await Bun.file(join(this.directory, "css", "tokens.css")).text();
-    return tokens + (await this.bundledComponents());
+    return grid + tokens + (await this.bundled(join(this.directory, "css", "components", "index.css")));
   }
 
-  private async bundledComponents(): Promise<string> {
-    const index = join(this.directory, "css", "components", "index.css");
-    const result = await Bun.build({ entrypoints: [index] });
+  private async withFontsInlined(directory: string, stylesheet: string): Promise<string> {
+    const css = await Bun.file(join(directory, stylesheet)).text();
+    const fonts = [...new Set(css.match(FONT_URL) ?? [])];
+    const inlined = await Promise.all(fonts.map((font) => this.fontDataUrl(directory, font)));
+    return fonts.reduce((text, font, index) => text.replaceAll(font, inlined[index] ?? font), css);
+  }
+
+  private async fontDataUrl(directory: string, font: string): Promise<string> {
+    const file = font.replace(FONT_URL_PARTS, "$1");
+    const bytes = Buffer.from(await Bun.file(join(directory, file)).arrayBuffer());
+    return `url("data:font/woff2;base64,${bytes.toString("base64")}")`;
+  }
+
+  private async bundled(stylesheet: string): Promise<string> {
+    const result = await Bun.build({ entrypoints: [stylesheet] });
     const [bundle] = result.outputs;
-    if (!result.success || bundle === undefined) throw new AggregateError(result.logs, `bundling ${index} failed`);
+    if (!result.success || bundle === undefined) throw new AggregateError(result.logs, `bundling ${stylesheet} failed`);
     return bundle.text();
   }
 

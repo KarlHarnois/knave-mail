@@ -26,16 +26,13 @@ export class ThreadRowRenderer {
   ) {}
 
   create(): HTMLElement {
-    const row = this.document.createElement("div");
-    row.className = "thread-row list-item";
+    const row = this.document.createElement("tr");
+    row.className = "thread-row";
     row.dataset["test"] = ROW_TEST_ID;
-    row.setAttribute("role", "option");
     this.parts.set(row, {
-      star: this.appendPart(row, "row-star"),
-      from: this.appendPart(row, "row-from"),
+      ...this.appendFrom(row),
       ...this.appendSubject(row),
-      snippet: this.appendPart(row, "row-snippet"),
-      date: this.appendPart(row, "row-date"),
+      date: this.appendCell(row, "row-date table-number"),
     });
     return row;
   }
@@ -53,8 +50,8 @@ export class ThreadRowRenderer {
   }
 
   markSelected(row: HTMLElement, selected: boolean, chosen: boolean): void {
-    row.classList.toggle("selected", selected);
-    row.classList.toggle("chosen", chosen);
+    row.classList.toggle("is-cursor", selected);
+    row.classList.toggle("is-selected", chosen);
     row.dataset["test"] = this.testTokens(selected, chosen);
     row.setAttribute("aria-selected", String(selected || chosen));
   }
@@ -70,15 +67,28 @@ export class ThreadRowRenderer {
     return summary.messageCount > 1 ? `${summary.participants} (${summary.messageCount})` : summary.participants;
   }
 
-  private appendSubject(row: HTMLElement): Pick<RowParts, "archived" | "subject"> {
-    const cell = this.appendPart(row, "row-subject");
-    return { archived: this.appendPart(cell, "row-archived"), subject: this.appendPart(cell, "row-subject-text") };
+  private appendFrom(row: HTMLElement): Pick<RowParts, "star" | "from"> {
+    const cell = this.appendCell(row, "row-from table-cell-active");
+    return { star: this.appendPart(cell, "span", "row-star"), from: this.appendPart(cell, "span", "row-from-text") };
   }
 
-  private appendPart(row: HTMLElement, className: string): HTMLElement {
-    const part = this.document.createElement("span");
+  private appendSubject(row: HTMLElement): Pick<RowParts, "archived" | "subject" | "snippet"> {
+    const cell = this.appendCell(row, "row-subject");
+    return {
+      archived: this.appendPart(cell, "span", "row-archived"),
+      subject: this.appendPart(cell, "span", "row-subject-text"),
+      snippet: this.appendPart(cell, "span", "row-snippet"),
+    };
+  }
+
+  private appendCell(row: HTMLElement, className: string): HTMLElement {
+    return this.appendPart(row, "td", className);
+  }
+
+  private appendPart(parent: HTMLElement, tag: "td" | "span", className: string): HTMLElement {
+    const part = this.document.createElement(tag);
     part.className = className;
-    row.append(part);
+    parent.append(part);
     return part;
   }
 

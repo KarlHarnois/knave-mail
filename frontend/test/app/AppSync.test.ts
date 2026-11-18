@@ -7,7 +7,7 @@ describe("sync", () => {
     const app = await AppHarness.started();
     await app.press("R");
     expect(app.core.lastArgsFor("sync")).toEqual({ account: MailFixtures.ADA });
-    expect(app.status("sync")).toBe("syncing");
+    expect(app.status("sync")).toBe("syncing…");
     app.core.emit({ event: "synced", account: MailFixtures.ADA });
     await app.driver.whenIdle();
     expect(app.status("sync")).toStartWith("synced");
@@ -42,7 +42,7 @@ describe("sync", () => {
     const app = await AppHarness.started();
     app.core.emit({ event: "synced", account: MailFixtures.GRACE });
     await app.driver.whenIdle();
-    expect(app.status("sync")).toBe("syncing");
+    expect(app.status("sync")).toBe("syncing…");
     expect(app.core.requestsFor("threads")).toHaveLength(1);
   });
 
@@ -52,7 +52,7 @@ describe("sync", () => {
       { account: MailFixtures.ADA },
       { account: MailFixtures.GRACE },
     ]);
-    expect(app.status("sync")).toBe("syncing");
+    expect(app.status("sync")).toBe("syncing…");
   });
 
   test("switching to an account synced moments ago does not sync it again", async () => {
@@ -66,7 +66,7 @@ describe("sync", () => {
     app.core.emit({ event: "sync-progress", account: MailFixtures.ADA });
     await app.driver.whenIdle();
     expect(app.core.requestsFor("threads")).toHaveLength(2);
-    expect(app.status("sync")).toBe("syncing");
+    expect(app.status("sync")).toBe("syncing…");
   });
 
   test("progress for another account does not reload the list", async () => {

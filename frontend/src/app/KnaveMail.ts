@@ -4,7 +4,8 @@ import type { Transport } from "../bridge/Transport";
 import { ComposeScreen } from "../compose/ComposeScreen";
 import type { HelpScreen } from "../help/HelpScreen";
 import { KeyboardInput } from "../keys/KeyboardInput";
-import type { LabelPickerScreen } from "../labels/LabelPickerScreen";
+import { KeyNotation } from "../keys/KeyNotation";
+import type { LabelPalette } from "../labels/LabelPalette";
 import { ListScreen } from "../list/ListScreen";
 import { GlobalErrorLog } from "../logging/GlobalErrorLog";
 import { SharedActions } from "../mail/SharedActions";
@@ -26,7 +27,7 @@ export class KnaveMail {
   private readonly threadScreen: ThreadScreen;
   private readonly composeScreen: ComposeScreen;
   private readonly helpScreen: HelpScreen;
-  private readonly labelPicker: LabelPickerScreen;
+  private readonly labelPalette: LabelPalette;
 
   constructor(
     private readonly window: Window,
@@ -41,7 +42,7 @@ export class KnaveMail {
     this.threadScreen = this.createThreadScreen();
     this.composeScreen = this.createComposeScreen();
     this.helpScreen = this.factory.helpScreen(this.app);
-    this.labelPicker = this.factory.labelPicker(this.app, (label) => this.shared.goToLabel(label));
+    this.labelPalette = this.factory.labelPalette(this.app, (label) => this.shared.goToLabel(label));
   }
 
   start(): void {
@@ -58,11 +59,12 @@ export class KnaveMail {
   }
 
   private mount(): void {
-    const root = this.services.document.createElement("div");
-    root.className = "app";
-    root.append(this.stage, this.services.commandLine.element, this.services.status.element);
-    this.services.document.body.append(root);
+    this.factory.mount(this.stage);
     this.app.focusScreen();
+  }
+
+  private pressKeys(keys: string): void {
+    for (const token of new KeyNotation().tokenize(keys)) this.app.press(token);
   }
 
   private goBack(): void {
@@ -82,6 +84,9 @@ export class KnaveMail {
   private createSharedActions(): SharedActions {
     return new SharedActions({
       commandLine: this.services.commandLine,
+      palette: this.services.palette,
+      pressKeys: (keys) => this.pressKeys(keys),
+      keyMode: () => this.navigator.current.keyMode,
       session: this.services.session,
       sync: this.services.sync,
       errors: this.services.errors,
@@ -89,7 +94,7 @@ export class KnaveMail {
       startCompose: () => this.composeScreen.resume(),
       showList: () => this.app.showList(),
       showHelp: () => this.helpScreen.open(),
-      pickLabel: () => this.labelPicker.open(),
+      pickLabel: () => this.labelPalette.open(),
       goBack: () => this.goBack(),
       archiveOlder: (before) => this.services.olderMail.archive(before),
     });
@@ -99,6 +104,8 @@ export class KnaveMail {
     return new App({
       status: this.services.status,
       commandLine: this.services.commandLine,
+      palette: this.services.palette,
+      whichKey: this.factory.whichKey,
       keys: new AppKeyMaps().create(),
       navigator: this.navigator,
       errors: this.services.errors,

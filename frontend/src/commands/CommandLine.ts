@@ -1,29 +1,36 @@
-import { KeyNotation } from "../keys/KeyNotation";
+import { LineEditor } from "./LineEditor";
+import { LineView } from "./LineView";
 
 export type PromptSymbol = ":" | "/" | "?";
 
 type Submit = (text: string) => void;
 type Closed = () => void;
+export type Counter = (text: string) => string;
+export type PromptOptions = { readonly closed?: Closed; readonly counter?: Counter };
 
 export class CommandLine {
   readonly element: HTMLElement;
   private readonly promptElement: HTMLElement;
-  private readonly textElement: HTMLElement;
-  private text = "";
+  private readonly line: LineEditor = new LineEditor();
+  private readonly view: LineView;
+  private readonly count: HTMLElement;
+  private counter: Counter | null = null;
   private submit: Submit | null = null;
   private closed: Closed | null = null;
 
-  constructor(
-    document: Document,
-    private readonly notation: KeyNotation = new KeyNotation(),
-  ) {
-    this.element = document.createElement("div");
-    this.element.className = "command-line";
+  constructor(document: Document) {
+    this.element = document.createElement("label");
+    this.element.className = "status-bar-segment status-bar-fill command-line";
     this.element.dataset["test"] = "command-line";
     this.element.hidden = true;
-    this.promptElement = this.appendSpan(document, "command-line-prompt");
-    this.textElement = this.appendSpan(document, "command-line-text");
-    this.appendSpan(document, "command-line-cursor");
+    this.promptElement = document.createElement("span");
+    this.promptElement.className = "command-line-prompt";
+    this.promptElement.setAttribute("aria-hidden", "true");
+    this.view = new LineView(document);
+    this.count = document.createElement("span");
+    this.count.className = "command-line-count";
+    this.count.setAttribute("aria-live", "polite");
+    this.element.append(this.promptElement, this.view.element, this.count);
   }
 
   get isOpen(): boolean {
@@ -34,36 +41,41 @@ export class CommandLine {
     return this.promptElement.textContent ?? "";
   }
 
-  open(prompt: PromptSymbol, submit: Submit, closed: Closed | null = null): void {
+  open(prompt: PromptSymbol, submit: Submit, options: PromptOptions = {}): void {
     this.submit = submit;
-    this.closed = closed;
+    this.closed = options.closed ?? null;
+    this.counter = options.counter ?? null;
     this.promptElement.textContent = prompt;
-    this.replaceText("");
+    this.line.replace("");
+    this.show();
     this.element.hidden = false;
   }
 
   press(token: string): void {
     if (token === "<CR>") this.accept();
     else if (token === "<Esc>") this.close();
-    else if (token === "<BS>") this.deleteBackward();
-    else if (token === "<C-u>") this.replaceText("");
-    else if (this.notation.isPrintable(token)) this.replaceText(this.text + token);
-  }
-
-  private accept(): void {
-    const submit = this.submit;
-    const text = this.text;
-    this.close();
-    submit?.(text);
-  }
-
-  private deleteBackward(): void {
-    if (this.text === "") this.close();
-    else this.replaceText(this.text.slice(0, -1));
+    else if (this.closesOnDelete(token)) this.close();
+    else if (this.line.press(token)) this.show();
   }
 
   cancel(): void {
     if (this.isOpen) this.close();
+  }
+
+  private show(): void {
+    this.view.show(this.line);
+    this.count.textContent = this.counter && this.line.text ? this.counter(this.line.text) : "";
+  }
+
+  private closesOnDelete(token: string): boolean {
+    return (token === "<BS>" || token === "<C-h>") && this.line.text === "";
+  }
+
+  private accept(): void {
+    const submit = this.submit;
+    const text = this.line.text;
+    this.close();
+    submit?.(text);
   }
 
   private close(): void {
@@ -72,17 +84,5 @@ export class CommandLine {
     this.closed = null;
     this.element.hidden = true;
     closed?.();
-  }
-
-  private replaceText(text: string): void {
-    this.text = text;
-    this.textElement.textContent = text;
-  }
-
-  private appendSpan(document: Document, className: string): HTMLElement {
-    const span = document.createElement("span");
-    span.className = className;
-    this.element.append(span);
-    return span;
   }
 }
