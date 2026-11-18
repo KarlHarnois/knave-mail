@@ -59,11 +59,7 @@ export class KnaveMail {
   }
 
   private mount(): void {
-    const root = this.services.document.createElement("div");
-    root.className = "app";
-    this.services.status.holdCommandLine(this.services.commandLine.element);
-    root.append(this.stage, this.services.palette.element, this.services.status.element);
-    this.services.document.body.append(root);
+    this.factory.mount(this.stage);
     this.app.focusScreen();
   }
 
@@ -109,6 +105,7 @@ export class KnaveMail {
       status: this.services.status,
       commandLine: this.services.commandLine,
       palette: this.services.palette,
+      whichKey: this.factory.whichKey,
       keys: new AppKeyMaps().create(),
       navigator: this.navigator,
       errors: this.services.errors,

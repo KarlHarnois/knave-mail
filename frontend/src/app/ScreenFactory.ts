@@ -1,6 +1,7 @@
 import { DarkReaderWarmup } from "../darkmail/DarkReaderWarmup";
 import { MailDarkening } from "../darkmail/MailDarkening";
 import { HelpScreen } from "../help/HelpScreen";
+import { WhichKeyPopup } from "../keys/WhichKeyPopup";
 import { LabelPickerScreen } from "../labels/LabelPickerScreen";
 import type { LabelRef } from "../mail/LabelDirectory";
 import { TestDriver } from "../testing/TestDriver";
@@ -12,7 +13,20 @@ import type { ScreenHost } from "./ScreenHost";
 import { ZoomControl } from "./ZoomControl";
 
 export class ScreenFactory {
-  constructor(private readonly services: MailServices) {}
+  readonly whichKey: WhichKeyPopup;
+
+  constructor(private readonly services: MailServices) {
+    this.whichKey = new WhichKeyPopup(services.document.defaultView ?? window);
+  }
+
+  mount(stage: HTMLElement): void {
+    const { document, status, commandLine, palette } = this.services;
+    const root = document.createElement("div");
+    root.className = "app";
+    status.holdCommandLine(commandLine.element);
+    root.append(stage, palette.element, this.whichKey.element, status.element);
+    document.body.append(root);
+  }
 
   testDriver(pressToken: (token: string) => void, startup: Promise<unknown>): TestDriver {
     return new TestDriver({

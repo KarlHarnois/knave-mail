@@ -2,6 +2,7 @@ import type { CommandLine } from "../commands/CommandLine";
 import type { CommandPalette } from "../commands/CommandPalette";
 import type { Action, KeyMode } from "../keys/KeyBindings";
 import type { ModalKeyMap } from "../keys/ModalKeyMap";
+import type { WhichKeyPopup } from "../keys/WhichKeyPopup";
 import type { SharedActions } from "../mail/SharedActions";
 import type { ErrorReporter } from "../status/ErrorReporter";
 import type { StatusLine } from "../status/StatusLine";
@@ -13,6 +14,7 @@ export type AppPorts = {
   status: StatusLine;
   commandLine: CommandLine;
   palette: CommandPalette;
+  whichKey: WhichKeyPopup;
   keys: ModalKeyMap<KeyMode, Action>;
   navigator: Navigator;
   errors: ErrorReporter;
@@ -51,7 +53,9 @@ export class App implements ScreenHost {
 
   refreshStatus(): void {
     this.ports.status.showMode(this.modeName());
-    this.ports.status.showPendingKeys(this.ports.keys.pendingKeys());
+    const pending = this.ports.keys.pendingKeys();
+    this.ports.status.showPendingKeys(pending);
+    this.ports.whichKey.update(pending, this.screen().keyMode);
   }
 
   focusScreen(): void {
