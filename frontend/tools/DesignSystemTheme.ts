@@ -25,6 +25,7 @@ const FONT_TOKEN_FOR_PROPERTY: readonly (readonly [string, string])[] = [
   ["--default-message-font", "font.family.prose"],
   ["--font-size", "font.size.body"],
 ];
+const SEMANTIC_COLOR = /^color\.(?!gray\.)/;
 
 export class DesignSystemTheme {
   private readonly entries: ReadonlyMap<string, GlossaryEntry>;
@@ -34,7 +35,11 @@ export class DesignSystemTheme {
   }
 
   css(): string {
-    const declarations = [...this.fontDeclarations(), ...THEME_NAMES.flatMap((name) => this.colorDeclarations(name))];
+    const declarations = [
+      ...this.fontDeclarations(),
+      ...THEME_NAMES.flatMap((name) => this.colorDeclarations(name)),
+      ...this.semanticColorDeclarations(),
+    ];
     return `:root {\n${declarations.map((declaration) => `  ${declaration};`).join("\n")}\n}\n`;
   }
 
@@ -44,6 +49,12 @@ export class DesignSystemTheme {
 
   private colorDeclarations(themeName: ThemeName): string[] {
     return COLOR_TOKEN_FOR_KEY.map(([key, tokenId]) => `--${themeName}-${key}: ${this.value(tokenId, themeName)}`);
+  }
+
+  private semanticColorDeclarations(): string[] {
+    return [...this.entries.values()]
+      .filter((entry) => SEMANTIC_COLOR.test(entry.id))
+      .map((entry) => `--${entry.id.replaceAll(".", "-")}: light-dark(${entry.values.light}, ${entry.values.dark})`);
   }
 
   private sharedValue(tokenId: string): string {
