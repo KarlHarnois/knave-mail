@@ -25,9 +25,11 @@ export class CommandLine {
     this.element.hidden = true;
     this.promptElement = document.createElement("span");
     this.promptElement.className = "command-line-prompt";
+    this.promptElement.setAttribute("aria-hidden", "true");
     this.view = new LineView(document);
     this.count = document.createElement("span");
     this.count.className = "command-line-count";
+    this.count.setAttribute("aria-live", "polite");
     this.element.append(this.promptElement, this.view.element, this.count);
   }
 

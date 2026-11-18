@@ -16,9 +16,11 @@ export class PalettePrompt {
     this.element.className = "palette-prompt command-line";
     this.symbol = document.createElement("span");
     this.symbol.className = "command-line-prompt";
+    this.symbol.setAttribute("aria-hidden", "true");
     this.view = new LineView(document);
     this.count = document.createElement("span");
     this.count.className = "command-line-count";
+    this.count.setAttribute("aria-live", "polite");
     this.element.append(this.symbol, this.view.element, this.count);
   }
 
