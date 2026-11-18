@@ -95,6 +95,7 @@ describe("command palette", () => {
     const palette = new CommandPalette(document);
     const reported: unknown[] = [];
     const failure = new Error("labels: timed out");
+    let closed = 0;
     palette.open({
       prompt: "label ",
       mode: "LABELS",
@@ -102,10 +103,14 @@ describe("command palette", () => {
       entries: Promise.reject(failure),
       runTyped: () => undefined,
       reportLoadError: (error) => reported.push(error),
+      closed: () => {
+        closed += 1;
+      },
     });
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(palette.isOpen).toBe(false);
     expect(reported).toEqual([failure]);
+    expect(closed).toBe(1);
   });
 
   test("keys typed after a choice made while loading go on to the app", async () => {

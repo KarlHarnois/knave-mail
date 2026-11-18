@@ -17,8 +17,9 @@ export class CommandPalette {
   private matches: readonly PaletteEntry[] = [];
   private selected = 0;
 
-  constructor(private readonly document: Document) {
-    this.element = this.create("div", "palette container container-raised");
+  constructor(document: Document) {
+    this.element = document.createElement("div");
+    this.element.className = "palette container container-raised";
     this.element.dataset["test"] = "palette";
     this.element.hidden = true;
     this.list = new PaletteList(document);
@@ -50,9 +51,11 @@ export class CommandPalette {
   }
 
   close(): void {
+    const request = this.request;
     this.request = null;
     this.loading.cancel();
     this.element.hidden = true;
+    request?.closed?.();
   }
 
   private fill(request: PaletteRequest, entries: readonly PaletteEntry[], keysTyped: readonly string[]): void {
@@ -140,11 +143,5 @@ export class CommandPalette {
     this.selected = Math.min(Math.max(index, 0), Math.max(this.matches.length - 1, 0));
     this.list.show(this.matches, this.selected, this.query().name);
     this.prompt.showCount(this.selected, this.matches.length);
-  }
-
-  private create(tag: string, className: string): HTMLElement {
-    const element = this.document.createElement(tag);
-    element.className = className;
-    return element;
   }
 }

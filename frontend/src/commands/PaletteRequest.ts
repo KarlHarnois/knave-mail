@@ -14,4 +14,5 @@ export type PaletteRequest = {
   readonly runTyped: (text: string) => void;
   readonly reportLoadError?: (error: unknown) => void;
   readonly passKey?: (token: string) => void;
+  readonly closed?: () => void;
 };

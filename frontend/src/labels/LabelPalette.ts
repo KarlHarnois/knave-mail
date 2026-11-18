@@ -13,6 +13,7 @@ export type LabelPalettePorts = {
   status: StatusLine;
   goToLabel: (label: LabelRef) => void;
   passKey: (token: string) => void;
+  closed: () => void;
 };
 
 export class LabelPalette {
@@ -28,6 +29,7 @@ export class LabelPalette {
       runTyped: (text) => this.ports.status.showError(`Pattern not found: ${text}`),
       reportLoadError: (error) => this.ports.errors.report(error),
       passKey: this.ports.passKey,
+      closed: this.ports.closed,
     });
   }
 
