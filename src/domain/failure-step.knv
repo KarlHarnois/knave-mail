@@ -1,0 +1,66 @@
+(use domain/mail-error mail-error)
+
+(use domain/operation-policy longest-backoff-milliseconds
+                             network-failure persistence)
+
+(export backoff-after next-step retryable?
+        step-after-failure)
+
+(def first-backoff-milliseconds 1000)
+
+(defenum next-step
+  (retry-after int)
+  stop)
+
+(defn step-after-failure (attempt policy failure)
+  (let (delay (delay-after attempt failure))
+    (if (and (retryable? policy failure)
+             (attempts-left? (:most-attempts policy) attempt)
+             (worth-the-wait? policy delay))
+      (next-step/retry-after delay)
+      next-step/stop)))
+
+(defn worth-the-wait? (policy delay)
+  (match (:longest-wait policy)
+    ((some longest) (<= delay longest))
+    (none true)))
+
+(defn attempts-left? (most-attempts attempt)
+  (match most-attempts
+    ((some most) (< attempt most))
+    (none true)))
+
+(defn retryable? (policy failure)
+  (match failure
+    ((throttled _) true)
+    ((network _) (retries-network? policy))
+    ((auth-required _) (durable? policy))
+    (_ false)))
+
+(defn retries-network? (policy)
+  (match (:network-failure policy)
+    (retried true)
+    (final false)))
+
+(defn durable? (policy)
+  (match (:persistence policy)
+    (durable true)
+    (transient false)))
+
+(defn delay-after (attempt failure)
+  (match failure
+    ((throttled throttle)
+     (if (pos? (:retry-after-milliseconds throttle))
+       (:retry-after-milliseconds throttle)
+       (backoff-after attempt)))
+    (_ (backoff-after attempt))))
+
+(defn backoff-after (attempt)
+  (let (doubled (doubled-times first-backoff-milliseconds (dec attempt)))
+    (if (> doubled longest-backoff-milliseconds)
+      longest-backoff-milliseconds doubled)))
+
+(defn doubled-times (milliseconds times)
+  (if (<= times 0)
+    milliseconds
+    (recur (* milliseconds 2) (dec times))))

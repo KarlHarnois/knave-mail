@@ -1,8 +1,7 @@
 (use domain/mail-error ->throttling mail-error)
 (use domain/operation operation-kind priority)
-
-(use domain/operation-policy next-step policy-for
-                             step-after-failure)
+(use domain/failure-step next-step step-after-failure)
+(use domain/operation-policy policy-for)
 
 (defn throttled-for (milliseconds)
   (mail-error/throttled (->throttling :message (str "slow down")

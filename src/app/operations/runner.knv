@@ -10,8 +10,10 @@
 (use domain/operation ->operation operation operation-kind
                       operation-result priority)
 
-(use domain/operation-policy next-step policy-for retryable?
-                             step-after-failure)
+(use domain/operation-policy policy-for)
+
+(use domain/failure-step next-step retryable?
+                         step-after-failure)
 
 (use domain/operation-schedule scheduled)
 (use ports/driven/clock clock now-milliseconds)

@@ -3,8 +3,10 @@
 (use domain/mail-error ->throttling mail-error)
 (use domain/operation ->relabel-work operation-kind)
 
-(use domain/operation-policy backoff-after next-step
-                             policy-of step-after-failure)
+(use domain/failure-step backoff-after next-step
+                         step-after-failure)
+
+(use domain/operation-policy policy-of)
 
 (defn network-failure ()
   (mail-error/network (str "connection reset")))
