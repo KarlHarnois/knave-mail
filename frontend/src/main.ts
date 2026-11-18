@@ -1,3 +1,3 @@
 import { KnaveMail } from "./app/KnaveMail";
 
-new KnaveMail(window).start();
+window.addEventListener("load", () => new KnaveMail(window).start(), { once: true });
