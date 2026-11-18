@@ -32,6 +32,9 @@
             packages = [
               knave.packages.${system}.default
               pkgs.cargo
+              pkgs.rustc
+              pkgs.clippy
+              pkgs.rustfmt
               pkgs.pkg-config
               pkgs.bun
               pkgs.xvfb-run
