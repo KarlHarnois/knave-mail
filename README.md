@@ -32,8 +32,6 @@ Press `?` in the window for every key.
 
 Override the defaults in `~/.config/knave-mail/theme.knv` and `keymap.knv`, as in [docs/theme.example.knv](docs/theme.example.knv) and [docs/keymap.example.knv](docs/keymap.example.knv).
 
-The default theme comes from the [design system](https://github.com/KarlHarnois/design-system).
-
 ### CLI
 
 Run `knave-mail help` for the commands. Add `--json` for output that scripts and agents can read.
