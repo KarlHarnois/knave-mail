@@ -29,6 +29,20 @@ describe("label picker", () => {
     expect(PickerHarness.names()).toContain("Receipts");
   });
 
+  test("shows system labels by their readable names", async () => {
+    const app = await AppHarness.started();
+    await app.press("gl");
+    expect(PickerHarness.names()).toContain("Spam");
+    expect(PickerHarness.names()).not.toContain("SPAM");
+  });
+
+  test(":label finds spam by its Gmail id", async () => {
+    const app = await AppHarness.started();
+    await app.press(":label SPAM<CR>");
+    expect(app.core.lastArgsFor("threads")["label"]).toBe("SPAM");
+    expect(app.status("label")).toBe("Spam");
+  });
+
   test("the cursor starts on the label being shown", async () => {
     const app = await AppHarness.started();
     await app.press("gagl");
