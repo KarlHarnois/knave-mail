@@ -29,6 +29,7 @@ export class LabelPickerScreen implements Screen {
     this.element = ports.document.createElement("section");
     this.element.className = "label-picker";
     this.element.dataset["test"] = "label-picker";
+    this.element.setAttribute("role", "listbox");
     this.element.tabIndex = -1;
     this.keys = new CursorKeys({
       rows: this.rows,
@@ -97,6 +98,7 @@ export class LabelPickerScreen implements Screen {
     const row = this.ports.document.createElement("div");
     row.className = "label-row list-item";
     row.dataset["test"] = "label-row";
+    row.setAttribute("role", "option");
     const name = this.ports.document.createElement("span");
     name.className = "label-name";
     name.textContent = choice.label.name;
