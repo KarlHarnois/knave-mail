@@ -1,12 +1,13 @@
+(use domain/freshness freshness)
 (use domain/label-scope label-scope)
 (use adapters/driving/cli/cli-result cli-result)
-(use adapters/driving/cli/command cli-command)
+(use adapters/driving/cli/command cli-command reply-scope)
 
 (use adapters/driving/cli/json-presenter error-json-text
                                          result-json-text)
 
 (use adapters/driving/cli/runner ->cli-request
-                                 run-cli-command!)
+                                 run-cli-command! sending)
 
 (use adapters/driving/cli/text-presenter result-text)
 (use adapters/driving/cli/exit-codes exit-code)
@@ -33,12 +34,13 @@
                                           dry-run)))))
 
 (defn text-of (command)
-  (result-text (ref (unwrap-ok (ran command "" false)))))
+  (result-text (ref (unwrap-ok (ran command "" sending/deliver)))))
 
 (deftest lists-threads-as-aligned-text
   (assert (= (text-of (cli-command/list-threads (label-scope/only (str "INBOX"))
                                                 (str "")
-                                                10 false))
+                                                10
+                                                freshness/cached))
              "t-1                 2023-11-14 22:13  N  Grace                       Subject of t-1")))
 
 (deftest shows-a-thread-as-text
@@ -50,9 +52,11 @@
              "INBOX                   1 unread\nUNREAD                  1 unread")))
 
 (deftest a-dry-run-reply-shows-the-draft-without-sending
-  (assert (= (result-text
-               (ref (unwrap-ok (ran (cli-command/reply (str "m-t-1") false)
-                                    "Sounds good." true))))
+  (assert (= (result-text (ref (unwrap-ok (ran (cli-command/reply
+                                                 (str "m-t-1")
+                                                 reply-scope/sender)
+                                               "Sounds good."
+                                               sending/preview))))
              "To: Grace <grace@example.com>\nCc: \nSubject: Re: Subject of t-1\n\nSounds good.\n\nGrace <grace@example.com> wrote:\n> Body of t-1")))
 
 (deftest sending-delivers-the-body
@@ -65,35 +69,36 @@
                                                        (str "Hi"))
                                                      (str world-account)
                                                      (str "Hello there")
-                                                     false))))
+                                                     sending/deliver))))
     (assert (= (:body (at (remote-sent (ref world)) 0))
                "Hello there"))))
 
 (deftest prints-results-as-versioned-json
-  (assert (= (result-json-text (ref (unwrap-ok
-                                      (ran (cli-command/relabel (str "archive")
-                                                                (addresses (vec "t-1")))
-                                           "" false))))
+  (assert (= (result-json-text (ref (unwrap-ok (ran (cli-command/relabel (str "archive")
+                                                                         (addresses
+                                                                           (vec "t-1")))
+                                                    ""
+                                                    sending/deliver))))
              "{\"result\":{},\"schema\":1}")))
 
 (deftest prints-errors-as-versioned-json
-  (assert (= (error-json-text (ref (unwrap-err
-                                     (ran (cli-command/show-thread (str "t-9")
-                                                                   (str "text"))
-                                          "" false))))
+  (assert (= (error-json-text
+               (ref (unwrap-err (ran (cli-command/show-thread (str "t-9")
+                                                              (str "text"))
+                                     "" sending/deliver))))
              "{\"error\":{\"kind\":\"not-found\",\"message\":\"no thread t-9\"},\"schema\":1}")))
 
 (deftest an-unknown-relabel-is-a-usage-error
   (assert (= (exit-code (ref (unwrap-err
                                (ran (cli-command/relabel (str "explode") (vec))
-                                    "" false))))
+                                    "" sending/deliver))))
              1)))
 
 (deftest a-missing-thread-exits-with-not-found
-  (assert (= (exit-code (ref (unwrap-err (ran (cli-command/show-thread (str
-                                                                         "t-9")
-                                                                       (str "text"))
-                                              "" false))))
+  (assert (= (exit-code (ref (unwrap-err
+                               (ran (cli-command/show-thread (str "t-9")
+                                                             (str "text"))
+                                    "" sending/deliver))))
              2)))
 
 (deftest a-network-failure-exits-with-four
@@ -110,25 +115,26 @@
                                                        (addresses (vec "t-1")))
                                                      (str world-account)
                                                      (str "")
-                                                     false))))
+                                                     sending/deliver))))
     (unwrap-ok (run-cli-command! (mut app)
                                  (ref (->cli-request (cli-command/relabel
                                                        (str "inbox")
                                                        (addresses (vec "t-1")))
                                                      (str world-account)
                                                      (str "")
-                                                     false))))
+                                                     sending/deliver))))
     (assert (= (listed-count! (mut app)
                               (cli-command/list-threads (label-scope/only (str "INBOX"))
                                                         (str "")
                                                         10
-                                                        false))
+                                                        freshness/cached))
                1))))
 
 (defn listed-count! (app command)
-  (match (unwrap-ok
-           (run-cli-command!
-             app
-             (ref (->cli-request command (str world-account) (str "") false))))
+  (match (unwrap-ok (run-cli-command! app
+                                      (ref (->cli-request command
+                                                          (str world-account)
+                                                          (str "")
+                                                          sending/deliver))))
     ((threads-listed summaries) (len summaries))
     (_ 0)))

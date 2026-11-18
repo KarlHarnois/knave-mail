@@ -1,9 +1,10 @@
+(use domain/freshness freshness)
 (use domain/label-scope label-scope)
 (use app/client/mail-writer)
 (use adapters/driving/cli/command cli-command)
 
 (use adapters/driving/cli/runner ->cli-request
-                                 run-cli-command!)
+                                 run-cli-command! sending)
 
 (use adapters/driving/cli/text-presenter result-text)
 (use support/app-steps synced!)
@@ -32,11 +33,12 @@
                                                          fresh)
                                                        (str world-account)
                                                        (str "")
-                                                       false))))))))
+                                                       sending/deliver))))))))
 
 (deftest fresh-lists-threads-the-cache-has-not-seen
-  (assert (contains? (ref (listed-with-a-surfaced-thread true)) "t-0")))
+  (assert (contains? (ref (listed-with-a-surfaced-thread freshness/fresh))
+                     "t-0")))
 
 (deftest without-fresh-the-cache-answers
-  (assert (not (contains? (ref (listed-with-a-surfaced-thread false))
+  (assert (not (contains? (ref (listed-with-a-surfaced-thread freshness/cached))
                           "t-0"))))

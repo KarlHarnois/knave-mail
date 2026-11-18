@@ -2,7 +2,7 @@
 (use adapters/driving/cli/exit-codes exit-code)
 
 (use adapters/driving/cli/runner ->cli-request
-                                 run-cli-command!)
+                                 run-cli-command! sending)
 
 (use domain/mail-error error-message mail-error)
 (use support/app-steps fail-remote! synced!)
@@ -24,7 +24,7 @@
                                                           (vec (str "t-1")))
                                                         (str world-account)
                                                         (str "")
-                                                        false))))
+                                                        sending/deliver))))
       (let (failure (unwrap-err outcome))
         (assert (= (exit-code (ref failure)) 4))
         (assert (= (error-message (ref failure))

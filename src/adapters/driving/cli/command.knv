@@ -7,10 +7,12 @@
                                     value-of values-of)
 
 (use domain/collections one-of?)
+(use domain/freshness freshness)
 (use domain/mail-error mail-error)
 (use domain/results unwrap-ok-or)
 
-(export cli-command cli-command-word? command-from)
+(export cli-command cli-command-word? command-from
+        reply-scope)
 
 (def command-words
   (vec "accounts" "labels" "threads" "search" "send" "reply"
@@ -18,6 +20,10 @@
        "unstar" "read" "unread" "sync" "help"))
 
 (def default-limit 50)
+
+(defenum reply-scope
+  sender
+  everyone)
 
 (defenum cli-command
   list-accounts
@@ -27,10 +33,10 @@
   (list-threads :scope label-scope
                 :query string
                 :limit int
-                :fresh bool)
+                :freshness freshness)
   (show-thread :thread-id string :format string)
   (send :to (vec string) :cc (vec string) :subject string)
-  (reply :message-id string :all bool)
+  (reply :message-id string :scope reply-scope)
   (forward :message-id string :to (vec string))
   (relabel :change string :thread-ids (vec string))
   sync
@@ -57,7 +63,7 @@
                                                  (str "")))))
       ("reply"
        (ok (cli-command/reply :message-id (try (required topic "a message id"))
-                              :all (switch? parsed "--all"))))
+                              :scope (reply-scope-of parsed))))
       ("forward"
        (ok (cli-command/forward :message-id (try (required topic
                                                            "a message id"))
@@ -97,7 +103,15 @@
                             :query query
                             :limit (parsed-limit (value-of parsed "--limit")
                                                  default-limit)
-                            :fresh (switch? parsed "--fresh")))
+                            :freshness (freshness-of parsed)))
+
+(defn reply-scope-of (parsed)
+  (if (switch? parsed "--all")
+    reply-scope/everyone reply-scope/sender))
+
+(defn freshness-of (parsed)
+  (if (switch? parsed "--fresh")
+    freshness/fresh freshness/cached))
 
 (defn relabel-command (parsed word)
   (ok (cli-command/relabel :change word

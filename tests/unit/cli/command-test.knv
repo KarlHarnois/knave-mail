@@ -1,3 +1,4 @@
+(use domain/freshness freshness)
 (use domain/label-scope label-scope)
 
 (use adapters/driving/cli/arguments parse-arguments switch?
@@ -5,7 +6,7 @@
 
 (use adapters/driving/cli/command cli-command
                                   cli-command-word?
-                                  command-from)
+                                  command-from reply-scope)
 
 (use domain/mail-error error-message)
 (use support/sample-mail addresses)
@@ -57,21 +58,23 @@
   (assert (= (command (vec "threads" "list"))
              (cli-command/list-threads (label-scope/only (str "INBOX"))
                                        (str "")
-                                       50 false))))
+                                       50
+                                       freshness/cached))))
 
 (deftest threads-list-reads-its-label-query-and-limit
-  (assert (= (command (vec "threads" "list" "--label"
-                           "STARRED" "--query" "lunch"
-                           "--limit" "5"))
-             (cli-command/list-threads (label-scope/only (str "STARRED"))
-                                       (str "lunch")
-                                       5 false))))
+  (assert
+    (= (command (vec "threads" "list" "--label" "STARRED"
+                     "--query" "lunch" "--limit" "5"))
+       (cli-command/list-threads (label-scope/only (str "STARRED"))
+                                 (str "lunch")
+                                 5 freshness/cached))))
 
 (deftest search-looks-in-all-mail
   (assert (= (command (vec "search" "from:alan"))
              (cli-command/list-threads label-scope/all-mail
                                        (str "from:alan")
-                                       50 false))))
+                                       50
+                                       freshness/cached))))
 
 (deftest threads-show-defaults-to-text
   (assert (= (command (vec "threads" "show" "t-1"))
@@ -90,7 +93,7 @@
 
 (deftest reply-to-everyone
   (assert (= (command (vec "reply" "m-1" "--all"))
-             (cli-command/reply (str "m-1") true))))
+             (cli-command/reply (str "m-1") reply-scope/everyone))))
 
 (deftest forward-names-its-recipients
   (assert (= (command (vec "forward" "m-1" "--to" "c@example.com"))
@@ -123,4 +126,5 @@
   (assert (= (command (vec "threads" "list" "--fresh"))
              (cli-command/list-threads (label-scope/only (str "INBOX"))
                                        (str "")
-                                       50 true))))
+                                       50
+                                       freshness/fresh))))

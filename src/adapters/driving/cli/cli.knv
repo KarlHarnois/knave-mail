@@ -9,7 +9,7 @@
                                          result-json-text)
 
 (use adapters/driving/cli/runner ->cli-request
-                                 run-cli-command!)
+                                 run-cli-command! sending)
 
 (use adapters/driving/cli/text-presenter result-text)
 (use domain/mail-error error-message mail-error)
@@ -34,8 +34,11 @@
                       (ref (->cli-request :command command
                                           :account account
                                           :body body
-                                          :dry-run (switch? parsed
-                                                            "--dry-run"))))))
+                                          :sending (sending-of parsed))))))
+
+(defn sending-of (parsed)
+  (if (switch? parsed "--dry-run")
+    sending/preview sending/deliver))
 
 (defn chosen-account! (client parsed command)
   (match (value-of parsed "--account")

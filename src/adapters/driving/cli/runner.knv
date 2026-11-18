@@ -1,6 +1,6 @@
 (use domain/freshness freshness)
 (use adapters/driving/cli/cli-result cli-result)
-(use adapters/driving/cli/command cli-command)
+(use adapters/driving/cli/command cli-command reply-scope)
 (use adapters/driving/cli/help usage-text)
 (use adapters/driving/cli/label-words change-named)
 
@@ -28,13 +28,17 @@
 
 (use ports/driving/mail-syncer mail-syncer sync-account!)
 
-(export ->cli-request cli-request run-cli-command!)
+(export ->cli-request cli-request run-cli-command! sending)
+
+(defenum sending
+  deliver
+  preview)
 
 (defstruct cli-request
   :command cli-command
   :account string
   :body string
-  :dry-run bool)
+  :sending sending)
 
 (type run-cli-command!
   (where ((client account-book mail-reader mail-writer
@@ -54,12 +58,12 @@
          (ok cli-result/done)))
       (list-labels (ok (cli-result/labels-listed (try (list-labels! client
                                                                     account)))))
-      ((list-threads scope query limit fresh)
+      ((list-threads scope query limit freshness)
        (ok (cli-result/threads-listed
-             (try (threads-for!
+             (try (list-threads!
                     client account
                     (ref (->thread-query (clone scope) (clone query) limit))
-                    (deref fresh))))))
+                    (clone freshness))))))
       ((show-thread thread-id format)
        (ok (cli-result/thread-shown
              (try (open-thread! client (ref (thread-in account thread-id))))
@@ -71,12 +75,10 @@
                                   (clone subject)
                                   (clone (:body request))
                                   none)))
-      ((reply message-id all)
+      ((reply message-id scope)
        (let (drafted (try (draft! client
                                   (ref (message-in account message-id))
-                                  (if (deref all)
-                                    draft-kind/reply-all
-                                    draft-kind/reply))))
+                                  (reply-kind scope))))
          (deliver-or-show! client request
                            (with-written-body drafted (ref (:body request))))))
       ((forward message-id to)
@@ -103,13 +105,18 @@
       (result cli-result mail-error))))
 
 (defn deliver-or-show! (client request written)
-  (if (:dry-run request)
-    (ok (cli-result/draft-shown written))
-    (do
-      (try (send-draft! client
-                        (ref (:account request))
-                        (ref written)))
-      (ok cli-result/done))))
+  (match (:sending request)
+    (preview (ok (cli-result/draft-shown written)))
+    (deliver (do
+               (try (send-draft! client
+                                 (ref (:account request))
+                                 (ref written)))
+               (ok cli-result/done)))))
+
+(defn reply-kind (scope)
+  (match scope
+    (sender draft-kind/reply)
+    (everyone draft-kind/reply-all)))
 
 (type with-written-body
   (fn (draft (ref str)) draft))
@@ -117,18 +124,6 @@
 (defn with-written-body (drafted written)
   (let (body (str written (:body drafted)))
     (assoc drafted :body body)))
-
-(type threads-for!
-  (where ((client mail-reader))
-    (fn ((mut client)
-         (ref str)
-         (ref thread-query)
-         bool)
-      (result (vec thread-summary) mail-error))))
-
-(defn threads-for! (client account query fresh)
-  (list-threads! client account query
-                 (if fresh freshness/fresh freshness/cached)))
 
 (defn message-in (account message-id)
   (->message-ref :account (str account)
