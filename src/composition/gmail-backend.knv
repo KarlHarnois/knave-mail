@@ -92,7 +92,5 @@
 
 (defn chosen-credentials (chosen)
   (if (empty? (:credentials-file chosen))
-    (the (box credentials)
-         (box (->keyring-credentials (str "knave-mail"))))
-    (the (box credentials)
-         (box (->file-credentials (clone (:credentials-file chosen)))))))
+    (credentials/keyring (->keyring-credentials (str "knave-mail")))
+    (credentials/file (->file-credentials (clone (:credentials-file chosen))))))

@@ -1,3 +1,4 @@
+(use ports/driven/credentials credentials)
 (use adapters/driven/file-credentials/credentials ->file-credentials)
 (use ports/driven/credentials save-token!)
 
@@ -25,7 +26,7 @@
 
 (defn signed-in-tokens ()
   (let (path (temporary-path "tokens.json")
-        credentials (->file-credentials (clone path)))
+        credentials (credentials/file (->file-credentials (clone path))))
     (local saving credentials)
     (unwrap-ok (save-token! (mut saving) account "fake-refresh"))
     path))

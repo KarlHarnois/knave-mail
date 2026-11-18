@@ -29,7 +29,7 @@
 (defstruct google-authorizer
   :agent http-agent
   :settings oauth-settings
-  :credentials (box credentials)
+  :credentials credentials
   :browser (box consent-browser))
 
 (type consented-account!

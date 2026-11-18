@@ -1,3 +1,4 @@
+(use ports/driven/credentials credentials)
 (use adapters/driven/file-credentials/credentials ->file-credentials)
 (use adapters/driven/google-oauth/consent-browser consent-browser)
 (use adapters/driven/gmail/http new-agent)
@@ -30,14 +31,14 @@
 (defn authorizer-over (server credentials-path answer)
   (->google-authorizer :agent (new-agent)
                        :settings (settings-over server 5000)
-                       :credentials (box (->file-credentials (str credentials-path)))
+                       :credentials (credentials/file (->file-credentials (str credentials-path)))
                        :browser (box (browser-answering "" answer))))
 
 (defn authorizer-with (server browser wait)
   (->google-authorizer :agent (new-agent)
                        :settings (settings-over server wait)
-                       :credentials (box (->file-credentials (temporary-path
-                                                               "tokens.json")))
+                       :credentials (credentials/file (->file-credentials (temporary-path
+                                                                            "tokens.json")))
                        :browser browser))
 
 (defn settings-over (server wait)
@@ -60,7 +61,7 @@
   (let (server (consent-server)
         path (temporary-path "tokens.json")
         granting (authorizer-over (ref server) (ref path) "code=fake-code")
-        credentials (->file-credentials (clone path)))
+        credentials (credentials/file (->file-credentials (clone path))))
     (unwrap-ok (consented-account! (mut granting)))
     (assert (= (unwrap-ok (load-token (ref credentials) "ada@example.com"))
                (some (str "fake-refresh-token"))))))

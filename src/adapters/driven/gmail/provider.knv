@@ -16,7 +16,7 @@
 
 (defstruct gmail-provider
   :endpoints gmail-endpoints
-  :credentials (box credentials)
+  :credentials credentials
   :log (box event-log))
 
 (impl mailbox-provider gmail-provider
