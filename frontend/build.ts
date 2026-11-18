@@ -44,15 +44,16 @@ class DesignSystemPackage {
   }
 
   async stylesheets(): Promise<string> {
-    const paths = [join(this.directory, "css", "tokens.css"), ...(await this.componentPaths())];
-    const texts = await Promise.all(paths.map((path) => Bun.file(path).text()));
-    return texts.join("\n");
+    const tokens = await Bun.file(join(this.directory, "css", "tokens.css")).text();
+    return tokens + (await this.bundledComponents());
   }
 
-  private async componentPaths(): Promise<string[]> {
-    const components = join(this.directory, "css", "components");
-    const index = await Bun.file(join(components, "index.css")).text();
-    return [...index.matchAll(/@import "([^"]+)";/g)].map(([, file = ""]) => join(components, file));
+  private async bundledComponents(): Promise<string> {
+    const index = join(this.directory, "css", "components", "index.css");
+    const result = await Bun.build({ entrypoints: [index] });
+    const [bundle] = result.outputs;
+    if (!result.success || bundle === undefined) throw new AggregateError(result.logs, `bundling ${index} failed`);
+    return bundle.text();
   }
 
   private packageDirectory(): string {
