@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::rc::Rc;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::thread;
 
@@ -15,12 +16,12 @@ const HEIGHT: f64 = 760.0;
 const EXIT_COMMAND: &str = "\u{1}exit ";
 const ZOOM_COMMAND: &str = "\u{1}zoom ";
 const FOCUS_COMMAND: &str = "\u{1}focus";
-const IN_APP_SCHEMES: [&str; 2] = ["knave:", "about:"];
 
 pub fn open_window(
     title: &str,
     startup_script: &str,
     theme_css: &str,
+    link_request_for: impl Fn(&str) -> Option<String> + 'static,
     worker: impl FnOnce(Receiver<String>, EventLoopProxy<String>) + Send + 'static,
 ) {
     let event_loop = EventLoopBuilder::<String>::with_user_event().build();
@@ -35,6 +36,8 @@ pub fn open_window(
     let theme_css = theme_css.to_string();
     let navigation_sender = sender.clone();
     let new_window_sender = sender.clone();
+    let new_window_links = Rc::new(link_request_for);
+    let navigation_links = Rc::clone(&new_window_links);
     let webview = WebViewBuilder::new()
         .with_custom_protocol("knave".into(), move |_, request| {
             asset_response(&request, &theme_css)
@@ -42,9 +45,9 @@ pub fn open_window(
         .with_clipboard(true)
         .with_initialization_script(startup_script)
         .with_ipc_handler(move |request| drop(sender.send(request.into_body())))
-        .with_navigation_handler(move |url| stays_in_app(&url, &navigation_sender))
+        .with_navigation_handler(move |url| !forwarded(navigation_links(&url), &navigation_sender))
         .with_new_window_req_handler(move |url, _| {
-            hand_link_to_core(&url, &new_window_sender);
+            forwarded(new_window_links(&url), &new_window_sender);
             NewWindowResponse::Deny
         })
         .with_url("knave://localhost/")
@@ -63,17 +66,8 @@ pub fn open_window(
     })
 }
 
-fn stays_in_app(url: &str, sender: &Sender<String>) -> bool {
-    let in_app = IN_APP_SCHEMES.iter().any(|scheme| url.starts_with(scheme));
-    if !in_app {
-        hand_link_to_core(url, sender);
-    }
-    in_app
-}
-
-fn hand_link_to_core(url: &str, sender: &Sender<String>) {
-    let request = serde_json::json!({ "command": "open-link", "args": { "url": url } });
-    drop(sender.send(request.to_string()));
+fn forwarded(request: Option<String>, sender: &Sender<String>) -> bool {
+    request.map(|request| drop(sender.send(request))).is_some()
 }
 
 fn asset_response(request: &Request<Vec<u8>>, theme_css: &str) -> Response<Cow<'static, [u8]>> {

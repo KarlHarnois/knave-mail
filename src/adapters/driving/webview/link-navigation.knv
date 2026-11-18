@@ -1,0 +1,14 @@
+(use adapters/driving/json/envelope open-link-request)
+
+(export link-request-for)
+
+(type link-request-for
+  (fn ((ref str)) (option string)))
+
+(defn link-request-for (url)
+  (if (in-app? url)
+    none
+    (some (open-link-request url))))
+
+(defn in-app? (url)
+  (or (starts-with? url "knave:") (starts-with? url "about:")))

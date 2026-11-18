@@ -1,0 +1,14 @@
+(use adapters/driving/webview/link-navigation link-request-for)
+
+(deftest the-app-page-stays-in-the-window
+  (assert (= (link-request-for "knave://localhost/") none)))
+
+(deftest a-mail-frame-stays-in-the-window
+  (assert (= (link-request-for "about:srcdoc") none)))
+
+(deftest a-web-link-becomes-an-open-link-request
+  (assert (= (link-request-for "https://example.com/a")
+             (some (str "{\"args\":{\"url\":\"https://example.com/a\"},\"command\":\"open-link\"}")))))
+
+(deftest a-mail-link-leaves-the-window-too
+  (assert (some? (link-request-for "mailto:ada@example.com"))))

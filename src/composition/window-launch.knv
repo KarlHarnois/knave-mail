@@ -9,6 +9,7 @@
 (use adapters/driven/threaded-queue share-sender
                                     threaded-operations)
 
+(use adapters/driving/webview/link-navigation link-request-for)
 (use adapters/driving/webview/listing-runner ->inline-listing)
 (use adapters/driving/webview/session serve-requests!)
 (use adapters/driving/webview/start-account-script start-account-script)
@@ -62,23 +63,26 @@
                     (start-account-script (ref (:start-account chosen)))
                     (:e2e-script chosen))
         stylesheet (theme-stylesheet (ref chosen)))
-    (open-window "knave-mail" (ref script) (ref stylesheet)
-      (fn (inbox outbox)
-        (let (owned chosen
-              log (chosen-log (ref owned)))
-          (log-started (ref log) (ref owned) "window")
-          (match claim
-            ((some socket) (forward-launches! socket (ref outbox)))
-            (none (do)))
-          (if (= (:backend owned) memory-backend)
-            (serve-memory-window! (ref owned)
-                                  (ref log)
-                                  (ref inbox)
-                                  (ref outbox))
-            (serve-gmail-window! (ref owned)
-                                 (ref log)
-                                 (ref inbox)
-                                 (ref outbox))))))))
+    (open-window "knave-mail"
+                 (ref script)
+                 (ref stylesheet)
+                 (fn (url) (link-request-for url))
+                 (fn (inbox outbox)
+                   (let (owned chosen
+                         log (chosen-log (ref owned)))
+                     (log-started (ref log) (ref owned) "window")
+                     (match claim
+                       ((some socket) (forward-launches! socket (ref outbox)))
+                       (none (do)))
+                     (if (= (:backend owned) memory-backend)
+                       (serve-memory-window! (ref owned)
+                                             (ref log)
+                                             (ref inbox)
+                                             (ref outbox))
+                       (serve-gmail-window! (ref owned)
+                                            (ref log)
+                                            (ref inbox)
+                                            (ref outbox))))))))
 
 (defn serve-memory-window! (chosen log inbox outbox)
   (local running (memory-app chosen (share-log log)))

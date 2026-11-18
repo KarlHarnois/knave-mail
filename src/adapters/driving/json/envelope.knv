@@ -3,9 +3,9 @@
 (use domain/results ok->option)
 
 (export failure-event failure-reply null-id
-        operation-failed-event queue-event request-arguments
-        request-command request-id success-reply
-        sync-progress-event synced-event)
+        open-link-request operation-failed-event queue-event
+        request-arguments request-command request-id
+        success-reply sync-progress-event synced-event)
 
 (defn request-command (request-text)
   (match (parse-json request-text)
@@ -56,6 +56,10 @@
   (rust "serde_json::json!({{\"event\": \"sync-failed\", \"account\": {0}, \"error\": {{\"kind\": {1}, \"message\": {2}}}}}).to_string()"
     (fn ((ref str) (ref str) (ref str))
       string)))
+
+(def open-link-request
+  (rust "serde_json::json!({{\"command\": \"open-link\", \"args\": {{\"url\": {0}}}}}).to_string()"
+    (fn ((ref str)) string)))
 
 (def queue-event
   (rust "serde_json::json!({{\"event\": \"queue\", \"account\": {0}, \"waiting\": {1}}}).to_string()"

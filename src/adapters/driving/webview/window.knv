@@ -17,10 +17,11 @@
     (fn ((ref reply-outbox) string) unit)))
 
 (def open-window
-  (rust "native::window::open_window({0}, {1}, {2}, {3})"
+  (rust "native::window::open_window({0}, {1}, {2}, {3}, {4})"
     (fn ((ref str)
          (ref str)
          (ref str)
+         (fn ((ref str)) (option string))
          (fn-once (request-inbox reply-outbox) unit))
       unit)))
 
