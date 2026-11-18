@@ -101,8 +101,8 @@ body {
   text-overflow: ellipsis;
 }
 
-.thread-row.chosen {
-  background: var(--component-list-selected-background);
+.thread-row.chosen:not(.selected) {
+  box-shadow: none;
 }
 
 .thread-row.unread .row-from,

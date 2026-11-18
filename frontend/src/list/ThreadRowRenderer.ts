@@ -56,7 +56,7 @@ export class ThreadRowRenderer {
     row.classList.toggle("selected", selected);
     row.classList.toggle("chosen", chosen);
     row.dataset["test"] = this.testTokens(selected, chosen);
-    row.setAttribute("aria-selected", String(selected));
+    row.setAttribute("aria-selected", String(selected || chosen));
   }
 
   private testTokens(selected: boolean, chosen: boolean): string {
