@@ -18,3 +18,17 @@ jobs:
         run: nix develop -c bash -c 'cd frontend && bun install --frozen-lockfile && bun run build'
       - name: Run every check
         run: nix develop -c knave task ci
+
+  knave:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: ./.github/actions/dev-shell
+      - name: Build the frontend
+        run: nix develop -c bash -c 'cd frontend && bun install --frozen-lockfile && bun run build'
+      - name: Check the layout
+        run: nix develop -c knave fmt --check
+      - name: Lint
+        run: nix develop -c knave lint --color never
+      - name: Test
+        run: nix develop -c knave test
