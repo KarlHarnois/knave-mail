@@ -23,6 +23,7 @@ export class LabelPalette {
     const choices = this.ports.labels.all(this.ports.session.account).then((labels) => new LabelChoices().from(labels));
     this.ports.palette.open({
       prompt: "/",
+      label: "Labels",
       mode: "LABELS",
       takesArguments: false,
       entries: choices.then((loaded) => loaded.map((choice) => this.entry(choice))),

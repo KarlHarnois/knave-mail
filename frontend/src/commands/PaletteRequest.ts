@@ -8,6 +8,7 @@ export type PaletteEntry = {
 
 export type PaletteRequest = {
   readonly prompt: string;
+  readonly label: string;
   readonly mode: string;
   readonly takesArguments: boolean;
   readonly entries: readonly PaletteEntry[] | Promise<readonly PaletteEntry[]>;

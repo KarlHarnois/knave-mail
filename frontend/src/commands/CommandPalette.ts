@@ -38,6 +38,7 @@ export class CommandPalette {
   open(request: PaletteRequest): void {
     this.request = request;
     this.prompt.start(request.prompt);
+    this.list.name(request.label);
     this.element.hidden = false;
     this.entries = [];
     this.refresh();

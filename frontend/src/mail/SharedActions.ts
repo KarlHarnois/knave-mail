@@ -77,6 +77,7 @@ export class SharedActions {
     });
     this.ports.palette.open({
       prompt: ":",
+      label: "Commands",
       mode: "COMMAND",
       takesArguments: true,
       entries: entries.all(),

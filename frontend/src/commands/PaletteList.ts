@@ -10,6 +10,10 @@ export class PaletteList {
     this.element.setAttribute("role", "listbox");
   }
 
+  name(label: string): void {
+    this.element.setAttribute("aria-label", label);
+  }
+
   show(entries: readonly PaletteEntry[], selected: number, typed: string): void {
     this.element.replaceChildren(...entries.map((entry, position) => this.row(entry, position === selected, typed)));
     this.element.querySelector('[aria-selected="true"]')?.scrollIntoView?.({ block: "nearest" });

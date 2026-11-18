@@ -8,6 +8,7 @@ class PaletteFixture {
   constructor() {
     this.palette.open({
       prompt: ":",
+      label: "Commands",
       mode: "COMMAND",
       takesArguments: true,
       entries: [this.entry("sync", "R"), this.entry("label", "<name>", true), this.entry("labels", "gl")],
@@ -97,7 +98,8 @@ describe("command palette", () => {
     const failure = new Error("labels: timed out");
     let closed = 0;
     palette.open({
-      prompt: "label ",
+      prompt: "/",
+      label: "Labels",
       mode: "LABELS",
       takesArguments: false,
       entries: Promise.reject(failure),
@@ -118,7 +120,8 @@ describe("command palette", () => {
     const passed: string[] = [];
     const chosen: string[] = [];
     palette.open({
-      prompt: "label ",
+      prompt: "/",
+      label: "Labels",
       mode: "LABELS",
       takesArguments: false,
       entries: Promise.resolve([{ name: "Work", keys: "", takesArgument: false, run: () => chosen.push("Work") }]),
