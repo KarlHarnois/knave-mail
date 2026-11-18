@@ -25,7 +25,7 @@ export class LabelPalette {
       mode: "LABELS",
       takesArguments: false,
       entries: choices.then((loaded) => loaded.map((choice) => this.entry(choice))),
-      runTyped: (text) => this.ports.status.showError(`no label matches ${text}`),
+      runTyped: (text) => this.ports.status.showError(`Pattern not found: ${text}`),
       reportLoadError: (error) => this.ports.errors.report(error),
       passKey: this.ports.passKey,
     });

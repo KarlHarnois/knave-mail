@@ -29,7 +29,7 @@ export class HelpScreen implements Screen {
         rows: rows.cursor,
         viewportHeight: () => this.element.clientHeight,
         askSearch: ports.askSearch,
-        showError: (message) => ports.showError(`help: ${message}`),
+        showError: ports.showError,
         choose: () => undefined,
         close: () => ports.host.back(),
       },

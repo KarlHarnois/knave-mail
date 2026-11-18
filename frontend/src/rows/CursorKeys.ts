@@ -64,7 +64,7 @@ export class CursorKeys {
   }
 
   private search(query: string): void {
-    if (!this.ports.rows.search(query)) this.ports.showError(`no match for ${query}`);
+    if (!this.ports.rows.search(query)) this.ports.showError(`Pattern not found: ${query}`);
   }
 
   private jump(direction: number): void {
