@@ -351,6 +351,8 @@ body {
 }
 
 .help-keys {
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-family: var(--message-font);
   white-space: pre;
 }
