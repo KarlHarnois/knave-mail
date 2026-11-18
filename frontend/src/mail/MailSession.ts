@@ -2,16 +2,12 @@ import type { MailClient, ThreadQuery } from "../bridge/MailClient";
 import type { ThreadSummary } from "../bridge/Protocol";
 import type { ThreadList } from "../list/ThreadList";
 import type { StatusLine } from "../status/StatusLine";
-import { AccountRoster } from "./AccountRoster";
+import { type AccountListener, AccountRoster } from "./AccountRoster";
 import { INBOX, type LabelDirectory, type LabelRef } from "./LabelDirectory";
 import { GMAIL_PAGE, ListingPages, SEARCH_PAGE, THREAD_LIMIT } from "./ListingPages";
 import { LocationStatus } from "./LocationStatus";
 import { PagingGate } from "./PagingGate";
 import type { PendingChanges } from "./PendingChanges";
-
-export { THREAD_LIMIT } from "./ListingPages";
-
-type AccountListener = (account: string) => void;
 
 export type MailSessionPorts = {
   mail: MailClient;
@@ -29,7 +25,6 @@ export class MailSession {
   private navigation = 0;
   private readonly pages = new ListingPages();
   private readonly paging = new PagingGate();
-  private readonly accountListeners: AccountListener[] = [];
   private readonly location: LocationStatus;
 
   constructor(private readonly ports: MailSessionPorts) {
@@ -53,7 +48,7 @@ export class MailSession {
   }
 
   onAccountChange(listener: AccountListener): void {
-    this.accountListeners.push(listener);
+    this.accounts.onChange(listener);
   }
 
   async start(preferredAccount = ""): Promise<void> {
@@ -127,8 +122,6 @@ export class MailSession {
 
   private async enterAccount(index: number): Promise<void> {
     this.accounts.moveTo(index);
-    const account = this.account;
-    for (const listener of this.accountListeners) listener(account);
     await this.goTo(INBOX, "");
   }
 

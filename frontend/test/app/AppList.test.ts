@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { THREAD_LIMIT } from "../../src/mail/MailSession";
+import { THREAD_LIMIT } from "../../src/mail/ListingPages";
 import { AppHarness } from "../support/AppHarness";
 import { MailFixtures } from "../support/MailFixtures";
 

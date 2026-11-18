@@ -1,8 +1,11 @@
 import type { Account } from "../bridge/Protocol";
 
+export type AccountListener = (account: string) => void;
+
 export class AccountRoster {
   private accounts: Account[] = [];
   private currentIndex = 0;
+  private readonly listeners: AccountListener[] = [];
 
   get current(): string {
     const account = this.accounts[this.currentIndex];
@@ -18,8 +21,13 @@ export class AccountRoster {
     this.accounts = accounts;
   }
 
+  onChange(listener: AccountListener): void {
+    this.listeners.push(listener);
+  }
+
   moveTo(index: number): void {
     this.currentIndex = index;
+    for (const listener of this.listeners) listener(this.current);
   }
 
   startIndex(preferred: string): number {
