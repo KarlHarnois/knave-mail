@@ -119,6 +119,7 @@ export class ThreadScreen implements Screen {
       ["toggleTextMode", () => this.messages.withFocused((card) => this.textMode.enter(card))],
       ["loadRemoteImages", () => this.messages.withFocused((card) => card.allowRemoteImages())],
       ["openLink", () => this.linkHints.show(this.messages.linkTargets(), (url) => this.ports.mail.openLink(url))],
+      ["yankLink", () => this.linkHints.show(this.messages.linkTargets(), (url) => this.ports.clipboard.write(url))],
     ];
   }
 

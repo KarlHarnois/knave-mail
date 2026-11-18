@@ -121,6 +121,7 @@ export class KnaveMail {
       actions: this.services.actions,
       errors: this.services.errors,
       logger: this.services.logger,
+      clipboard: this.services.clipboard,
       cards: this.factory.messageCardServices(),
       openDraft: (draft) => this.composeScreen.open(draft),
       neighbourThread: (offset) => this.selectNeighbour(offset),

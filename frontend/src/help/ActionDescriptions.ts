@@ -49,4 +49,5 @@ export const ACTION_DESCRIPTIONS: Readonly<Record<Action, string>> = {
   toggleTextMode: "Open the message in the vim text reader",
   loadRemoteImages: "Load remote images",
   openLink: "Label the links on screen, then type a label to open that link",
+  yankLink: "Label the links on screen, then type a label to yank that link",
 };

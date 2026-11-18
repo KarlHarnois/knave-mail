@@ -52,7 +52,8 @@ export type ThreadAction =
   | "forward"
   | "toggleTextMode"
   | "loadRemoteImages"
-  | "openLink";
+  | "openLink"
+  | "yankLink";
 
 export type Action = ListAction | ThreadAction;
 
@@ -122,4 +123,5 @@ export const THREAD_BINDINGS: ReadonlyArray<readonly [string, ThreadAction]> = [
   ["v", "toggleTextMode"],
   ["i", "loadRemoteImages"],
   ["o", "openLink"],
+  ["O", "yankLink"],
 ];

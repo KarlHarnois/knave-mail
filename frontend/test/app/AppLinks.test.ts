@@ -126,6 +126,13 @@ describe("link hints", () => {
     expect(LinkHarness.openedLinks(app)).toEqual([]);
   });
 
+  test("O and a label yank the link to the system clipboard", async () => {
+    const app = await LinkHarness.opened(LinkHarness.linksTo(3));
+    await app.press("Od");
+    expect(await navigator.clipboard.readText()).toBe("https://example.com/2");
+    expect(LinkHarness.openedLinks(app)).toEqual([]);
+  });
+
   test("mail links get no label", async () => {
     const app = await LinkHarness.opened(
       '<a href="mailto:ada@example.com">Write</a> <a href="https://example.com/">Site</a>',

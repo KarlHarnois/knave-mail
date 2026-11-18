@@ -47,6 +47,7 @@ export class MailServices {
   readonly labels: LabelDirectory;
   readonly session: MailSession;
   readonly sync: SyncMonitor;
+  readonly clipboard: SystemClipboard;
   readonly editors: VimEditorFactory;
   readonly actions: ThreadActions;
   readonly olderMail: OlderMailArchiver;
@@ -71,6 +72,7 @@ export class MailServices {
     this.session = this.createSession();
     this.sync = this.createSyncMonitor();
     this.watchOutbox();
+    this.clipboard = new SystemClipboard(window.navigator, (message) => this.errors.report(message));
     this.editors = this.createEditors();
     this.actions = this.createThreadActions();
     this.olderMail = new OlderMailArchiver({ mail: this.mail, session: this.session, status: this.status });
@@ -139,8 +141,7 @@ export class MailServices {
   private createEditors(): VimEditorFactory {
     const exCommands = new VimExCommands();
     exCommands.install();
-    const clipboard = new SystemClipboard(this.window.navigator, (message) => this.errors.report(message));
-    new VimClipboard(clipboard).install();
+    new VimClipboard(this.clipboard).install();
     const keymap = new VimKeymap();
     keymap.apply(keymap.entriesOf(this.window));
     const prompts = new VimPrompts({ document: this.document, commandLine: this.commandLine, status: this.status });
