@@ -30,8 +30,7 @@ export class ThreadRowRenderer {
     row.className = "thread-row";
     row.dataset["test"] = ROW_TEST_ID;
     this.parts.set(row, {
-      star: this.appendCell(row, "row-star"),
-      from: this.appendCell(row, "row-from table-cell-active"),
+      ...this.appendFrom(row),
       ...this.appendSubject(row),
       date: this.appendCell(row, "row-date table-number"),
     });
@@ -66,6 +65,11 @@ export class ThreadRowRenderer {
 
   private participantsWithCount(summary: ThreadSummary): string {
     return summary.messageCount > 1 ? `${summary.participants} (${summary.messageCount})` : summary.participants;
+  }
+
+  private appendFrom(row: HTMLElement): Pick<RowParts, "star" | "from"> {
+    const cell = this.appendCell(row, "row-from table-cell-active");
+    return { star: this.appendPart(cell, "span", "row-star"), from: this.appendPart(cell, "span", "row-from-text") };
   }
 
   private appendSubject(row: HTMLElement): Pick<RowParts, "archived" | "subject" | "snippet"> {

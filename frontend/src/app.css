@@ -82,16 +82,15 @@ body {
 }
 
 .thread-table {
+  --table-span-1: 1;
+  --table-span-2: calc(var(--columns) - 2);
+  --table-span-3: 1;
+
   display: block;
 }
 
 .thread-table tr {
-  --cell-padding: calc(2 * var(--component-table-cell-padding-inline));
-
-  grid-template-columns: calc(2ch + var(--cell-padding)) minmax(8em, 14em) minmax(0, 1fr) calc(
-      13ch +
-      var(--cell-padding)
-    );
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
   column-gap: var(--gutter);
 }
 
@@ -110,7 +109,7 @@ body {
   will-change: transform;
 }
 
-.thread-row.unread :is(.row-from, .row-subject-text) {
+.thread-row.unread :is(.row-from-text, .row-subject-text) {
   font-weight: var(--font-weight-bold);
 }
 
@@ -131,6 +130,14 @@ body {
 .row-star,
 .thread-star {
   color: var(--star);
+}
+
+.row-star:not(:empty) {
+  margin-right: var(--space-inset);
+}
+
+.thread-row.is-cursor .row-star {
+  color: inherit;
 }
 
 .row-snippet {

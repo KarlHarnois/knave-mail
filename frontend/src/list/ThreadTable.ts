@@ -1,5 +1,4 @@
 const HEADER: readonly (readonly [string, string])[] = [
-  ["", "row-star"],
   ["From", "row-from"],
   ["Subject", "row-subject"],
   ["Date", "row-date table-number"],
