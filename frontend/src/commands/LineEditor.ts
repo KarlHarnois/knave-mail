@@ -52,7 +52,7 @@ export class LineEditor {
       "<C-k>": () => this.delete(() => this.keepBeforeCursor()),
       "<C-a>": () => this.selectAll(),
       "<C-e>": () => this.moveTo(this.value.length),
-      "<Left>": () => this.moveTo(this.position - 1),
+      "<Left>": () => this.moveTo(this.wholeLineSelected ? 0 : this.position - 1),
       "<Right>": () => this.moveTo(this.position + 1),
     };
   }

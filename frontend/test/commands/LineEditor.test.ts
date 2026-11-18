@@ -42,6 +42,10 @@ describe("line editor", () => {
     expect(line.press("h").editor.text).toBe("h");
   });
 
+  test("<Left> after <C-a> goes to the start of the line, like a native input", () => {
+    expect(new EditedLine("label work").press("<C-a>", "<Left>").shown()).toBe("[l]abel work");
+  });
+
   test("any deletion after <C-a> clears the line", () => {
     for (const deletion of ["<C-w>", "<C-u>", "<C-k>", "<C-h>", "<BS>"]) {
       expect(new EditedLine("from:alice bob").press("<C-a>", deletion).editor.text).toBe("");
