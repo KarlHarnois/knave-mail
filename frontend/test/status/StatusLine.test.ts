@@ -40,11 +40,18 @@ describe("StatusLine", () => {
     expect(status.read("notice")).toBe("");
   });
 
-  test("a notice leaves the last error in place", () => {
+  test("a notice replaces the last error, as 0018 has one message at a time", () => {
     status.showError("boom");
     status.showNotice("draft kept");
-    expect(status.read("error")).toBe("boom");
+    expect(status.read("error")).toBe("");
     expect(status.read("notice")).toBe("draft kept");
+  });
+
+  test("the message sits before the pending keys, which come last", () => {
+    status.showNotice("synced");
+    status.showPendingKeys("g");
+    const last = [...status.element.children].slice(-2).map((child) => child.textContent);
+    expect(last).toEqual(["synced", "g"]);
   });
 
   test("shows pending keys", () => {
