@@ -1,3 +1,4 @@
+import type { Counter } from "../commands/CommandLine";
 import { KeyMap } from "../keys/KeyMap";
 import { CURSOR_BINDINGS, type CursorAction } from "./CursorBindings";
 import type { CursorRows } from "./CursorRows";
@@ -5,7 +6,7 @@ import type { CursorRows } from "./CursorRows";
 export type CursorKeysPorts = {
   rows: CursorRows;
   viewportHeight: () => number;
-  askSearch: (submit: (query: string) => void) => void;
+  askSearch: (submit: (query: string) => void, counter: Counter) => void;
   showError: (message: string) => void;
   choose: (index: number) => void;
   close: () => void;
@@ -48,7 +49,14 @@ export class CursorKeys {
 
   private searchHandlers(): [CursorAction, Handler][] {
     return [
-      ["search", () => this.ports.askSearch((query) => this.search(query))],
+      [
+        "search",
+        () =>
+          this.ports.askSearch(
+            (query) => this.search(query),
+            (query) => this.ports.rows.matchCount(query),
+          ),
+      ],
       ["nextMatch", () => this.jump(1)],
       ["previousMatch", () => this.jump(-1)],
       ["escape", () => this.escape()],

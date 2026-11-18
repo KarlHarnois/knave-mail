@@ -1,3 +1,4 @@
+import { MatchCount } from "../commands/MatchCount";
 import { MatchMarks } from "./MatchMarks";
 
 const FALLBACK_PAGE_ROWS = 20;
@@ -57,6 +58,12 @@ export class CursorRows {
     this.query = query.trim().toLowerCase();
     for (const row of this.rows) this.showMatch(row);
     return this.jump(1, 0);
+  }
+
+  matchCount(query: string): string {
+    const lowered = query.trim().toLowerCase();
+    const starts = this.rows.flatMap((row, index) => (row.text.includes(lowered) ? [index] : []));
+    return MatchCount.of(starts, 0).text();
   }
 
   clearSearch(): void {

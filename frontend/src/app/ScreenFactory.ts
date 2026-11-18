@@ -68,7 +68,7 @@ export class ScreenFactory {
     return new HelpScreen({
       document: this.services.document,
       host,
-      askSearch: (submit) => this.services.commandLine.open("/", submit),
+      askSearch: (submit, counter) => this.services.commandLine.open("/", submit, { counter }),
       showError: (message) => this.services.status.showError(message),
     });
   }

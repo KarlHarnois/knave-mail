@@ -1,5 +1,6 @@
 import type { Screen } from "../app/Screen";
 import type { ScreenHost } from "../app/ScreenHost";
+import type { Counter } from "../commands/CommandLine";
 import { CursorKeys } from "../rows/CursorKeys";
 import { HelpContent } from "./HelpContent";
 import { HelpRows } from "./HelpRows";
@@ -7,7 +8,7 @@ import { HelpRows } from "./HelpRows";
 export type HelpScreenPorts = {
   document: Document;
   host: ScreenHost;
-  askSearch: (submit: (query: string) => void) => void;
+  askSearch: (submit: (query: string) => void, counter: Counter) => void;
   showError: (message: string) => void;
 };
 

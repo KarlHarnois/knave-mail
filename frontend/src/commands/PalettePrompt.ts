@@ -1,5 +1,6 @@
 import { LineEditor } from "./LineEditor";
 import { LineView } from "./LineView";
+import { MatchCount } from "./MatchCount";
 
 const DELETE_KEYS: ReadonlySet<string> = new Set(["<BS>", "<C-h>"]);
 
@@ -46,7 +47,6 @@ export class PalettePrompt {
   }
 
   showCount(selected: number, total: number): void {
-    const position = total === 0 ? 0 : selected + 1;
-    this.count.textContent = `${position}/${total}`;
+    this.count.textContent = new MatchCount(total === 0 ? 0 : selected + 1, total).text();
   }
 }
