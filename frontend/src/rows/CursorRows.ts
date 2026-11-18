@@ -62,7 +62,7 @@ export class CursorRows {
 
   matchCount(query: string): string {
     const lowered = query.trim().toLowerCase();
-    const starts = this.rows.flatMap((row, index) => (row.text.includes(lowered) ? [index] : []));
+    const starts = lowered ? this.rows.flatMap((row, index) => (row.text.includes(lowered) ? [index] : [])) : [];
     return MatchCount.of(starts, 0).text();
   }
 
