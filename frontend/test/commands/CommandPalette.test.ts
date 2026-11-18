@@ -90,4 +90,39 @@ describe("command palette", () => {
   test("<BS> on an empty prompt closes the palette", () => {
     expect(new PaletteFixture().press("<BS>").palette.isOpen).toBe(false);
   });
+
+  test("a failed load closes the palette and reports the error", async () => {
+    const palette = new CommandPalette(document);
+    const reported: unknown[] = [];
+    const failure = new Error("labels: timed out");
+    palette.open({
+      prompt: "label ",
+      mode: "LABELS",
+      takesArguments: false,
+      entries: Promise.reject(failure),
+      runTyped: () => undefined,
+      reportLoadError: (error) => reported.push(error),
+    });
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(palette.isOpen).toBe(false);
+    expect(reported).toEqual([failure]);
+  });
+
+  test("keys typed after a choice made while loading go on to the app", async () => {
+    const palette = new CommandPalette(document);
+    const passed: string[] = [];
+    const chosen: string[] = [];
+    palette.open({
+      prompt: "label ",
+      mode: "LABELS",
+      takesArguments: false,
+      entries: Promise.resolve([{ name: "Work", keys: "", takesArgument: false, run: () => chosen.push("Work") }]),
+      runTyped: () => undefined,
+      passKey: (token) => passed.push(token),
+    });
+    for (const token of ["w", "<CR>", "j"]) palette.press(token);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(chosen).toEqual(["Work"]);
+    expect(passed).toEqual(["j"]);
+  });
 });

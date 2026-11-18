@@ -12,4 +12,6 @@ export type PaletteRequest = {
   readonly takesArguments: boolean;
   readonly entries: readonly PaletteEntry[] | Promise<readonly PaletteEntry[]>;
   readonly runTyped: (text: string) => void;
+  readonly reportLoadError?: (error: unknown) => void;
+  readonly passKey?: (token: string) => void;
 };

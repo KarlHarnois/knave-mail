@@ -60,7 +60,7 @@ export class ScreenFactory {
       errors,
       status,
       goToLabel,
-      opened: () => host.refreshStatus(),
+      passKey: (token) => host.press(token),
     });
   }
 

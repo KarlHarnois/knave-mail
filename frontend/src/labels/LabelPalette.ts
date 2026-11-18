@@ -12,7 +12,7 @@ export type LabelPalettePorts = {
   errors: ErrorReporter;
   status: StatusLine;
   goToLabel: (label: LabelRef) => void;
-  opened: () => void;
+  passKey: (token: string) => void;
 };
 
 export class LabelPalette {
@@ -26,6 +26,8 @@ export class LabelPalette {
       takesArguments: false,
       entries: choices.then((loaded) => loaded.map((choice) => this.entry(choice))),
       runTyped: (text) => this.ports.status.showError(`no label matches ${text}`),
+      reportLoadError: (error) => this.ports.errors.report(error),
+      passKey: this.ports.passKey,
     });
   }
 

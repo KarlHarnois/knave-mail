@@ -1,4 +1,5 @@
 import { PaletteList } from "./PaletteList";
+import { PaletteLoading } from "./PaletteLoading";
 import { PalettePrompt } from "./PalettePrompt";
 import { PaletteQuery } from "./PaletteQuery";
 
@@ -12,7 +13,7 @@ export class CommandPalette {
   private readonly prompt: PalettePrompt;
   private request: PaletteRequest | null = null;
   private entries: readonly PaletteEntry[] = [];
-  private keysWhileLoading: string[] | null = null;
+  private readonly loading: PaletteLoading = new PaletteLoading();
   private matches: readonly PaletteEntry[] = [];
   private selected = 0;
 
@@ -39,39 +40,40 @@ export class CommandPalette {
     this.element.hidden = false;
     this.entries = [];
     this.refresh();
-    if (Array.isArray(request.entries)) this.fill(request, request.entries);
-    else this.waitFor(request, request.entries as Promise<readonly PaletteEntry[]>);
-  }
-
-  private waitFor(request: PaletteRequest, entries: Promise<readonly PaletteEntry[]>): void {
-    this.keysWhileLoading = [];
-    entries.then((loaded) => this.fill(request, loaded)).catch(() => this.close());
-  }
-
-  private fill(request: PaletteRequest, entries: readonly PaletteEntry[]): void {
-    if (this.request !== request) return;
-    const waiting = this.keysWhileLoading ?? [];
-    this.keysWhileLoading = null;
-    this.entries = entries;
-    this.refresh(this.currentIndex());
-    for (const token of waiting) this.press(token);
-  }
-
-  private currentIndex(): number {
-    return Math.max(
-      0,
-      this.entries.findIndex((entry) => entry.isCurrent),
-    );
+    if (Array.isArray(request.entries)) this.fill(request, request.entries, []);
+    else
+      this.loading.wait(
+        request.entries as Promise<readonly PaletteEntry[]>,
+        (entries, keysTyped) => this.fill(request, entries, keysTyped),
+        (error) => this.failLoading(request, error),
+      );
   }
 
   close(): void {
     this.request = null;
-    this.keysWhileLoading = null;
+    this.loading.cancel();
     this.element.hidden = true;
   }
 
+  private fill(request: PaletteRequest, entries: readonly PaletteEntry[], keysTyped: readonly string[]): void {
+    if (this.request !== request) return;
+    this.entries = entries;
+    this.refresh(
+      Math.max(
+        0,
+        entries.findIndex((entry) => entry.isCurrent),
+      ),
+    );
+    for (const token of keysTyped) this.isOpen ? this.press(token) : request.passKey?.(token);
+  }
+
+  private failLoading(request: PaletteRequest, error: unknown): void {
+    if (this.request === request) this.close();
+    request.reportLoadError?.(error);
+  }
+
   press(token: string): void {
-    if (this.keysWhileLoading) return void this.keysWhileLoading.push(token);
+    if (this.loading.holds(token)) return;
     const action = this.actions()[token];
     if (action) action();
     else if (this.prompt.isDeletingPastStart(token)) this.close();
