@@ -1,11 +1,35 @@
+(use adapters/driven/threaded-queue ->threaded-queue
+                                    share-sender
+                                    submission-sender
+                                    submitted-to-worker
+                                    threaded-queue)
+
+(use app/operations/inline-queue inline-queue
+                                 submitted-inline!)
+
 (use domain/mail-error mail-error)
 
 (use domain/operation operation-kind operation-result
                       priority)
 
-(export operation-queue)
+(export operation-queue submit! threaded-operations)
 
-(deftrait operation-queue
-  (submit!
-    (fn ((mut self) (ref str) operation-kind priority)
-      (result operation-result mail-error))))
+(defenum operation-queue
+  (inline inline-queue)
+  (threaded threaded-queue))
+
+(type submit!
+  (fn ((mut operation-queue) (ref str) operation-kind priority)
+    (result operation-result mail-error)))
+
+(defn submit! (queue account kind rank)
+  (match queue
+    ((inline held) (submitted-inline! held account kind rank))
+    ((threaded held)
+     (submitted-to-worker held account kind rank))))
+
+(type threaded-operations
+  (fn ((ref submission-sender)) operation-queue))
+
+(defn threaded-operations (executor)
+  (operation-queue/threaded (->threaded-queue :sender (share-sender executor))))

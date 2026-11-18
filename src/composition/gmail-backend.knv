@@ -61,14 +61,13 @@
 
 (type gmail-operations
   (fn ((ref settings) (ref (box event-log)))
-    (box operation-queue)))
+    operation-queue))
 
 (defn gmail-operations (chosen log)
-  (the (box operation-queue)
-       (box (new-inline-queue (gmail-provider-for chosen log)
-                              clock/system
-                              (share-log log)
-                              (some cli-patience-milliseconds)))))
+  (operation-queue/inline (new-inline-queue (gmail-provider-for chosen log)
+                                            clock/system
+                                            (share-log log)
+                                            (some cli-patience-milliseconds))))
 
 (type check-client
   (fn ((ref settings))

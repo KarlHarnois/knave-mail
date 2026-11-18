@@ -1,8 +1,6 @@
 (use adapters/driven/browser/system-browser ->system-browser)
-
-(use adapters/driven/threaded-queue share-sender
-                                    threaded-operations)
-
+(use adapters/driven/threaded-queue share-sender)
+(use ports/driven/operation-queue threaded-operations)
 (use adapters/driving/webview/link-navigation link-request-for)
 (use adapters/driving/webview/listing-runner listing-runner)
 

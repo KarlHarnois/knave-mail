@@ -12,7 +12,7 @@
 
 (defstruct mail-app
   :store (box store)
-  :operations (box operation-queue)
+  :operations operation-queue
   :authorizer authorizer
   :log (box event-log)
   :priority priority

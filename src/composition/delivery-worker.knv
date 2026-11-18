@@ -1,7 +1,7 @@
 (use adapters/driven/threaded-queue share-sender
-                                    submission-sender
-                                    threaded-operations)
+                                    submission-sender)
 
+(use ports/driven/operation-queue threaded-operations)
 (use adapters/driving/webview/change-delivery change-delivery)
 (use adapters/driving/webview/window reply-outbox)
 

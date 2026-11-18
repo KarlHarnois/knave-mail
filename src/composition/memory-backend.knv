@@ -42,7 +42,7 @@
                                      (share-log (ref log))
                                      (some 0))
         app (new-mail-app (box (store-with-accounts))
-                          (the (box operation-queue) (box operations))
+                          (operation-queue/inline operations)
                           (authorizer/memory (->memory-authorizer (vec)))
                           log priority/interactive
                           delivery/deliver-now sync-limit))

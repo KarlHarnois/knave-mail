@@ -3,10 +3,8 @@
 (use domain/operation operation-kind operation-result
                       priority)
 
-(use ports/driven/operation-queue operation-queue)
-
 (export ->threaded-queue answer! reply-sender share-sender
-        submission submission-sender threaded-operations
+        submission submission-sender submitted-to-worker
         threaded-queue)
 
 (deftype submission-sender
@@ -24,15 +22,14 @@
 (defstruct threaded-queue
   :sender submission-sender)
 
-(impl operation-queue threaded-queue
-  (submit! (queue account kind rank)
-    (match (sent-and-awaited (ref (:sender queue)) account kind rank)
-      ((some outcome) outcome)
-      (none (err (mail-error/internal (str "the Gmail worker stopped")))))))
+(type submitted-to-worker
+  (fn ((ref threaded-queue) (ref str) operation-kind priority)
+    (result operation-result mail-error)))
 
-(defn threaded-operations (executor)
-  (the (box operation-queue)
-       (box (->threaded-queue :sender (share-sender executor)))))
+(defn submitted-to-worker (queue account kind rank)
+  (match (sent-and-awaited (ref (:sender queue)) account kind rank)
+    ((some outcome) outcome)
+    (none (err (mail-error/internal (str "the Gmail worker stopped"))))))
 
 (def sent-and-awaited
   (rust "{{ let ({!reply}, {!answer}) = std::sync::mpsc::channel(); {0}.send(crate::adapters::driven::threaded_queue::Submission {{ account: {1}.to_string(), kind: {2}, priority: {3}, reply: {!reply} }}).ok().and_then(|_| {!answer}.recv().ok()) }}"

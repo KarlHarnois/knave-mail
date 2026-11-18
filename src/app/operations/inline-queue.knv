@@ -5,15 +5,18 @@
                            operation-runner retry-plan)
 
 (use domain/mail-error mail-error)
-(use domain/operation operation-result)
+
+(use domain/operation operation-kind operation-result
+                      priority)
+
 (use domain/operation-schedule ->scheduled scheduled)
 (use app/operations/operation-log log-left-queued!)
 (use ports/driven/clock clock now-milliseconds pause!)
 (use ports/driven/event-log event-log)
 (use ports/driven/mailbox-provider mailbox-provider)
-(use ports/driven/operation-queue operation-queue)
 
-(export ->inline-queue inline-queue new-inline-queue)
+(export ->inline-queue inline-queue new-inline-queue
+        submitted-inline!)
 
 (defstruct inline-queue
   :runner operation-runner
@@ -26,12 +29,15 @@
                             :log log)
                   :patience patience))
 
-(impl operation-queue inline-queue
-  (submit! (queue account kind rank)
-    (let (queued (new-operation! (ref (:runner queue)) account kind rank))
-      (run-to-end! (mut (:runner queue))
-                   (:patience queue)
-                   (->scheduled :operation queued :attempt 1 :not-before 0)))))
+(type submitted-inline!
+  (fn ((mut inline-queue) (ref str) operation-kind priority)
+    (result operation-result mail-error)))
+
+(defn submitted-inline! (queue account kind rank)
+  (let (queued (new-operation! (ref (:runner queue)) account kind rank))
+    (run-to-end! (mut (:runner queue))
+                 (:patience queue)
+                 (->scheduled :operation queued :attempt 1 :not-before 0))))
 
 (type run-to-end!
   (fn ((mut operation-runner) (option int) scheduled)
