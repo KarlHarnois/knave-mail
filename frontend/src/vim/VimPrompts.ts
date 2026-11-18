@@ -1,7 +1,7 @@
 import type { CodeMirror } from "@replit/codemirror-vim";
 import type { CommandLine, PromptOptions, PromptSymbol } from "../commands/CommandLine";
-import { MatchCount } from "../commands/MatchCount";
 import type { StatusLine } from "../status/StatusLine";
+import { EditorSearchCount, type SearchDirection } from "./EditorSearchCount";
 
 type DialogCallback = ((text: string) => void) | undefined;
 type DialogEditor = { readonly cm: CodeMirror; readonly refocus: () => void };
@@ -36,14 +36,12 @@ export class VimPrompts {
 
   private optionsFor(editor: DialogEditor, prompt: PromptSymbol): PromptOptions {
     if (prompt === DEFAULT_PROMPT) return { closed: editor.refocus };
-    return { closed: editor.refocus, counter: (text) => this.matchCount(editor.cm, text) };
+    const direction = prompt === "?" ? "backward" : "forward";
+    return { closed: editor.refocus, counter: (text) => this.matchCount(editor.cm, text, direction) };
   }
 
-  private matchCount(cm: CodeMirror, text: string): string {
-    const document = cm.getValue();
-    const starts: number[] = [];
-    for (let at = document.indexOf(text); at !== -1; at = document.indexOf(text, at + 1)) starts.push(at);
-    return MatchCount.of(starts, cm.indexFromPos(cm.getCursor()) + 1).text();
+  private matchCount(cm: CodeMirror, query: string, direction: SearchDirection): string {
+    return new EditorSearchCount(cm.getValue(), cm.indexFromPos(cm.getCursor())).count(query, direction);
   }
 
   private notify(template: HTMLElement): () => void {
