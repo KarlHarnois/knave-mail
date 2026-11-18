@@ -19,7 +19,7 @@ describe(":archive-older", () => {
 
   test("without a date it shows how to use it", async () => {
     const app = await AppHarness.started();
-    await app.press(":archive-older<CR>");
+    await app.press(":archive-older<CR><CR>");
     expect(app.status("error")).toBe("usage: :archive-older <yyyy/mm/dd>");
   });
 });

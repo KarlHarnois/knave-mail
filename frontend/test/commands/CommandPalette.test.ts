@@ -12,7 +12,6 @@ class PaletteFixture {
       takesArguments: true,
       entries: [this.entry("sync", "R"), this.entry("label", "<name>", true), this.entry("labels", "gl")],
       runTyped: (text) => this.ran.push(`typed ${text}`),
-      isCommand: (text) => ["sync", "label", "labels", "q"].includes(text.split(" ")[0] ?? ""),
     });
   }
 
@@ -76,8 +75,16 @@ describe("command palette", () => {
     expect(fixture.ran).toEqual(["typed label work"]);
   });
 
-  test("a typed command name runs as typed even when another entry is selected", () => {
-    expect(new PaletteFixture().press("q", "<CR>").ran).toEqual(["typed q"]);
+  test("an entry named exactly as typed is highlighted first", () => {
+    expect(new PaletteFixture().press(..."label".split("")).selected()).toBe("label");
+  });
+
+  test("<CR> runs the highlighted entry", () => {
+    expect(new PaletteFixture().press(..."labels".split(""), "<CR>").ran).toEqual(["labels"]);
+  });
+
+  test("typed text that matches no entry runs as typed", () => {
+    expect(new PaletteFixture().press("n", "o", "p", "e", "<CR>").ran).toEqual(["typed nope"]);
   });
 
   test("<BS> on an empty prompt closes the palette", () => {

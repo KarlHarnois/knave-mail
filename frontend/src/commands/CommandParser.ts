@@ -23,13 +23,6 @@ export class CommandParser {
     },
   };
 
-  private static readonly plainCommands: ReadonlySet<string> = new Set(["sync", "q", "quit", "labels", "h", "help"]);
-
-  knows(input: string): boolean {
-    const [, name = ""] = COMMAND_SHAPE.exec(input.trim()) ?? [];
-    return name in CommandParser.argumentCommands || CommandParser.plainCommands.has(name);
-  }
-
   parse(input: string): Command {
     const [, name = "", argument = ""] = COMMAND_SHAPE.exec(input.trim()) ?? [];
     return this.commandNamed(name, argument.trim());

@@ -97,7 +97,7 @@ export class CommandPalette {
     const request = this.request;
     const entry = this.matches[this.selected];
     if (request === null) return;
-    if (this.query().hasArgument || entry === undefined || request.isCommand(this.prompt.text)) this.runTyped(request);
+    if (this.query().hasArgument || entry === undefined) this.runTyped(request);
     else if (entry.takesArgument) this.askArgument(entry);
     else this.run(entry);
   }
@@ -118,10 +118,16 @@ export class CommandPalette {
     entry.run();
   }
 
-  private refresh(selected = 0): void {
+  private refresh(selected?: number): void {
     const query = this.query();
     this.matches = this.entries.filter((entry) => query.matches(entry));
-    this.select(selected);
+    this.select(
+      selected ??
+        Math.max(
+          0,
+          this.matches.findIndex((entry) => query.names(entry)),
+        ),
+    );
   }
 
   private query(): PaletteQuery {

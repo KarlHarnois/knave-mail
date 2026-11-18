@@ -26,7 +26,6 @@ export class LabelPalette {
       takesArguments: false,
       entries: choices.then((loaded) => loaded.map((choice) => this.entry(choice))),
       runTyped: (text) => this.ports.status.showError(`no label matches ${text}`),
-      isCommand: () => false,
     });
   }
 

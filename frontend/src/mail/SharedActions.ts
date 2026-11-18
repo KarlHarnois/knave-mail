@@ -1,7 +1,6 @@
 import { CommandEntries } from "../commands/CommandEntries";
 import type { CommandLine } from "../commands/CommandLine";
 import type { CommandPalette } from "../commands/CommandPalette";
-import { CommandParser } from "../commands/CommandParser";
 import { CommandRunner } from "../commands/CommandRunner";
 import type { Action, KeyMode, SharedAction } from "../keys/KeyBindings";
 import type { ErrorReporter } from "../status/ErrorReporter";
@@ -71,7 +70,6 @@ export class SharedActions {
   }
 
   private openPalette(): void {
-    const parser = new CommandParser();
     const entries = new CommandEntries({
       runCommand: (input) => this.commands.run(input),
       pressKeys: this.ports.pressKeys,
@@ -83,7 +81,6 @@ export class SharedActions {
       takesArguments: true,
       entries: entries.all(),
       runTyped: (input) => this.commands.run(input),
-      isCommand: (input) => parser.knows(input),
     });
   }
 

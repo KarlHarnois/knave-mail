@@ -22,6 +22,10 @@ export class PaletteQuery {
     return this.hasArgument ? name === this.name : name.includes(this.name);
   }
 
+  names(entry: PaletteEntry): boolean {
+    return entry.name.toLowerCase() === this.name;
+  }
+
   static withArgumentOf(entry: PaletteEntry): string {
     return entry.name + ARGUMENT_SEPARATOR;
   }
