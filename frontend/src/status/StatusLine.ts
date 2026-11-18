@@ -23,6 +23,7 @@ export class StatusLine {
     this.addFields(document, ["mode", ...LOCATION_FIELDS]);
     this.element.append(this.createFill(document), this.message.element);
     this.addFields(document, ["keys"]);
+    this.fieldElement("keys").setAttribute("aria-live", "polite");
   }
 
   holdCommandLine(commandLine: HTMLElement): void {

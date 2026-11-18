@@ -10,6 +10,7 @@ export class StatusMessage {
     this.element = document.createElement("span");
     this.element.className = "status-bar-segment status-bar-message";
     this.element.dataset["test"] = EMPTY_TEST_ID;
+    this.element.setAttribute("aria-live", "polite");
   }
 
   show(kind: MessageKind, text: string): void {
