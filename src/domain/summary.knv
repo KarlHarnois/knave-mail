@@ -1,5 +1,6 @@
 (use domain/collections as-count)
 (use domain/label-scope label-of label-scope)
+(use domain/labels in-all-mail?)
 
 (use domain/mail ->thread-summary message thread
                  thread-query thread-summary)
@@ -31,7 +32,7 @@
      (any? (iter (:labels summary))
        (fn (held)
          (= (as-str held) (as-str label)))))
-    (none true)))
+    (none (in-all-mail? (ref (:labels summary))))))
 
 (defn newest-first (summaries query)
   (let (sorted (sorted-by-date-descending summaries))

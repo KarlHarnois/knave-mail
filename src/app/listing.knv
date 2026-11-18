@@ -1,7 +1,7 @@
 (use app/activity-log log-first-listed! log-label-restored!)
 (use app/mail-app mail-app)
 (use domain/collections concatenated)
-(use domain/label-scope label-of label-scope)
+(use domain/label-scope label-scope scope-name)
 
 (use domain/listing current-for-listing ids-without-summary
                     in-listed-order outside-scope)
@@ -110,5 +110,5 @@
     (when (not (empty? restored))
       (log-label-restored! (ref (:log app))
                            account
-                           (unwrap-or (label-of scope) (str ""))
+                           (scope-name scope)
                            (ref restored)))))

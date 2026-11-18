@@ -1,4 +1,4 @@
-(export label-of label-scope scope-named)
+(export label-of label-scope scope-name scope-named)
 
 (defenum label-scope
   all-mail
@@ -15,3 +15,8 @@
   (match scope
     (all-mail none)
     ((only label) (some (clone label)))))
+
+(defn scope-name (scope)
+  (match scope
+    (all-mail (str all-mail-name))
+    ((only label) (clone label))))

@@ -15,6 +15,7 @@
 (use support/contracts/summary-contract aligns-cached-thread-labels!
                                         finds-summaries-by-id!
                                         keeps-message-ids!
+                                        leaves-spam-and-trash-out-of-all-mail!
                                         relabels-a-summary-without-its-thread!)
 
 (use support/temporary temporary-path)
@@ -125,3 +126,11 @@
 (deftest sqlite-store-keeps-message-ids
   (let (cache (sqlite))
     (assert (keeps-message-ids! (mut cache)))))
+
+(deftest memory-store-leaves-spam-and-trash-out-of-all-mail
+  (let (cache (empty-memory-store))
+    (assert (leaves-spam-and-trash-out-of-all-mail! (mut cache)))))
+
+(deftest sqlite-store-leaves-spam-and-trash-out-of-all-mail
+  (let (cache (sqlite))
+    (assert (leaves-spam-and-trash-out-of-all-mail! (mut cache)))))

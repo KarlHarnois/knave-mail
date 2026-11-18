@@ -29,7 +29,7 @@
   "SELECT labels FROM summaries WHERE account = ?1 AND id = ?2")
 
 (def select-summaries-in-label
-  "SELECT id, subject, participants, snippet, date, labels, message_count, message_ids FROM summaries WHERE account = ?1 AND (?2 IS NULL OR EXISTS (SELECT 1 FROM json_each(summaries.labels) WHERE value = ?2)) ORDER BY date DESC LIMIT ?3")
+  "SELECT id, subject, participants, snippet, date, labels, message_count, message_ids FROM summaries WHERE account = ?1 AND ((?2 IS NULL AND NOT EXISTS (SELECT 1 FROM json_each(summaries.labels) WHERE value IN ('SPAM', 'TRASH'))) OR EXISTS (SELECT 1 FROM json_each(summaries.labels) WHERE value = ?2)) ORDER BY date DESC LIMIT ?3")
 
 (def upsert-summary
   "INSERT OR REPLACE INTO summaries (account, id, subject, participants, snippet, date, labels, message_count, message_ids) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)")

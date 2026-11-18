@@ -2,6 +2,7 @@
 (use adapters/driven/memory/remote-queries labelled?)
 (use domain/collections appended-once)
 (use domain/label-scope label-of)
+(use domain/labels in-all-mail?)
 
 (use domain/mail ->message-page message-page thread
                  thread-query)
@@ -29,7 +30,7 @@
 (defn in-label? (held label)
   (match label
     ((some name) (labelled? held (as-str name)))
-    (none true)))
+    (none (in-all-mail? (ref (:labels held))))))
 
 (type with-older-messages
   (fn (message-page (ref thread) (option int))

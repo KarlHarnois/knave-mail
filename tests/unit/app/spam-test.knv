@@ -1,0 +1,35 @@
+(use domain/label-scope label-scope)
+(use domain/mail ->thread-query)
+(use ports/driving/mail-reader open-thread!)
+(use support/app-steps ada-thread listed-ids! synced!)
+
+(use support/memory-world app-over remote-with sample-thread
+                          world-account)
+
+(defn remote ()
+  (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100)
+                    (sample-thread "t-2" (vec "SPAM") 200))))
+
+(defn app-holding-spam (world)
+  (let (app (app-over world))
+    (synced! (mut app))
+    (unwrap-ok (open-thread! (mut app)
+                             (ref (ada-thread "t-2"))))
+    app))
+
+(deftest all-mail-leaves-out-cached-spam
+  (let (world (remote)
+        app (app-holding-spam (ref world)))
+    (assert (= (listed-ids!
+                 (mut app)
+                 (ref (->thread-query label-scope/all-mail (str "") 50)))
+               (vec (str "t-1"))))))
+
+(deftest spam-lists-the-cached-spam
+  (let (world (remote)
+        app (app-holding-spam (ref world)))
+    (assert (= (listed-ids! (mut app)
+                            (ref (->thread-query (label-scope/only (str "SPAM"))
+                                                 (str "")
+                                                 50)))
+               (vec (str "t-2"))))))

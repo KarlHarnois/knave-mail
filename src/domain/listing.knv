@@ -1,7 +1,8 @@
 (use domain/collections appended as-count)
-(use domain/label-scope label-of label-scope)
+(use domain/label-scope label-scope)
 (use domain/labels label-id system-label)
 (use domain/mail thread-summary)
+(use domain/summary in-scope?)
 
 (export current-for-listing ids-without-summary
         in-listed-order missing-from-listing outside-scope)
@@ -15,7 +16,7 @@
   (-> (iter summaries)
       (filter (fn (summary)
                 (and (not (inbox-without-message-ids? summary))
-                     (under-scope? summary scope))))
+                     (in-scope? summary scope))))
       (map (fn (summary) (clone summary)))
       collect))
 
@@ -27,18 +28,9 @@
 (defn outside-scope (summaries scope)
   (-> (iter summaries)
       (filter (fn (summary)
-                (not (under-scope? summary scope))))
+                (not (in-scope? summary scope))))
       (map (fn (summary) (clone (:id summary))))
       collect))
-
-(type under-scope?
-  (fn ((ref thread-summary) (ref label-scope))
-    bool))
-
-(defn under-scope? (summary scope)
-  (match (label-of scope)
-    ((some label) (contains? (:labels summary) label))
-    (none true)))
 
 (type inbox-without-message-ids?
   (fn ((ref thread-summary)) bool))

@@ -1,16 +1,18 @@
 (use domain/collections concatenated)
 
 (export ->label-change apply-label-change archive-change
-        inbox-change label-change label-difference label-id
-        label-removal no-change? read-change reversed-change
-        star-change starred? system-label trash-change
-        unread-change unread? unstar-change untrash-change)
+        in-all-mail? inbox-change label-change
+        label-difference label-id label-removal no-change?
+        read-change reversed-change star-change starred?
+        system-label trash-change unread-change unread?
+        unstar-change untrash-change)
 
 (defenum system-label
   inbox
   unread
   starred
   sent
+  spam
   trash)
 
 (defn label-id (label)
@@ -19,7 +21,15 @@
          (unread "UNREAD")
          (starred "STARRED")
          (sent "SENT")
+         (spam "SPAM")
          (trash "TRASH"))))
+
+(type in-all-mail?
+  (fn ((ref (vec string))) bool))
+
+(defn in-all-mail? (labels)
+  (not (or (contains? labels (label-id system-label/spam))
+           (contains? labels (label-id system-label/trash)))))
 
 (defstruct label-change
   :added (vec string)

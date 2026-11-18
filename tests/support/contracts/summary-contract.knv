@@ -11,6 +11,7 @@
 
 (export aligns-cached-thread-labels! finds-summaries-by-id!
         keeps-message-ids!
+        leaves-spam-and-trash-out-of-all-mail!
         relabels-a-summary-without-its-thread!)
 
 (def account "ada@example.com")
@@ -19,12 +20,9 @@
   (->thread-ref :account (str account)
                 :thread-id (str thread-id)))
 
-(defn ids (cache)
+(defn ids (cache scope)
   (-> (iter (unwrap-ok (load-threads cache account
-                                     (ref (->thread-query (label-scope/only (str
-                                                                              "INBOX"))
-                                                          (str "")
-                                                          10)))))
+                                     (ref (->thread-query scope (str "") 10)))))
       (map (fn (summary) (clone (:id summary))))
       collect))
 
@@ -54,7 +52,7 @@
   (unwrap-ok (relabel-stored! cache
                               (ref (thread-of "t-1"))
                               (ref (archive-change))))
-  (empty? (ids cache)))
+  (empty? (ids cache (label-scope/only (str "INBOX")))))
 
 (defn aligns-cached-thread-labels! (cache)
   (unwrap-ok (save-thread! cache account
@@ -78,3 +76,13 @@
                 (clone (:message-ids summary))))
          collect)
      (vec (vec (str "m-t-1")))))
+
+(defn leaves-spam-and-trash-out-of-all-mail! (cache)
+  (unwrap-ok
+    (save-threads!
+      cache account
+      (ref (vec (summarize (ref (sample-thread "t-1" (vec "INBOX") 100)))
+                (summarize (ref (sample-thread "t-2" (vec "SPAM") 200)))
+                (summarize (ref (sample-thread "t-3" (vec "TRASH") 300)))))))
+  (= (ids cache label-scope/all-mail)
+     (vec (str "t-1"))))
