@@ -80,6 +80,28 @@ describe("links in a message", () => {
   });
 });
 
+describe("links in the text reader", () => {
+  const withText = (text: string) => (core: FakeCore) => {
+    core.thread = { ...MailFixtures.thread(1), messages: [MailFixtures.message(0, { text })] };
+  };
+
+  test("gx opens the link under the cursor", async () => {
+    const app = await AppHarness.started(withText("See https://example.com/a. Thanks"));
+    await app.press("l");
+    await app.press("v");
+    await app.press("wgx");
+    expect(LinkHarness.openedLinks(app)).toEqual(["https://example.com/a"]);
+  });
+
+  test("gx away from a link opens nothing", async () => {
+    const app = await AppHarness.started(withText("See https://example.com/a. Thanks"));
+    await app.press("l");
+    await app.press("v");
+    await app.press("gx");
+    expect(LinkHarness.openedLinks(app)).toEqual([]);
+  });
+});
+
 describe("link hints", () => {
   test("o labels each link on screen", async () => {
     const app = await LinkHarness.opened(LinkHarness.linksTo(3));

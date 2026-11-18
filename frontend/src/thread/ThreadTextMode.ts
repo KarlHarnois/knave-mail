@@ -1,5 +1,7 @@
 import type { ScreenHost } from "../app/ScreenHost";
+import type { MailClient } from "../bridge/MailClient";
 import type { VimExHandler } from "../vim/VimExHandler";
+import { VimLinkOpener } from "../vim/VimLinkOpener";
 import type { MessageCard } from "./MessageCard";
 
 const NORMAL = "NORMAL";
@@ -11,7 +13,10 @@ export class ThreadTextMode implements VimExHandler {
   constructor(
     private readonly host: ScreenHost,
     private readonly restoreFocus: () => void,
-  ) {}
+    mail: MailClient,
+  ) {
+    new VimLinkOpener(mail).install();
+  }
 
   get isActive(): boolean {
     return this.card !== null;

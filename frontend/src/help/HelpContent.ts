@@ -10,6 +10,7 @@ const KEY_SEPARATOR = "  ";
 const TEXT_READER_ROWS: HelpRow[] = [
   { keys: "vim motions, v V y", description: "Move, select and yank as in vim" },
   { keys: "y", description: "Yank to the system clipboard" },
+  { keys: "gx", description: "Open the link under the cursor in the browser" },
   { keys: "<Esc> :q", description: "Leave the text reader" },
 ];
 

@@ -36,7 +36,7 @@ export class ThreadScreen implements Screen {
     this.messages = new MessageStack(ports.cards);
     this.pager = new ThreadPager(this.element, this.messages, ports.logger);
     this.element.append(this.header.element, this.messages.element);
-    this.textMode = new ThreadTextMode(ports.host, () => this.focus());
+    this.textMode = new ThreadTextMode(ports.host, () => this.focus(), ports.mail);
     this.linkHints = new LinkHints(document, ports.host);
     this.triage = new ThreadTriage(this.header, ports.actions, () => this.close());
     this.handlers = this.createHandlers();
