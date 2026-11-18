@@ -3,7 +3,7 @@ import { MatchMarks } from "./MatchMarks";
 const FALLBACK_PAGE_ROWS = 20;
 const NO_MATCH = -1;
 
-type CursorRow = { element: HTMLElement; text: string };
+type CursorRow = { element: HTMLElement; searched: readonly HTMLElement[]; text: string };
 
 export class CursorRows {
   private rows: CursorRow[] = [];
@@ -19,8 +19,9 @@ export class CursorRows {
     return this.cursor;
   }
 
-  add(element: HTMLElement, text: string): void {
-    this.rows.push({ element, text: text.toLowerCase() });
+  add(element: HTMLElement, searched: readonly HTMLElement[]): void {
+    const text = searched.map((cell) => cell.textContent ?? "").join(" ");
+    this.rows.push({ element, searched, text: text.toLowerCase() });
   }
 
   clear(): void {
@@ -82,7 +83,7 @@ export class CursorRows {
   private showMatch(row: CursorRow): void {
     const matches = this.matches(row);
     row.element.classList.toggle("row-match", matches);
-    this.marks.show(row.element, matches ? this.query : "");
+    this.marks.show(row.searched, matches ? this.query : "");
   }
 
   private matches(row: CursorRow): boolean {

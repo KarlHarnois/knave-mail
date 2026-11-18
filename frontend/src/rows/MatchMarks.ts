@@ -1,8 +1,8 @@
 const NOT_FOUND = -1;
 
 export class MatchMarks {
-  show(row: HTMLElement, query: string): void {
-    for (const cell of row.children) cell.replaceChildren(...this.segments(cell, query));
+  show(cells: readonly Element[], query: string): void {
+    for (const cell of cells) cell.replaceChildren(...this.segments(cell, query));
   }
 
   private segments(cell: Element, query: string): Node[] {

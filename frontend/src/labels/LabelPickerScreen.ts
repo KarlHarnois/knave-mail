@@ -104,7 +104,7 @@ export class LabelPickerScreen implements Screen {
     unread.className = "label-unread";
     unread.textContent = choice.unread ? String(choice.unread) : "";
     row.append(name, unread);
-    this.rows.add(row, choice.label.name);
+    this.rows.add(row, [name]);
     return row;
   }
 }
