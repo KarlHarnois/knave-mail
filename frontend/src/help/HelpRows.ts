@@ -23,6 +23,7 @@ export class HelpRows {
     block.setAttribute("aria-label", section.title);
     const title = this.document.createElement("h2");
     title.textContent = section.title;
+    title.setAttribute("aria-hidden", "true");
     block.append(title, ...section.rows.map((row) => this.renderRow(row)));
     return block;
   }
