@@ -9,11 +9,12 @@ const KEY_SEPARATOR = "  ";
 
 const TEXT_READER_ROWS: HelpRow[] = [
   { keys: "vim motions, v V y", description: "Move, select and yank as in vim" },
-  { keys: '"+y', description: "Yank to the system clipboard" },
+  { keys: "y", description: "Yank to the system clipboard" },
   { keys: "<Esc> :q", description: "Leave the text reader" },
 ];
 
 const COMPOSER_ROWS: HelpRow[] = [
+  { keys: "y d c p", description: "Yank, delete, change and paste through the system clipboard" },
   { keys: "To: Cc: Subject:", description: "Edit the header lines; separate addresses with commas" },
   { keys: ":w", description: "Keep the draft" },
   { keys: ":x :wq ZZ", description: "Send" },

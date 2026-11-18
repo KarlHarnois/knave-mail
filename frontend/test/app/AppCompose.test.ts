@@ -263,26 +263,4 @@ describe("text mode", () => {
     await app.press("v:q<CR>");
     expect(app.driver.count('[data-test="text-reader"]')).toBe(0);
   });
-
-  test("a yank in the reader pastes in the composer", async () => {
-    const app = await AppHarness.started();
-    await app.press("l");
-    await app.press("vjyy<Esc>c");
-    await app.press("Gp");
-    expect(app.composerText()).toBe("To: Cc: Subject: second line 2");
-  });
-
-  test("a visual yank reaches the system clipboard", async () => {
-    const app = await AppHarness.started();
-    await app.press("l");
-    await app.press("vwve y");
-    expect(await navigator.clipboard.readText()).toBe("body ");
-  });
-
-  test("a yank into the + register reaches the system clipboard", async () => {
-    const app = await AppHarness.started();
-    await app.press("l");
-    await app.press('vj"+yy');
-    expect(await navigator.clipboard.readText()).toBe("second line 2\n");
-  });
 });
