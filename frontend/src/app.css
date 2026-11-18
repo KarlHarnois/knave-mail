@@ -307,7 +307,7 @@ body {
   font: inherit;
 }
 
-.status-bar:has(> .command-line:not([hidden])) > :not(.status-bar-mode, .command-line) {
+.status-bar:has(> .command-line:not([hidden])) > :not(.status-bar-mode, .command-line, .status-bar-message) {
   display: none;
 }
 
