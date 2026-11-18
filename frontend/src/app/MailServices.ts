@@ -29,7 +29,7 @@ import { VimPrompts } from "../vim/VimPrompts";
 
 type StartAccountWindow = Window & { knaveStartAccount?: string };
 
-const ROW_HEIGHT_TOKEN = "--component-list-item-height";
+const ROW_HEIGHT_TOKEN = "--component-table-row-height";
 const OVERSCAN_ROWS = 10;
 
 export class MailServices {

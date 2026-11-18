@@ -1,6 +1,6 @@
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 
-const DESIGN_TOKENS = { "--component-list-item-height": "30px" };
+const DESIGN_TOKENS = { "--component-list-item-height": "30px", "--component-table-row-height": "30px" };
 
 class DomEnvironment {
   static install(): void {

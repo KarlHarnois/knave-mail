@@ -73,10 +73,6 @@ body {
   contain: strict;
 }
 
-.thread-list-spacer {
-  width: 1px;
-}
-
 .thread-list-empty {
   position: absolute;
   inset: 0;
@@ -85,30 +81,36 @@ body {
   color: var(--color-text-secondary);
 }
 
-.thread-row {
+.thread-table {
+  display: block;
+}
+
+.thread-table tr {
+  --cell-padding: calc(2 * var(--component-table-cell-padding-inline));
+
+  grid-template-columns: calc(2ch + var(--cell-padding)) minmax(8em, 14em) minmax(0, 1fr) calc(
+      13ch +
+      var(--cell-padding)
+    );
+  column-gap: var(--gutter);
+}
+
+.table.thread-table tbody {
+  display: block;
+  position: relative;
+}
+
+.thread-table tbody tr {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
-  display: grid;
-  grid-template-columns: 1ch minmax(8em, 14em) auto 1fr auto;
-  column-gap: var(--space-group);
-  white-space: nowrap;
+  height: var(--table-row-height);
   contain: strict;
   will-change: transform;
 }
 
-.thread-row > span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.thread-row.chosen:not(.selected) {
-  box-shadow: none;
-}
-
-.thread-row.unread .row-from,
-.thread-row.unread .row-subject {
+.thread-row.unread :is(.row-from, .row-subject-text) {
   font-weight: var(--font-weight-bold);
 }
 
@@ -132,14 +134,11 @@ body {
 }
 
 .row-snippet {
+  margin-left: var(--space-group);
   color: var(--color-text-secondary);
 }
 
 .row-date {
-  min-width: 13ch;
-  padding-left: var(--space-group);
-  border-left: var(--border-width-default) solid var(--color-border-default);
-  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 

@@ -57,7 +57,6 @@ export class ListViewport {
     const viewport = document.createElement("div");
     viewport.className = "thread-list";
     viewport.dataset["test"] = "thread-list";
-    viewport.setAttribute("role", "listbox");
     viewport.tabIndex = -1;
     viewport.addEventListener("scroll", () => this.followScroll(), { passive: true });
     return viewport;
@@ -69,7 +68,8 @@ export class ListViewport {
   }
 
   private get height(): number {
-    return this.element.clientHeight || this.fallbackHeight;
+    const belowHeader = this.element.clientHeight - this.listWindow.rowHeight;
+    return belowHeader > 0 ? belowHeader : this.fallbackHeight;
   }
 
   private observeResizes(): void {
