@@ -1,4 +1,3 @@
-; Every key is optional; colors are hex.
 (theme :font "Iosevka Aile"
-       :mode "dark"
+       :mode "system"
        (dark :accent "#4493f8"))
