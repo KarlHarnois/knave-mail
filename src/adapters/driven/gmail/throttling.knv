@@ -37,11 +37,13 @@
 
 (defn retry-wait-in (gmail-message now)
   (match (utc-milliseconds-after gmail-message retry-marker)
-    ((some retry-at)
-     (some (if (> retry-at now) (- retry-at now) 0)))
-    (none (if (contains? gmail-message per-minute-marker)
-            (some (until-next-minute now))
-            none))))
+    ((some retry-at) (some (max 0 (- retry-at now))))
+    (none (per-minute-wait gmail-message now))))
+
+(defn per-minute-wait (gmail-message now)
+  (if (contains? gmail-message per-minute-marker)
+    (some (until-next-minute now))
+    none))
 
 (defn until-next-minute (now)
   (+ (- milliseconds-per-minute

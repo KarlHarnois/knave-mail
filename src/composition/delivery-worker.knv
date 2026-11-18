@@ -13,25 +13,15 @@
 
 (use app/mail-app delivery mail-app)
 (use composition/gmail-backend gmail-app)
+(use composition/delivery-rounds delivered-all!)
 (use composition/logging chosen-log)
 (use composition/settings settings-from)
 (use domain/mail-error error-message)
 (use app/operations/batch-log log-batch-delivered!)
-
-(use composition/delivery-events count-waiting!
-                                 report-refusal!)
-
-(use domain/delivery-tally counted-delivery delivery-count)
 (use domain/operation priority)
-(use domain/collections appended-once)
-
-(use domain/queued-relabel delivery-finished? delivery-step
-                           step-account)
 
 (use ports/driven/event-log event-log log-info log-warn
                             share-log)
-
-(use ports/driving/mail-labeler deliver-next-change!)
 
 (export ->background-delivery background-delivery
         start-delivery-worker)
@@ -83,56 +73,3 @@
                         (ref (delivered-all! app outbox log (vec))))
   (when (woken? wakeups retry-milliseconds)
     (recur app wakeups outbox log)))
-
-(type delivered-all!
-  (fn ((mut mail-app)
-       (ref reply-outbox)
-       (ref (box event-log))
-       (vec delivery-count))
-    (vec delivery-count)))
-
-(defn delivered-all! (app outbox log counts)
-  (match (deliver-next-change! app)
-    ((ok steps)
-     (let (tallied (reported-steps! app outbox (ref steps) counts))
-       (if (delivery-finished? (ref steps))
-         tallied
-         (recur app outbox log tallied))))
-    ((err failure)
-     (do
-       (log-warn log "delivery"
-                 (str "could not read queued changes: "
-                      (error-message (ref failure))))
-       counts))))
-
-(type reported-steps!
-  (fn ((ref mail-app)
-       (ref reply-outbox)
-       (ref (vec delivery-step))
-       (vec delivery-count))
-    (vec delivery-count)))
-
-(defn reported-steps! (app outbox steps counts)
-  (for-each (iter steps)
-    (fn (step)
-      (match step
-        ((refused refused) (report-refusal! outbox refused))
-        (_ (do)))))
-  (for-each (iter (accounts-of steps))
-    (fn (account)
-      (count-waiting! app outbox (as-str account))))
-  (reduce (iter steps) counts
-    (fn (tally step)
-      (match step
-        ((delivered row)
-         (counted-delivery tally (as-str (:account row))))
-        (_ tally)))))
-
-(type accounts-of
-  (fn ((ref (vec delivery-step)))
-    (vec string)))
-
-(defn accounts-of (steps)
-  (reduce (iter steps) (vec)
-    (fn (accounts step)
-      (appended-once accounts (step-account step)))))

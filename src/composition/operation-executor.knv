@@ -49,23 +49,41 @@
   (let-match ((pair queued answers) (with-arrivals!
                                       runner inbox waiting
                                       replies))
-    (let (now (now-milliseconds (ref (:clock runner))))
-      (match (next-ready (ref queued) now)
-        ((some index)
-         (let-match ((pair left unanswered) (attempted!
-                                              runner queued
-                                              answers index
-                                              now))
-           (recur runner inbox left unanswered)))
-        (none (match (next-arrival inbox (wait-until-due (ref queued) now))
-                ((some (some arrival))
-                 (let-match ((pair more more-answers) (admitted! runner
-                                                                 arrival
-                                                                 queued
-                                                                 answers))
-                   (recur runner inbox more more-answers)))
-                ((some none) (recur runner inbox queued answers))
-                (none (do))))))))
+    (match (executor-step! runner inbox queued answers)
+      ((some (pair left unanswered))
+       (recur runner inbox left unanswered))
+      (none (do)))))
+
+(type executor-step!
+  (fn ((mut operation-runner)
+       (ref submission-inbox)
+       (vec scheduled)
+       (vec (pair int submission)))
+    (option (pair (vec scheduled)
+                  (vec (pair int submission))))))
+
+(defn executor-step! (runner inbox queued answers)
+  (let (now (now-milliseconds (ref (:clock runner))))
+    (match (next-ready (ref queued) now)
+      ((some index)
+       (some (attempted! runner queued answers index now)))
+      (none (after-waiting! runner inbox queued answers now)))))
+
+(type after-waiting!
+  (fn ((mut operation-runner)
+       (ref submission-inbox)
+       (vec scheduled)
+       (vec (pair int submission))
+       int)
+    (option (pair (vec scheduled)
+                  (vec (pair int submission))))))
+
+(defn after-waiting! (runner inbox queued answers now)
+  (match (next-arrival inbox (wait-until-due (ref queued) now))
+    ((some (some arrival))
+     (some (admitted! runner arrival queued answers)))
+    ((some none) (some (pair queued answers)))
+    (none none)))
 
 (type with-arrivals!
   (fn ((mut operation-runner)

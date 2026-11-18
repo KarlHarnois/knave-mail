@@ -48,12 +48,15 @@
 (defn launch-window (chosen)
   (if (= (:backend chosen) memory-backend)
     (opened-window chosen none)
-    (match (claimed-window (as-str (:cache-path chosen)))
-      ((claimed socket) (opened-window chosen (some socket)))
-      (another-window-open (log-info (ref (chosen-log (ref chosen)))
-                                     "app"
-                                     (str "a window is already open, so it came forward instead")))
-      (unguarded (opened-window chosen none)))))
+    (guarded-window chosen)))
+
+(defn guarded-window (chosen)
+  (match (claimed-window (as-str (:cache-path chosen)))
+    ((claimed socket) (opened-window chosen (some socket)))
+    (another-window-open (log-info (ref (chosen-log (ref chosen)))
+                                   "app"
+                                   (str "a window is already open, so it came forward instead")))
+    (unguarded (opened-window chosen none))))
 
 (type opened-window
   (fn (settings (option window-socket)) unit))

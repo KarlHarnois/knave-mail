@@ -1,0 +1,90 @@
+(use app/client/mail-labeler)
+(use adapters/driving/webview/window reply-outbox)
+(use app/mail-app mail-app)
+
+(use composition/delivery-events count-waiting!
+                                 report-refusal!)
+
+(use domain/collections appended-once)
+(use domain/delivery-tally counted-delivery delivery-count)
+(use domain/mail-error error-message)
+
+(use domain/queued-relabel delivery-finished? delivery-step
+                           step-account)
+
+(use ports/driven/event-log event-log log-warn)
+(use ports/driving/mail-labeler deliver-next-change!)
+
+(export delivered-all!)
+
+(type delivered-all!
+  (fn ((mut mail-app)
+       (ref reply-outbox)
+       (ref (box event-log))
+       (vec delivery-count))
+    (vec delivery-count)))
+
+(defn delivered-all! (app outbox log counts)
+  (match (delivery-round! app outbox log counts)
+    ((more tallied) (recur app outbox log tallied))
+    ((finished tallied) tallied)))
+
+(defenum delivery-round
+  (more (vec delivery-count))
+  (finished (vec delivery-count)))
+
+(type delivery-round!
+  (fn ((mut mail-app)
+       (ref reply-outbox)
+       (ref (box event-log))
+       (vec delivery-count))
+    delivery-round))
+
+(defn delivery-round! (app outbox log counts)
+  (match (deliver-next-change! app)
+    ((ok steps)
+     (round-after (ref steps)
+                  (reported-steps! app outbox (ref steps) counts)))
+    ((err failure)
+     (do
+       (log-warn log "delivery"
+                 (str "could not read queued changes: "
+                      (error-message (ref failure))))
+       (delivery-round/finished counts)))))
+
+(defn round-after (steps tallied)
+  (if (delivery-finished? steps)
+    (delivery-round/finished tallied)
+    (delivery-round/more tallied)))
+
+(type reported-steps!
+  (fn ((ref mail-app)
+       (ref reply-outbox)
+       (ref (vec delivery-step))
+       (vec delivery-count))
+    (vec delivery-count)))
+
+(defn reported-steps! (app outbox steps counts)
+  (for-each (iter steps)
+    (fn (step)
+      (match step
+        ((refused refused) (report-refusal! outbox refused))
+        (_ (do)))))
+  (for-each (iter (accounts-of steps))
+    (fn (account)
+      (count-waiting! app outbox (as-str account))))
+  (reduce (iter steps) counts
+    (fn (tally step)
+      (match step
+        ((delivered row)
+         (counted-delivery tally (as-str (:account row))))
+        (_ tally)))))
+
+(type accounts-of
+  (fn ((ref (vec delivery-step)))
+    (vec string)))
+
+(defn accounts-of (steps)
+  (reduce (iter steps) (vec)
+    (fn (accounts step)
+      (appended-once accounts (step-account step)))))

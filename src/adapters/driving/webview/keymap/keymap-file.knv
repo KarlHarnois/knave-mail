@@ -36,17 +36,20 @@
 (defn read-entries (tokens index entries warnings)
   (if (>= (inc index) (len tokens))
     (->keymapped entries warnings)
-    (match (entry-at tokens index)
-      ((ok entry)
-       (recur tokens
-              (+ index entry-width)
-              (appended entries entry)
-              warnings))
-      ((err problem)
-       (recur tokens
-              (next-entry tokens index)
-              entries
-              (appended warnings (str "keymap.knv: " problem)))))))
+    (read-entry tokens index entries warnings)))
+
+(defn read-entry (tokens index entries warnings)
+  (match (entry-at tokens index)
+    ((ok entry)
+     (read-entries tokens
+                   (+ index entry-width)
+                   (appended entries entry)
+                   warnings))
+    ((err problem)
+     (read-entries tokens
+                   (next-entry tokens index)
+                   entries
+                   (appended warnings (str "keymap.knv: " problem))))))
 
 (defn entry-at (tokens index)
   (let (opening (token-at tokens index)

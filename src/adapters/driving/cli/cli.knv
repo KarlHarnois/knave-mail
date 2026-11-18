@@ -43,9 +43,12 @@
 (defn chosen-account! (client parsed command)
   (match (value-of parsed "--account")
     ((some email) (ok email))
-    (none (if (needs-account? command)
-            (first-account! client)
-            (ok (str ""))))))
+    (none (default-account! client command))))
+
+(defn default-account! (client command)
+  (if (needs-account? command)
+    (first-account! client)
+    (ok (str ""))))
 
 (defn first-account! (client)
   (match (first (try (list-accounts! client)))

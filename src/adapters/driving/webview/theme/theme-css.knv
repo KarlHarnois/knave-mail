@@ -7,7 +7,7 @@
                                                  font-size?
                                                  mode?)
 
-(use domain/collections appended one-of?)
+(use domain/collections appended one-of? present)
 
 (export ->themed theme-css themed)
 
@@ -28,19 +28,20 @@
                (vec (str "theme.knv: " problem))))))
 
 (defn declared-css (entries)
-  (loop (index 0
-         declarations (vec)
-         warnings (vec))
-    (if (>= index (len entries))
-      (->themed (root-rule (ref declarations)) warnings)
-      (let (entry (at entries index))
-        (match (declaration entry)
-          ((ok written)
-           (recur (inc index) (appended declarations written) warnings))
-          ((err problem)
-           (recur (inc index)
-                  declarations
-                  (appended warnings (str "theme.knv: " problem)))))))))
+  (let (declared (-> (iter entries) (map declaration) collect)
+        declarations (-> (iter declared) (map written-css) present collect)
+        warnings (-> (iter declared) (map theme-warning) present collect))
+    (->themed (root-rule (ref declarations)) warnings)))
+
+(defn written-css (declared)
+  (match declared
+    ((ok written) (some (clone written)))
+    ((err _) none)))
+
+(defn theme-warning (declared)
+  (match declared
+    ((ok _) none)
+    ((err problem) (some (str "theme.knv: " problem)))))
 
 (defn declaration (entry)
   (let (section (as-str (:section entry))

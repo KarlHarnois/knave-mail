@@ -50,25 +50,36 @@
     (result (vec delivery-step) mail-error)))
 
 (defn one-at-a-time! (app rows index steps)
-  (match (get rows index)
-    ((some row) (delivered-row! app rows index steps row))
-    (none (ok steps))))
+  (match (try (row-round! app (get rows index) steps))
+    ((more taken) (recur app rows (inc index) taken))
+    ((finished taken) (ok taken))))
 
-(type delivered-row!
+(defenum row-round
+  (more (vec delivery-step))
+  (finished (vec delivery-step)))
+
+(type row-round!
   (fn ((mut mail-app)
-       (ref (vec queued-relabel))
-       usize
-       (vec delivery-step)
-       (ref queued-relabel))
-    (result (vec delivery-step) mail-error)))
+       (option (ref queued-relabel))
+       (vec delivery-step))
+    (result row-round mail-error)))
 
-(defn delivered-row! (app rows index steps row)
+(defn row-round! (app row steps)
+  (match row
+    ((some queued) (delivered-round! app queued steps))
+    (none (ok (row-round/finished steps)))))
+
+(type delivered-round!
+  (fn ((mut mail-app)
+       (ref queued-relabel)
+       (vec delivery-step))
+    (result row-round mail-error)))
+
+(defn delivered-round! (app row steps)
   (let (step (try (delivered-or-kept! app (clone row)))
         kept (kept? (ref step))
         taken (appended steps step))
-    (if kept
-      (ok taken)
-      (one-at-a-time! app rows (inc index) taken))))
+    (ok (if kept (row-round/finished taken) (row-round/more taken)))))
 
 (defn kept? (step)
   (match step ((kept _) true) (_ false)))

@@ -21,16 +21,25 @@
 (defn parse-arguments (tokens)
   (loop (index 0
          parsed (->parsed-arguments (vec) (vec) (vec)))
-    (if (>= index (len tokens))
-      parsed
-      (let (token (at tokens index))
-        (cond
-          ((one-of? (as-str token) valued-options)
-           (recur (+ index 2)
-                  (with-option parsed token (value-after tokens index))))
-          ((flag? token)
-           (recur (inc index) (with-switch parsed token)))
-          (else (recur (inc index) (with-positional parsed token))))))))
+    (match (get tokens index)
+      ((some token)
+       (recur (+ index (token-width token))
+              (with-token parsed tokens index)))
+      (none parsed))))
+
+(defn valued? (token)
+  (one-of? (as-str token) valued-options))
+
+(defn token-width (token)
+  (if (valued? token) 2 1))
+
+(defn with-token (parsed tokens index)
+  (let (token (at tokens index))
+    (cond
+      ((valued? token)
+       (with-option parsed token (value-after tokens index)))
+      ((flag? token) (with-switch parsed token))
+      (else (with-positional parsed token)))))
 
 (defn positional (parsed index)
   (if (< index (len (:positionals parsed)))

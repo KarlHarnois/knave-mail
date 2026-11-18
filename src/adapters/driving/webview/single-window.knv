@@ -15,9 +15,12 @@
   (let (path (socket-path-for cache-path))
     (if (asked-open-window-forward? (as-str path))
       window-claim/another-window-open
-      (match (bound-socket (as-str path))
-        ((some socket) (window-claim/claimed socket))
-        (none window-claim/unguarded)))))
+      (bound-claim (as-str path)))))
+
+(defn bound-claim (path)
+  (match (bound-socket path)
+    ((some socket) (window-claim/claimed socket))
+    (none window-claim/unguarded)))
 
 (def socket-path-for
   (rust "native::single_window::socket_path_for({0})"

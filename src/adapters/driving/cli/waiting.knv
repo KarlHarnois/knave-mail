@@ -15,8 +15,11 @@
   (let (waiting (try (waiting-changes client account)))
     (if (pos? waiting)
       (err (mail-error/network (str waiting
-                                    (if (= waiting 1)
-                                      " label change still waits"
-                                      " label changes still wait")
+                                    (still-waiting waiting)
                                     " for Gmail; the window sends them when it next opens")))
       (ok cli-result/done))))
+
+(defn still-waiting (waiting)
+  (if (= waiting 1)
+    " label change still waits"
+    " label changes still wait"))
