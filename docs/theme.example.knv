@@ -1,33 +1,3 @@
-; Copy this file to ~/.config/knave-mail/theme.knv and keep only what you change.
-; :font covers the whole window; :message-font covers message bodies, the text
-; reader and the composer, and falls back to :font, then to a monospace font.
-; :dark-mail "auto" darkens HTML mail when the theme is dark; "off" keeps it as sent.
-; Colors are hex: #rgb, #rrggbb or #rrggbbaa. :html-mail is the canvas behind
-; HTML messages; keep it light, because most HTML mail is written for white.
 (theme :font "Iosevka Aile"
-       :message-font "IosevkaTerm Nerd Font Mono"
-       :font-size 14
        :mode "system"
-       :dark-mail "auto"
-       (light :background "#ffffff"
-              :foreground "#1f2328"
-              :muted "#6e7781"
-              :border "#d8dee4"
-              :selection "#ddf4ff"
-              :cursor "#0969da"
-              :accent "#0969da"
-              :error "#cf222e"
-              :star "#bf8700"
-              :status-bar "#f6f8fa"
-              :html-mail "#ffffff")
-       (dark :background "#0d1117"
-             :foreground "#e6edf3"
-             :muted "#8d96a0"
-             :border "#30363d"
-             :selection "#1f2a3a"
-             :cursor "#4493f8"
-             :accent "#4493f8"
-             :error "#f85149"
-             :star "#d29922"
-             :status-bar "#161b22"
-             :html-mail "#ffffff"))
+       (dark :accent "#4493f8"))

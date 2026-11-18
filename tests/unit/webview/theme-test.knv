@@ -68,7 +68,7 @@
 
 (deftest an-unknown-color-is-skipped-with-a-warning
   (assert (= (warnings-of "(theme (light :link \"#00f\"))")
-             (vec (str "theme.knv: unknown color :link in (light ...)")))))
+             (vec (str "theme.knv: unknown color :link in (light ...); use :background, :foreground, :muted, :border, :selection, :cursor, :accent, :error, :star, :status-bar, :html-mail")))))
 
 (deftest a-value-that-could-break-the-stylesheet-is-rejected
   (assert (= (warnings-of

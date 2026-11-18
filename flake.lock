@@ -15,10 +15,31 @@
         "type": "github"
       }
     },
+    "design-system": {
+      "inputs": {
+        "knave": [
+          "knave"
+        ],
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "lastModified": 1794958768,
+        "narHash": "sha256-1SwkglaIggX28QgEqgIgJuNlvFY9F8UbgG49S78Od1I=",
+        "owner": "KarlHarnois",
+        "repo": "design-system",
+        "rev": "6449bc870da64a5fe42b0825c0095820b068548a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "KarlHarnois",
+        "repo": "design-system",
+        "type": "github"
+      }
+    },
     "knave": {
       "inputs": {
         "crane": "crane",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs_2"
       },
       "locked": {
         "lastModified": 1794933559,
@@ -37,6 +58,22 @@
     },
     "nixpkgs": {
       "locked": {
+        "lastModified": 1794537146,
+        "narHash": "sha256-Wpz/7x/YWnDIBu7yj6ixe8j6fIMsidd9Y+o1PqPF3iM=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "d5cc6833999746cffdfe0598f7bc801a57b887a9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_2": {
+      "locked": {
         "lastModified": 1792503283,
         "narHash": "sha256-vhe2jyvRCgufWPqDuDq1S3t3ypE+ka46IFutV02xKso=",
         "owner": "NixOS",
@@ -53,6 +90,7 @@
     },
     "root": {
       "inputs": {
+        "design-system": "design-system",
         "knave": "knave",
         "nixpkgs": [
           "knave",

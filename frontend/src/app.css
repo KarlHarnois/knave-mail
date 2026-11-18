@@ -1,27 +1,5 @@
 :root {
   color-scheme: light dark;
-  --light-background: #ffffff;
-  --light-foreground: #1f2328;
-  --light-muted: #6e7781;
-  --light-border: #d8dee4;
-  --light-selection: #ddf4ff;
-  --light-cursor: #0969da;
-  --light-accent: #0969da;
-  --light-error: #cf222e;
-  --light-star: #bf8700;
-  --light-status-bar: #f6f8fa;
-  --light-html-mail: #ffffff;
-  --dark-background: #0d1117;
-  --dark-foreground: #e6edf3;
-  --dark-muted: #8d96a0;
-  --dark-border: #30363d;
-  --dark-selection: #1f2a3a;
-  --dark-cursor: #4493f8;
-  --dark-accent: #4493f8;
-  --dark-error: #f85149;
-  --dark-star: #d29922;
-  --dark-status-bar: #161b22;
-  --dark-html-mail: #ffffff;
   --background: light-dark(var(--light-background), var(--dark-background));
   --foreground: light-dark(var(--light-foreground), var(--dark-foreground));
   --muted: light-dark(var(--light-muted), var(--dark-muted));
@@ -33,9 +11,9 @@
   --star: light-dark(var(--light-star), var(--dark-star));
   --status-bar: light-dark(var(--light-status-bar), var(--dark-status-bar));
   --html-mail: light-dark(var(--light-html-mail), var(--dark-html-mail));
-  --font: var(--theme-font, system-ui), system-ui, sans-serif;
-  --message-font: var(--theme-message-font, var(--theme-font, monospace)), monospace;
-  --font-size: 14px;
+  --font: var(--theme-font, var(--default-font)), var(--default-font);
+  --message-font:
+    var(--theme-message-font, var(--theme-font, var(--default-message-font))), var(--default-message-font);
 }
 
 * {
