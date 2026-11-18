@@ -27,7 +27,7 @@ export class ThreadRowRenderer {
 
   create(): HTMLElement {
     const row = this.document.createElement("div");
-    row.className = "thread-row";
+    row.className = "thread-row list-item";
     row.dataset["test"] = ROW_TEST_ID;
     row.setAttribute("role", "option");
     this.parts.set(row, {
@@ -56,7 +56,7 @@ export class ThreadRowRenderer {
     row.classList.toggle("selected", selected);
     row.classList.toggle("chosen", chosen);
     row.dataset["test"] = this.testTokens(selected, chosen);
-    row.setAttribute("aria-selected", String(selected || chosen));
+    row.setAttribute("aria-selected", String(selected));
   }
 
   private testTokens(selected: boolean, chosen: boolean): string {

@@ -26,7 +26,7 @@ export class HelpRows {
 
   private renderRow(row: HelpRow): HTMLElement {
     const element = this.document.createElement("div");
-    element.className = "help-row";
+    element.className = "help-row list-item";
     element.dataset["test"] = "help-row";
     element.append(this.cell("help-keys", row.keys), this.cell("help-description", row.description));
     this.cursor.add(element, `${row.keys} ${row.description}`);

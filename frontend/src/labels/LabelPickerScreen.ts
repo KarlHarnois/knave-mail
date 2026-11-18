@@ -95,7 +95,7 @@ export class LabelPickerScreen implements Screen {
 
   private renderChoice(choice: LabelChoice): HTMLElement {
     const row = this.ports.document.createElement("div");
-    row.className = "label-row";
+    row.className = "label-row list-item";
     row.dataset["test"] = "label-row";
     const name = this.ports.document.createElement("span");
     name.className = "label-name";

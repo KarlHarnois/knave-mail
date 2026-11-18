@@ -14,6 +14,7 @@ import { PendingChanges } from "../mail/PendingChanges";
 import { SyncMonitor } from "../mail/SyncMonitor";
 import { ThreadActions } from "../mail/ThreadActions";
 import { DateLabel } from "../render/DateLabel";
+import { DesignToken } from "../render/DesignToken";
 import { FrameClock } from "../render/FrameClock";
 import { RenderScheduler } from "../render/RenderScheduler";
 import { ErrorReporter } from "../status/ErrorReporter";
@@ -27,7 +28,7 @@ import { VimPrompts } from "../vim/VimPrompts";
 
 type StartAccountWindow = Window & { knaveStartAccount?: string };
 
-const ROW_HEIGHT = 30;
+const ROW_HEIGHT_TOKEN = "--component-list-item-height";
 const OVERSCAN_ROWS = 10;
 
 export class MailServices {
@@ -104,7 +105,7 @@ export class MailServices {
     const rows = new ThreadRowRenderer(this.document, this.dates);
     return new ThreadList({
       document: this.document,
-      listWindow: new ListWindow(ROW_HEIGHT, OVERSCAN_ROWS),
+      listWindow: new ListWindow(new DesignToken(this.window).pixels(ROW_HEIGHT_TOKEN), OVERSCAN_ROWS),
       rows,
       scheduler: this.scheduler,
       trace: (message) => this.logger.info(message),

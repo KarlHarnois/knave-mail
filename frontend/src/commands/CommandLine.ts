@@ -21,9 +21,9 @@ export class CommandLine {
     this.element.className = "command-line";
     this.element.dataset["test"] = "command-line";
     this.element.hidden = true;
-    this.promptElement = this.appendSpan(document, "command-prompt");
-    this.textElement = this.appendSpan(document, "command-text");
-    this.appendSpan(document, "command-cursor");
+    this.promptElement = this.appendSpan(document, "command-line-prompt");
+    this.textElement = this.appendSpan(document, "command-line-text");
+    this.appendSpan(document, "command-line-cursor");
   }
 
   get isOpen(): boolean {

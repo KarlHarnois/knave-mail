@@ -32,7 +32,7 @@ export class MessageCard {
     readonly message: Message,
     private readonly services: MessageCardServices,
   ) {
-    this.element = this.createElement("article", "message");
+    this.element = this.createElement("article", "message container");
     this.element.dataset["test"] = MESSAGE_TEST_ID;
     this.element.dataset["messageId"] = message.id;
     this.element.dataset["expanded"] = "false";
