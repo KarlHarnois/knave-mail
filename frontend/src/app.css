@@ -24,6 +24,8 @@
   --color-surface-document: var(--html-mail);
   --component-list-match-text: var(--accent);
   --component-status-bar-error-background: var(--error);
+  --space-line: round(calc(var(--font-size) * var(--font-line-height-body)), 1px);
+  --space-half-line: calc(var(--space-line) / 2);
 }
 
 * {
