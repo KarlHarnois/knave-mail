@@ -41,7 +41,7 @@
 (type serve-requests!
   (fn ((mut mail-app)
        (ref window-workers)
-       (ref (box event-log))
+       (ref event-log)
        (ref request-inbox)
        (ref reply-outbox))
     unit))
@@ -56,7 +56,7 @@
 (type handle-request!
   (fn ((mut mail-app)
        (ref window-workers)
-       (ref (box event-log))
+       (ref event-log)
        (ref str)
        (ref reply-outbox))
     unit))
@@ -73,7 +73,7 @@
 (type handle-command!
   (fn ((mut mail-app)
        (ref window-workers)
-       (ref (box event-log))
+       (ref event-log)
        (ref str)
        (ref json-value)
        (ref reply-outbox))
@@ -100,7 +100,7 @@
 (type answer-command!
   (fn ((mut mail-app)
        (ref window-workers)
-       (ref (box event-log))
+       (ref event-log)
        (ref str)
        (ref string)
        (ref json-value)

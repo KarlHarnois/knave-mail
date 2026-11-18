@@ -11,7 +11,7 @@
 
 (type open-requested-link!
   (fn ((ref link-opener)
-       (ref (box event-log))
+       (ref event-log)
        (ref json-value))
     unit))
 

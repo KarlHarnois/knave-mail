@@ -102,8 +102,7 @@
 
 (deftest records-a-frontend-log-entry-as-recorded
   (let (log (new-memory-log))
-    (record-frontend-entry! (ref (the (box event-log)
-                                      (box (same-log (ref log)))))
+    (record-frontend-entry! (ref (event-log/memory (same-log (ref log))))
                             (ref (unwrap-ok (parse-json (as-str (recorded "log.request"))))))
     (assert (mentions? (ref (logged-lines (ref log)))
                        "frontend thread-page: throttled: Gmail is rate limiting this account"))))

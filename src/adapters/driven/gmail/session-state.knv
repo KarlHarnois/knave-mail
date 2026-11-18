@@ -18,7 +18,7 @@
   :refresh-token string
   :access-token (option string)
   :quota quota-bucket
-  :log (box event-log))
+  :log event-log)
 
 (type api-url
   (fn ((ref gmail-session) (ref str))

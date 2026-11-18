@@ -30,7 +30,7 @@
 (type answer-relabel!
   (fn ((mut mail-app)
        (ref change-delivery)
-       (ref (box event-log))
+       (ref event-log)
        (ref str)
        (ref str)
        (ref json-value)

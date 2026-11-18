@@ -64,7 +64,7 @@
 
 (type answered-and-logged!
   (fn ((mut mail-app)
-       (ref (box event-log))
+       (ref event-log)
        (ref str)
        (ref str))
     string))

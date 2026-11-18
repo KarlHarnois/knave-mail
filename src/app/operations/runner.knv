@@ -25,7 +25,7 @@
 (defstruct operation-runner
   :mailboxes mailboxes
   :clock clock
-  :log (box event-log))
+  :log event-log)
 
 (defstruct retry-plan
   :delay int

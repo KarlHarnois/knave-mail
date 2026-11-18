@@ -19,7 +19,7 @@
 (type delivered-all!
   (fn ((mut mail-app)
        (ref reply-outbox)
-       (ref (box event-log))
+       (ref event-log)
        (vec delivery-count))
     (vec delivery-count)))
 
@@ -35,7 +35,7 @@
 (type delivery-round!
   (fn ((mut mail-app)
        (ref reply-outbox)
-       (ref (box event-log))
+       (ref event-log)
        (vec delivery-count))
     delivery-round))
 

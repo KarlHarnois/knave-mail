@@ -5,6 +5,5 @@
 (export chosen-log)
 
 (defn chosen-log (chosen)
-  (the (box event-log)
-       (box (open-file-log (ref (:log-path chosen))
-                           (ref (:log-level chosen))))))
+  (event-log/file (open-file-log (ref (:log-path chosen))
+                                 (ref (:log-level chosen)))))

@@ -16,7 +16,7 @@
 (defstruct gmail-provider
   :endpoints gmail-endpoints
   :credentials credentials
-  :log (box event-log))
+  :log event-log)
 
 (type gmail-mailbox-for
   (fn ((ref gmail-provider) (ref str))

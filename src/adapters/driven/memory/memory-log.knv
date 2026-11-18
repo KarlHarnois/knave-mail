@@ -1,10 +1,10 @@
 (use adapters/driven/memory/shared handle share shared
                                    with-shared!)
 
-(use ports/driven/event-log event-log log-entry)
+(use domain/log-entry log-entry)
 
 (export ->memory-log logged-lines memory-log new-memory-log
-        same-log)
+        same-log written-to-memory!)
 
 (defstruct memory-log
   :entries (shared (vec log-entry)))
@@ -12,15 +12,14 @@
 (defn new-memory-log ()
   (->memory-log (share (vec))))
 
-(impl event-log memory-log
-  (record! (log entry)
-    (with-shared! (ref (:entries log))
-      (fn (entries)
-        (push! entries (clone entry)))))
+(type written-to-memory!
+  (fn ((ref memory-log) (ref log-entry))
+    unit))
 
-  (share-log (log)
-    (the (box event-log)
-         (box (same-log log)))))
+(defn written-to-memory! (log entry)
+  (with-shared! (ref (:entries log))
+    (fn (entries)
+      (push! entries (clone entry)))))
 
 (type same-log
   (fn ((ref memory-log)) memory-log))

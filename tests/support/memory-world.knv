@@ -11,7 +11,8 @@
 (use adapters/driven/memory/memory-store empty-memory-store)
 
 (use adapters/driven/memory/memory-log memory-log
-                                       new-memory-log)
+                                       new-memory-log
+                                       same-log)
 
 (use adapters/driven/memory/memory-clock memory-clock
                                          new-memory-clock)
@@ -100,9 +101,9 @@
                     (mailbox-provider/memory (->memory-provider (vec (str world-account))
                                                                 (vec (handle remote))))
                     (clock/memory clock)
-                    (share-log (ref log))
+                    (event-log/memory (same-log (ref log)))
                     (some fake-patience-milliseconds)))
                 (authorizer/memory (->memory-authorizer (vec (->account (str "new@example.com")))))
-                (the (box event-log) (box log))
+                (event-log/memory log)
                 priority/interactive delivery/deliver-now
                 50))

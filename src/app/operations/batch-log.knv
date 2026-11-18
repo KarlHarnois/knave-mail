@@ -39,7 +39,7 @@
                  (join thread-ids " "))))
 
 (type log-batch-delivered!
-  (fn ((ref (box event-log))
+  (fn ((ref event-log)
        (ref str)
        (ref (vec delivery-count)))
     unit))

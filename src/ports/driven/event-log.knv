@@ -1,40 +1,45 @@
-(export ->log-entry event-log log-debug log-entry log-error
-        log-info log-level log-warn severity)
+(use adapters/driven/file-log/file-log file-log
+                                       written-to-file!)
 
-(defenum log-level
-  error
-  warn
-  info
-  debug)
+(use adapters/driven/memory/memory-log memory-log same-log
+                                       written-to-memory!)
 
-(defstruct log-entry
-  :level log-level
-  :area string
-  :message string)
+(use domain/log-entry ->log-entry log-entry log-level)
 
-(deftrait event-log
-  (record!
-    (fn ((ref self) (ref log-entry)) unit))
+(export event-log log-debug log-error log-info log-warn
+        record! share-log)
 
-  (share-log
-    (fn ((ref self)) (box event-log))))
+(defenum event-log
+  (file file-log)
+  (memory memory-log))
 
-(type severity
-  (fn ((ref log-level)) u8))
+(type record!
+  (fn ((ref event-log) (ref log-entry))
+    unit))
 
-(defn severity (level)
-  (match level
-    (log-level/error 0)
-    (log-level/warn 1)
-    (log-level/info 2)
-    (log-level/debug 3)))
+(defn record! (log entry)
+  (match log
+    ((file held) (written-to-file! held entry))
+    ((memory held) (written-to-memory! held entry))))
+
+(type share-log
+  (fn ((ref event-log)) event-log))
+
+(defn share-log (log)
+  (match log
+    ((file held) (event-log/file (clone held)))
+    ((memory held) (event-log/memory (same-log held)))))
+
+(type log-error
+  (fn ((ref event-log) (ref str) string)
+    unit))
 
 (defn log-error (log area message)
   (record! log
            (ref (->log-entry log-level/error (str area) message))))
 
 (type log-warn
-  (fn ((ref (box event-log)) (ref str) string)
+  (fn ((ref event-log) (ref str) string)
     unit))
 
 (defn log-warn (log area message)
@@ -42,7 +47,7 @@
            (ref (->log-entry log-level/warn (str area) message))))
 
 (type log-info
-  (fn ((ref (box event-log)) (ref str) string)
+  (fn ((ref event-log) (ref str) string)
     unit))
 
 (defn log-info (log area message)
@@ -50,7 +55,7 @@
            (ref (->log-entry log-level/info (str area) message))))
 
 (type log-debug
-  (fn ((ref (box event-log)) (ref str) string)
+  (fn ((ref event-log) (ref str) string)
     unit))
 
 (defn log-debug (log area message)

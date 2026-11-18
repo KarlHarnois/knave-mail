@@ -1,5 +1,5 @@
 (use domain/collections first-present present)
-(use ports/driven/event-log log-entry severity)
+(use domain/log-entry log-entry severity)
 
 (export ->level-spec allows? level-spec parse-level-spec)
 

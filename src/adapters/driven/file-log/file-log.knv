@@ -1,9 +1,9 @@
 (use adapters/driven/file-log/level-spec allows? level-spec
                                          parse-level-spec)
 
-(use ports/driven/event-log event-log log-entry log-level)
+(use domain/log-entry log-entry log-level)
 
-(export file-log open-file-log)
+(export file-log open-file-log written-to-file!)
 
 (def rotate-above-bytes 5000000)
 
@@ -21,14 +21,14 @@
   (->file-log :path (str path)
               :levels (parse-level-spec levels)))
 
-(impl event-log file-log
-  (record! (log entry)
-    (when (allows? (ref (:levels log)) entry)
-      (append-line (ref (:path log))
-                   (ref (log-line entry)))))
+(type written-to-file!
+  (fn ((ref file-log) (ref log-entry))
+    unit))
 
-  (share-log (log)
-    (the (box event-log) (box (clone log)))))
+(defn written-to-file! (log entry)
+  (when (allows? (ref (:levels log)) entry)
+    (append-line (ref (:path log))
+                 (ref (log-line entry)))))
 
 (defn log-line (entry)
   (str (utc-timestamp)

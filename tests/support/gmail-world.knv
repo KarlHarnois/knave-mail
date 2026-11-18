@@ -84,4 +84,4 @@
                        :refresh-token (str "fake-refresh")
                        :access-token none
                        :quota (full-bucket units-per-second)
-                       :log (the (box event-log) (box log))))))
+                       :log (event-log/memory log)))))

@@ -28,7 +28,7 @@
                  "]")))
 
 (type log-first-listed!
-  (fn ((ref (box event-log))
+  (fn ((ref event-log)
        (ref str)
        (ref (vec thread-summary)))
     unit))

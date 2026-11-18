@@ -23,8 +23,7 @@
   (let (request-text (str "{\"id\":1,\"command\":\"open-link\",\"args\":{\"url\":\""
                           url "\"}}"))
     (open-requested-link! (ref (recording-opener browser))
-                          (ref (the (box event-log)
-                                    (box (same-log log))))
+                          (ref (event-log/memory (same-log log)))
                           (ref (unwrap-ok (parse-json (as-str (ref request-text))))))))
 
 (deftest an-https-link-opens-in-the-browser

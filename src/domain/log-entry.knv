@@ -1,0 +1,22 @@
+(export ->log-entry log-entry log-level severity)
+
+(defenum log-level
+  error
+  warn
+  info
+  debug)
+
+(defstruct log-entry
+  :level log-level
+  :area string
+  :message string)
+
+(type severity
+  (fn ((ref log-level)) u8))
+
+(defn severity (level)
+  (match level
+    (log-level/error 0)
+    (log-level/warn 1)
+    (log-level/info 2)
+    (log-level/debug 3)))

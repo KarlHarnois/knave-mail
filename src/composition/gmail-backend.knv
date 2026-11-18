@@ -51,7 +51,7 @@
         log rank delivery sync-limit)))
 
 (type gmail-provider-for
-  (fn ((ref settings) (ref (box event-log)))
+  (fn ((ref settings) (ref event-log))
     mailbox-provider))
 
 (defn gmail-provider-for (chosen log)
@@ -60,7 +60,7 @@
                                             (share-log log))))
 
 (type gmail-operations
-  (fn ((ref settings) (ref (box event-log)))
+  (fn ((ref settings) (ref event-log))
     operation-queue))
 
 (defn gmail-operations (chosen log)
