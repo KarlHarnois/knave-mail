@@ -73,9 +73,11 @@
   (unwrap-ok
     (save-threads!
       cache account
-      (ref (vec (summarize (ref (sample-thread "old" (vec "INBOX") 100)))
-                (summarize (ref (sample-thread "new" (vec "INBOX") 300)))
-                (summarize (ref (sample-thread "other" (vec "SENT") 200)))))))
+      (ref (vec
+             (unwrap (summarize (ref (sample-thread "old" (vec "INBOX") 100))))
+             (unwrap (summarize (ref (sample-thread "new" (vec "INBOX") 300))))
+             (unwrap (summarize
+                       (ref (sample-thread "other" (vec "SENT") 200))))))))
   (= (ids cache)
      (vec (str "new") (str "old"))))
 
@@ -106,7 +108,7 @@
   (let (saved (sample-thread "t-1" (vec "INBOX") 100))
     (unwrap-ok (save-thread! cache account (ref saved)))
     (unwrap-ok (save-threads! cache account
-                              (ref (vec (summarize (ref saved))))))
+                              (ref (vec (unwrap (summarize (ref saved)))))))
     (unwrap-ok (relabel-stored! cache
                                 (ref (thread-of "t-1"))
                                 (ref (archive-change))))
@@ -120,8 +122,9 @@
         kept-thread (sample-thread "t-2" (vec "INBOX") 200))
     (unwrap-ok (save-thread! cache account (ref forgotten)))
     (unwrap-ok (save-threads! cache account
-                              (ref (vec (summarize (ref forgotten))
-                                        (summarize (ref kept-thread))))))
+                              (ref (vec (unwrap (summarize (ref forgotten)))
+                                        (unwrap (summarize (ref
+                                                             kept-thread)))))))
     (unwrap-ok (forget-thread! cache (ref (thread-of "t-1"))))
     (and (= (ids cache) (vec (str "t-2")))
          (= (unwrap-ok (load-thread cache (ref (thread-of "t-1"))))

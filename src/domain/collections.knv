@@ -1,5 +1,6 @@
 (export appended appended-once as-count concatenated
-        in-chunks one-of? owned-items try-for-each)
+        first-present in-chunks one-of? option->vec
+        owned-items present try-for-each)
 
 (defn one-of? (word words)
   (any? (iter words)
@@ -41,3 +42,20 @@
       (fn ((iterator item)
            (fn-mut (item) (result unit failure)))
         (result unit failure)))))
+
+(def present
+  (rust "{0}.flatten()"
+    (where (item)
+      (fn ((iterator (option item)))
+        (iterator item)))))
+
+(def first-present
+  (rust "{0}.flatten().next()"
+    (where (item)
+      (fn ((iterator (option item)))
+        (option item)))))
+
+(def option->vec
+  (rust "{0}.into_iter().collect::<Vec<_>>()"
+    (where (item)
+      (fn ((option item)) (vec item)))))

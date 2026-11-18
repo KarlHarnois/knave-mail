@@ -9,18 +9,29 @@
 
 (def snippet-length 120)
 
+(type summarize
+  (fn ((ref thread))
+    (option thread-summary)))
+
 (defn summarize (summarized)
-  (let (latest (last-message summarized))
-    (->thread-summary :id (clone (:id summarized))
-                      :subject (clone (:subject summarized))
-                      :participants (participants summarized)
-                      :snippet (snippet (:text latest) snippet-length)
-                      :date (:date latest)
-                      :labels (clone (:labels summarized))
-                      :message-count (message-count summarized)
-                      :message-ids (-> (iter (:messages summarized))
-                                       (map (fn (held) (clone (:id held))))
-                                       collect))))
+  (map-some (last (:messages summarized))
+    (fn (latest) (summary-ending-with summarized latest))))
+
+(type summary-ending-with
+  (fn ((ref thread) (ref message))
+    thread-summary))
+
+(defn summary-ending-with (summarized latest)
+  (->thread-summary :id (clone (:id summarized))
+                    :subject (clone (:subject summarized))
+                    :participants (participants summarized)
+                    :snippet (snippet (:text latest) snippet-length)
+                    :date (:date latest)
+                    :labels (clone (:labels summarized))
+                    :message-count (message-count summarized)
+                    :message-ids (-> (iter (:messages summarized))
+                                     (map (fn (held) (clone (:id held))))
+                                     collect)))
 
 (type in-scope?
   (fn ((ref thread-summary) (ref label-scope))
@@ -41,10 +52,6 @@
 (defn participants (summarized)
   (join (ref (distinct-senders (ref (:messages summarized))))
         ", "))
-
-(defn last-message (summarized)
-  (expect (last (:messages summarized))
-          "a thread holds at least one message"))
 
 (defn message-count (summarized)
   (as-count (len (:messages summarized))))

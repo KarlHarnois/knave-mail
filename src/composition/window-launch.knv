@@ -35,7 +35,7 @@
 (use composition/logging chosen-log)
 (use composition/memory-backend memory-app)
 (use composition/operation-executor start-gmail-executor)
-(use composition/settings settings)
+(use composition/settings e2e-script settings)
 (use composition/startup-log log-started)
 (use composition/theme-file theme-stylesheet)
 (use app/mail-app delivery)
@@ -59,9 +59,14 @@
   (fn (settings (option window-socket)) unit))
 
 (defn opened-window (chosen claim)
+  (match (e2e-script (ref chosen))
+    ((ok scenario) (scripted-window chosen claim scenario))
+    ((err problem) (eprintln problem) (exit 1))))
+
+(defn scripted-window (chosen claim scenario)
   (let (script (str (keymap-startup-script (ref chosen))
                     (start-account-script (ref (:start-account chosen)))
-                    (:e2e-script chosen))
+                    scenario)
         stylesheet (theme-stylesheet (ref chosen)))
     (open-window "knave-mail"
                  (ref script)

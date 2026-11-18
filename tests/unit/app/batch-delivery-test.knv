@@ -66,13 +66,13 @@
         app (app-timed-by (ref world)
                           (new-memory-log)
                           (new-memory-clock)))
-    (unwrap-ok (save-threads! (mut (:store app))
-                              world-account
-                              (ref (vec (without-message-ids
-                                          (summarize (ref (sample-thread
-                                                            "t-1"
-                                                            (vec "INBOX")
-                                                            100))))))))
+    (unwrap-ok (save-threads!
+                 (mut (:store app))
+                 world-account
+                 (ref (vec (without-message-ids (unwrap (summarize (ref (sample-thread
+                                                                          "t-1"
+                                                                          (vec "INBOX")
+                                                                          100)))))))))
     (unwrap-ok (list-threads! (mut app)
                               world-account
                               (ref (inbox-query))

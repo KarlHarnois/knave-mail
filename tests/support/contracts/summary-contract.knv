@@ -30,12 +30,15 @@
   (unwrap-ok
     (save-threads!
       cache account
-      (ref (vec (summarize (ref (sample-thread "t-1" (vec "INBOX") 100)))
-                (summarize (ref (sample-thread "t-2" (vec "INBOX") 200)))))))
-  (unwrap-ok (save-threads!
-               cache "other@example.com"
-               (ref (vec (summarize
-                           (ref (sample-thread "t-3" (vec "INBOX") 300)))))))
+      (ref (vec (unwrap (summarize (ref
+                                     (sample-thread "t-1" (vec "INBOX") 100))))
+                (unwrap (summarize
+                          (ref (sample-thread "t-2" (vec "INBOX") 200))))))))
+  (unwrap-ok (save-threads! cache "other@example.com"
+                            (ref (vec (unwrap (summarize (ref (sample-thread
+                                                                "t-3"
+                                                                (vec "INBOX")
+                                                                300))))))))
   (= (-> (iter (unwrap-ok (load-summaries-of cache account
                                              (ref (vec (str "t-2")
                                                        (str "t-3")
@@ -45,10 +48,11 @@
      (vec (str "t-2"))))
 
 (defn relabels-a-summary-without-its-thread! (cache)
-  (unwrap-ok (save-threads!
-               cache account
-               (ref (vec (summarize
-                           (ref (sample-thread "t-1" (vec "INBOX") 100)))))))
+  (unwrap-ok (save-threads! cache account
+                            (ref (vec (unwrap (summarize (ref (sample-thread
+                                                                "t-1"
+                                                                (vec "INBOX")
+                                                                100))))))))
   (unwrap-ok (relabel-stored! cache
                               (ref (thread-of "t-1"))
                               (ref (archive-change))))
@@ -58,18 +62,20 @@
   (unwrap-ok (save-thread! cache account
                            (ref (sample-thread "t-1" (vec "INBOX") 100))))
   (unwrap-ok (save-threads! cache account
-                            (ref (vec (summarize (ref (sample-thread
-                                                        "t-1"
-                                                        (vec "INBOX" "UNREAD")
-                                                        100)))))))
+                            (ref (vec (unwrap (summarize (ref (sample-thread
+                                                                "t-1"
+                                                                (vec "INBOX"
+                                                                     "UNREAD")
+                                                                100))))))))
   (= (unwrap (unwrap-ok (load-thread cache (ref (thread-of "t-1")))))
      (sample-thread "t-1" (vec "INBOX" "UNREAD") 100)))
 
 (defn keeps-message-ids! (cache)
-  (unwrap-ok (save-threads!
-               cache account
-               (ref (vec (summarize
-                           (ref (sample-thread "t-1" (vec "INBOX") 100)))))))
+  (unwrap-ok (save-threads! cache account
+                            (ref (vec (unwrap (summarize (ref (sample-thread
+                                                                "t-1"
+                                                                (vec "INBOX")
+                                                                100))))))))
   (= (-> (iter (unwrap-ok (load-summaries-of cache account
                                              (ref (vec (str "t-1"))))))
          (map (fn (summary)
@@ -81,8 +87,10 @@
   (unwrap-ok
     (save-threads!
       cache account
-      (ref (vec (summarize (ref (sample-thread "t-1" (vec "INBOX") 100)))
-                (summarize (ref (sample-thread "t-2" (vec "SPAM") 200)))
-                (summarize (ref (sample-thread "t-3" (vec "TRASH") 300)))))))
+      (ref (vec
+             (unwrap (summarize (ref (sample-thread "t-1" (vec "INBOX") 100))))
+             (unwrap (summarize (ref (sample-thread "t-2" (vec "SPAM") 200))))
+             (unwrap (summarize (ref
+                                  (sample-thread "t-3" (vec "TRASH") 300))))))))
   (= (ids cache label-scope/all-mail)
      (vec (str "t-1"))))

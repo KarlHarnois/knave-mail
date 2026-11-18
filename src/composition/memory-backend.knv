@@ -55,13 +55,10 @@
         (eprintln (str "could not sync " account))))))
 
 (defn store-with-accounts ()
-  (let (store (empty-memory-store))
-    (for-each (iter seed-accounts)
-      (fn (email)
-        (expect-ok (save-account! (mut store)
-                                  (ref (->account (str email))))
-                   "the memory store keeps every account")))
-    store))
+  (assoc (empty-memory-store)
+         :accounts (-> (iter seed-accounts)
+                       (map (fn (email) (->account (str email))))
+                       collect)))
 
 (defn account-emails ()
   (-> (iter seed-accounts)

@@ -42,11 +42,12 @@
 (deftest an-older-cache-stores-message-ids-for-new-summaries
   (let (cache (reopened-old-cache))
     (local opened cache)
-    (unwrap-ok (save-threads!
-                 (mut opened)
-                 "ada@example.com"
-                 (ref (vec (summarize
-                             (ref (sample-thread "t-1" (vec "INBOX") 100)))))))
+    (unwrap-ok (save-threads! (mut opened)
+                              "ada@example.com"
+                              (ref (vec (unwrap (summarize (ref (sample-thread
+                                                                  "t-1"
+                                                                  (vec "INBOX")
+                                                                  100))))))))
     (assert (= (message-ids-of (ref opened) "t-1")
                (vec (str "m-t-1"))))))
 

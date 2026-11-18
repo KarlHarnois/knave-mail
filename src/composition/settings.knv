@@ -1,12 +1,12 @@
 (use domain/results unwrap-ok-or)
 
-(export ->settings settings settings-from)
+(export ->settings e2e-script settings settings-from)
 
 (defstruct settings
   :backend string
   :latency-milliseconds u64
   :failing (option string)
-  :e2e-script string
+  :e2e-script-path string
   :cache-path string
   :credentials-file string
   :client-id string
@@ -33,7 +33,7 @@
       :latency-milliseconds (parse-or-zero (ref latency))
       :failing (non-empty
                  (option-value arguments "--fail" "KNAVE_MAIL_FAIL" ""))
-      :e2e-script (script-text (ref script-path))
+      :e2e-script-path script-path
       :cache-path (option-value arguments "--cache"
                                 "KNAVE_MAIL_CACHE"
                                 (ref (default-cache-path)))
@@ -97,11 +97,17 @@
 (defn non-empty (text)
   (if (empty? text) none (some text)))
 
-(defn script-text (path)
-  (if (empty? path)
-    (str "")
-    (expect-ok (slurp path)
-               (ref (str "cannot read the e2e script " path)))))
+(type e2e-script
+  (fn ((ref settings))
+    (result string string)))
+
+(defn e2e-script (chosen)
+  (let (path (:e2e-script-path chosen))
+    (if (empty? path)
+      (ok (str ""))
+      (map-err (slurp path)
+        (fn (problem)
+          (str "cannot read the e2e script " path ": " problem))))))
 
 (def config-file
   (rust "std::env::var(\"XDG_CONFIG_HOME\").map(std::path::PathBuf::from).or_else(|_| std::env::var(\"HOME\").map(|{!home}| std::path::Path::new(&{!home}).join(\".config\"))).unwrap_or_else(|_| std::path::PathBuf::from(\".\")).join(\"knave-mail\").join({0}).to_string_lossy().into_owned()"

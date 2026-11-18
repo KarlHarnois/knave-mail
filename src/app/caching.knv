@@ -1,3 +1,4 @@
+(use domain/collections option->vec)
 (use app/activity-log log-gmail-relabel! log-new-thread!)
 (use app/mail-app mail-app)
 (use domain/labels label-difference no-change?)
@@ -37,7 +38,7 @@
                        (ref fetched)))
     (try (save-threads! (mut (:store app))
                         account
-                        (ref (vec (summarize (ref fetched))))))
+                        (ref (option->vec (summarize (ref fetched))))))
     (ok fetched)))
 
 (type log-difference!

@@ -8,7 +8,7 @@
 (defn summary-of (id) (dated-summary id 100))
 
 (defn dated-summary (id date)
-  (summarize (ref (sample-thread id (vec "INBOX") date))))
+  (unwrap (summarize (ref (sample-thread id (vec "INBOX") date)))))
 
 (type ids-of
   (fn ((vec thread-summary)) (vec string)))

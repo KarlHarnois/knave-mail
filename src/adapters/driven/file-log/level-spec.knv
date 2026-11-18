@@ -1,3 +1,4 @@
+(use domain/collections first-present present)
 (use ports/driven/event-log log-entry severity)
 
 (export ->level-spec allows? level-spec parse-level-spec)
@@ -29,16 +30,11 @@
 (defn default-severity (text fallback)
   (-> (split text ",")
       (map severity-named)
-      (find some?)
-      (map-some unwrap)
+      first-present
       (unwrap-or fallback)))
 
 (defn area-severities (text)
-  (-> (split text ",")
-      (map area-severity)
-      (filter some?)
-      (map unwrap)
-      collect))
+  (-> (split text ",") (map area-severity) present collect))
 
 (defn area-severity (part)
   (let (sides (collect (split part "=")))

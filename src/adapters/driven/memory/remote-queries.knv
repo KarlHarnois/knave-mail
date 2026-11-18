@@ -1,4 +1,4 @@
-(use domain/collections as-count owned-items)
+(use domain/collections as-count owned-items present)
 (use domain/labels label-id system-label)
 (use adapters/driven/memory/remote-mail remote-mail)
 
@@ -38,7 +38,7 @@
                       (filter (fn (candidate)
                                 (mentions? candidate (:query query))))
                       (map (fn (matched) (summarize matched)))
-                      collect)
+                      present collect)
         labelled (-> (owned-items summaries)
                      (filter (fn (summary)
                                (in-scope? summary (ref (:scope query)))))
@@ -90,7 +90,7 @@
                 (any? (iter ids)
                   (fn (id) (= id (:id candidate))))))
       (map (fn (matched) (summarize matched)))
-      collect))
+      present collect))
 
 (type thread-position
   (fn ((ref remote-mail) (ref str))

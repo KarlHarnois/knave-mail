@@ -31,7 +31,7 @@
   (let (saved (sample-thread thread-id (vec "INBOX") 100))
     (unwrap-ok (save-thread! cache account (ref saved)))
     (unwrap-ok (save-threads! cache account
-                              (ref (vec (summarize (ref saved))))))))
+                              (ref (vec (unwrap (summarize (ref saved)))))))))
 
 (defn archived! (cache thread-ids)
   (unwrap-ok (queue-relabels! cache account
