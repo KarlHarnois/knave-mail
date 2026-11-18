@@ -10,7 +10,7 @@
 (def area "window")
 
 (type open-requested-link!
-  (fn ((ref (box link-opener))
+  (fn ((ref link-opener)
        (ref (box event-log))
        (ref json-value))
     unit))

@@ -118,8 +118,7 @@
       ((err failure) (fail-with (ref failure))))))
 
 (type browser-of
-  (fn ((ref settings)) (box link-opener)))
+  (fn ((ref settings)) link-opener))
 
 (defn browser-of (chosen)
-  (the (box link-opener)
-       (box (->system-browser (clone (:browser chosen))))))
+  (link-opener/system (->system-browser (clone (:browser chosen)))))

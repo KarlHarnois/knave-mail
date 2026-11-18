@@ -1,13 +1,14 @@
-(use ports/driven/link-opener link-opener)
-
-(export ->system-browser system-browser)
+(export ->system-browser launch-in-browser! system-browser)
 
 (defstruct system-browser
   :opener string)
 
-(impl link-opener system-browser
-  (open-link! (browser url)
-    (launch (ref (:opener browser)) url)))
+(type launch-in-browser!
+  (fn ((ref system-browser) (ref str))
+    unit))
+
+(defn launch-in-browser! (browser url)
+  (launch (ref (:opener browser)) url))
 
 (def launch
   (rust "drop(std::process::Command::new({0}).arg({1}).stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).spawn())"

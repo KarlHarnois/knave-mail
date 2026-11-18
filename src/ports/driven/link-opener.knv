@@ -1,5 +1,20 @@
-(export link-opener)
+(use adapters/driven/browser/system-browser launch-in-browser!
+                                            system-browser)
 
-(deftrait link-opener
-  (open-link!
-    (fn ((ref self) (ref str)) unit)))
+(use adapters/driven/memory/shared shared with-shared!)
+
+(export link-opener open-link!)
+
+(defenum link-opener
+  (system system-browser)
+  (recording (shared (vec string))))
+
+(type open-link!
+  (fn ((ref link-opener) (ref str)) unit))
+
+(defn open-link! (opener url)
+  (match opener
+    ((system browser) (launch-in-browser! browser url))
+    ((recording opened)
+     (with-shared! opened
+       (fn (links) (push! links (str url)))))))

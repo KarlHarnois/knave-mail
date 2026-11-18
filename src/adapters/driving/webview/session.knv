@@ -36,7 +36,7 @@
   :sync sync-runner
   :listing listing-runner
   :delivery change-delivery
-  :opener (box link-opener))
+  :opener link-opener)
 
 (type serve-requests!
   (fn ((mut mail-app)

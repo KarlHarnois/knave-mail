@@ -6,16 +6,15 @@
 (use adapters/driving/webview/link-requests open-requested-link!)
 (use adapters/json/value parse-json)
 (use ports/driven/event-log event-log)
-(use ports/driven/link-opener link-opener)
+(use adapters/driven/memory/shared shared)
 (use support/log-lines mentions-none? mentions?)
 
 (use support/recording-browser new-recording-browser
                                opened-links
-                               recording-browser
-                               same-browser)
+                               recording-opener)
 
 (type open-through!
-  (fn ((ref recording-browser)
+  (fn ((ref (shared (vec string)))
        (ref memory-log)
        (ref str))
     unit))
@@ -23,8 +22,7 @@
 (defn open-through! (browser log url)
   (let (request-text (str "{\"id\":1,\"command\":\"open-link\",\"args\":{\"url\":\""
                           url "\"}}"))
-    (open-requested-link! (ref (the (box link-opener)
-                                    (box (same-browser browser))))
+    (open-requested-link! (ref (recording-opener browser))
                           (ref (the (box event-log)
                                     (box (same-log log))))
                           (ref (unwrap-ok (parse-json (as-str (ref request-text))))))))

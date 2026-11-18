@@ -1,6 +1,7 @@
-(use adapters/driven/browser/system-browser system-browser)
+(use adapters/driven/browser/system-browser launch-in-browser!
+                                            system-browser)
+
 (use domain/mail-error mail-error)
-(use ports/driven/link-opener open-link!)
 
 (export consent-browser)
 
@@ -14,4 +15,4 @@
     (eprintln (str
                 "Open this page to sign in, if your browser does not open it:\n"
                 url))
-    (ok (open-link! browser url))))
+    (ok (launch-in-browser! browser url))))

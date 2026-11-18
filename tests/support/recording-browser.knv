@@ -3,30 +3,25 @@
 
 (use ports/driven/link-opener link-opener)
 
-(export new-recording-browser opened-links recording-browser
-        same-browser)
+(export new-recording-browser opened-links recording-opener)
 
-(defstruct recording-browser
-  :opened (shared (vec string)))
+(type new-recording-browser
+  (fn () (shared (vec string))))
 
 (defn new-recording-browser ()
-  (->recording-browser (share (vec))))
+  (share (vec)))
 
-(impl link-opener recording-browser
-  (open-link! (browser url)
-    (with-shared! (ref (:opened browser))
-      (fn (opened) (push! opened (str url))))))
+(type recording-opener
+  (fn ((ref (shared (vec string))))
+    link-opener))
 
-(type same-browser
-  (fn ((ref recording-browser)) recording-browser))
-
-(defn same-browser (browser)
-  (->recording-browser (handle (ref (:opened browser)))))
+(defn recording-opener (opened)
+  (link-opener/recording (handle opened)))
 
 (type opened-links
-  (fn ((ref recording-browser))
+  (fn ((ref (shared (vec string))))
     (vec string)))
 
-(defn opened-links (browser)
-  (with-shared! (ref (:opened browser))
-    (fn (opened) (clone opened))))
+(defn opened-links (opened)
+  (with-shared! opened
+    (fn (links) (clone links))))
