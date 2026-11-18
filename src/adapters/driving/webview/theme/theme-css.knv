@@ -80,10 +80,18 @@
 (defn color-declaration (mode key value)
   (cond
     ((not (one-of? key (ref color-names)))
-     (err (str "unknown color :" key " in (" mode " ...)")))
+     (err (str "unknown color :" key " in (" mode
+               " ...); use "
+               (color-keys))))
     (else (checked (color? value)
                    (str "--" mode "-" key ": " value)
                    key value))))
+
+(defn color-keys ()
+  (join (ref (-> (iter color-names)
+                 (map (fn (name) (str ":" name)))
+                 collect))
+        ", "))
 
 (defn checked (valid written key value)
   (if valid

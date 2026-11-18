@@ -30,7 +30,7 @@ Press `?` in the window for every key.
 
 ### Config
 
-Copy [docs/theme.example.knv](docs/theme.example.knv) and [docs/keymap.example.knv](docs/keymap.example.knv) to `~/.config/knave-mail/` as `theme.knv` and `keymap.knv`, and keep only what you change.
+Copy [docs/theme.example.knv](docs/theme.example.knv) and [docs/keymap.example.knv](docs/keymap.example.knv) to `~/.config/knave-mail/` as `theme.knv` and `keymap.knv`.
 
 The default theme comes from the [design system](https://github.com/KarlHarnois/design-system).
 
