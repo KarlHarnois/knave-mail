@@ -1,0 +1,69 @@
+(use adapters/driving/json/envelope queue-event
+                                    request-arguments
+                                    request-id
+                                    success-reply)
+
+(use adapters/driving/webview/change-delivery change-delivery
+                                              changes-queued!)
+
+(use adapters/driving/webview/logged-answers answered-and-logged!)
+
+(use adapters/driving/webview/sync-requests missing-account-reply
+                                            sync-event)
+
+(use adapters/driving/webview/sync-runner start-sync!
+                                          sync-runner)
+
+(use adapters/driving/webview/window reply-outbox
+                                     send-reply)
+
+(use adapters/driving/webview/window-client sync-mail!
+                                            waiting-changes-of)
+
+(use adapters/driving/webview/window-commands empty-object)
+(use adapters/json/value json-value string-field)
+(use app/mail-app mail-app)
+(use ports/driven/event-log event-log)
+
+(export answer-relabel! start-requested-sync!)
+
+(type answer-relabel!
+  (fn ((mut mail-app)
+       (ref change-delivery)
+       (ref (box event-log))
+       (ref str)
+       (ref str)
+       (ref json-value)
+       (ref reply-outbox))
+    unit))
+
+(defn answer-relabel! (app delivery log request-text command request outbox)
+  (send-reply outbox
+              (answered-and-logged! app log request-text command))
+  (changes-queued! delivery)
+  (match (string-field (ref (request-arguments request)) "account")
+    ((ok account)
+     (send-reply outbox
+                 (queue-event (ref account)
+                              (waiting-changes-of app (ref account)))))
+    ((err _) (do))))
+
+(type start-requested-sync!
+  (fn ((mut mail-app)
+       (ref sync-runner)
+       (ref json-value)
+       (ref reply-outbox))
+    unit))
+
+(defn start-requested-sync! (app runner request outbox)
+  (match (string-field (ref (request-arguments request)) "account")
+    ((ok account)
+     (send-reply outbox
+                 (success-reply (ref (request-id request))
+                                (ref (empty-object))))
+     (when (not (start-sync! runner (ref account) outbox))
+       (send-reply outbox
+                   (sync-event (sync-mail! app (ref account))
+                               (ref account)))))
+    ((err _)
+     (send-reply outbox (missing-account-reply request)))))

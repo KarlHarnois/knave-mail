@@ -4,16 +4,19 @@
                                     threaded-operations)
 
 (use adapters/driving/webview/link-navigation link-request-for)
-(use adapters/driving/webview/listing-runner ->inline-listing)
-(use adapters/driving/webview/session serve-requests!)
+(use adapters/driving/webview/listing-runner listing-runner)
+
+(use adapters/driving/webview/session ->window-workers
+                                      serve-requests!)
+
 (use adapters/driving/webview/start-account-script start-account-script)
-(use adapters/driving/webview/sync-runner ->inline-sync)
+(use adapters/driving/webview/sync-runner sync-runner)
 
 (use adapters/driving/webview/window open-window
                                      reply-outbox
                                      request-inbox)
 
-(use adapters/driving/webview/change-delivery ->inline-delivery)
+(use adapters/driving/webview/change-delivery change-delivery)
 
 (use adapters/driving/webview/single-window claimed-window
                                             forward-launches!
@@ -22,7 +25,6 @@
 
 (use composition/background-listing start-background-listing)
 (use composition/delivery-worker start-delivery-worker)
-(use composition/background-sync ->background-sync)
 (use composition/gmail-backend gmail-app)
 (use composition/keymap-loader keymap-startup-script)
 (use composition/launch fail-with memory-backend)
@@ -88,16 +90,12 @@
 
 (defn serve-memory-window! (chosen log inbox outbox)
   (local running (memory-app chosen (share-log log)))
-  (local runner (->inline-sync))
-  (local lister (->inline-listing))
-  (local deliverer (->inline-delivery))
   (serve-requests! (mut running)
-                   (mut runner)
-                   (mut lister)
-                   (mut deliverer)
-                   log
-                   (ref (browser-of chosen))
-                   inbox outbox))
+                   (ref (->window-workers :sync sync-runner/inline
+                                          :listing listing-runner/inline
+                                          :delivery change-delivery/inline
+                                          :opener (browser-of chosen)))
+                   log inbox outbox))
 
 (defn serve-gmail-window! (chosen log inbox outbox)
   (let (executor (start-gmail-executor (clone chosen)))
@@ -109,19 +107,14 @@
       ((ok app)
        (do
          (local running app)
-         (local runner
-           (->background-sync (share-sender (ref executor))))
-         (local lister
-           (start-background-listing outbox (ref executor)))
-         (local deliverer
-           (start-delivery-worker outbox (ref executor)))
-         (serve-requests! (mut running)
-                          (mut runner)
-                          (mut lister)
-                          (mut deliverer)
-                          log
-                          (ref (browser-of chosen))
-                          inbox outbox)))
+         (serve-requests!
+           (mut running)
+           (ref (->window-workers
+                  :sync (sync-runner/background (share-sender (ref executor)))
+                  :listing (start-background-listing outbox (ref executor))
+                  :delivery (start-delivery-worker outbox (ref executor))
+                  :opener (browser-of chosen)))
+           log inbox outbox)))
       ((err failure) (fail-with (ref failure))))))
 
 (type browser-of

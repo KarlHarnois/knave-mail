@@ -1,22 +1,21 @@
+(use adapters/driven/threaded-queue submission-sender)
 (use adapters/driving/webview/window reply-outbox)
+(use composition/background-sync start-background-sync!)
 
-(export ->inline-sync inline-sync run-in-background
-        sync-runner)
+(export start-sync! sync-runner)
 
-(deftrait sync-runner
-  (start-sync!
-    (fn ((mut self)
-         (ref str)
-         (ref reply-outbox))
-      bool)))
+(defenum sync-runner
+  inline
+  (background submission-sender))
 
-(defstruct inline-sync)
+(type start-sync!
+  (fn ((ref sync-runner)
+       (ref str)
+       (ref reply-outbox))
+    bool))
 
-(impl sync-runner inline-sync
-  (start-sync! (_runner _account _outbox) false))
-
-(def run-in-background
-  (rust "{{ let {!outbox} = {0}.clone(); let {!job} = {1}; std::thread::spawn(move || {{ let {!last} = {!job}(&{!outbox}); drop({!outbox}.send_event({!last})); }}); }}"
-    (fn ((ref reply-outbox)
-         (fn-once ((ref reply-outbox)) string))
-      unit)))
+(defn start-sync! (runner account outbox)
+  (match runner
+    (inline false)
+    ((background executor)
+     (do (start-background-sync! executor account outbox) true))))

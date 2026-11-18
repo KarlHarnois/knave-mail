@@ -21,26 +21,17 @@
 (use ports/driven/event-log event-log log-info log-warn
                             share-log)
 
-(export ->background-delivery background-delivery
-        start-delivery-worker)
+(export start-delivery-worker)
 
 (def retry-milliseconds 60000)
 
-(defstruct background-delivery
-  :wake wake-sender)
-
-(impl change-delivery background-delivery
-  (changes-queued! (delivery)
-    (wake! (ref (:wake delivery)))))
-
 (defn start-delivery-worker (outbox executor)
   (let (shared (share-sender executor))
-    (->background-delivery :wake (spawn-delivery outbox
-                                   (fn (wakeups replies)
-                                     (let (moved-executor shared)
-                                       (delivered-in-own-app wakeups
-                                                             replies
-                                                             (ref moved-executor))))))))
+    (change-delivery/background
+      (spawn-delivery outbox
+        (fn (wakeups replies)
+          (let (moved-executor shared)
+            (delivered-in-own-app wakeups replies (ref moved-executor))))))))
 
 (defn delivered-in-own-app (wakeups outbox executor)
   (let (chosen (settings-from (ref (command-line-args)))

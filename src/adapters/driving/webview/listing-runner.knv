@@ -3,30 +3,41 @@
 
 (use adapters/driving/json/envelope request-arguments)
 (use adapters/json/value bool-field json-value string-field)
+(use adapters/driven/memory/shared shared with-shared!)
 
-(export ->inline-listing ->outbox-sink inline-listing
-        listing-request? listing-runner outbox-sink
-        reply-sink)
+(export deliver-reply! hand-off! listing-queue
+        listing-request? listing-runner reply-sink)
 
-(deftrait listing-runner
-  (hand-off!
-    (fn ((mut self) (ref str)) bool)))
+(deftype listing-queue
+  (rust "std::sync::mpsc::Sender<String>"))
 
-(deftrait reply-sink
-  (deliver-reply!
-    (fn ((ref self) string) unit)))
+(defenum listing-runner
+  inline
+  (background listing-queue))
 
-(defstruct inline-listing)
+(defn hand-off! (runner request-text)
+  (match runner
+    (inline false)
+    ((background queue) (enqueue! queue request-text))))
 
-(impl listing-runner inline-listing
-  (hand-off! (_runner _request-text) false))
+(def enqueue!
+  (rust "{0}.send({1}.to_string()).is_ok()"
+    (fn ((ref listing-queue) (ref str))
+      bool)))
 
-(defstruct outbox-sink
-  :outbox reply-outbox)
+(defenum reply-sink
+  (outbox reply-outbox)
+  (collected (shared (vec string))))
 
-(impl reply-sink outbox-sink
-  (deliver-reply! (sink reply)
-    (send-reply (ref (:outbox sink)) reply)))
+(type deliver-reply!
+  (fn ((ref reply-sink) string) unit))
+
+(defn deliver-reply! (sink reply)
+  (match sink
+    ((outbox outbox) (send-reply outbox reply))
+    ((collected replies)
+     (with-shared! replies
+       (fn (held) (push! held reply))))))
 
 (defn listing-request? (command request)
   (or (= command "thread-page")

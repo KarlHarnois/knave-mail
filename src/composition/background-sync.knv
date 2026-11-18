@@ -1,9 +1,6 @@
 (use adapters/driving/json/envelope sync-progress-event)
 (use adapters/driving/webview/sync-requests sync-event)
 
-(use adapters/driving/webview/sync-runner run-in-background
-                                          sync-runner)
-
 (use adapters/driving/webview/window reply-outbox
                                      send-reply)
 
@@ -26,23 +23,24 @@
 (use app/client/mail-syncer preview-account! sync-account!)
 (use adapters/clock clock-milliseconds)
 
-(export ->background-sync background-sync)
+(export start-background-sync!)
 
-(defstruct background-sync
-  :executor submission-sender)
+(defn start-background-sync! (executor account outbox)
+  (let (owned-account (str account)
+        shared (share-sender executor))
+    (run-in-background outbox
+      (fn (progress)
+        (let (moved-account owned-account
+              moved-executor shared)
+          (synced-in-own-app (ref moved-account)
+                             progress
+                             (ref moved-executor)))))))
 
-(impl sync-runner background-sync
-  (start-sync! (runner account outbox)
-    (let (owned-account (str account)
-          executor (share-sender (ref (:executor runner))))
-      (run-in-background outbox
-        (fn (progress)
-          (let (moved-account owned-account
-                moved-executor executor)
-            (synced-in-own-app (ref moved-account)
-                               progress
-                               (ref moved-executor)))))
-      true)))
+(def run-in-background
+  (rust "{{ let {!outbox} = {0}.clone(); let {!job} = {1}; std::thread::spawn(move || {{ let {!last} = {!job}(&{!outbox}); drop({!outbox}.send_event({!last})); }}); }}"
+    (fn ((ref reply-outbox)
+         (fn-once ((ref reply-outbox)) string))
+      unit)))
 
 (defn synced-in-own-app (account progress executor)
   (let (chosen (settings-from (ref (command-line-args)))

@@ -1,10 +1,12 @@
-(export ->inline-delivery change-delivery inline-delivery)
+(use composition/delivery-channel wake! wake-sender)
 
-(deftrait change-delivery
-  (changes-queued!
-    (fn ((mut self)) unit)))
+(export change-delivery changes-queued!)
 
-(defstruct inline-delivery)
+(defenum change-delivery
+  inline
+  (background wake-sender))
 
-(impl change-delivery inline-delivery
-  (changes-queued! (_delivery) (do)))
+(defn changes-queued! (delivery)
+  (match delivery
+    (inline (do))
+    ((background wake) (wake! wake))))

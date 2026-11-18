@@ -2,7 +2,7 @@
                                        new-memory-log
                                        same-log)
 
-(use adapters/driven/memory/shared share shared
+(use adapters/driven/memory/shared handle share
                                    with-shared!)
 
 (use adapters/json/value parse-json)
@@ -24,13 +24,8 @@
 (use support/memory-world app-over remote-with sample-thread
                           world-account)
 
-(defstruct collected-replies
-  :replies (shared (vec string)))
-
-(impl reply-sink collected-replies
-  (deliver-reply! (sink reply)
-    (with-shared! (ref (:replies sink))
-      (fn (replies) (push! replies reply)))))
+(defn collected-of (held)
+  (reply-sink/collected (handle (ref held))))
 
 (def inbox-holding
   (rust "{{ let ({!sender}, {!inbox}) = std::sync::mpsc::channel::<String>(); for {!request} in {0}.iter() {{ {!sender}.send({!request}.clone()).expect(\"the inbox is open\"); }} {!inbox} }}"
@@ -69,28 +64,30 @@
 (deftest the-worker-answers-a-gmail-listing
   (let (world (remote)
         app (app-over (ref world))
-        sink (->collected-replies (share (vec))))
+        held (share (vec))
+        sink (collected-of held))
     (synced! (mut app))
     (answer-listings! (mut app)
                       (ref (the (box event-log)
                                 (box (new-memory-log))))
                       (ref (inbox-holding (ref (vec (str inbox-page)))))
                       (ref sink))
-    (let (replies (with-shared! (ref (:replies sink))
+    (let (replies (with-shared! (ref held)
                     (fn (replies) (clone replies))))
       (assert (contains? (at replies 0) "t-1")))))
 
 (deftest the-worker-replies-to-each-request-by-its-id
   (let (world (remote)
         app (app-over (ref world))
-        sink (->collected-replies (share (vec))))
+        held (share (vec))
+        sink (collected-of held))
     (synced! (mut app))
     (answer-listings! (mut app)
                       (ref (the (box event-log)
                                 (box (new-memory-log))))
                       (ref (inbox-holding (ref (vec (str inbox-page)))))
                       (ref sink))
-    (let (replies (with-shared! (ref (:replies sink))
+    (let (replies (with-shared! (ref held)
                     (fn (replies) (clone replies))))
       (assert (= (len replies) 1))
       (assert (contains? (at replies 0) "\"id\":7")))))
@@ -99,7 +96,8 @@
   (let (world (remote)
         app (app-over (ref world))
         log (new-memory-log)
-        sink (->collected-replies (share (vec))))
+        held (share (vec))
+        sink (collected-of held))
     (answer-listings! (mut app)
                       (ref (the (box event-log)
                                 (box (same-log (ref log)))))
@@ -109,11 +107,12 @@
                        "thread-page failed"))))
 
 (deftest a-worker-that-cannot-start-refuses-each-request-by-its-id
-  (let (sink (->collected-replies (share (vec))))
+  (let (held (share (vec))
+        sink (collected-of held))
     (refuse-listings! (ref (mail-error/auth-required (str "no account")))
                       (ref (inbox-holding (ref (vec (str inbox-page)))))
                       (ref sink))
-    (let (replies (with-shared! (ref (:replies sink))
+    (let (replies (with-shared! (ref held)
                     (fn (replies) (clone replies))))
       (assert (contains? (at replies 0) "\"id\":7"))
       (assert (contains? (at replies 0) "\"error\"")))))

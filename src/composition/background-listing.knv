@@ -1,5 +1,6 @@
-(use adapters/driving/webview/listing-runner ->outbox-sink
-                                             listing-runner)
+(use adapters/driving/webview/listing-runner listing-queue
+                                             listing-runner
+                                             reply-sink)
 
 (use adapters/driving/webview/logged-answers answer-listings!
                                              refuse-listings!)
@@ -18,21 +19,11 @@
 (use domain/mail-error error-message)
 (use ports/driven/event-log log-warn share-log)
 
-(export background-listing start-background-listing)
-
-(deftype listing-queue
-  (rust "std::sync::mpsc::Sender<String>"))
-
-(defstruct background-listing
-  :queue listing-queue)
-
-(impl listing-runner background-listing
-  (hand-off! (runner request-text)
-    (enqueue! (ref (:queue runner)) request-text)))
+(export start-background-listing)
 
 (defn start-background-listing (outbox executor)
   (let (shared (share-sender executor))
-    (->background-listing
+    (listing-runner/background
       (spawn-worker outbox
         (fn (inbox replies)
           (let (moved-executor shared)
@@ -52,7 +43,7 @@
          (answer-listings! (mut running)
                            (ref log)
                            (ref inbox)
-                           (ref (->outbox-sink outbox)))))
+                           (ref (reply-sink/outbox outbox)))))
       ((err failure)
        (log-warn (ref log)
                  "window"
@@ -60,15 +51,10 @@
                       (error-message (ref failure))))
        (refuse-listings! (ref failure)
                          (ref inbox)
-                         (ref (->outbox-sink outbox)))))))
+                         (ref (reply-sink/outbox outbox)))))))
 
 (def spawn-worker
   (rust "{{ let ({!queue}, {!inbox}) = std::sync::mpsc::channel::<String>(); let {!outbox} = {0}.clone(); let {!job} = {1}; std::thread::spawn(move || {!job}({!inbox}, {!outbox})); {!queue} }}"
     (fn ((ref reply-outbox)
          (fn-once (request-inbox reply-outbox) unit))
       listing-queue)))
-
-(def enqueue!
-  (rust "{0}.send({1}.to_string()).is_ok()"
-    (fn ((ref listing-queue) (ref str))
-      bool)))

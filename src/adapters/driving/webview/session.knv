@@ -1,141 +1,122 @@
-(use app/mail-app mail-app)
+(use adapters/driving/webview/change-delivery change-delivery)
 
-(use adapters/driving/webview/window-client answer-request!
-                                            sync-mail!
-                                            waiting-changes-of)
+(use adapters/driving/webview/command-answers answer-relabel!
+                                              start-requested-sync!)
 
-(use adapters/driving/json/envelope queue-event
-                                    request-arguments
-                                    request-id
-                                    success-reply)
-
-(use adapters/json/value json-value parse-json string-field)
-(use adapters/driving/webview/logged-answers answered-and-logged!)
-
-(use adapters/driving/webview/change-delivery change-delivery
-                                              changes-queued!)
+(use adapters/driving/webview/link-requests open-requested-link!)
 
 (use adapters/driving/webview/listing-runner hand-off!
                                              listing-request?
                                              listing-runner)
 
-(use domain/label-commands label-command?)
-
-(use adapters/driving/webview/sync-requests missing-account-reply
-                                            sync-event)
-
-(use adapters/driving/webview/sync-runner start-sync!
-                                          sync-runner)
+(use adapters/driving/webview/logged-answers answered-and-logged!)
+(use adapters/driving/webview/request-log record-frontend-entry!)
+(use adapters/driving/webview/sync-runner sync-runner)
 
 (use adapters/driving/webview/window next-request
                                      reply-outbox
                                      request-inbox
                                      send-reply)
 
-(use adapters/driving/webview/window-commands empty-object
-                                              finish-e2e
+(use adapters/driving/webview/window-client answer-request!)
+
+(use adapters/driving/webview/window-commands finish-e2e
                                               report-e2e-line
                                               zoom-to)
 
-(use adapters/driving/webview/link-requests open-requested-link!)
-(use adapters/driving/webview/request-log record-frontend-entry!)
+(use adapters/json/value json-value parse-json string-field)
+(use app/mail-app mail-app)
+(use domain/label-commands label-command?)
 (use ports/driven/event-log event-log)
 (use ports/driven/link-opener link-opener)
 
-(export serve-requests!)
+(export ->window-workers serve-requests! window-workers)
 
-(defn serve-requests! (client runner lister deliverer log opener inbox outbox)
+(defstruct window-workers
+  :sync sync-runner
+  :listing listing-runner
+  :delivery change-delivery
+  :opener (box link-opener))
+
+(type serve-requests!
+  (fn ((mut mail-app)
+       (ref window-workers)
+       (ref (box event-log))
+       (ref request-inbox)
+       (ref reply-outbox))
+    unit))
+
+(defn serve-requests! (app workers log inbox outbox)
   (match (next-request inbox)
     ((some request)
-     (handle-request! client runner lister deliverer log
-                      opener
-                      (ref request)
-                      outbox)
-     (recur client runner lister deliverer log opener inbox
-            outbox))
+     (handle-request! app workers log (ref request) outbox)
+     (recur app workers log inbox outbox))
     (none (do))))
 
 (type handle-request!
-  (where ((runner sync-runner)
-          (lister listing-runner)
-          (deliverer change-delivery))
-    (fn ((mut mail-app)
-         (mut runner)
-         (mut lister)
-         (mut deliverer)
-         (ref (box event-log))
-         (ref (box link-opener))
-         (ref str)
-         (ref reply-outbox))
-      unit)))
+  (fn ((mut mail-app)
+       (ref window-workers)
+       (ref (box event-log))
+       (ref str)
+       (ref reply-outbox))
+    unit))
 
-(defn handle-request! (client runner lister deliverer log
-                              opener request-text outbox)
+(defn handle-request! (app workers log request-text outbox)
   (match (parse-json request-text)
     ((ok request)
-     (match (string-field (ref request) "command")
-       ((ok "sync")
-        (start-requested-sync! client runner (ref request) outbox))
-       ((ok "e2e-report") (report-e2e-line (ref request)))
-       ((ok "e2e-finish") (finish-e2e (ref request) outbox))
-       ((ok "zoom") (zoom-to (ref request) outbox))
-       ((ok "log") (record-frontend-entry! log (ref request)))
-       ((ok "open-link")
-        (open-requested-link! opener log (ref request)))
-       ((ok command)
-        (if (label-command? (as-str command))
-          (answer-relabel! client deliverer log request-text
-                           (ref command)
-                           (ref request)
-                           outbox)
-          (when (not (and (listing-request? (ref command) (ref request))
-                          (hand-off! lister request-text)))
-            (send-reply
-              outbox
-              (answered-and-logged! client log request-text (ref command))))))
-       (_ (send-reply outbox (answer-request! client request-text)))))
+     (handle-command! app workers log request-text
+                      (ref request)
+                      outbox))
     ((err _)
-     (send-reply outbox (answer-request! client request-text)))))
+     (send-reply outbox (answer-request! app request-text)))))
 
-(type answer-relabel!
-  (where ((deliverer change-delivery))
-    (fn ((mut mail-app)
-         (mut deliverer)
-         (ref (box event-log))
-         (ref str)
-         (ref str)
-         (ref json-value)
-         (ref reply-outbox))
-      unit)))
+(type handle-command!
+  (fn ((mut mail-app)
+       (ref window-workers)
+       (ref (box event-log))
+       (ref str)
+       (ref json-value)
+       (ref reply-outbox))
+    unit))
 
-(defn answer-relabel! (client deliverer log request-text command request outbox)
-  (send-reply outbox
-              (answered-and-logged! client log request-text command))
-  (changes-queued! deliverer)
-  (match (string-field (ref (request-arguments request)) "account")
-    ((ok account)
-     (send-reply outbox
-                 (queue-event (ref account)
-                              (waiting-changes-of client (ref account)))))
-    ((err _) (do))))
+(defn handle-command! (app workers log request-text request outbox)
+  (match (string-field request "command")
+    ((ok "sync")
+     (start-requested-sync! app
+                            (ref (:sync workers))
+                            request outbox))
+    ((ok "e2e-report") (report-e2e-line request))
+    ((ok "e2e-finish") (finish-e2e request outbox))
+    ((ok "zoom") (zoom-to request outbox))
+    ((ok "log") (record-frontend-entry! log request))
+    ((ok "open-link")
+     (open-requested-link! (ref (:opener workers)) log request))
+    ((ok command)
+     (answer-command! app workers log request-text
+                      (ref command)
+                      request outbox))
+    (_ (send-reply outbox (answer-request! app request-text)))))
 
-(type start-requested-sync!
-  (where ((runner sync-runner))
-    (fn ((mut mail-app)
-         (mut runner)
-         (ref json-value)
-         (ref reply-outbox))
-      unit)))
+(type answer-command!
+  (fn ((mut mail-app)
+       (ref window-workers)
+       (ref (box event-log))
+       (ref str)
+       (ref string)
+       (ref json-value)
+       (ref reply-outbox))
+    unit))
 
-(defn start-requested-sync! (client runner request outbox)
-  (match (string-field (ref (request-arguments request)) "account")
-    ((ok account)
-     (send-reply outbox
-                 (success-reply (ref (request-id request))
-                                (ref (empty-object))))
-     (when (not (start-sync! runner (ref account) outbox))
-       (send-reply outbox
-                   (sync-event (sync-mail! client (ref account))
-                               (ref account)))))
-    ((err _)
-     (send-reply outbox (missing-account-reply request)))))
+(defn answer-command! (app workers log request-text command request outbox)
+  (cond
+    ((label-command? (as-str command))
+     (answer-relabel! app
+                      (ref (:delivery workers))
+                      log request-text
+                      (as-str command)
+                      request outbox))
+    ((and (listing-request? command request)
+          (hand-off! (ref (:listing workers)) request-text))
+     (do))
+    (else (send-reply outbox
+                      (answered-and-logged! app log request-text command)))))
