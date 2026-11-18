@@ -10,7 +10,7 @@
 (use domain/operation ->operation operation operation-kind
                       operation-result priority)
 
-(use domain/operation-policy policy-for)
+(use domain/operation-policy operation-policy policy-for)
 
 (use domain/failure-step next-step retryable?
                          step-after-failure)
@@ -77,27 +77,44 @@
                            (:queued-at queued)))
          (attempt-outcome/finished outcome)))
       ((err failure)
-       (match (step-after-failure attempt (ref policy) (ref failure))
-         ((retry-after delay)
-          (do
-            (log-waiting! (ref (:log runner))
-                          queued
-                          (ref failure)
-                          (inc attempt)
-                          delay)
-            (attempt-outcome/retry (->retry-plan :delay delay
-                                                 :failure failure))))
-         (stop (do
-                 (if (retryable? (ref policy) (ref failure))
-                   (log-gave-up! (ref (:log runner))
-                                 queued
-                                 (ref failure)
-                                 attempt)
-                   (log-failed! (ref (:log runner))
-                                queued
-                                (ref failure)
-                                attempt))
-                 (attempt-outcome/failed failure))))))))
+       (outcome-of-failure runner queued attempt
+                           (ref policy)
+                           failure)))))
+
+(type outcome-of-failure
+  (fn ((ref operation-runner)
+       (ref operation)
+       int
+       (ref operation-policy)
+       mail-error)
+    attempt-outcome))
+
+(defn outcome-of-failure (runner queued attempt policy failure)
+  (match (step-after-failure attempt policy (ref failure))
+    ((retry-after delay)
+     (do
+       (log-waiting! (ref (:log runner))
+                     queued
+                     (ref failure)
+                     (inc attempt)
+                     delay)
+       (attempt-outcome/retry (->retry-plan :delay delay :failure failure))))
+    (stop (do
+            (log-stopped! runner queued attempt policy (ref failure))
+            (attempt-outcome/failed failure)))))
+
+(type log-stopped!
+  (fn ((ref operation-runner)
+       (ref operation)
+       int
+       (ref operation-policy)
+       (ref mail-error))
+    unit))
+
+(defn log-stopped! (runner queued attempt policy failure)
+  (if (retryable? policy failure)
+    (log-gave-up! (ref (:log runner)) queued failure attempt)
+    (log-failed! (ref (:log runner)) queued failure attempt)))
 
 (def next-operation-id
   (rust "{{ static NEXT: std::sync::atomic::AtomicI64 = std::sync::atomic::AtomicI64::new(1); NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed) }}"

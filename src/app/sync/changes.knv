@@ -99,11 +99,21 @@
 (defn refresh-thread! (app account thread-id)
   (match (cache-thread! app account thread-id)
     ((err failure)
-     (if (= (error-kind (ref failure)) "not-found")
-       (do
-         (log-vanished-thread! (ref (:log app)) account thread-id)
-         (forget-thread! (mut (:store app))
-                         (ref (->thread-ref :account (str account)
-                                            :thread-id (str thread-id)))))
-       (err failure)))
+     (forgotten-if-gone! app account thread-id failure))
     (done done)))
+
+(type forgotten-if-gone!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref str)
+       mail-error)
+    (result unit mail-error)))
+
+(defn forgotten-if-gone! (app account thread-id failure)
+  (if (= (error-kind (ref failure)) "not-found")
+    (do
+      (log-vanished-thread! (ref (:log app)) account thread-id)
+      (forget-thread! (mut (:store app))
+                      (ref (->thread-ref :account (str account)
+                                         :thread-id (str thread-id)))))
+    (err failure)))

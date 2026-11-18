@@ -4,7 +4,10 @@
 (use app/batch-delivering batch-for delivered-as-batch!)
 (use app/single-delivering delivered-or-kept!)
 (use domain/mail-error mail-error)
-(use domain/queued-relabel delivery-finished? delivery-step)
+
+(use domain/queued-relabel delivery-finished? delivery-step
+                           queued-relabel)
+
 (use ports/driven/store load-queued)
 
 (export deliver-everything-now! deliver-next!)
@@ -19,10 +22,18 @@
   (let (queued (try (load-queued (ref (:store app)))))
     (if (empty? queued)
       (ok (vec))
-      (let (batch (try (batch-for app (ref queued))))
-        (if (>= (len (:rows batch)) smallest-batch)
-          (delivered-as-batch! app batch)
-          (ok (vec (try (delivered-or-kept! app (clone (at queued 0)))))))))))
+      (delivered-from! app (ref queued)))))
+
+(type delivered-from!
+  (fn ((mut mail-app)
+       (ref (vec queued-relabel)))
+    (result (vec delivery-step) mail-error)))
+
+(defn delivered-from! (app queued)
+  (let (batch (try (batch-for app queued)))
+    (if (>= (len (:rows batch)) smallest-batch)
+      (delivered-as-batch! app batch)
+      (ok (vec (try (delivered-or-kept! app (clone (at queued 0)))))))))
 
 (type deliver-everything-now!
   (fn ((mut mail-app))
@@ -46,10 +57,13 @@
         (log-batch-delivered! (ref (:log app))
                               "relabel"
                               (ref tallied))
-        (match refusal
-          ((some failure) (err failure))
-          (none (ok (do)))))
+        (refused-or-done refusal))
       (recur app refusal tallied))))
+
+(defn refused-or-done (refusal)
+  (match refusal
+    ((some failure) (err failure))
+    (none (ok (do)))))
 
 (type first-refusal-in
   (fn ((ref (vec delivery-step))
@@ -61,10 +75,13 @@
     (fn (found step)
       (match step
         ((refused refused)
-         (if (none? found)
-           (some (clone (:failure refused)))
-           found))
+         (or-first found (ref (:failure refused))))
         (_ found)))))
+
+(defn or-first (found failure)
+  (if (none? found)
+    (some (clone failure))
+    found))
 
 (type tallied-deliveries
   (fn ((ref (vec delivery-step))

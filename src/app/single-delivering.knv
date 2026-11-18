@@ -1,3 +1,4 @@
+(use domain/collections appended)
 (use app/mail-app mail-app)
 (use app/operations/relabel-calls delivered-queued!)
 (use domain/mail-error mail-error)
@@ -20,14 +21,19 @@
        (try (forget-queued! (mut (:store app))
                             (:id row)))
        (ok (delivery-step/delivered row))))
-    ((err failure)
-     (if (worth-keeping? (ref failure))
-       (ok (delivery-step/kept row))
-       (do
-         (try (revert-queued! (mut (:store app))
-                              (ref row)))
-         (ok (delivery-step/refused (->refusal :queued row
-                                               :failure failure))))))))
+    ((err failure) (kept-or-refused! app row failure))))
+
+(type kept-or-refused!
+  (fn ((mut mail-app) queued-relabel mail-error)
+    (result delivery-step mail-error)))
+
+(defn kept-or-refused! (app row failure)
+  (if (worth-keeping? (ref failure))
+    (ok (delivery-step/kept row))
+    (do
+      (try (revert-queued! (mut (:store app))
+                           (ref row)))
+      (ok (delivery-step/refused (->refusal :queued row :failure failure))))))
 
 (defn worth-keeping? (failure)
   (match failure
@@ -45,15 +51,24 @@
 
 (defn one-at-a-time! (app rows index steps)
   (match (get rows index)
-    ((some row)
-     (let (step (try (delivered-or-kept! app (clone row)))
-           kept (kept? (ref step)))
-       (local taken steps)
-       (push! (mut taken) step)
-       (if kept
-         (ok taken)
-         (recur app rows (inc index) taken))))
+    ((some row) (delivered-row! app rows index steps row))
     (none (ok steps))))
+
+(type delivered-row!
+  (fn ((mut mail-app)
+       (ref (vec queued-relabel))
+       usize
+       (vec delivery-step)
+       (ref queued-relabel))
+    (result (vec delivery-step) mail-error)))
+
+(defn delivered-row! (app rows index steps row)
+  (let (step (try (delivered-or-kept! app (clone row)))
+        kept (kept? (ref step))
+        taken (appended steps step))
+    (if kept
+      (ok taken)
+      (one-at-a-time! app rows (inc index) taken))))
 
 (defn kept? (step)
   (match step ((kept _) true) (_ false)))

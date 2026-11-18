@@ -58,12 +58,22 @@
 (defn apply-changes-or-full-sync! (app account since)
   (match (sync-changes! app account since)
     ((err failure)
-     (if (history-expired? (ref failure))
-       (do
-         (log-history-expired! (ref (:log app)) account since)
-         (full-sync! app account))
-       (err failure)))
+     (full-sync-if-expired! app account since failure))
     (done done)))
+
+(type full-sync-if-expired!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref str)
+       mail-error)
+    (result unit mail-error)))
+
+(defn full-sync-if-expired! (app account since failure)
+  (if (history-expired? (ref failure))
+    (do
+      (log-history-expired! (ref (:log app)) account since)
+      (full-sync! app account))
+    (err failure)))
 
 (defn history-expired? (failure)
   (= (error-kind failure) "not-found"))

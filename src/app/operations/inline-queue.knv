@@ -2,7 +2,7 @@
 
 (use app/operations/runner ->operation-runner attempt-once!
                            attempt-outcome new-operation!
-                           operation-runner)
+                           operation-runner retry-plan)
 
 (use domain/mail-error mail-error)
 (use domain/operation operation-result)
@@ -33,26 +33,36 @@
                    (:patience queue)
                    (->scheduled :operation queued :attempt 1 :not-before 0)))))
 
+(type run-to-end!
+  (fn ((mut operation-runner) (option int) scheduled)
+    (result operation-result mail-error)))
+
 (defn run-to-end! (runner patience entry)
   (match (attempt-once! runner (ref entry))
     ((finished outcome) (ok outcome))
-    ((retry plan)
-     (let (waited (- (+ (now-milliseconds (ref (:clock runner)))
-                        (:delay plan))
-                     (:queued-at (:operation entry))))
-       (if (out-of-patience? patience waited)
-         (do
-           (log-left-queued! (ref (:log runner))
-                             (ref (:operation entry))
-                             (ref (:failure plan))
-                             waited)
-           (err (clone (:failure plan))))
-         (do
-           (pause! (ref (:clock runner))
-                   (:delay plan))
-           (recur runner patience
-                  (assoc entry :attempt (inc (:attempt entry))))))))
+    ((retry plan) (retried! runner patience entry plan))
     ((failed failure) (err failure))))
+
+(type retried!
+  (fn ((mut operation-runner) (option int) scheduled retry-plan)
+    (result operation-result mail-error)))
+
+(defn retried! (runner patience entry plan)
+  (let (waited (- (+ (now-milliseconds (ref (:clock runner)))
+                     (:delay plan))
+                  (:queued-at (:operation entry))))
+    (if (out-of-patience? patience waited)
+      (do
+        (log-left-queued! (ref (:log runner))
+                          (ref (:operation entry))
+                          (ref (:failure plan))
+                          waited)
+        (err (clone (:failure plan))))
+      (do
+        (pause! (ref (:clock runner))
+                (:delay plan))
+        (run-to-end! runner patience
+                     (assoc entry :attempt (inc (:attempt entry))))))))
 
 (defn out-of-patience? (patience waited)
   (match patience

@@ -62,12 +62,21 @@
                           (len (:message-ids batch)))
          (forgotten! app (clone (:rows batch)))))
       ((err failure)
-       (if (worth-keeping? (ref failure))
-         (ok (vec (delivery-step/kept head)))
-         (one-at-a-time! app
-                         (ref (:rows batch))
-                         0
-                         (vec)))))))
+       (after-batch-failure! app (ref batch) head failure)))))
+
+(type after-batch-failure!
+  (fn ((mut mail-app)
+       (ref delivery-batch)
+       queued-relabel mail-error)
+    (result (vec delivery-step) mail-error)))
+
+(defn after-batch-failure! (app batch head failure)
+  (if (worth-keeping? (ref failure))
+    (ok (vec (delivery-step/kept head)))
+    (one-at-a-time! app
+                    (ref (:rows batch))
+                    0
+                    (vec))))
 
 (type forgotten!
   (fn ((mut mail-app) (vec queued-relabel))
