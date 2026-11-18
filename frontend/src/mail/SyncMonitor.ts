@@ -6,7 +6,7 @@ import type { StatusLine } from "../status/StatusLine";
 import type { LabelDirectory } from "./LabelDirectory";
 import type { MailSession } from "./MailSession";
 
-const SYNCING = "syncing";
+const SYNCING = "syncing…";
 const SYNC_FAILED = "sync failed";
 const SYNC_PAUSED_BY_GMAIL = "sync paused by Gmail's rate limit";
 const MILLISECONDS_PER_MINUTE = 60_000;
