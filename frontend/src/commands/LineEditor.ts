@@ -45,11 +45,11 @@ export class LineEditor {
 
   private edits(): Readonly<Record<string, () => void>> {
     return {
-      "<BS>": () => this.deleteCharacterBefore(),
-      "<C-h>": () => this.deleteCharacterBefore(),
-      "<C-w>": () => this.deleteWordBefore(),
-      "<C-u>": () => this.keepAfterCursor(),
-      "<C-k>": () => this.keepBeforeCursor(),
+      "<BS>": () => this.delete(() => this.deleteCharacterBefore()),
+      "<C-h>": () => this.delete(() => this.deleteCharacterBefore()),
+      "<C-w>": () => this.delete(() => this.deleteWordBefore()),
+      "<C-u>": () => this.delete(() => this.keepAfterCursor()),
+      "<C-k>": () => this.delete(() => this.keepBeforeCursor()),
       "<C-a>": () => this.selectAll(),
       "<C-e>": () => this.moveTo(this.value.length),
       "<Left>": () => this.moveTo(this.position - 1),
@@ -62,9 +62,13 @@ export class LineEditor {
     this.splice(this.beforeCursor + text, this.value.slice(this.position));
   }
 
-  private deleteCharacterBefore(): void {
+  private delete(deletion: () => void): void {
     if (this.wholeLineSelected) this.replace("");
-    else this.splice(this.beforeCursor.slice(0, -1), this.value.slice(this.position));
+    else deletion();
+  }
+
+  private deleteCharacterBefore(): void {
+    this.splice(this.beforeCursor.slice(0, -1), this.value.slice(this.position));
   }
 
   private deleteWordBefore(): void {

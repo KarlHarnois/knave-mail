@@ -42,6 +42,12 @@ describe("line editor", () => {
     expect(line.press("h").editor.text).toBe("h");
   });
 
+  test("any deletion after <C-a> clears the line", () => {
+    for (const deletion of ["<C-w>", "<C-u>", "<C-k>", "<C-h>", "<BS>"]) {
+      expect(new EditedLine("from:alice bob").press("<C-a>", deletion).editor.text).toBe("");
+    }
+  });
+
   test("<C-e> moves the cursor to the end of the line", () => {
     expect(new EditedLine("sync").press("<Left>", "<Left>", "<C-e>").shown()).toBe("sync[]");
   });
