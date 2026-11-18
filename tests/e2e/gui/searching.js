@@ -6,7 +6,7 @@ knaveE2E.scenario(async (driver) => {
   const selectedOffset = document.querySelector('[data-test~="selected-row"]')?.style.transform;
   e2e.check(":q clears the search back to the top of the inbox", driver.text('[data-test~="status-label"]').startsWith("Inbox") && selectedOffset === "translateY(0px)", `${driver.text('[data-test~="status-label"]')} ${selectedOffset}`);
   await e2e.step("gl");
-  e2e.check("gl opens the label picker", driver.count('[data-test="label-picker"]:not([hidden])') === 1, driver.text('[data-test~="status-mode"]'));
-  await e2e.step("/rec<CR><CR>");
-  e2e.check("the picker opens the chosen label", driver.text('[data-test~="status-label"]').startsWith("Receipts"), driver.text('[data-test~="status-label"]'));
+  e2e.check("gl opens the label palette", driver.count('[data-test="palette"]:not([hidden])') === 1, driver.text('[data-test~="status-mode"]'));
+  await e2e.step("rec<CR>");
+  e2e.check("the palette opens the chosen label", driver.text('[data-test~="status-label"]').startsWith("Receipts"), driver.text('[data-test~="status-label"]'));
 });
