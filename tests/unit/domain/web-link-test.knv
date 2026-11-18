@@ -1,0 +1,27 @@
+(use domain/web-link web-link-host)
+
+(deftest an-https-link-names-its-host
+  (assert (= (web-link-host "https://news.example.com/issue/4?ref=mail")
+             (some (str "news.example.com")))))
+
+(deftest an-http-link-names-its-host
+  (assert (= (web-link-host "HTTP://example.com")
+             (some (str "example.com")))))
+
+(deftest a-link-host-leaves-out-sign-in-details
+  (assert (= (web-link-host "https://ada:secret@example.com/")
+             (some (str "example.com")))))
+
+(deftest a-link-to-another-link-names-the-first-host
+  (assert (= (web-link-host
+               "https://track.example.com/?to=https://shop.example.org")
+             (some (str "track.example.com")))))
+
+(deftest a-file-link-is-not-a-web-link
+  (assert (= (web-link-host "file:///etc/passwd") none)))
+
+(deftest a-script-link-is-not-a-web-link
+  (assert (= (web-link-host "javascript:alert(1)") none)))
+
+(deftest a-link-without-a-host-is-not-a-web-link
+  (assert (= (web-link-host "https://") none)))

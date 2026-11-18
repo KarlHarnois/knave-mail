@@ -1,0 +1,32 @@
+(use adapters/driven/memory/shared handle share shared
+                                   with-shared!)
+
+(use ports/driven/link-opener link-opener)
+
+(export new-recording-browser opened-links recording-browser
+        same-browser)
+
+(defstruct recording-browser
+  :opened (shared (vec string)))
+
+(defn new-recording-browser ()
+  (->recording-browser (share (vec))))
+
+(impl link-opener recording-browser
+  (open-link! (browser url)
+    (with-shared! (ref (:opened browser))
+      (fn (opened) (push! opened (str url))))))
+
+(type same-browser
+  (fn ((ref recording-browser)) recording-browser))
+
+(defn same-browser (browser)
+  (->recording-browser (handle (ref (:opened browser)))))
+
+(type opened-links
+  (fn ((ref recording-browser))
+    (vec string)))
+
+(defn opened-links (browser)
+  (with-shared! (ref (:opened browser))
+    (fn (opened) (clone opened))))

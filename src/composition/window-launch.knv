@@ -4,6 +4,7 @@
 (use app/client/mail-reader)
 (use app/client/mail-labeler)
 (use app/client/account-book)
+(use adapters/driven/browser/system-browser ->system-browser)
 
 (use adapters/driven/threaded-queue share-sender
                                     threaded-operations)
@@ -39,6 +40,7 @@
 (use app/mail-app delivery)
 (use domain/operation priority)
 (use ports/driven/event-log event-log log-info share-log)
+(use ports/driven/link-opener link-opener)
 
 (export launch-window)
 
@@ -87,7 +89,9 @@
                    (mut runner)
                    (mut lister)
                    (mut deliverer)
-                   log inbox outbox))
+                   log
+                   (ref (browser-of chosen))
+                   inbox outbox))
 
 (defn serve-gmail-window! (chosen log inbox outbox)
   (let (executor (start-gmail-executor (clone chosen)))
@@ -109,5 +113,14 @@
                           (mut runner)
                           (mut lister)
                           (mut deliverer)
-                          log inbox outbox)))
+                          log
+                          (ref (browser-of chosen))
+                          inbox outbox)))
       ((err failure) (fail-with (ref failure))))))
+
+(type browser-of
+  (fn ((ref settings)) (box link-opener)))
+
+(defn browser-of (chosen)
+  (the (box link-opener)
+       (box (->system-browser (clone (:browser chosen))))))

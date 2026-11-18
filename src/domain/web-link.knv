@@ -1,0 +1,36 @@
+(export web-link-host)
+
+(type web-link-host
+  (fn ((ref str)) (option string)))
+
+(defn web-link-host (url)
+  (let (sides (collect (split (trim url) "://")))
+    (if (and (>= (len sides) 2)
+             (web-scheme? (deref (at sides 0))))
+      (non-empty (host-of (deref (at sides 1))))
+      none)))
+
+(defn web-scheme? (scheme)
+  (match (as-str (ref (lower-case scheme)))
+    ("http" true)
+    ("https" true)
+    (_ false)))
+
+(defn host-of (rest)
+  (let (path-start (before rest "/")
+        query-start (before (as-str (ref path-start)) "?")
+        authority (before (as-str (ref query-start)) "#"))
+    (after-last (as-str (ref authority)) "@")))
+
+(defn before (text separator)
+  (let (parts (collect (split text separator)))
+    (str (at parts 0))))
+
+(defn after-last (text separator)
+  (let (parts (collect (split text separator)))
+    (str (at parts (- (len parts) 1)))))
+
+(defn non-empty (host)
+  (if (empty? (as-str (ref host)))
+    none
+    (some host)))

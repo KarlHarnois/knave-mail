@@ -36,18 +36,22 @@
                                               report-e2e-line
                                               zoom-to)
 
+(use adapters/driving/webview/link-requests open-requested-link!)
 (use adapters/driving/webview/request-log record-frontend-entry!)
 (use ports/driven/event-log event-log)
+(use ports/driven/link-opener link-opener)
 
 (export serve-requests!)
 
-(defn serve-requests! (client runner lister deliverer log inbox outbox)
+(defn serve-requests! (client runner lister deliverer log opener inbox outbox)
   (match (next-request inbox)
     ((some request)
      (handle-request! client runner lister deliverer log
+                      opener
                       (ref request)
                       outbox)
-     (recur client runner lister deliverer log inbox outbox))
+     (recur client runner lister deliverer log opener inbox
+            outbox))
     (none (do))))
 
 (type handle-request!
@@ -60,11 +64,13 @@
          (mut lister)
          (mut deliverer)
          (ref (box event-log))
+         (ref (box link-opener))
          (ref str)
          (ref reply-outbox))
       unit)))
 
-(defn handle-request! (client runner lister deliverer log request-text outbox)
+(defn handle-request! (client runner lister deliverer log
+                              opener request-text outbox)
   (match (parse-json request-text)
     ((ok request)
      (match (string-field (ref request) "command")
@@ -74,6 +80,8 @@
        ((ok "e2e-finish") (finish-e2e (ref request) outbox))
        ((ok "zoom") (zoom-to (ref request) outbox))
        ((ok "log") (record-frontend-entry! log (ref request)))
+       ((ok "open-link")
+        (open-requested-link! opener log (ref request)))
        ((ok command)
         (if (label-command? (as-str command))
           (answer-relabel! client deliverer log request-text

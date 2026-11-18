@@ -1,0 +1,58 @@
+(use adapters/driven/memory/memory-log logged-lines
+                                       memory-log
+                                       new-memory-log
+                                       same-log)
+
+(use adapters/driving/webview/link-requests open-requested-link!)
+(use adapters/json/value parse-json)
+(use ports/driven/event-log event-log)
+(use ports/driven/link-opener link-opener)
+(use support/log-lines mentions-none? mentions?)
+
+(use support/recording-browser new-recording-browser
+                               opened-links
+                               recording-browser
+                               same-browser)
+
+(type open-through!
+  (fn ((ref recording-browser)
+       (ref memory-log)
+       (ref str))
+    unit))
+
+(defn open-through! (browser log url)
+  (let (request-text (str "{\"id\":1,\"command\":\"open-link\",\"args\":{\"url\":\""
+                          url "\"}}"))
+    (open-requested-link! (ref (the (box link-opener)
+                                    (box (same-browser browser))))
+                          (ref (the (box event-log)
+                                    (box (same-log log))))
+                          (ref (unwrap-ok (parse-json (as-str (ref request-text))))))))
+
+(deftest an-https-link-opens-in-the-browser
+  (let (browser (new-recording-browser)
+        log (new-memory-log))
+    (open-through! (ref browser)
+                   (ref log)
+                   "https://example.com/a")
+    (assert (= (opened-links (ref browser))
+               (vec (str "https://example.com/a"))))))
+
+(deftest an-opened-link-logs-only-its-host
+  (let (browser (new-recording-browser)
+        log (new-memory-log))
+    (open-through! (ref browser)
+                   (ref log)
+                   "https://example.com/private-token")
+    (assert (mentions? (ref (logged-lines (ref log)))
+                       "opened link to example.com"))
+    (assert (mentions-none? (ref (logged-lines (ref log)))
+                            (ref (vec "private-token"))))))
+
+(deftest a-file-link-stays-closed-and-is-logged
+  (let (browser (new-recording-browser)
+        log (new-memory-log))
+    (open-through! (ref browser) (ref log) "file:///etc/passwd")
+    (assert (empty? (opened-links (ref browser))))
+    (assert (mentions? (ref (logged-lines (ref log)))
+                       "refused to open a link"))))
