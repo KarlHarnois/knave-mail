@@ -2,38 +2,38 @@ import { describe, expect, test } from "bun:test";
 import { DesignSystemTheme } from "../../tools/DesignSystemTheme";
 import glossary from "./fixtures/glossary.json";
 
-const css = new DesignSystemTheme(glossary).css();
+const EXPECTED_CSS = `:root {
+  --default-font: "Fixture Mono", "Fixture Term", monospace;
+  --default-message-font: "Fixture Sans", sans-serif;
+  --font-size: 10px;
+  --light-background: #ffffff;
+  --light-foreground: #000000;
+  --light-muted: #606060;
+  --light-border: #c0c0c0;
+  --light-selection: #e0e0e0;
+  --light-cursor: #010101;
+  --light-accent: #010101;
+  --light-error: #010101;
+  --light-star: #010101;
+  --light-status-bar: #f0f0f0;
+  --light-html-mail: #ffffff;
+  --dark-background: #000000;
+  --dark-foreground: #ffffff;
+  --dark-muted: #808080;
+  --dark-border: #404040;
+  --dark-selection: #202020;
+  --dark-cursor: #fefefe;
+  --dark-accent: #fefefe;
+  --dark-error: #fefefe;
+  --dark-star: #fefefe;
+  --dark-status-bar: #101010;
+  --dark-html-mail: #ffffff;
+}
+`;
 
 describe("design system theme", () => {
-  test("the interface font is the mono family", () => {
-    expect(css).toContain('--default-font: "Fixture Mono", "Fixture Term", monospace;');
-  });
-
-  test("the message font is the prose family", () => {
-    expect(css).toContain('--default-message-font: "Fixture Sans", sans-serif;');
-  });
-
-  test("the font size is the body size", () => {
-    expect(css).toContain("--font-size: 10px;");
-  });
-
-  test("each mode takes its own background", () => {
-    expect(css).toContain("--light-background: #ffffff;");
-    expect(css).toContain("--dark-background: #000000;");
-  });
-
-  test("muted text is the secondary text color", () => {
-    expect(css).toContain("--dark-muted: #808080;");
-  });
-
-  test("accents, errors and stars all take the focus color", () => {
-    expect(css).toContain("--dark-accent: #fefefe;");
-    expect(css).toContain("--dark-error: #fefefe;");
-    expect(css).toContain("--dark-star: #fefefe;");
-  });
-
-  test("HTML mail keeps the document canvas in the dark mode", () => {
-    expect(css).toContain("--dark-html-mail: #ffffff;");
+  test("maps the glossary to the theme properties", () => {
+    expect(new DesignSystemTheme(glossary).css()).toBe(EXPECTED_CSS);
   });
 
   test("a missing token names the token", () => {
