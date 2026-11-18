@@ -39,4 +39,11 @@ describe("design system theme", () => {
   test("a missing token names the token", () => {
     expect(() => new DesignSystemTheme([]).css()).toThrow("font.family.mono");
   });
+
+  test("a font token that differs per mode is rejected", () => {
+    const perMode = glossary.map((entry) =>
+      entry.id === "font.size.body" ? { ...entry, values: { light: "13px", dark: "14px" } } : entry,
+    );
+    expect(() => new DesignSystemTheme(perMode).css()).toThrow("font.size.body");
+  });
 });

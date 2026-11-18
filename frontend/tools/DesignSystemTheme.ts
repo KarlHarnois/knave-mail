@@ -25,7 +25,6 @@ const FONT_TOKEN_FOR_PROPERTY: readonly (readonly [string, string])[] = [
   ["--default-message-font", "font.family.prose"],
   ["--font-size", "font.size.body"],
 ];
-const THEME_INDEPENDENT_VALUES: ThemeName = "dark";
 
 export class DesignSystemTheme {
   private readonly entries: ReadonlyMap<string, GlossaryEntry>;
@@ -40,18 +39,26 @@ export class DesignSystemTheme {
   }
 
   private fontDeclarations(): string[] {
-    return FONT_TOKEN_FOR_PROPERTY.map(
-      ([property, tokenId]) => `${property}: ${this.value(tokenId, THEME_INDEPENDENT_VALUES)}`,
-    );
+    return FONT_TOKEN_FOR_PROPERTY.map(([property, tokenId]) => `${property}: ${this.sharedValue(tokenId)}`);
   }
 
   private colorDeclarations(themeName: ThemeName): string[] {
     return COLOR_TOKEN_FOR_KEY.map(([key, tokenId]) => `--${themeName}-${key}: ${this.value(tokenId, themeName)}`);
   }
 
+  private sharedValue(tokenId: string): string {
+    const { light, dark } = this.entry(tokenId).values;
+    if (light !== dark) throw new Error(`${tokenId} differs between light and dark, but knave-mail fonts cannot`);
+    return dark;
+  }
+
   private value(tokenId: string, themeName: ThemeName): string {
+    return this.entry(tokenId).values[themeName];
+  }
+
+  private entry(tokenId: string): GlossaryEntry {
     const entry = this.entries.get(tokenId);
     if (entry === undefined) throw new Error(`The design system glossary has no token ${tokenId}`);
-    return entry.values[themeName];
+    return entry;
   }
 }
