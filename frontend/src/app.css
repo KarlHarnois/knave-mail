@@ -11,8 +11,9 @@
   --star: light-dark(var(--light-star), var(--dark-star));
   --status-bar: light-dark(var(--light-status-bar), var(--dark-status-bar));
   --html-mail: light-dark(var(--light-html-mail), var(--dark-html-mail));
-  --font: var(--theme-font, var(--default-font));
-  --message-font: var(--theme-message-font, var(--theme-font, var(--default-message-font)));
+  --font: var(--theme-font, var(--default-font)), var(--default-font);
+  --message-font:
+    var(--theme-message-font, var(--theme-font, var(--default-message-font))), var(--default-message-font);
 }
 
 * {
