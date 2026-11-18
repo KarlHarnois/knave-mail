@@ -15,7 +15,8 @@ knaveE2E.scenario(async (driver) => {
   probe.remove();
   const fatCursor = await e2e.waitFor('[data-test~="composer"]:not([hidden]) .cm-fat-cursor');
   const cursorStyle = fatCursor && getComputedStyle(fatCursor);
-  const cursorColor = cursorStyle && (cursorStyle.backgroundColor === "rgba(0, 0, 0, 0)" ? cursorStyle.outlineColor : cursorStyle.backgroundColor);
+  const hollowCursorColor = cursorStyle?.boxShadow.match(/rgba?\([^)]*\)/)?.[0];
+  const cursorColor = cursorStyle && (cursorStyle.backgroundColor === "rgba(0, 0, 0, 0)" ? hollowCursorColor : cursorStyle.backgroundColor);
   e2e.check("the composer cursor takes the theme cursor color", cursorColor === themedCursor, `${cursorColor} vs ${themedCursor}`);
   const composerEditor = document.querySelector('[data-test~="composer"]:not([hidden]) .cm-editor');
   const selectionLayer = composerEditor?.querySelector(".cm-selectionLayer");
