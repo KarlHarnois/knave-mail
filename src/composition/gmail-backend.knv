@@ -7,7 +7,7 @@
 
 (use adapters/driven/google-oauth/authorizer ->google-authorizer)
 (use adapters/driven/google-oauth/oauth-settings ->oauth-settings)
-(use adapters/driven/google-oauth/consent-browser ->system-browser)
+(use adapters/driven/browser/system-browser ->system-browser)
 (use adapters/driven/keyring/credentials ->keyring-credentials)
 (use adapters/driven/sqlite/store open-sqlite-store)
 (use adapters/driven/system-clock ->system-clock)
