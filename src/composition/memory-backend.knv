@@ -1,3 +1,4 @@
+(use ports/driven/mailbox-provider mailbox-provider)
 (use ports/driven/authorizer authorizer)
 (use adapters/driven/memory/authorizer ->memory-authorizer)
 (use adapters/driven/memory/provider ->memory-provider)
@@ -36,7 +37,7 @@
 
 (defn memory-app (chosen log)
   (let (provider (->memory-provider (account-emails) (seeded-remotes chosen))
-        operations (new-inline-queue (box provider)
+        operations (new-inline-queue (mailbox-provider/memory provider)
                                      clock/system
                                      (share-log (ref log))
                                      (some 0))

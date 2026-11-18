@@ -1,9 +1,23 @@
+(use adapters/driven/gmail/provider gmail-mailbox-for
+                                    gmail-provider)
+
+(use adapters/driven/memory/provider memory-mailbox-for
+                                     memory-provider)
+
 (use domain/mail-error mail-error)
 (use ports/driven/mailbox mailbox)
 
-(export mailbox-provider)
+(export connect-mailbox! mailbox-provider)
 
-(deftrait mailbox-provider
-  (connect-mailbox!
-    (fn ((mut self) (ref str))
-      (result (box mailbox) mail-error))))
+(defenum mailbox-provider
+  (gmail gmail-provider)
+  (memory memory-provider))
+
+(type connect-mailbox!
+  (fn ((mut mailbox-provider) (ref str))
+    (result (box mailbox) mail-error)))
+
+(defn connect-mailbox! (provider email)
+  (match provider
+    ((gmail held) (gmail-mailbox-for held email))
+    ((memory held) (memory-mailbox-for held email))))

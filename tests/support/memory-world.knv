@@ -1,3 +1,4 @@
+(use ports/driven/mailbox-provider mailbox-provider)
 (use ports/driven/authorizer authorizer)
 (use adapters/driven/memory/authorizer ->memory-authorizer)
 (use adapters/driven/memory/provider ->memory-provider)
@@ -95,9 +96,9 @@
 (defn app-timed-by (remote log clock)
   (new-mail-app (box (empty-memory-store))
                 (the (box operation-queue)
-                     (box (new-inline-queue (box (->memory-provider (vec (str world-account))
-                                                                    (vec (handle
-                                                                           remote))))
+                     (box (new-inline-queue (mailbox-provider/memory
+                                              (->memory-provider (vec (str world-account))
+                                                                 (vec (handle remote))))
                                             (clock/memory clock)
                                             (share-log (ref log))
                                             (some fake-patience-milliseconds))))

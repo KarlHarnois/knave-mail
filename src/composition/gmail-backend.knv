@@ -52,13 +52,12 @@
 
 (type gmail-provider-for
   (fn ((ref settings) (ref (box event-log)))
-    (box mailbox-provider)))
+    mailbox-provider))
 
 (defn gmail-provider-for (chosen log)
-  (the (box mailbox-provider)
-       (box (->gmail-provider (endpoints chosen)
-                              (chosen-credentials chosen)
-                              (share-log log)))))
+  (mailbox-provider/gmail (->gmail-provider (endpoints chosen)
+                                            (chosen-credentials chosen)
+                                            (share-log log))))
 
 (type gmail-operations
   (fn ((ref settings) (ref (box event-log)))
