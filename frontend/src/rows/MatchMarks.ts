@@ -7,10 +7,9 @@ export class MatchMarks {
 
   private segments(cell: Element, query: string): Node[] {
     const text = cell.textContent ?? "";
-    const lowered = text.toLowerCase();
     const nodes: Node[] = [];
     let start = 0;
-    for (let at = this.find(lowered, query, 0); at !== NOT_FOUND; at = this.find(lowered, query, start)) {
+    for (let at = this.find(text, query, 0); at !== NOT_FOUND; at = this.find(text, query, start)) {
       const end = at + query.length;
       nodes.push(cell.ownerDocument.createTextNode(text.slice(start, at)), this.mark(cell, text.slice(at, end)));
       start = end;
@@ -20,7 +19,11 @@ export class MatchMarks {
   }
 
   private find(text: string, query: string, from: number): number {
-    return query === "" ? NOT_FOUND : text.indexOf(query, from);
+    if (query === "") return NOT_FOUND;
+    for (let at = from; at + query.length <= text.length; at++) {
+      if (text.slice(at, at + query.length).toLowerCase() === query) return at;
+    }
+    return NOT_FOUND;
   }
 
   private mark(cell: Element, text: string): HTMLElement {

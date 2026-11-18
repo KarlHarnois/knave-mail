@@ -42,4 +42,10 @@ describe("match marks", () => {
     expect(row.marked()).toEqual(["2", "2"]);
     expect(row.cells[1]?.querySelector(".list-match")).toBeNull();
   });
+
+  test("a character that grows when lowercased does not shift the marks", () => {
+    const row = new MarkedRow("İstanbul");
+    new MatchMarks().show(row.cells, "stan");
+    expect(row.marked()).toEqual(["stan"]);
+  });
 });
