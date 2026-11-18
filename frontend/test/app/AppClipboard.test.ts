@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 import { AppHarness } from "../support/AppHarness";
 
 describe("system clipboard", () => {
@@ -50,5 +50,19 @@ describe("system clipboard", () => {
     await app.press("l");
     await app.press('vj"+yy');
     expect(await navigator.clipboard.readText()).toBe("second line 2\n");
+  });
+
+  test("a clipboard that cannot be read is logged as a warning", async () => {
+    const app = await AppHarness.started();
+    const read = spyOn(navigator.clipboard, "readText").mockImplementation(() => Promise.reject(new Error("denied")));
+    try {
+      await app.press("cGp");
+    } finally {
+      read.mockRestore();
+    }
+    expect(app.core.logged).toContainEqual({
+      level: "warn",
+      message: "system clipboard unreadable, p pastes the last yank instead: Error: denied",
+    });
   });
 });

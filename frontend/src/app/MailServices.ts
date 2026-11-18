@@ -139,7 +139,7 @@ export class MailServices {
   private createEditors(): VimEditorFactory {
     const exCommands = new VimExCommands();
     exCommands.install();
-    const clipboard = new SystemClipboard(this.window.navigator, (message) => this.status.showError(message));
+    const clipboard = new SystemClipboard(this.window.navigator, (message) => this.errors.report(message));
     new VimClipboard(clipboard).install();
     const keymap = new VimKeymap();
     keymap.apply(keymap.entriesOf(this.window));
