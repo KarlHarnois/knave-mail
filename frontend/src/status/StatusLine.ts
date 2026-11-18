@@ -9,8 +9,8 @@ const FIELD_CLASS: Readonly<Record<StatusField, string>> = {
   sync: "status-bar-segment",
   waiting: "status-bar-segment",
   keys: "status-bar-segment",
-  notice: "status-bar-message",
-  error: "status-bar-message is-error",
+  notice: "status-bar-segment status-bar-message",
+  error: "status-bar-segment status-bar-message is-error",
 };
 const MESSAGE_LIFETIME_MILLISECONDS = 8000;
 
