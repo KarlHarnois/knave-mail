@@ -1,6 +1,3 @@
-(use composition/window-client)
-(use app/client/account-book)
-
 (use adapters/driving/webview/listing-runner ->outbox-sink
                                              listing-runner)
 

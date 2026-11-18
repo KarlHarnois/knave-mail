@@ -1,10 +1,7 @@
-(use app/client/mail-labeler)
-(use app/client/mail-syncer)
-(use app/client/mail-reader)
 (use domain/freshness freshness)
 (use domain/mail thread-summary)
 (use domain/summary summarize)
-(use ports/driving/mail-reader list-threads!)
+(use app/client/mail-reader list-threads!)
 (use ports/driven/store load-summaries-of save-threads!)
 
 (use adapters/driven/memory/memory-log logged-lines
@@ -13,7 +10,7 @@
 
 (use adapters/driven/memory/memory-clock new-memory-clock)
 (use domain/labels archive-change)
-(use ports/driving/mail-labeler relabel-threads!)
+(use app/client/mail-labeler relabel-threads!)
 
 (use support/app-steps inbox-query listed-ids! remote-thread
                        synced!)

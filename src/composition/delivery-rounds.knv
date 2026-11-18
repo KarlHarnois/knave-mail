@@ -1,4 +1,3 @@
-(use app/client/mail-labeler)
 (use adapters/driving/webview/window reply-outbox)
 (use app/mail-app mail-app)
 
@@ -13,7 +12,7 @@
                            step-account)
 
 (use ports/driven/event-log event-log log-warn)
-(use ports/driving/mail-labeler deliver-next-change!)
+(use app/client/mail-labeler deliver-next-change!)
 
 (export delivered-all!)
 

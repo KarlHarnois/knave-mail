@@ -1,7 +1,3 @@
-(use app/client/mail-labeler)
-(use app/client/mail-syncer)
-(use app/client/mail-writer)
-
 (use adapters/driven/memory/memory-clock new-memory-clock
                                          pauses-of
                                          same-clock)
@@ -12,8 +8,8 @@
 
 (use domain/labels archive-change)
 (use domain/mail ->draft)
-(use ports/driving/mail-labeler relabel-threads!)
-(use ports/driving/mail-writer send-draft!)
+(use app/client/mail-labeler relabel-threads!)
+(use app/client/mail-writer send-draft!)
 
 (use support/app-steps fail-remote! fail-remote-times!
                        remote-sent remote-thread synced!

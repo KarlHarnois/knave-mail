@@ -6,23 +6,28 @@
 (use ports/driven/store forget-account! load-accounts
                         save-account!)
 
-(use ports/driving/account-book account-book)
+(export add-account! list-accounts! remove-account!)
 
-(impl account-book mail-app
-  (list-accounts! (app)
-    (load-accounts (ref (:store app))))
+(type list-accounts!
+  (fn ((mut mail-app))
+    (result (vec account) mail-error)))
 
-  (add-account! (app) (add-authorized-account! app))
+(defn list-accounts! (app)
+  (load-accounts (ref (:store app))))
 
-  (remove-account! (app account)
-    (forget-account! (mut (:store app)) account)))
-
-(type add-authorized-account!
+(type add-account!
   (fn ((mut mail-app))
     (result account mail-error)))
 
-(defn add-authorized-account! (app)
+(defn add-account! (app)
   (let (authorized (try (authorize! (mut (:authorizer app)))))
     (try (save-account! (mut (:store app))
                         (ref authorized)))
     (ok authorized)))
+
+(type remove-account!
+  (fn ((mut mail-app) (ref str))
+    (result unit mail-error)))
+
+(defn remove-account! (app account)
+  (forget-account! (mut (:store app)) account))

@@ -1,6 +1,4 @@
-(use app/client/mail-labeler)
-(use app/client/mail-syncer)
-(use ports/driving/mail-labeler archive-older!)
+(use app/client/mail-labeler archive-older!)
 
 (use support/app-steps inbox-query listed-ids! remote-thread
                        synced!)

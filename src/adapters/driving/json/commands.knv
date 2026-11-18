@@ -1,6 +1,5 @@
-(use ports/driving/mail-labeler mail-labeler
-                                relabel-threads!)
-
+(use app/mail-app mail-app)
+(use app/client/mail-labeler relabel-threads!)
 (use domain/label-commands label-change-named)
 (use adapters/driving/json/listing-command threads-listed!)
 
@@ -28,24 +27,17 @@
                          string-field)
 
 (use domain/mail-error mail-error)
-(use ports/driving/account-book account-book list-accounts!)
-
-(use ports/driving/mail-reader list-labels! mail-reader
-                               open-thread!)
-
-(use ports/driving/mail-writer draft! mail-writer
-                               send-draft!)
-
+(use app/client/account-book list-accounts!)
+(use app/client/mail-reader list-labels! open-thread!)
+(use app/client/mail-writer draft! send-draft!)
 (use domain/mail ->message-ref)
 (use domain/reply draft-kind)
-(use ports/driving/mail-syncer mail-syncer sync-account!)
+(use app/client/mail-syncer sync-account!)
 
 (export answer! run-command!)
 
 (type answer!
-  (where ((client account-book mail-reader mail-writer
-                  mail-labeler mail-syncer))
-    (fn ((mut client) (ref str)) string)))
+  (fn ((mut mail-app) (ref str)) string))
 
 (defn answer! (client request-text)
   (match (parse-json request-text)
@@ -55,10 +47,8 @@
                     (ref (mail-error/usage problem))))))
 
 (type answer-parsed!
-  (where ((client account-book mail-reader mail-writer
-                  mail-labeler mail-syncer))
-    (fn ((mut client) (ref json-value))
-      string)))
+  (fn ((mut mail-app) (ref json-value))
+    string))
 
 (defn answer-parsed! (client request)
   (let (id (request-id request)
@@ -73,12 +63,10 @@
       ((err failure) (failure-reply (ref id) (ref failure))))))
 
 (type run-command!
-  (where ((client account-book mail-reader mail-writer
-                  mail-labeler mail-syncer))
-    (fn ((mut client)
-         (ref str)
-         (ref json-value))
-      (result json-value mail-error))))
+  (fn ((mut mail-app)
+       (ref str)
+       (ref json-value))
+    (result json-value mail-error)))
 
 (defn run-command! (client command arguments)
   (match command
@@ -113,9 +101,8 @@
     (_ (relabel-command! client command arguments))))
 
 (type draft-command!
-  (where ((client mail-writer))
-    (fn ((mut client) (ref json-value) draft-kind)
-      (result json-value mail-error))))
+  (fn ((mut mail-app) (ref json-value) draft-kind)
+    (result json-value mail-error)))
 
 (defn draft-command! (client arguments kind)
   (let (message (->message-ref :account (try (account-argument arguments))
@@ -129,11 +116,10 @@
     (_ draft-kind/reply)))
 
 (type relabel-command!
-  (where ((client mail-labeler))
-    (fn ((mut client)
-         (ref str)
-         (ref json-value))
-      (result json-value mail-error))))
+  (fn ((mut mail-app)
+       (ref str)
+       (ref json-value))
+    (result json-value mail-error)))
 
 (defn relabel-command! (client command arguments)
   (let (change (try (change-named command)))

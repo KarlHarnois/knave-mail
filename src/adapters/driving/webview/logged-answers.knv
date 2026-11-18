@@ -1,5 +1,5 @@
-(use adapters/driving/webview/window-client answer-request!
-                                            window-client)
+(use app/mail-app mail-app)
+(use adapters/driving/webview/window-client answer-request!)
 
 (use adapters/driving/webview/listing-runner deliver-reply!
                                              reply-sink)
@@ -17,7 +17,7 @@
 (use domain/mail-error mail-error)
 (use domain/results unwrap-ok-or)
 (use ports/driven/event-log event-log log-debug log-warn)
-(use ports/driving/account-book account-book list-accounts!)
+(use app/client/account-book list-accounts!)
 
 (export answer-listings! answered-and-logged!
         refuse-listings!)
@@ -63,12 +63,11 @@
     ((err _) (str unnamed-request))))
 
 (type answered-and-logged!
-  (where ((client window-client))
-    (fn ((mut client)
-         (ref (box event-log))
-         (ref str)
-         (ref str))
-      string)))
+  (fn ((mut mail-app)
+       (ref (box event-log))
+       (ref str)
+       (ref str))
+    string))
 
 (defn answered-and-logged! (client log request-text command)
   (let (started (clock-milliseconds)

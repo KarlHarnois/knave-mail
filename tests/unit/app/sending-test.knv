@@ -1,8 +1,7 @@
 (use domain/label-scope label-scope)
-(use app/client/mail-writer)
 (use domain/mail ->draft ->thread-query)
-(use ports/driving/mail-reader open-thread!)
-(use ports/driving/mail-writer send-draft!)
+(use app/client/mail-reader open-thread!)
+(use app/client/mail-writer send-draft!)
 
 (use support/app-steps ada-thread fail-remote! listed-ids!
                        remote-sent remote-thread synced!)

@@ -1,6 +1,5 @@
 (use domain/freshness freshness)
 (use domain/label-scope label-scope)
-(use app/client/mail-writer)
 (use adapters/driving/cli/command cli-command)
 
 (use adapters/driving/cli/runner ->cli-request

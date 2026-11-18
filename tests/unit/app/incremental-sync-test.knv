@@ -1,9 +1,7 @@
 (use domain/freshness freshness)
-(use app/client/mail-labeler)
-(use app/client/mail-syncer)
-(use ports/driving/mail-reader list-threads!)
-(use ports/driving/mail-labeler relabel-threads!)
-(use ports/driving/mail-syncer sync-account!)
+(use app/client/mail-reader list-threads!)
+(use app/client/mail-labeler relabel-threads!)
+(use app/client/mail-syncer sync-account!)
 (use domain/labels archive-change)
 
 (use support/app-steps fail-remote! inbox-query listed-ids!

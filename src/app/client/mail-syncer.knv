@@ -1,8 +1,18 @@
 (use app/mail-app mail-app)
 (use app/sync/syncing preview-sync! sync!)
-(use ports/driving/mail-syncer mail-syncer)
+(use domain/mail-error mail-error)
 
-(impl mail-syncer mail-app
-  (sync-account! (app account) (sync! app account))
+(export preview-account! sync-account!)
 
-  (preview-account! (app account) (preview-sync! app account)))
+(type sync-account!
+  (fn ((mut mail-app) (ref str))
+    (result unit mail-error)))
+
+(defn sync-account! (app account) (sync! app account))
+
+(type preview-account!
+  (fn ((mut mail-app) (ref str))
+    (result bool mail-error)))
+
+(defn preview-account! (app account)
+  (preview-sync! app account))

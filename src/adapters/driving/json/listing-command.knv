@@ -1,3 +1,4 @@
+(use app/mail-app mail-app)
 (use domain/freshness freshness)
 
 (use adapters/driving/json/arguments account-argument
@@ -6,14 +7,13 @@
 (use adapters/driving/json/mail-json summaries-json)
 (use adapters/json/value bool-field json-value)
 (use domain/mail-error mail-error)
-(use ports/driving/mail-reader list-threads! mail-reader)
+(use app/client/mail-reader list-threads!)
 
 (export threads-listed!)
 
 (type threads-listed!
-  (where ((client mail-reader))
-    (fn ((mut client) (ref json-value))
-      (result json-value mail-error))))
+  (fn ((mut mail-app) (ref json-value))
+    (result json-value mail-error)))
 
 (defn threads-listed! (client arguments)
   (let (account (try (account-argument arguments))

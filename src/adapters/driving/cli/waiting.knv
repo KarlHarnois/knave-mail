@@ -1,15 +1,13 @@
+(use app/mail-app mail-app)
 (use adapters/driving/cli/cli-result cli-result)
 (use domain/mail-error mail-error)
-
-(use ports/driving/mail-labeler mail-labeler
-                                waiting-changes)
+(use app/client/mail-labeler waiting-changes)
 
 (export all-delivered)
 
 (type all-delivered
-  (where ((client mail-labeler))
-    (fn ((ref client) (ref str))
-      (result cli-result mail-error))))
+  (fn ((ref mail-app) (ref str))
+    (result cli-result mail-error)))
 
 (defn all-delivered (client account)
   (let (waiting (try (waiting-changes client account)))

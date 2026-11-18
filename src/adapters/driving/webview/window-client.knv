@@ -1,14 +1,26 @@
+(use adapters/driving/json/commands answer!)
+(use app/client/mail-labeler waiting-changes)
+(use app/client/mail-syncer sync-account!)
+(use app/mail-app mail-app)
 (use domain/mail-error mail-error)
+(use domain/results unwrap-ok-or)
 
-(export window-client)
+(export answer-request! sync-mail! waiting-changes-of)
 
-(deftrait window-client
-  (answer-request!
-    (fn ((mut self) (ref str)) string))
+(type answer-request!
+  (fn ((mut mail-app) (ref str)) string))
 
-  (sync-mail!
-    (fn ((mut self) (ref str))
-      (result unit mail-error)))
+(defn answer-request! (app request-text)
+  (answer! app request-text))
 
-  (waiting-changes-of
-    (fn ((ref self) (ref str)) int)))
+(type sync-mail!
+  (fn ((mut mail-app) (ref str))
+    (result unit mail-error)))
+
+(defn sync-mail! (app account) (sync-account! app account))
+
+(type waiting-changes-of
+  (fn ((ref mail-app) (ref str)) int))
+
+(defn waiting-changes-of (app account)
+  (unwrap-ok-or (waiting-changes app account) 0))

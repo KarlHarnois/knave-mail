@@ -1,10 +1,8 @@
-(use app/client/mail-writer)
-(use app/client/mail-labeler)
 (use domain/labels archive-change star-change)
 (use domain/mail ->draft)
-(use ports/driving/mail-writer draft! send-draft!)
+(use app/client/mail-writer draft! send-draft!)
 (use domain/reply draft-kind)
-(use ports/driving/mail-labeler relabel-threads!)
+(use app/client/mail-labeler relabel-threads!)
 
 (use support/app-steps ada-message fail-remote! failing-kind
                        inbox-query listed-ids! remote-sent

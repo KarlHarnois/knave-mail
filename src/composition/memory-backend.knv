@@ -1,4 +1,3 @@
-(use app/client/mail-syncer)
 (use adapters/driven/memory/authorizer ->memory-authorizer)
 (use adapters/driven/memory/provider ->memory-provider)
 
@@ -24,7 +23,7 @@
 (use composition/settings settings)
 (use domain/mail ->account)
 (use ports/driven/store save-account!)
-(use ports/driving/mail-syncer sync-account!)
+(use app/client/mail-syncer sync-account!)
 
 (export memory-app)
 

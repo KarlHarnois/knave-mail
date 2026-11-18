@@ -5,10 +5,10 @@
 (use app/sync/prefetching prefetch-limit)
 (use domain/mail-error error-kind)
 
-(use ports/driving/mail-reader list-labels! list-threads!
-                               open-thread!)
+(use app/client/mail-reader list-labels! list-threads!
+                            open-thread!)
 
-(use ports/driving/mail-syncer sync-account!)
+(use app/client/mail-syncer sync-account!)
 (use support/app-steps ada-thread fail-remote!)
 
 (use support/memory-world app-over remote-with sample-thread

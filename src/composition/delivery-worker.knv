@@ -1,5 +1,3 @@
-(use app/client/mail-labeler)
-
 (use adapters/driven/threaded-queue share-sender
                                     submission-sender
                                     threaded-operations)

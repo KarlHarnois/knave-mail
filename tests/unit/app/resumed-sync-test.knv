@@ -1,6 +1,5 @@
-(use app/client/mail-syncer)
-(use ports/driving/mail-reader open-thread!)
-(use ports/driving/mail-syncer sync-account!)
+(use app/client/mail-reader open-thread!)
+(use app/client/mail-syncer sync-account!)
 (use support/app-steps ada-thread fail-remote! synced!)
 
 (use support/memory-world app-over remote-with sample-thread

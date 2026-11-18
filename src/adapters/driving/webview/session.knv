@@ -1,7 +1,8 @@
+(use app/mail-app mail-app)
+
 (use adapters/driving/webview/window-client answer-request!
                                             sync-mail!
-                                            waiting-changes-of
-                                            window-client)
+                                            waiting-changes-of)
 
 (use adapters/driving/json/envelope queue-event
                                     request-arguments
@@ -55,11 +56,10 @@
     (none (do))))
 
 (type handle-request!
-  (where ((client window-client)
-          (runner sync-runner)
+  (where ((runner sync-runner)
           (lister listing-runner)
           (deliverer change-delivery))
-    (fn ((mut client)
+    (fn ((mut mail-app)
          (mut runner)
          (mut lister)
          (mut deliverer)
@@ -98,8 +98,8 @@
      (send-reply outbox (answer-request! client request-text)))))
 
 (type answer-relabel!
-  (where ((client window-client) (deliverer change-delivery))
-    (fn ((mut client)
+  (where ((deliverer change-delivery))
+    (fn ((mut mail-app)
          (mut deliverer)
          (ref (box event-log))
          (ref str)
@@ -120,8 +120,8 @@
     ((err _) (do))))
 
 (type start-requested-sync!
-  (where ((client window-client) (runner sync-runner))
-    (fn ((mut client)
+  (where ((runner sync-runner))
+    (fn ((mut mail-app)
          (mut runner)
          (ref json-value)
          (ref reply-outbox))

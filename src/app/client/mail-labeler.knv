@@ -2,17 +2,40 @@
 (use app/delivering deliver-next!)
 (use app/mail-app mail-app)
 (use app/writing relabel-each!)
+(use domain/labels label-change)
+(use domain/mail-error mail-error)
+(use domain/queued-relabel delivery-step)
 (use ports/driven/store queued-count)
-(use ports/driving/mail-labeler mail-labeler)
 
-(impl mail-labeler mail-app
-  (relabel-threads! (app account thread-ids change)
-    (relabel-each! app account thread-ids change))
+(export archive-older! deliver-next-change! relabel-threads!
+        waiting-changes)
 
-  (deliver-next-change! (app) (deliver-next! app))
+(type relabel-threads!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref (vec string))
+       (ref label-change))
+    (result unit mail-error)))
 
-  (archive-older! (app account before)
-    (archived-older! app account before))
+(defn relabel-threads! (app account thread-ids change)
+  (relabel-each! app account thread-ids change))
 
-  (waiting-changes (app account)
-    (queued-count (ref (:store app)) account)))
+(type deliver-next-change!
+  (fn ((mut mail-app))
+    (result (vec delivery-step) mail-error)))
+
+(defn deliver-next-change! (app) (deliver-next! app))
+
+(type archive-older!
+  (fn ((mut mail-app) (ref str) (ref str))
+    (result int mail-error)))
+
+(defn archive-older! (app account before)
+  (archived-older! app account before))
+
+(type waiting-changes
+  (fn ((ref mail-app) (ref str))
+    (result int mail-error)))
+
+(defn waiting-changes (app account)
+  (queued-count (ref (:store app)) account))

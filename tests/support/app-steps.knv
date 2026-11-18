@@ -14,8 +14,8 @@
                  thread-summary)
 
 (use domain/mail-error error-kind mail-error)
-(use ports/driving/mail-reader list-threads!)
-(use ports/driving/mail-syncer sync-account!)
+(use app/client/mail-reader list-threads!)
+(use app/client/mail-syncer sync-account!)
 (use support/memory-world world-account)
 
 (export ada-message ada-thread fail-remote!

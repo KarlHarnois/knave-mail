@@ -1,6 +1,3 @@
-(use app/client/mail-labeler)
-(use app/client/mail-syncer)
-
 (use adapters/driven/memory/memory-log logged-lines
                                        new-memory-log
                                        same-log)
@@ -9,9 +6,9 @@
 (use domain/labels archive-change)
 (use domain/queued-relabel delivery-step)
 
-(use ports/driving/mail-labeler deliver-next-change!
-                                relabel-threads!
-                                waiting-changes)
+(use app/client/mail-labeler deliver-next-change!
+                             relabel-threads!
+                             waiting-changes)
 
 (use support/app-steps fail-remote! inbox-query listed-ids!
                        remote-thread synced!)

@@ -1,3 +1,4 @@
+(use app/mail-app mail-app)
 (use domain/freshness freshness)
 (use adapters/driving/cli/cli-result cli-result)
 (use adapters/driving/cli/command cli-command reply-scope)
@@ -10,23 +11,17 @@
 
 (use domain/mail-error mail-error)
 
-(use ports/driving/account-book account-book add-account!
-                                list-accounts!
-                                remove-account!)
+(use app/client/account-book add-account! list-accounts!
+                             remove-account!)
 
-(use ports/driving/mail-reader list-labels! list-threads!
-                               mail-reader open-thread!)
+(use app/client/mail-reader list-labels! list-threads!
+                            open-thread!)
 
-(use ports/driving/mail-writer draft! mail-writer
-                               send-draft!)
-
+(use app/client/mail-writer draft! send-draft!)
 (use domain/reply draft-kind)
 (use adapters/driving/cli/waiting all-delivered)
-
-(use ports/driving/mail-labeler mail-labeler
-                                relabel-threads!)
-
-(use ports/driving/mail-syncer mail-syncer sync-account!)
+(use app/client/mail-labeler relabel-threads!)
+(use app/client/mail-syncer sync-account!)
 
 (export ->cli-request cli-request run-cli-command! sending)
 
@@ -41,10 +36,8 @@
   :sending sending)
 
 (type run-cli-command!
-  (where ((client account-book mail-reader mail-writer
-                  mail-labeler mail-syncer))
-    (fn ((mut client) (ref cli-request))
-      (result cli-result mail-error))))
+  (fn ((mut mail-app) (ref cli-request))
+    (result cli-result mail-error)))
 
 (defn run-cli-command! (client request)
   (let (account (ref (:account request)))
@@ -100,9 +93,8 @@
       (help (ok (cli-result/help-shown (usage-text)))))))
 
 (type deliver-or-show!
-  (where ((client mail-writer))
-    (fn ((mut client) (ref cli-request) draft)
-      (result cli-result mail-error))))
+  (fn ((mut mail-app) (ref cli-request) draft)
+    (result cli-result mail-error)))
 
 (defn deliver-or-show! (client request written)
   (match (:sending request)

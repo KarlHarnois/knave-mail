@@ -1,12 +1,8 @@
-(use app/client/mail-syncer)
-(use app/client/mail-reader)
-(use app/client/account-book)
+(use app/client/account-book add-account! list-accounts!
+                             remove-account!)
 
-(use ports/driving/account-book add-account! list-accounts!
-                                remove-account!)
-
-(use ports/driving/mail-reader list-labels!)
-(use ports/driving/mail-syncer sync-account!)
+(use app/client/mail-reader list-labels!)
+(use app/client/mail-syncer sync-account!)
 (use support/app-steps fail-remote! failing-kind synced!)
 
 (use support/memory-world app-over remote-with sample-thread

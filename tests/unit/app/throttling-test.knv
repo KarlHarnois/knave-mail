@@ -1,5 +1,3 @@
-(use app/client/mail-writer)
-
 (use adapters/driven/memory/memory-clock new-memory-clock
                                          pauses-of
                                          same-clock)
@@ -9,7 +7,7 @@
                                        same-log)
 
 (use domain/mail ->draft)
-(use ports/driving/mail-writer send-draft!)
+(use app/client/mail-writer send-draft!)
 (use support/app-steps remote-sent throttle-remote-times!)
 (use support/log-lines mentions?)
 

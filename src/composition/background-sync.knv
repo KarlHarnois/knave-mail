@@ -1,4 +1,3 @@
-(use app/client/mail-syncer)
 (use adapters/driving/json/envelope sync-progress-event)
 (use adapters/driving/webview/sync-requests sync-event)
 
@@ -24,10 +23,7 @@
                             share-log)
 
 (use composition/settings settings-from)
-
-(use ports/driving/mail-syncer preview-account!
-                               sync-account!)
-
+(use app/client/mail-syncer preview-account! sync-account!)
 (use adapters/clock clock-milliseconds)
 
 (export ->background-sync background-sync)

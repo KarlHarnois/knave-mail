@@ -1,13 +1,24 @@
 (use app/mail-app mail-app)
 (use app/writing compose-draft send!)
-(use ports/driving/mail-writer mail-writer)
+(use domain/mail draft message-ref)
+(use domain/mail-error mail-error)
+(use domain/reply draft-kind)
 
-(impl mail-writer mail-app
-  (draft! (app message kind)
-    (compose-draft app
-                   (ref (:account message))
-                   (ref (:message-id message))
-                   kind))
+(export draft! send-draft!)
 
-  (send-draft! (app account written)
-    (send! app account written)))
+(type draft!
+  (fn ((mut mail-app) (ref message-ref) draft-kind)
+    (result draft mail-error)))
+
+(defn draft! (app message kind)
+  (compose-draft app
+                 (ref (:account message))
+                 (ref (:message-id message))
+                 kind))
+
+(type send-draft!
+  (fn ((mut mail-app) (ref str) (ref draft))
+    (result unit mail-error)))
+
+(defn send-draft! (app account written)
+  (send! app account written))

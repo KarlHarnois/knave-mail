@@ -1,9 +1,3 @@
-(use composition/window-client)
-(use app/client/mail-writer)
-(use app/client/mail-syncer)
-(use app/client/mail-reader)
-(use app/client/mail-labeler)
-(use app/client/account-book)
 (use adapters/driven/browser/system-browser ->system-browser)
 
 (use adapters/driven/threaded-queue share-sender

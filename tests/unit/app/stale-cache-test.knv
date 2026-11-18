@@ -1,8 +1,6 @@
-(use app/client/mail-labeler)
-(use app/client/mail-syncer)
 (use domain/labels archive-change inbox-change)
-(use ports/driving/mail-labeler relabel-threads!)
-(use ports/driving/mail-reader open-thread!)
+(use app/client/mail-labeler relabel-threads!)
+(use app/client/mail-reader open-thread!)
 
 (use support/app-steps ada-thread inbox-query listed-ids!
                        synced!)

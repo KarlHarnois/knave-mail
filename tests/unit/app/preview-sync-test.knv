@@ -1,4 +1,4 @@
-(use ports/driving/mail-syncer preview-account!)
+(use app/client/mail-syncer preview-account!)
 
 (use support/app-steps fail-remote! inbox-query listed-ids!
                        synced!)

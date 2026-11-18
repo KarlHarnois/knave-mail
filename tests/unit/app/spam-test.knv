@@ -1,6 +1,6 @@
 (use domain/label-scope label-scope)
 (use domain/mail ->thread-query)
-(use ports/driving/mail-reader open-thread!)
+(use app/client/mail-reader open-thread!)
 (use support/app-steps ada-thread listed-ids! synced!)
 
 (use support/memory-world app-over remote-with sample-thread

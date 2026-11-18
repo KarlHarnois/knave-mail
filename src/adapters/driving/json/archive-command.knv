@@ -1,16 +1,17 @@
+(use app/mail-app mail-app)
+
 (use adapters/driving/json/arguments account-argument
                                      text-argument)
 
 (use adapters/json/value json-value)
 (use domain/mail-error mail-error)
-(use ports/driving/mail-labeler archive-older! mail-labeler)
+(use app/client/mail-labeler archive-older!)
 
 (export archive-older-command!)
 
 (type archive-older-command!
-  (where ((client mail-labeler))
-    (fn ((mut client) (ref json-value))
-      (result json-value mail-error))))
+  (fn ((mut mail-app) (ref json-value))
+    (result json-value mail-error)))
 
 (defn archive-older-command! (client arguments)
   (let (account (try (account-argument arguments))
