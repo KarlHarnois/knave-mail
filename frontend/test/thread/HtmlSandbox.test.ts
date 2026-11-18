@@ -4,6 +4,7 @@ import type { MailColorSource } from "../../src/darkmail/MailDarkening";
 import { HtmlSandbox } from "../../src/thread/HtmlSandbox";
 import type { MailFontSource } from "../../src/thread/MailFont";
 import { MessageFrame } from "../../src/thread/MessageFrame";
+import { MessageLinks } from "../../src/thread/MessageLinks";
 
 const sandbox = new HtmlSandbox();
 const CSP_META = /<meta http-equiv="Content-Security-Policy" content="([^"]*)">/;
@@ -108,6 +109,7 @@ describe("navigation from mail HTML", () => {
 });
 
 const LIGHT: MailColorSource = { colors: () => null };
+const links = new MessageLinks({ openLink: () => {} });
 const DARK: MailColorSource = { colors: () => ({ background: "rgb(18, 18, 18)", foreground: "rgb(190, 190, 190)" }) };
 
 describe("dark mail", () => {
@@ -139,7 +141,7 @@ describe("dark mail", () => {
   });
 
   test("a darkened frame may run scripts and stays hidden until it has loaded", () => {
-    const frame = new MessageFrame({ document, sandbox, darkening: DARK, html: "<p>Hi</p>" });
+    const frame = new MessageFrame({ document, sandbox, links, darkening: DARK, html: "<p>Hi</p>" });
     expect(frame.element.getAttribute("sandbox")).toBe("allow-same-origin allow-scripts");
     expect(frame.element.style.visibility).toBe("hidden");
   });
@@ -163,20 +165,20 @@ describe("Dark Reader warm-up", () => {
 
 describe("MessageFrame", () => {
   test("is a sandboxed iframe without scripts that cannot take keyboard focus", () => {
-    const frame = new MessageFrame({ document, sandbox, darkening: LIGHT, html: "<p>Hi</p>" });
+    const frame = new MessageFrame({ document, sandbox, links, darkening: LIGHT, html: "<p>Hi</p>" });
     expect(frame.element.getAttribute("sandbox")).toBe("allow-same-origin");
     expect(frame.element.getAttribute("sandbox")).not.toContain("allow-scripts");
     expect(frame.element.tabIndex).toBe(-1);
   });
 
   test("loads the message with remote images blocked", () => {
-    const frame = new MessageFrame({ document, sandbox, darkening: LIGHT, html: "<p>Hi</p>" });
+    const frame = new MessageFrame({ document, sandbox, links, darkening: LIGHT, html: "<p>Hi</p>" });
     expect(frame.allowsRemoteImages).toBe(false);
     expect(frame.element.srcdoc).toContain("img-src data: cid:;");
   });
 
   test("reloads the message with remote images allowed", () => {
-    const frame = new MessageFrame({ document, sandbox, darkening: LIGHT, html: "<p>Hi</p>" });
+    const frame = new MessageFrame({ document, sandbox, links, darkening: LIGHT, html: "<p>Hi</p>" });
     frame.allowRemoteImages();
     expect(frame.allowsRemoteImages).toBe(true);
     expect(frame.element.srcdoc).toContain("img-src data: cid: https: http:");

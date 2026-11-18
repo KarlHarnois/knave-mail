@@ -8,6 +8,7 @@ import { TestDriver } from "../testing/TestDriver";
 import { HtmlSandbox } from "../thread/HtmlSandbox";
 import { ThemeMailFont } from "../thread/MailFont";
 import type { MessageCardServices } from "../thread/MessageCard";
+import { MessageLinks } from "../thread/MessageLinks";
 import type { MailServices } from "./MailServices";
 import type { ScreenHost } from "./ScreenHost";
 import { ZoomControl } from "./ZoomControl";
@@ -81,6 +82,7 @@ export class ScreenFactory {
       darkening: new MailDarkening(this.services.document),
       dates: this.services.dates,
       editors: this.services.editors,
+      links: new MessageLinks(this.services.mail),
     };
   }
 

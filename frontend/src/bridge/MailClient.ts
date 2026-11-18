@@ -15,6 +15,10 @@ export type ThreadQuery = { account: string; label: string; query: string; limit
 export class MailClient {
   constructor(private readonly bridge: Bridge) {}
 
+  openLink(url: string): void {
+    this.bridge.notify("open-link", { url });
+  }
+
   accounts(): Promise<Account[]> {
     return this.bridge.request("accounts");
   }

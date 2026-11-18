@@ -5,6 +5,7 @@ import type { VimEditor, VimEditorOptions } from "../vim/VimEditor";
 import type { VimEditorFactory } from "../vim/VimEditorFactory";
 import type { HtmlSandbox } from "./HtmlSandbox";
 import { MessageFrame } from "./MessageFrame";
+import type { MessageLinks } from "./MessageLinks";
 
 export type MessageCardServices = {
   document: Document;
@@ -12,6 +13,7 @@ export type MessageCardServices = {
   darkening: MailColorSource;
   dates: DateLabel;
   editors: VimEditorFactory;
+  links: MessageLinks;
 };
 
 export type ReaderOptions = Omit<VimEditorOptions, "text">;
@@ -92,6 +94,7 @@ export class MessageCard {
       document: this.services.document,
       sandbox: this.services.sandbox,
       darkening: this.services.darkening,
+      links: this.services.links,
       html,
     });
     return this.frame.element;

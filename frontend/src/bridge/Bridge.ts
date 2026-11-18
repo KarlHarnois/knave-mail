@@ -30,6 +30,10 @@ export class Bridge {
     });
   }
 
+  notify(command: string, args: Record<string, unknown>): void {
+    this.transport.send(JSON.stringify({ command, args }));
+  }
+
   subscribe(listener: EventListener): () => void {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);

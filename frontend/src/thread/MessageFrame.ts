@@ -1,11 +1,13 @@
 import { ColorTone } from "../darkmail/ColorTone";
 import type { MailColorSource, MailColors } from "../darkmail/MailDarkening";
 import type { HtmlSandbox } from "./HtmlSandbox";
+import type { MessageLinks } from "./MessageLinks";
 
 export type MessageFrameParts = {
   document: Document;
   sandbox: HtmlSandbox;
   darkening: MailColorSource;
+  links: MessageLinks;
   html: string;
 };
 
@@ -18,9 +20,11 @@ export class MessageFrame {
   private readonly html: string;
   private readonly colors: MailColors | null;
   private readonly tone = new ColorTone();
+  private readonly links: MessageLinks;
 
-  constructor({ document, sandbox, darkening, html }: MessageFrameParts) {
+  constructor({ document, sandbox, darkening, links, html }: MessageFrameParts) {
     this.sandbox = sandbox;
+    this.links = links;
     this.html = html;
     this.colors = darkening.colors();
     this.element = document.createElement("iframe");
@@ -50,6 +54,7 @@ export class MessageFrame {
   private settle(): void {
     const root = this.element.contentDocument?.documentElement;
     if (!root) return;
+    this.links.follow(root.ownerDocument);
     if (this.colors) this.revealOnceDark(performance.now() + DARKENING_WAIT_MILLISECONDS);
     else this.revealLight(root);
   }
