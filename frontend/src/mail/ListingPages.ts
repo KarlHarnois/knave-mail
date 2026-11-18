@@ -35,6 +35,15 @@ export class ListingPages {
     this.loaded.delete(threadId);
   }
 
+  hasPageAfter(token: string): boolean {
+    return this.mayHaveMore && this.nextToken !== token;
+  }
+
+  addsRows(summaries: readonly ThreadSummary[]): boolean {
+    const listed = new Set([...this.base.map((summary) => summary.id), ...this.loaded.keys()]);
+    return summaries.some((summary) => !listed.has(summary.id));
+  }
+
   addPage(summaries: readonly ThreadSummary[], nextToken: string): void {
     for (const summary of summaries) this.loaded.set(summary.id, summary);
     this.nextToken = nextToken;

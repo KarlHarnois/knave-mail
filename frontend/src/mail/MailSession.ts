@@ -104,9 +104,12 @@ export class MailSession {
 
   private async loadNextPage(): Promise<void> {
     const generation = this.loadGeneration;
-    const page = await this.ports.mail.threadPage(this.queryOf(GMAIL_PAGE), this.pages.pageToken);
+    const token = this.pages.pageToken;
+    const page = await this.ports.mail.threadPage(this.queryOf(GMAIL_PAGE), token);
     if (generation !== this.loadGeneration) return;
+    const addsRows = this.pages.addsRows(page.threads);
     this.pages.addPage(page.threads, page.nextPageToken);
+    if (!addsRows && this.pages.hasPageAfter(token)) return await this.loadNextPage();
     this.ports.list.refresh(this.ports.pending.applyTo(this.pages.listing(), this.label.id));
     await this.location.showCount(this.account, this.label, this.query);
   }

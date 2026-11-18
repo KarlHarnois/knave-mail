@@ -33,6 +33,27 @@ describe("loading older threads from Gmail", () => {
     expect(app.core.lastArgsFor("thread-page")["pageToken"]).toBe("p2");
   });
 
+  test("a page of threads already listed loads the next page straight away", async () => {
+    const app = await AppHarness.started((core) =>
+      core.answerWith("thread-page", (args) =>
+        args["pageToken"] === ""
+          ? { threads: MailFixtures.summaries(3), nextPageToken: "p2" }
+          : { threads: [MailFixtures.summary(99)], nextPageToken: "" },
+      ),
+    );
+    await app.press("G");
+    expect(app.core.requestsFor("thread-page")).toHaveLength(2);
+    await app.press("G");
+    expect(app.selectedThreadId()).toBe("t-99");
+  });
+
+  test("paging stops when Gmail sends a page it already sent with the same token", async () => {
+    const app = await AppHarness.started((core) => core.answerWith("thread-page", () => OLDER_PAGE));
+    await app.press("G");
+    await app.press("G");
+    expect(app.core.requestsFor("thread-page")).toHaveLength(2);
+  });
+
   test("paging stops once Gmail returns no next token", async () => {
     const app = await AppHarness.started();
     await app.press("G");
