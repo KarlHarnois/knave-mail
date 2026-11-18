@@ -94,7 +94,7 @@ export class CommandPalette {
       "<C-j>": next,
       "<Down>": next,
       "<C-p>": previous,
-      "<C-k>": previous,
+      ...(this.matches.length > 0 && { "<C-k>": previous }),
       "<Up>": previous,
     };
   }

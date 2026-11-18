@@ -133,4 +133,9 @@ describe("command palette", () => {
     expect(chosen).toEqual(["Work"]);
     expect(passed).toEqual(["j"]);
   });
+
+  test("<C-k> deletes to the end of the line while no suggestion shows", () => {
+    const fixture = new PaletteFixture().press("x", "y", "z", "<Left>", "<Left>", "<C-k>");
+    expect(fixture.typed()).toBe("x");
+  });
 });
