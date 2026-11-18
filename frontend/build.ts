@@ -12,7 +12,7 @@ class FrontendBuild {
     await this.bundle("main.ts", "app.js", "iife");
     await this.bundle("darkmail/darkReaderEntry.ts", "darkreader.js", "iife");
     await this.bundle("app.css", "app.css", "esm");
-    await this.prependDefaultTheme("app.css");
+    await this.prependDesignSystem("app.css");
     await copyFile(join(this.sourceDirectory, "index.html"), join(this.outputDirectory, "index.html"));
   }
 
@@ -28,21 +28,40 @@ class FrontendBuild {
     if (!result.success) throw new AggregateError(result.logs, `bundling ${entry} failed`);
   }
 
-  private async prependDefaultTheme(stylesheetName: string): Promise<void> {
+  private async prependDesignSystem(stylesheetName: string): Promise<void> {
     const stylesheet = Bun.file(join(this.outputDirectory, stylesheetName));
-    const defaultTheme = new DesignSystemTheme(await new DesignSystemGlossary().entries()).css();
-    await Bun.write(stylesheet, defaultTheme + (await stylesheet.text()));
+    const designSystem = new DesignSystemPackage();
+    const defaultTheme = new DesignSystemTheme(await designSystem.glossary()).css();
+    await Bun.write(stylesheet, (await designSystem.stylesheets()) + defaultTheme + (await stylesheet.text()));
   }
 }
 
-class DesignSystemGlossary {
-  private readonly packageDirectory = Bun.env["DESIGN_SYSTEM"];
+class DesignSystemPackage {
+  private readonly directory = this.packageDirectory();
 
-  async entries(): Promise<GlossaryEntry[]> {
-    if (this.packageDirectory === undefined) {
+  glossary(): Promise<GlossaryEntry[]> {
+    return Bun.file(join(this.directory, "glossary", "glossary.json")).json();
+  }
+
+  async stylesheets(): Promise<string> {
+    const tokens = await Bun.file(join(this.directory, "css", "tokens.css")).text();
+    return tokens + (await this.bundledComponents());
+  }
+
+  private async bundledComponents(): Promise<string> {
+    const index = join(this.directory, "css", "components", "index.css");
+    const result = await Bun.build({ entrypoints: [index] });
+    const [bundle] = result.outputs;
+    if (!result.success || bundle === undefined) throw new AggregateError(result.logs, `bundling ${index} failed`);
+    return bundle.text();
+  }
+
+  private packageDirectory(): string {
+    const directory = Bun.env["DESIGN_SYSTEM"];
+    if (directory === undefined) {
       throw new Error("DESIGN_SYSTEM is not set; build from the Nix dev shell, which points it at the design system");
     }
-    return Bun.file(join(this.packageDirectory, "glossary", "glossary.json")).json();
+    return directory;
   }
 }
 

@@ -27,7 +27,7 @@ export class ThreadRowRenderer {
 
   create(): HTMLElement {
     const row = this.document.createElement("div");
-    row.className = "thread-row";
+    row.className = "thread-row list-item";
     row.dataset["test"] = ROW_TEST_ID;
     row.setAttribute("role", "option");
     this.parts.set(row, {

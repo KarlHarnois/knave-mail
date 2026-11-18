@@ -1,6 +1,17 @@
 export type StatusField = "mode" | "account" | "label" | "sync" | "waiting" | "keys" | "notice" | "error";
 
-const FIELD_ORDER: readonly StatusField[] = ["mode", "account", "label", "sync", "waiting", "keys", "notice", "error"];
+const SEGMENT_FIELDS: readonly StatusField[] = ["account", "label", "sync", "waiting", "keys"];
+const MESSAGE_FIELDS: readonly StatusField[] = ["notice", "error"];
+const FIELD_CLASS: Readonly<Record<StatusField, string>> = {
+  mode: "status-bar-mode",
+  account: "status-bar-segment",
+  label: "status-bar-segment",
+  sync: "status-bar-segment",
+  waiting: "status-bar-segment",
+  keys: "status-bar-segment",
+  notice: "status-bar-segment status-bar-message",
+  error: "status-bar-segment status-bar-message is-error",
+};
 const MESSAGE_LIFETIME_MILLISECONDS = 8000;
 
 export class StatusLine {
@@ -13,9 +24,11 @@ export class StatusLine {
     private readonly messageLifetime: number = MESSAGE_LIFETIME_MILLISECONDS,
   ) {
     this.element = document.createElement("footer");
-    this.element.className = "status-line";
+    this.element.className = "status-bar";
     this.element.dataset["test"] = "status-line";
-    for (const field of FIELD_ORDER) this.fields.set(field, this.createField(document, field));
+    this.addFields(document, ["mode", ...SEGMENT_FIELDS]);
+    this.element.append(this.createFill(document));
+    this.addFields(document, MESSAGE_FIELDS);
   }
 
   showMode(mode: string): void {
@@ -76,9 +89,19 @@ export class StatusLine {
     if (element.textContent !== text) element.textContent = text;
   }
 
+  private addFields(document: Document, fields: readonly StatusField[]): void {
+    for (const field of fields) this.fields.set(field, this.createField(document, field));
+  }
+
+  private createFill(document: Document): HTMLElement {
+    const fill = document.createElement("span");
+    fill.className = "status-bar-fill";
+    return fill;
+  }
+
   private createField(document: Document, field: StatusField): HTMLElement {
     const element = document.createElement("span");
-    element.className = `status-${field}`;
+    element.className = FIELD_CLASS[field];
     element.dataset["test"] = `status-${field}`;
     this.element.append(element);
     return element;

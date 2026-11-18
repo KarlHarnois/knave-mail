@@ -28,6 +28,14 @@ const EXPECTED_CSS = `:root {
   --dark-star: #fefefe;
   --dark-status-bar: #101010;
   --dark-html-mail: #ffffff;
+  --color-surface-base: light-dark(#ffffff, #000000);
+  --color-text-primary: light-dark(#000000, #ffffff);
+  --color-text-secondary: light-dark(#606060, #808080);
+  --color-border-default: light-dark(#c0c0c0, #404040);
+  --color-selection: light-dark(#e0e0e0, #202020);
+  --color-focus: light-dark(#010101, #fefefe);
+  --color-surface-raised: light-dark(#f0f0f0, #101010);
+  --color-surface-document: light-dark(#ffffff, #ffffff);
 }
 `;
 

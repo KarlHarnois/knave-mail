@@ -1,12 +1,15 @@
+import { MatchMarks } from "./MatchMarks";
+
 const FALLBACK_PAGE_ROWS = 20;
 const NO_MATCH = -1;
 
-type CursorRow = { element: HTMLElement; text: string };
+type CursorRow = { element: HTMLElement; searched: readonly HTMLElement[]; text: string };
 
 export class CursorRows {
   private rows: CursorRow[] = [];
   private cursor = 0;
   private query = "";
+  private readonly marks = new MatchMarks();
 
   get isSearching(): boolean {
     return this.query.length > 0;
@@ -16,8 +19,9 @@ export class CursorRows {
     return this.cursor;
   }
 
-  add(element: HTMLElement, text: string): void {
-    this.rows.push({ element, text: text.toLowerCase() });
+  add(element: HTMLElement, searched: readonly HTMLElement[]): void {
+    const text = searched.map((cell) => cell.textContent ?? "").join(" ");
+    this.rows.push({ element, searched, text: text.toLowerCase() });
   }
 
   clear(): void {
@@ -32,9 +36,11 @@ export class CursorRows {
 
   moveTo(index: number): void {
     this.rows[this.cursor]?.element.classList.remove("row-cursor");
+    this.rows[this.cursor]?.element.setAttribute("aria-selected", "false");
     this.cursor = Math.min(Math.max(0, index), this.rows.length - 1);
     const row = this.rows[this.cursor];
     row?.element.classList.add("row-cursor");
+    row?.element.setAttribute("aria-selected", "true");
     row?.element.scrollIntoView?.({ block: "nearest" });
   }
 
@@ -49,7 +55,7 @@ export class CursorRows {
 
   search(query: string): boolean {
     this.query = query.trim().toLowerCase();
-    for (const row of this.rows) row.element.classList.toggle("row-match", this.matches(row));
+    for (const row of this.rows) this.showMatch(row);
     return this.jump(1, 0);
   }
 
@@ -72,6 +78,12 @@ export class CursorRows {
       if (row && this.matches(row)) return index;
     }
     return NO_MATCH;
+  }
+
+  private showMatch(row: CursorRow): void {
+    const matches = this.matches(row);
+    row.element.classList.toggle("row-match", matches);
+    this.marks.show(row.searched, matches ? this.query : "");
   }
 
   private matches(row: CursorRow): boolean {

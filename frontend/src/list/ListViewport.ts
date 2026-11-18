@@ -59,7 +59,6 @@ export class ListViewport {
     viewport.dataset["test"] = "thread-list";
     viewport.setAttribute("role", "listbox");
     viewport.tabIndex = -1;
-    viewport.style.setProperty("--row-height", `${this.listWindow.rowHeight}px`);
     viewport.addEventListener("scroll", () => this.followScroll(), { passive: true });
     return viewport;
   }
