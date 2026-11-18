@@ -21,8 +21,8 @@ const COLOR_TOKEN_FOR_KEY: readonly (readonly [string, string])[] = [
 
 const THEME_NAMES: readonly ThemeName[] = ["light", "dark"];
 const FONT_TOKEN_FOR_PROPERTY: readonly (readonly [string, string])[] = [
-  ["--theme-font", "font.family.mono"],
-  ["--theme-message-font", "font.family.prose"],
+  ["--default-font", "font.family.mono"],
+  ["--default-message-font", "font.family.prose"],
   ["--font-size", "font.size.body"],
 ];
 const THEME_INDEPENDENT_VALUES: ThemeName = "dark";

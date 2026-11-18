@@ -6,11 +6,11 @@ const css = new DesignSystemTheme(glossary).css();
 
 describe("design system theme", () => {
   test("the interface font is the mono family", () => {
-    expect(css).toContain('--theme-font: "Fixture Mono", "Fixture Term", monospace;');
+    expect(css).toContain('--default-font: "Fixture Mono", "Fixture Term", monospace;');
   });
 
   test("the message font is the prose family", () => {
-    expect(css).toContain('--theme-message-font: "Fixture Sans", sans-serif;');
+    expect(css).toContain('--default-message-font: "Fixture Sans", sans-serif;');
   });
 
   test("the font size is the body size", () => {
