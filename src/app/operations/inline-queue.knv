@@ -20,10 +20,10 @@
   :patience (option int))
 
 (defn new-inline-queue (provider clock log patience)
-  (->inline-queue :runner (->operation-runner
-                            :mailboxes (->mailboxes provider (vec) (vec))
-                            :clock clock
-                            :log log)
+  (->inline-queue :runner (->operation-runner :mailboxes (->mailboxes provider
+                                                                      (vec))
+                                              :clock clock
+                                              :log log)
                   :patience patience))
 
 (impl operation-queue inline-queue

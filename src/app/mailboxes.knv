@@ -6,42 +6,41 @@
 
 (export ->mailboxes mailboxes open-mailbox!)
 
+(defstruct opened-mailbox
+  :owner string
+  :mailbox (box mailbox))
+
 (defstruct mailboxes
   :provider (box mailbox-provider)
-  :emails (vec string)
-  :opened (vec (box mailbox)))
+  :opened (vec opened-mailbox))
 
 (type open-mailbox!
   (fn ((mut mailboxes) (ref str))
     (result (mut (box mailbox)) mail-error)))
 
 (defn open-mailbox! (all email)
-  (match (position-of (ref (:emails all)) email)
+  (match (position-of (ref (:opened all)) email)
     ((some index) (ok (opened-at! all index)))
     (none (do
             (local opened
               (try (connect-mailbox! (mut (:provider all)) email)))
-            (push! (mut (:emails all)) (str email))
-            (push! (mut (:opened all)) opened)
-            (ok (last-opened! all))))))
+            (let (index (len (:opened all)))
+              (push! (mut (:opened all))
+                     (->opened-mailbox :owner (str email) :mailbox opened))
+              (ok (opened-at! all index)))))))
 
 (type position-of
-  (fn ((ref (vec string)) (ref str))
+  (fn ((ref (vec opened-mailbox)) (ref str))
     (option usize)))
 
-(defn position-of (emails wanted)
+(defn position-of (opened wanted)
   (loop (index 0)
     (cond
-      ((>= index (len emails)) none)
-      ((= (at emails index) wanted) (some index))
+      ((>= index (len opened)) none)
+      ((= (:owner (at opened index)) wanted) (some index))
       (else (recur (inc index))))))
 
-(def last-opened!
-  (rust "{0}.opened.last_mut().expect(\"a mailbox was just opened\")"
-    (fn ((mut mailboxes))
-      (mut (box mailbox)))))
-
 (def opened-at!
-  (rust "&mut {0}.opened[{1}]"
+  (rust "&mut {0}.opened[{1}].mailbox"
     (fn ((mut mailboxes) usize)
       (mut (box mailbox)))))

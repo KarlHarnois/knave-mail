@@ -35,7 +35,6 @@
                                                              (ref chosen)
                                                              (ref client)
                                                              (ref log))
-                                                           (vec)
                                                            (vec))
                                    :clock clock/system
                                    :log (share-log (ref log))))
