@@ -53,24 +53,12 @@
                       log rank delivery
                       (clone (:limits (:tuning chosen)))))))
 
-(type gmail-provider-for
-  (fn ((ref settings)
-       (ref google-client)
-       (ref event-log))
-    (box mailbox-provider)))
-
 (defn gmail-provider-for (chosen client log)
   (the (box mailbox-provider)
        (box (->gmail-provider (endpoints chosen client)
                               (chosen-credentials chosen)
                               clock/system
                               (share-log log)))))
-
-(type gmail-operations
-  (fn ((ref settings)
-       (ref google-client)
-       (ref event-log))
-    (box operation-queue)))
 
 (defn gmail-operations (chosen client log)
   (the (box operation-queue)
@@ -79,10 +67,6 @@
                               (share-log log)
                               (some (:cli-patience-milliseconds (:tuning
                                                                   chosen)))))))
-
-(type chosen-client
-  (fn ((ref settings))
-    (result google-client mail-error)))
 
 (defn chosen-client (chosen)
   (ok-or (clone (:google-client chosen))

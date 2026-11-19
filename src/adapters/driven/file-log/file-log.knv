@@ -32,10 +32,6 @@
               :levels (clone (:levels log))
               :clock (share-clock (ref (:clock log)))))
 
-(type written-to-file!
-  (fn ((ref file-log) (ref log-entry))
-    unit))
-
 (defn written-to-file! (log entry)
   (when (allows? (ref (:levels log)) entry)
     (append-line (ref (:path log))

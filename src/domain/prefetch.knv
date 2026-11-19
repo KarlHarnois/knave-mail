@@ -2,12 +2,6 @@
 
 (export threads-to-prefetch)
 
-(type threads-to-prefetch
-  (fn ((ref (vec thread-summary))
-       (ref (vec (pair string int)))
-       usize)
-    (vec string)))
-
 (defn threads-to-prefetch (summaries stored-counts limit)
   (-> (iter summaries)
       (take limit)

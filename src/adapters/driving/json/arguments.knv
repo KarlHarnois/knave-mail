@@ -17,10 +17,6 @@
 (defn text-argument (arguments name)
   (text-error->usage-error (string-field arguments name)))
 
-(type flag-argument
-  (fn ((ref json-value) (ref str))
-    (result bool mail-error)))
-
 (defn flag-argument (arguments name)
   (text-error->usage-error (optional-bool-field arguments name)))
 
@@ -61,9 +57,6 @@
 (defn text-error->usage-error (outcome)
   (map-err outcome
     (fn (problem) (mail-error/usage problem))))
-
-(type page-token-argument
-  (fn ((ref json-value)) (option string)))
 
 (defn page-token-argument (arguments)
   (match (optional-string-field arguments "pageToken")

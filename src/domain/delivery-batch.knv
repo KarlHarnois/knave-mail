@@ -11,23 +11,9 @@
   :rows (vec queued-relabel)
   :message-ids (vec string))
 
-(type batch-from
-  (fn ((ref (vec queued-relabel))
-       (ref (vec thread-summary))
-       (ref (vec string)))
-    delivery-batch))
-
 (defn batch-from (queued summaries pending)
   (gathered queued 0 summaries pending
             (->delivery-batch :rows (vec) :message-ids (vec))))
-
-(type gathered
-  (fn ((ref (vec queued-relabel))
-       usize
-       (ref (vec thread-summary))
-       (ref (vec string))
-       delivery-batch)
-    delivery-batch))
 
 (defenum gather-step
   (take :row queued-relabel :ids (vec string))
@@ -56,12 +42,6 @@
                    (message-ids-of row summaries pending)
                    batch)
     gather-step/stop))
-
-(type step-with-ids
-  (fn ((ref queued-relabel)
-       (option (vec string))
-       (ref delivery-batch))
-    gather-step))
 
 (defn step-with-ids (row found batch)
   (match found
@@ -121,10 +101,6 @@
 (defn fits? (batch ids)
   (<= (+ (len (:message-ids batch)) (len ids))
       most-batched-messages))
-
-(type with-row
-  (fn (delivery-batch (ref queued-relabel) (vec string))
-    delivery-batch))
 
 (defn with-row (batch row ids)
   (->delivery-batch :rows (concatenated (clone (:rows batch))

@@ -21,9 +21,6 @@
        (->label-command :name "mark-unread"
                         :change (unread-change))))
 
-(type command-name->label-change
-  (fn ((ref str)) (option label-change)))
-
 (defn command-name->label-change (command)
   (-> (iter label-commands)
       (find (fn (listed) (= (:name listed) command)))

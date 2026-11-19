@@ -48,8 +48,6 @@
 
 (export launch-window)
 
-(type launch-window (fn (settings string) unit))
-
 (defn launch-window (chosen scenario)
   (match (:backend chosen)
     (memory (scripted-window chosen none scenario))
@@ -63,9 +61,6 @@
                                    log-area/app
                                    (str "a window is already open, so it came forward instead")))
     (unguarded (scripted-window chosen none scenario))))
-
-(type scripted-window
-  (fn (settings (option window-socket) string) unit))
 
 (defn scripted-window (chosen claim scenario)
   (let (keymap (keymap-startup (ref chosen))

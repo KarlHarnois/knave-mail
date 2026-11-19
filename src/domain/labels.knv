@@ -24,9 +24,6 @@
          (spam "SPAM")
          (trash "TRASH"))))
 
-(type in-all-mail?
-  (fn ((ref (vec string))) bool))
-
 (defn in-all-mail? (labels)
   (not (or (contains? labels (label-id system-label/spam))
            (contains? labels (label-id system-label/trash)))))
@@ -106,17 +103,9 @@
   (let (missing (without-removed added labels))
     (concatenated (clone labels) missing)))
 
-(type label-difference
-  (fn ((ref (vec string)) (ref (vec string)))
-    label-change))
-
 (defn label-difference (before after)
   (->label-change :added (labels-missing-from after before)
                   :removed (labels-missing-from before after)))
-
-(type labels-missing-from
-  (fn ((ref (vec string)) (ref (vec string)))
-    (vec string)))
 
 (defn labels-missing-from (labels others)
   (-> (iter labels)
@@ -124,9 +113,6 @@
                 (not (contains? others (clone label)))))
       (map (fn (label) (clone label)))
       collect))
-
-(type no-change?
-  (fn ((ref label-change)) bool))
 
 (defn no-change? (change)
   (and (empty? (:added change))

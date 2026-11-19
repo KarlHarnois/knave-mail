@@ -31,18 +31,11 @@
                 (len scenarios)
                 " GUI scenarios failed")))))
 
-(type failure-count
-  (fn ((ref (vec scenario-outcome)))
-    usize))
-
 (defn failure-count (outcomes)
   (-> (iter outcomes) (filter failed?) count))
 
 (defn failed? (outcome)
   (match outcome (passed false) (failed true)))
-
-(type run-scenario
-  (fn ((ref string)) scenario-outcome))
 
 (defn run-scenario (scenario)
   (println "== " scenario)
@@ -57,9 +50,6 @@
     ((ok true) scenario-outcome/passed)
     ((ok false) scenario-outcome/failed)
     ((err problem) (eprintln problem) scenario-outcome/failed)))
-
-(type scenario-arguments
-  (fn (string) (vec string)))
 
 (defn scenario-arguments (script)
   (vec (str run-seconds)

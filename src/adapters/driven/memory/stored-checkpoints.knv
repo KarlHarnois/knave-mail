@@ -17,12 +17,6 @@
       (map-some (fn (checkpoint)
                   (clone (:history-id checkpoint))))))
 
-(type replace-checkpoint!
-  (fn ((mut (vec stored-checkpoint))
-       (ref str)
-       (ref str))
-    unit))
-
 (defn replace-checkpoint! (checkpoints email history-id)
   (set! checkpoints (checkpoints-without checkpoints email))
   (push! checkpoints

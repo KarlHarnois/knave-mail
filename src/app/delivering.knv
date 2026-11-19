@@ -62,11 +62,6 @@
     ((some failure) (err failure))
     (none (ok (do)))))
 
-(type first-refusal-in
-  (fn ((ref (vec delivery-step))
-       (option mail-error))
-    (option mail-error)))
-
 (defn first-refusal-in (steps first-refusal)
   (reduce (iter steps) first-refusal
     (fn (found step)
@@ -79,11 +74,6 @@
   (if (none? found)
     (some (clone failure))
     found))
-
-(type tallied-deliveries
-  (fn ((ref (vec delivery-step))
-       (vec delivery-count))
-    (vec delivery-count)))
 
 (defn tallied-deliveries (steps counts)
   (reduce (iter steps) counts

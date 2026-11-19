@@ -39,9 +39,6 @@
     ((ok _) none)
     ((err problem) (some (str "theme.knv: " problem)))))
 
-(type declaration->css
-  (fn ((ref theme-declaration)) string))
-
 (defn declaration->css (declaration)
   (match declaration
     ((font family) (str "--theme-font: \"" family "\""))
@@ -59,9 +56,6 @@
 
 (defn scheme-name (scheme)
   (match scheme (light "light") (dark "dark")))
-
-(type mode-declarations
-  (fn ((ref theme-mode)) string))
 
 (defn mode-declarations (mode)
   (match mode

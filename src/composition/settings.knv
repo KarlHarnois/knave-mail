@@ -99,12 +99,6 @@
                                                              "info"))))
       :start-account (setting parsed "--account" "KNAVE_MAIL_ACCOUNT"))))
 
-(type setting
-  (fn ((ref parsed-arguments)
-       (ref str)
-       (ref str))
-    (option string)))
-
 (defn setting (parsed flag variable)
   (match (value-of parsed flag)
     ((some value) (some value))
@@ -121,18 +115,11 @@
      (some (->google-client :id id :secret secret)))
     (_ none)))
 
-(type failing-operation
-  (fn ((option string))
-    (result (option remote-operation) string)))
-
 (defn failing-operation (text)
   (match text
     ((some name)
      (map-ok (text->remote-operation (as-str name)) some))
     (none (ok none))))
-
-(type text->latency
-  (fn ((ref str)) (result int string)))
 
 (defn text->latency (text)
   (map-err (parse text)

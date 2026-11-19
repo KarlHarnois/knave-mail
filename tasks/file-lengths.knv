@@ -84,10 +84,6 @@
        (recur files (inc index) counted)))
     (none (ok counted))))
 
-(type lines-over-limit
-  (fn ((ref (vec (pair string usize))))
-    (vec string)))
-
 (defn lines-over-limit (counted)
   (-> (iter counted)
       (filter (fn (entry)

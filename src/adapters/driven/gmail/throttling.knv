@@ -14,9 +14,6 @@
 (def rate-limit-notice
   "Gmail is rate limiting this account")
 
-(type http-reply->throttling
-  (fn ((ref http-reply) int) throttling))
-
 (defn http-reply->throttling (reply now)
   (let (gmail-message (clone (:message (:refusal reply))))
     (->throttling :message (notice-with (ref gmail-message))

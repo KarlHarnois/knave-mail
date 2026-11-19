@@ -7,11 +7,6 @@
 (export current-for-listing first-seen ids-without-summary
         in-listed-order missing-from-listing outside-scope)
 
-(type current-for-listing
-  (fn ((ref (vec thread-summary))
-       (ref label-scope))
-    (vec thread-summary)))
-
 (defn current-for-listing (summaries scope)
   (-> (iter summaries)
       (filter (fn (summary)
@@ -19,11 +14,6 @@
                      (in-scope? summary scope))))
       (map (fn (summary) (clone summary)))
       collect))
-
-(type outside-scope
-  (fn ((ref (vec thread-summary))
-       (ref label-scope))
-    (vec string)))
 
 (defn outside-scope (summaries scope)
   (-> (iter summaries)

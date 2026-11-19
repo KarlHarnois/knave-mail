@@ -15,9 +15,6 @@
               :body (clone (:body written))
               :thread (thread-for original)))
 
-(type thread-for
-  (fn ((option message)) outgoing-thread))
-
 (defn thread-for (original)
   (match original
     ((some replied)

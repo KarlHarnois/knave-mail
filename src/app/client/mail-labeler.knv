@@ -33,9 +33,5 @@
 (defn archive-older! (app account before)
   (archived-older! app account before))
 
-(type waiting-changes
-  (fn ((ref mail-app) (ref str))
-    (result int mail-error)))
-
 (defn waiting-changes (app account)
   (queued-count (ref (:store app)) account))

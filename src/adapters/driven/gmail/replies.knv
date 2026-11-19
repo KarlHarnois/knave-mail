@@ -13,9 +13,6 @@
 
 (export checked sent)
 
-(type checked
-  (fn (http-reply int) (result json-value mail-error)))
-
 (defn checked (reply now)
   (cond
     ((rate-limited? (ref reply))
@@ -23,9 +20,6 @@
     ((quota-exhausted? (ref reply))
      (err (mail-error/network (str "Gmail's usage quota is used up; try again later"))))
     (else (reply-by-class reply))))
-
-(type reply-by-class
-  (fn (http-reply) (result json-value mail-error)))
 
 (defn reply-by-class (reply)
   (let (status (:status reply)

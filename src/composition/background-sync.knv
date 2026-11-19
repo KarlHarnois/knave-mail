@@ -35,12 +35,6 @@
   :executor submission-sender
   :settings settings)
 
-(type start-background-sync!
-  (fn ((ref background-sync)
-       (ref str)
-       (ref reply-outbox))
-    unit))
-
 (defn start-background-sync! (runner account outbox)
   (let (owned-account (str account)
         shared (share-sender (ref (:executor runner)))

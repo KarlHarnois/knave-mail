@@ -19,10 +19,6 @@
   keep-queued
   one-at-a-time)
 
-(type delivery-route-for
-  (fn (delivery-batch (ref (vec queued-relabel)))
-    delivery-route))
-
 (defn delivery-route-for (batch queued)
   (if (>= (len (:rows batch)) smallest-batch)
     (delivery-route/as-batch batch)
@@ -41,9 +37,6 @@
     (delivery-step/kept row)
     (delivery-step/refused (->refusal :queued row :failure failure))))
 
-(type batch-failure->fallback
-  (fn ((ref mail-error)) batch-fallback))
-
 (defn batch-failure->fallback (failure)
   (if (worth-keeping? failure)
     batch-fallback/keep-queued
@@ -55,9 +48,6 @@
     ((throttled _) true)
     ((auth-required _) true)
     (_ false)))
-
-(type batch->message-batch
-  (fn ((ref delivery-batch)) message-batch))
 
 (defn batch->message-batch (batch)
   (let (head (at (:rows batch) 0))

@@ -40,10 +40,6 @@
     ((some latest) (unescaped (optional-text latest "snippet")))
     (none (str ""))))
 
-(type date-of
-  (fn ((ref (vec json-value)))
-    (result int mail-error)))
-
 (defn date-of (messages)
   (match (last messages)
     ((some latest) (internal-date latest))
@@ -85,8 +81,6 @@
        (->html-entity :escaped "&amp;" :character "&")
        (->html-entity :escaped "&lt;" :character "<")
        (->html-entity :escaped "&gt;" :character ">")))
-
-(type unescaped (fn (string) string))
 
 (defn unescaped (snippet)
   (reduce (iter snippet-entities) snippet

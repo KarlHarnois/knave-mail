@@ -24,10 +24,6 @@
 (defn quota-exhausted? (reply)
   (refused-for-any? reply (ref quota-reasons)))
 
-(type refused-for-any?
-  (fn ((ref http-reply) (ref (vec (ref str))))
-    bool))
-
 (defn refused-for-any? (reply reasons)
   (and (= (:status reply) 403)
        (any? (iter (:reasons (:refusal reply)))

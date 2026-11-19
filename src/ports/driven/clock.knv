@@ -17,9 +17,6 @@
     (system (wall-milliseconds))
     ((memory fake) (memory-now fake))))
 
-(type share-clock
-  (fn ((ref clock)) clock))
-
 (defn share-clock (chosen)
   (match chosen
     (system clock/system)

@@ -19,8 +19,6 @@
   :available int
   :refilled-at int)
 
-(type full-bucket (fn (int int) quota-bucket))
-
 (defn full-bucket (units-per-second now)
   (do
     (->quota-bucket :ceiling units-per-second
@@ -40,9 +38,6 @@
                 (/ (:ceiling bucket) recovered-share-per-minute))
              milliseconds-per-minute))))
 
-(type slowed-at!
-  (fn ((mut quota-bucket) int) unit))
-
 (defn slowed-at! (bucket now)
   (unless (throttled-within-window? bucket now)
     (set! (:slowed-to bucket)
@@ -61,10 +56,6 @@
      (< (- now throttled) throttle-window-milliseconds))
     (none false)))
 
-(type take-units!
-  (fn ((mut quota-bucket) int (ref clock))
-    unit))
-
 (defn take-units! (bucket units chosen)
   (refill! bucket (now-milliseconds chosen))
   (when (< (:available bucket) units)
@@ -73,9 +64,6 @@
     (refill! bucket (now-milliseconds chosen)))
   (set! (:available bucket)
         (- (:available bucket) units)))
-
-(type refill!
-  (fn ((mut quota-bucket) int) unit))
 
 (defn refill! (bucket now)
   (let (pace (pace-at bucket now)

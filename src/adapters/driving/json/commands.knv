@@ -35,19 +35,12 @@
 
 (export answer! json->mail-call reply-for run-command!)
 
-(type answer!
-  (fn ((mut mail-app) (ref str)) string))
-
 (defn answer! (app request-text)
   (match (parse-json request-text)
     ((ok request) (answer-request! app (ref request)))
     ((err problem)
      (failure-reply (ref (null-id))
                     (ref (mail-error/usage problem))))))
-
-(type answer-request!
-  (fn ((mut mail-app) (ref json-value))
-    string))
 
 (defn answer-request! (app request)
   (match (json->mail-call request)

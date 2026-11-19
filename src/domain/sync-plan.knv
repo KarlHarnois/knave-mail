@@ -21,10 +21,6 @@
   vanished
   (failed mail-error))
 
-(type changes->sync-plan
-  (fn (mail-changes (ref (vec thread-summary)))
-    sync-plan))
-
 (defn changes->sync-plan (changes cached)
   (let (unapplied (not-yet-applied (ref changes) cached)
         relabels (settled-by-history (ref changes) (ref unapplied)))

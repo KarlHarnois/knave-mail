@@ -76,10 +76,6 @@
            log inbox outbox)))
       ((err failure) (closed-with-failure outbox (ref failure))))))
 
-(type closed-with-failure
-  (fn ((ref reply-outbox) (ref mail-error))
-    unit))
-
 (defn closed-with-failure (outbox failure)
   (eprintln (str "knave-mail: " (error-message failure)))
   (send-window-command outbox (window-command/exit 1)))

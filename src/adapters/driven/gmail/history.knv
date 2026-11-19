@@ -57,9 +57,6 @@
       (none (ok (entries->mail-changes (ref so-far)
                                        (try (json->history-id (ref page)))))))))
 
-(type not-found->history-expired
-  (fn (mail-error) mail-error))
-
 (defn not-found->history-expired (failure)
   (if (not-found? (ref failure))
     (mail-error/history-expired (str (error-message (ref failure))))

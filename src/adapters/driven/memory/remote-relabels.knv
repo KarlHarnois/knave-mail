@@ -41,12 +41,6 @@
           (ok (do))
           (relabeled-remotely! remote (as-str thread-id) (ref shown)))))))
 
-(type change-on-thread
-  (fn ((ref thread)
-       (ref (vec string))
-       (ref label-change))
-    label-change))
-
 (defn change-on-thread (held message-ids change)
   (if (every? (iter (:messages held))
         (fn (message)

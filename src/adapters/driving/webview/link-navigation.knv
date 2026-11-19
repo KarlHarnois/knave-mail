@@ -2,9 +2,6 @@
 
 (export link-request-for)
 
-(type link-request-for
-  (fn ((ref str)) (option string)))
-
 (defn link-request-for (url)
   (if (in-app? url)
     none

@@ -4,9 +4,6 @@
   gmail
   memory)
 
-(type text->backend
-  (fn ((ref str)) (result backend string)))
-
 (defn text->backend (text)
   (match text
     ("gmail" (ok backend/gmail))

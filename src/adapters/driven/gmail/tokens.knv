@@ -63,8 +63,6 @@
               (str "Google's token endpoint answered " status))
     (err (refresh-failure status))))
 
-(type refresh-failure (fn (u16) mail-error))
-
 (defn refresh-failure (status)
   (match (status->class status)
     (bad-request (refused-sign-in))

@@ -4,8 +4,5 @@
   get
   post)
 
-(type http-method->name
-  (fn (http-method) (ref str)))
-
 (defn http-method->name (method)
   (match method (get "GET") (post "POST")))

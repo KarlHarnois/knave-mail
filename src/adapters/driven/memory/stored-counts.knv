@@ -4,12 +4,6 @@
 
 (export message-counts-of)
 
-(type message-counts-of
-  (fn ((ref (vec stored-thread))
-       (ref str)
-       (ref (vec string)))
-    (vec (pair string int))))
-
 (defn message-counts-of (stored email ids)
   (reduce (iter ids) (vec)
     (fn (counts id)

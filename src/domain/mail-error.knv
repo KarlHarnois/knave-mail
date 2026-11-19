@@ -37,16 +37,10 @@
     ((throttled throttle) (:message throttle))
     ((internal message) message)))
 
-(type not-found?
-  (fn ((ref mail-error)) bool))
-
 (defn not-found? (error)
   (match error
     ((not-found _) true)
     (_ false)))
-
-(type history-expired?
-  (fn ((ref mail-error)) bool))
 
 (defn history-expired? (error)
   (match error

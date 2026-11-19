@@ -35,17 +35,10 @@
     ((in-area area level)
      (with-area spec (deref area) (deref level)))))
 
-(type with-area
-  (fn (level-spec log-area log-level) level-spec))
-
 (defn with-area (spec area level)
   (push! (mut (:areas spec))
          (pair area level))
   spec)
-
-(type text->level-part
-  (fn ((ref str))
-    (result level-part string)))
 
 (defn text->level-part (part)
   (let (sides (collect (split part "=")))
@@ -65,25 +58,13 @@
             found-level (named-level level))
     (ok (level-part/in-area :area found-area :level found-level))))
 
-(type named-area
-  (fn ((ref str))
-    (result log-area string)))
-
 (defn named-area (name)
   (ok-or (text->log-area (trim name))
          (str "unknown log area `" name "`")))
 
-(type named-level
-  (fn ((ref str))
-    (result log-level string)))
-
 (defn named-level (name)
   (ok-or (text->log-level (as-str (ref (lower-case (trim name)))))
          (str "unknown log level `" name "`")))
-
-(type allows?
-  (fn ((ref level-spec) (ref log-entry))
-    bool))
 
 (defn allows? (spec entry)
   (<= (severity (ref (:level entry)))

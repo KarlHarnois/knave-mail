@@ -29,9 +29,6 @@
          (fn-once (request-inbox reply-outbox) unit))
       unit)))
 
-(type send-window-command
-  (fn ((ref reply-outbox) window-command) unit))
-
 (defn send-window-command (outbox command)
   (send-reply outbox
               (str "\u{1}" (window-command->text command))))

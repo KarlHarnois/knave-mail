@@ -43,9 +43,6 @@
 (defn thread-page-path (query page-token)
   (str (thread-list-path query) (page-token-part page-token)))
 
-(type page-token-part
-  (fn ((ref (option string))) string))
-
 (defn page-token-part (page-token)
   (match page-token
     ((some token)

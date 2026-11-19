@@ -60,17 +60,10 @@
     ((some plan) (plan-for-operation plan operation))
     (none none)))
 
-(type plan-for-operation
-  (fn ((ref failure-plan) remote-operation)
-    (option failure-plan)))
-
 (defn plan-for-operation (plan operation)
   (if (= (:target plan) operation)
     (some (clone plan))
     none))
-
-(type after-failure
-  (fn (failure-plan) (option failure-plan)))
 
 (defn after-failure (plan)
   (match (:count plan)
@@ -92,8 +85,6 @@
     (network (mail-error/network (str "simulated failure of "
                                       (remote-operation->name (ref
                                                                 operation)))))))
-
-(type always-failing (fn (remote-operation) failure-plan))
 
 (defn always-failing (operation)
   (->failure-plan :target operation

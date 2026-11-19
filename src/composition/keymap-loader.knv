@@ -8,9 +8,6 @@
 
 (export keymap-startup)
 
-(type keymap-startup
-  (fn ((ref settings)) loaded-file))
-
 (defn keymap-startup (chosen)
   (match (file-text (ref (:keymap-path chosen)))
     ((some text) (keymap->loaded-file (as-str text)))

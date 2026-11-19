@@ -59,10 +59,6 @@
     ((err _)
      (err (mail-error/history-expired (str "no history from " since))))))
 
-(type changes-from
-  (fn ((ref remote-mail) (ref str) int)
-    (result mail-changes mail-error)))
-
 (defn changes-from (remote since start)
   (if (< start (:history-floor remote))
     (err (mail-error/history-expired (str "history " since " has expired")))

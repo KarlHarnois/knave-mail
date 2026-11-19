@@ -3,9 +3,6 @@
 
 (export json->message-page)
 
-(type json->message-page
-  (fn ((ref json-value)) message-page))
-
 (defn json->message-page (listed)
   (->message-page :message-ids (listed-ids listed "id")
                   :thread-ids (listed-ids listed "threadId")

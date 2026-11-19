@@ -37,18 +37,10 @@
   :network-failure network-failure
   :persistence persistence)
 
-(type most-attempts
-  (fn ((ref operation-policy))
-    (option int)))
-
 (defn most-attempts (policy)
   (match (:persistence policy)
     (durable none)
     ((transient limits) (some (:most-attempts limits)))))
-
-(type longest-wait
-  (fn ((ref operation-policy))
-    (option int)))
 
 (defn longest-wait (policy)
   (match (:persistence policy)
@@ -65,9 +57,6 @@
      (assoc policy
             :persistence (persistence/transient (paced-by-rank (clone limits)
                                                                rank))))))
-
-(type paced-by-rank
-  (fn (retry-limits priority) retry-limits))
 
 (defn paced-by-rank (limits rank)
   (match rank

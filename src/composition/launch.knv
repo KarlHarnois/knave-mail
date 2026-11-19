@@ -27,8 +27,6 @@
 
 (export chosen-app launch-cli)
 
-(type launch-cli (fn (settings parsed-arguments) i32))
-
 (defn launch-cli (chosen parsed)
   (if (help-asked? (ref parsed))
     (do (println (usage-text)) success-code)

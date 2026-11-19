@@ -18,10 +18,6 @@
   :options (vec (pair string string))
   :switches (vec string))
 
-(type parse-arguments
-  (fn ((ref (vec string)))
-    (result parsed-arguments string)))
-
 (defn parse-arguments (tokens)
   (parsed-from tokens 0
                (->parsed-arguments (vec) (vec) (vec))))
@@ -107,10 +103,6 @@
     (assoc parsed :positionals positionals)))
 
 (defn flag? (token) (starts-with? token "--"))
-
-(type value-after
-  (fn ((ref (vec string)) usize)
-    (result string string)))
 
 (defn value-after (tokens index)
   (match (get tokens (inc index))

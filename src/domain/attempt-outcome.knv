@@ -15,19 +15,10 @@
   (retry retry-plan)
   (failed mail-error))
 
-(type attempt-outcome-of
-  (fn ((result operation-result mail-error)
-       int
-       (ref operation-policy))
-    attempt-outcome))
-
 (defn attempt-outcome-of (performed attempt policy)
   (match performed
     ((ok outcome) (attempt-outcome/finished outcome))
     ((err failure) (failure->outcome attempt policy failure))))
-
-(type failure->outcome
-  (fn (int (ref operation-policy) mail-error) attempt-outcome))
 
 (defn failure->outcome (attempt policy failure)
   (match (step-after-failure attempt policy (ref failure))

@@ -37,8 +37,6 @@
                        :highest 599
                        :class status-class/unavailable)))
 
-(type status->class (fn (u16) status-class))
-
 (defn status->class (status)
   (-> (iter status-ranges)
       (find (fn (range)

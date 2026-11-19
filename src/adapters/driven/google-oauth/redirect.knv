@@ -38,9 +38,6 @@
                       (next-redirect listener deadline))
       (_ (ok (->browser-redirect :answer answer :connection connection))))))
 
-(type target->redirect-answer
-  (fn ((ref str)) redirect-answer))
-
 (defn target->redirect-answer (target)
   (let (code (query-field target "code")
         state (query-field target "state")

@@ -1,8 +1,5 @@
 (export web-link-host)
 
-(type web-link-host
-  (fn ((ref str)) (option string)))
-
 (defn web-link-host (url)
   (let (sides (collect (split (trim url) "://")))
     (if (and (>= (len sides) 2)

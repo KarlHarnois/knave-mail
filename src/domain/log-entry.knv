@@ -44,9 +44,6 @@
     (sync "sync")
     (window "window")))
 
-(type text->log-area
-  (fn ((ref str)) (option log-area)))
-
 (defn text->log-area (text)
   (-> (iter log-areas)
       (find (fn (area)
@@ -57,9 +54,6 @@
   (vec log-level/error log-level/warn log-level/info
        log-level/debug))
 
-(type log-level->name
-  (fn ((ref log-level)) (ref str)))
-
 (defn log-level->name (level)
   (match level
     (error "error")
@@ -67,17 +61,11 @@
     (info "info")
     (debug "debug")))
 
-(type text->log-level
-  (fn ((ref str)) (option log-level)))
-
 (defn text->log-level (text)
   (-> (iter levels-by-severity)
       (find (fn (level)
               (= (log-level->name level) text)))
       (map-some (fn (level) (deref level)))))
-
-(type severity
-  (fn ((ref log-level)) usize))
 
 (defn severity (level)
   (-> (iter levels-by-severity)

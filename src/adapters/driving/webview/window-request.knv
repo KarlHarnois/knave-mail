@@ -32,18 +32,12 @@
   (mail mail-call)
   (refused :id json-value :failure mail-error))
 
-(type text->window-request
-  (fn ((ref str)) window-request))
-
 (defn text->window-request (text)
   (match (parse-json text)
     ((ok request) (json->window-request (ref request)))
     ((err problem)
      (window-request/refused :id (null-id)
                              :failure (mail-error/usage problem)))))
-
-(type json->window-request
-  (fn ((ref json-value)) window-request))
 
 (defn json->window-request (request)
   (match (parsed-request request (ref (request-arguments request)))
@@ -82,10 +76,6 @@
     ((ok line) (window-request/e2e-report line))
     ((err problem) (window-request/e2e-problem problem))))
 
-(type arguments->e2e-outcome
-  (fn ((ref json-value))
-    (result e2e-outcome mail-error)))
-
 (defn arguments->e2e-outcome (arguments)
   (map-ok (usage-field (bool-field arguments "passed")
                        "e2e-finish needs passed")
@@ -93,10 +83,6 @@
 
 (defn passed->e2e-outcome (passed)
   (if passed e2e-outcome/passed e2e-outcome/failed))
-
-(type requested-zoom
-  (fn ((ref json-value))
-    (result f64 mail-error)))
 
 (defn requested-zoom (arguments)
   (ok-or (zoom-level arguments)
@@ -117,10 +103,6 @@
                                  "log needs a message"))
     (ok (->log-entry (try (named-level (as-str name)))
                      log-area/frontend message))))
-
-(type named-level
-  (fn ((ref str))
-    (result log-level mail-error)))
 
 (defn named-level (name)
   (ok-or (text->log-level name)

@@ -9,10 +9,6 @@
 
 (def snippet-length 120)
 
-(type summarize
-  (fn ((ref thread))
-    (option thread-summary)))
-
 (defn summarize (summarized)
   (map-some (last (:messages summarized))
     (fn (latest) (summary-ending-with summarized latest))))

@@ -5,9 +5,6 @@
 
 (export cli-result->text)
 
-(type cli-result->text
-  (fn ((ref cli-result)) string))
-
 (defn cli-result->text (outcome)
   (match outcome
     ((accounts-listed accounts)
@@ -50,10 +47,6 @@
        " "
        (padded (:participants summary) 28)
        (:subject summary)))
-
-(type thread->text
-  (fn ((ref thread) (ref body-format))
-    string))
 
 (defn thread->text (shown format)
   (lines-of (-> (iter (:messages shown))

@@ -3,9 +3,6 @@
 
 (export keymap-script)
 
-(type keymap-script
-  (fn ((ref (vec keymap-entry))) string))
-
 (defn keymap-script (entries)
   (str "window.knaveKeymap = ["
        (join (-> (iter entries)

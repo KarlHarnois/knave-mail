@@ -84,14 +84,6 @@
     ((some none) (some (pair queued answers)))
     (none none)))
 
-(type with-arrivals!
-  (fn ((mut operation-runner)
-       (ref submission-inbox)
-       (vec scheduled)
-       (vec (pair int submission)))
-    (pair (vec scheduled)
-          (vec (pair int submission)))))
-
 (defn with-arrivals! (runner inbox waiting replies)
   (match (next-arrival inbox (some 0))
     ((some (some arrival))

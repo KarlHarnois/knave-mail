@@ -4,10 +4,6 @@
   :kept (vec string)
   :left (vec string))
 
-(type checked-archive
-  (fn ((ref (vec string)) (ref (vec string)))
-    archive-check))
-
 (defn checked-archive (archived inboxed)
   (reduce (iter archived) (->archive-check :kept (vec) :left (vec))
     (fn (check thread-id)
@@ -15,13 +11,9 @@
         (with-kept check (clone thread-id))
         (with-left check (clone thread-id))))))
 
-(type with-kept (fn (archive-check string) archive-check))
-
 (defn with-kept (check thread-id)
   (push! (mut (:kept check)) thread-id)
   check)
-
-(type with-left (fn (archive-check string) archive-check))
 
 (defn with-left (check thread-id)
   (push! (mut (:left check)) thread-id)

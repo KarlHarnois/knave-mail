@@ -38,10 +38,6 @@
     (list-thread-ids "list-thread-ids")
     (relabel "relabel")))
 
-(type text->remote-operation
-  (fn ((ref str))
-    (result remote-operation string)))
-
 (defn text->remote-operation (text)
   (ok-or (-> (iter remote-operations)
              (find (fn (operation)

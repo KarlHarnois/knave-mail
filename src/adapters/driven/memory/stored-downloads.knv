@@ -7,12 +7,6 @@
   :owner string
   :thread-id string)
 
-(type with-downloads
-  (fn ((vec pending-download)
-       (ref str)
-       (ref (vec string)))
-    (vec pending-download)))
-
 (defn with-downloads (pending email thread-ids)
   (reduce (iter thread-ids) pending
     (fn (found thread-id)
@@ -36,12 +30,6 @@
     (-> (reverse oldest-first)
         (map (fn (thread-id) (clone thread-id)))
         collect)))
-
-(type without-download
-  (fn ((ref (vec pending-download))
-       (ref str)
-       (ref str))
-    (vec pending-download)))
 
 (defn without-download (pending email thread-id)
   (-> (iter pending)

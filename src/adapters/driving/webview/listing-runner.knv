@@ -28,9 +28,6 @@
   handed
   (kept mail-call))
 
-(type hand-off!
-  (fn ((ref listing-runner) mail-call) hand-off))
-
 (defn hand-off! (runner call)
   (match runner
     (inline (hand-off/kept call))
@@ -57,9 +54,6 @@
 (defenum reply-sink
   (outbox reply-outbox)
   (collected (shared (vec string))))
-
-(type deliver-reply!
-  (fn ((ref reply-sink) string) unit))
 
 (defn deliver-reply! (sink reply)
   (match sink

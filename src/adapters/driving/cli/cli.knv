@@ -126,9 +126,6 @@
 (defn print-unless-empty (text)
   (unless (empty? text) (println text)))
 
-(type standard-input
-  (fn () (result string mail-error)))
-
 (defn standard-input ()
   (map-err (slurp stdin)
     (fn (problem)

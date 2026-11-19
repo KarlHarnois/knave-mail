@@ -23,10 +23,6 @@
                                 :next-token none)
                 (fn (page held) (with-older-messages page held cutoff))))))
 
-(type in-label?
-  (fn ((ref thread) (ref (option string)))
-    bool))
-
 (defn in-label? (held label)
   (match label
     ((some name) (labelled? held (as-str name)))

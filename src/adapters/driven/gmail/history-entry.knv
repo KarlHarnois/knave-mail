@@ -36,10 +36,6 @@
                                                (try (relabels-in entry
                                                                  label-record/labels-removed))))))
 
-(type entries->mail-changes
-  (fn ((ref (vec history-entry)) string)
-    mail-changes))
-
 (defn entries->mail-changes (entries history-id)
   (->mail-changes :refetch (reduce (iter entries) (vec) with-downloads)
                   :relabels (reduce (iter entries) (vec) with-relabels)
@@ -69,19 +65,11 @@
   (ok (concatenated (try (thread-ids-in entry "messagesAdded"))
                     (try (thread-ids-in entry "messagesDeleted")))))
 
-(type thread-ids-in
-  (fn ((ref json-value) (ref str))
-    (result (vec string) mail-error)))
-
 (defn thread-ids-in (entry record)
   (-> (array-field entry record)
       iter
       (map (fn (item) (json->thread-id item)))
       collect-ok))
-
-(type relabels-in
-  (fn ((ref json-value) label-record)
-    (result (vec message-relabel) mail-error)))
 
 (defn relabels-in (entry record)
   (-> (array-field entry (record-name record))

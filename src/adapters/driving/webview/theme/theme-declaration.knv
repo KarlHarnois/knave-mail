@@ -20,10 +20,6 @@
   (mode theme-mode)
   (color :scheme color-scheme :name string :value string))
 
-(type theme-entry->declaration
-  (fn ((ref theme-entry))
-    (result theme-declaration string)))
-
 (defn theme-entry->declaration (entry)
   (let (section (as-str (:section entry))
         key (as-str (:key entry))
@@ -34,10 +30,6 @@
       ("dark" (color-declaration color-scheme/dark key value))
       (_ (err (str "unknown section (" section
                    " ...); use (light ...) or (dark ...)"))))))
-
-(type setting-declaration
-  (fn ((ref str) (ref str))
-    (result theme-declaration string)))
 
 (defn setting-declaration (key value)
   (match key

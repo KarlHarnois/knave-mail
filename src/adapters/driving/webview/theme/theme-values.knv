@@ -28,10 +28,6 @@
 (defn invalid (value key)
   (str "`" value "` is not a valid :" key))
 
-(type text->color
-  (fn ((ref str) (ref str))
-    (result string string)))
-
 (defn text->color (key value)
   (if (color? value)
     (ok (str value))
@@ -40,10 +36,6 @@
 (def color?
   (rust "{{ let {!value} = {0}; {!value}.starts_with('#') && matches!({!value}.len(), 4 | 7 | 9) && {!value}[1..].chars().all(|{!c}| {!c}.is_ascii_hexdigit()) }}"
     (fn ((ref str)) bool)))
-
-(type text->font-family
-  (fn ((ref str) (ref str))
-    (result string string)))
 
 (defn text->font-family (key value)
   (if (and (not (empty? value))
@@ -56,9 +48,6 @@
       (any? (chars font-punctuation)
         (fn (allowed) (= allowed character)))))
 
-(type text->font-size
-  (fn ((ref str)) (result u32 string)))
-
 (defn text->font-size (value)
   (match (the (result u32 _) (parse value))
     ((ok size) (size-in-range size value))
@@ -70,20 +59,12 @@
     (ok size)
     (err (invalid value "font-size"))))
 
-(type text->theme-mode
-  (fn ((ref str))
-    (result theme-mode string)))
-
 (defn text->theme-mode (value)
   (match value
     ("light" (ok (theme-mode/fixed color-scheme/light)))
     ("dark" (ok (theme-mode/fixed color-scheme/dark)))
     ("system" (ok theme-mode/system))
     (_ (err (invalid value "mode")))))
-
-(type text->dark-mail
-  (fn ((ref str))
-    (result dark-mail string)))
 
 (defn text->dark-mail (value)
   (match value

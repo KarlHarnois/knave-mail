@@ -13,12 +13,6 @@
   inline
   (background background-sync))
 
-(type start-sync!
-  (fn ((ref sync-runner)
-       (ref str)
-       (ref reply-outbox))
-    sync-start))
-
 (defn start-sync! (runner account outbox)
   (match runner
     (inline sync-start/run-here)

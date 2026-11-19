@@ -13,8 +13,6 @@
   :month int
   :day int)
 
-(type milliseconds->utc-timestamp (fn (int) string))
-
 (defn milliseconds->utc-timestamp (milliseconds)
   (let (seconds (div-euclid milliseconds milliseconds-per-second)
         date (unix-days->civil-date (div-euclid seconds seconds-per-day))
@@ -33,8 +31,6 @@
          "."
          (padded (rem-euclid milliseconds milliseconds-per-second) 3)
          "Z")))
-
-(type unix-days->civil-date (fn (int) civil-date))
 
 (defn unix-days->civil-date (days)
   (let (shifted (+ days unix-epoch-shift)

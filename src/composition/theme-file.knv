@@ -7,9 +7,6 @@
 
 (export theme-startup)
 
-(type theme-startup
-  (fn ((ref settings)) loaded-file))
-
 (defn theme-startup (chosen)
   (match (file-text (ref (:theme-path chosen)))
     ((some text) (theme->loaded-file (as-str text)))

@@ -6,10 +6,6 @@
   :cmd str
   :args (vec str))
 
-(type run-all!
-  (fn ((ref (vec command)))
-    (result unit string)))
-
 (defn run-all! (commands)
   (loop (index 0)
     (match (get commands index)

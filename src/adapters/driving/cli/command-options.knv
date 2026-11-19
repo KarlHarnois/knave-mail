@@ -8,10 +8,6 @@
   plain
   html)
 
-(type limit-of
-  (fn ((option string))
-    (result int mail-error)))
-
 (defn limit-of (text)
   (match text
     ((some digits)
@@ -20,10 +16,6 @@
          (mail-error/usage (str "--limit expects a number, not `"
                                 digits "`")))))
     (none (ok default-limit))))
-
-(type format-of
-  (fn ((option string))
-    (result body-format mail-error)))
 
 (defn format-of (text)
   (match text

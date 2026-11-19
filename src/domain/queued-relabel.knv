@@ -19,17 +19,11 @@
   (kept queued-relabel)
   (refused refusal))
 
-(type delivery-finished?
-  (fn ((ref (vec delivery-step))) bool))
-
 (defn delivery-finished? (steps)
   (or (empty? steps)
       (any? (iter steps)
         (fn (step)
           (match step ((kept _) true) (_ false))))))
-
-(type step-account
-  (fn ((ref delivery-step)) string))
 
 (defn step-account (step)
   (match step

@@ -32,10 +32,6 @@
                                                               chosen))))
                           :settings chosen)))))
 
-(type e2e-scenario
-  (fn ((ref (option string)))
-    (result string string)))
-
 (defn e2e-scenario (path)
   (match path
     ((some script)

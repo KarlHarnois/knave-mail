@@ -15,46 +15,27 @@
   (file file-log)
   (memory memory-log))
 
-(type record!
-  (fn ((ref event-log) (ref log-entry))
-    unit))
-
 (defn record! (log entry)
   (match log
     ((file held) (written-to-file! held entry))
     ((memory held) (written-to-memory! held entry))))
-
-(type share-log
-  (fn ((ref event-log)) event-log))
 
 (defn share-log (log)
   (match log
     ((file held) (event-log/file (share-file-log held)))
     ((memory held) (event-log/memory (same-log held)))))
 
-(type log-error
-  (fn ((ref event-log) log-area string) unit))
-
 (defn log-error (log area message)
   (record! log
            (ref (->log-entry log-level/error area message))))
-
-(type log-warn
-  (fn ((ref event-log) log-area string) unit))
 
 (defn log-warn (log area message)
   (record! log
            (ref (->log-entry log-level/warn area message))))
 
-(type log-info
-  (fn ((ref event-log) log-area string) unit))
-
 (defn log-info (log area message)
   (record! log
            (ref (->log-entry log-level/info area message))))
-
-(type log-debug
-  (fn ((ref event-log) log-area string) unit))
 
 (defn log-debug (log area message)
   (record! log

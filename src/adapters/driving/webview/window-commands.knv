@@ -20,10 +20,6 @@
 (defn e2e-outcome->exit-code (outcome)
   (match outcome (passed 0) (failed 1)))
 
-(type zoom-to
-  (fn ((ref json-value) f64 (ref reply-outbox))
-    unit))
-
 (defn zoom-to (id level outbox)
   (send-window-command outbox
                        (window-command/zoom (max smallest-zoom

@@ -5,10 +5,6 @@
 
 (export sync-event)
 
-(type sync-event
-  (fn ((result unit mail-error) (ref str))
-    string))
-
 (defn sync-event (outcome account)
   (match outcome
     ((ok _)

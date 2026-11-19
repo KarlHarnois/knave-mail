@@ -42,14 +42,6 @@
   :delivery change-delivery
   :opener link-opener)
 
-(type serve-requests!
-  (fn ((mut mail-app)
-       (ref window-workers)
-       (ref event-log)
-       (ref request-inbox)
-       (ref reply-outbox))
-    unit))
-
 (defn serve-requests! (app workers log inbox outbox)
   (match (next-request inbox)
     ((some request)

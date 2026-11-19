@@ -1,8 +1,5 @@
 (export start-account-script)
 
-(type start-account-script
-  (fn ((ref (option string))) string))
-
 (defn start-account-script (account)
   (match account
     ((some email) (account-assignment (as-str email)))

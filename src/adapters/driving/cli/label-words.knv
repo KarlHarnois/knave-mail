@@ -13,17 +13,10 @@
        (->word-alias :word "unread" :command "mark-unread")
        (->word-alias :word "inbox" :command "move-to-inbox")))
 
-(type change-named
-  (fn ((ref str))
-    (result label-change mail-error)))
-
 (defn change-named (word)
   (ok-or (command-name->label-change (canonical-command word))
          (mail-error/usage (str "unknown command `" word
                                 "`; try `knave-mail help`"))))
-
-(type canonical-command
-  (fn ((ref str)) (ref str)))
 
 (defn canonical-command (word)
   (-> (iter word-aliases)

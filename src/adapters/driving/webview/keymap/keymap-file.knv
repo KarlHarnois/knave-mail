@@ -27,9 +27,6 @@
   :entries (vec keymap-entry)
   :warnings (vec string))
 
-(type keymap-file
-  (fn ((ref str)) keymapped))
-
 (defn keymap-file (text)
   (let (tokens (sexp-tokens text))
     (if (wrapped-in-keymap? (ref tokens))
@@ -77,10 +74,6 @@
                 (->keymap-entry parsed
                                 (token-text (ref keys))
                                 (token-text (ref action)))))))))
-
-(type text->keymap-mode
-  (fn ((ref str))
-    (result keymap-mode string)))
 
 (defn text->keymap-mode (text)
   (ok-or (-> (iter keymap-modes)
