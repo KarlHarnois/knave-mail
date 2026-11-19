@@ -31,8 +31,9 @@
   (let (status (:status reply)
         body (clone (:body reply)))
     (match (status->class status)
-      (success (text-error->internal-error (parse-json (ref (non-empty-json
-                                                              body)))))
+      (success (-> (non-empty-json body)
+                   as-str parse-json
+                   text-error->internal-error))
       (missing (err (mail-error/not-found (str "Gmail has no such item: "
                                                body))))
       (unauthorized (err (refused-access body)))

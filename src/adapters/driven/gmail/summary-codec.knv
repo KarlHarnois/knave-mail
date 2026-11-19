@@ -56,10 +56,11 @@
                      (sender-name (as-str (header-of message "From")))))))
 
 (defn sender-name (from)
-  (let (name (trimmed-of (trim (-> (split from "<")
-                                   (find (fn (_) true))
-                                   (unwrap-or "")))
-                         "\""))
+  (let (name (-> (split from "<")
+                 (find (fn (_) true))
+                 (unwrap-or "")
+                 trim
+                 (trimmed-of "\"")))
     (if (empty? name) (trimmed-of from "<>") name)))
 
 (defn header-of (message name)

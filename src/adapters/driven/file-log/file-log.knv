@@ -61,7 +61,7 @@
   (upper-case (log-level->name level)))
 
 (defn padded (text width)
-  (for-each (range (count (chars (as-str (ref text))))
+  (for-each (range (-> (as-str (ref text)) chars count)
                    width)
             (fn (_) (push! text (char " "))))
   text)
