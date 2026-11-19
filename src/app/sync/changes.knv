@@ -1,5 +1,5 @@
 (use domain/mail ->thread-ref thread-ref)
-(use app/activity-log log-changes!)
+(use app/activity-log ->changes-report log-changes!)
 (use app/thread-log log-gmail-relabel! log-vanished-thread!)
 (use domain/collections try-for-each)
 (use app/caching cache-thread!)
@@ -59,11 +59,11 @@
                          account
                          (ref (:history-id plan))))
   (log-changes! (ref (:log app))
-                account
-                (as-str (:history-id plan))
-                (len (:relabels plan))
-                (:matched plan)
-                (ref (try (load-pending-downloads (ref (:store app)) account))))
+                (ref (->changes-report :account (str account)
+                                       :plan (clone plan)
+                                       :pending (try (load-pending-downloads
+                                                       (ref (:store app))
+                                                       account)))))
   (ok (do)))
 
 (type download-pending!

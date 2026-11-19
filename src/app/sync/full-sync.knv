@@ -3,7 +3,10 @@
 (use domain/collections try-for-each)
 (use app/mail-app mail-app)
 (use app/sync/prefetching prefetch-threads!)
-(use app/sync/stale-labels drop-stale-label! label-query)
+
+(use app/sync/stale-labels drop-stale-threads! label-query
+                           stale-check-for)
+
 (use domain/mail-error mail-error)
 
 (use app/operations/calls fetched-history-id!
@@ -42,5 +45,8 @@
     (try (save-threads! (mut (:store app))
                         account
                         (ref summaries)))
-    (try (drop-stale-label! app account label (ref summaries)))
+    (try (drop-stale-threads!
+           app
+           (ref (stale-check-for account label (:sync (:limits app))))
+           (ref summaries)))
     (prefetch-threads! app account (ref summaries))))

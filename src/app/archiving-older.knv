@@ -1,6 +1,7 @@
 (use app/mail-app mail-app)
 
-(use app/operations/batch-log log-archived-older!
+(use app/operations/batch-log ->archive-report
+                              log-archived-older!
                               log-kept-in-inbox!)
 
 (use app/gmail-pages all-messages! all-thread-ids!)
@@ -36,10 +37,12 @@
            (fn (thread-id)
              (archived-in-cache! app account (as-str thread-id)))))
     (log-archived-older! (ref (:log app))
-                         account before
-                         (len (:thread-ids found))
-                         (len (:message-ids found))
-                         requests)
+                         (ref (->archive-report
+                                :account (str account)
+                                :before (str before)
+                                :thread-count (len (:thread-ids found))
+                                :message-count (len (:message-ids found))
+                                :request-count requests)))
     (when (not (empty? (:kept check)))
       (log-kept-in-inbox! (ref (:log app))
                           account

@@ -45,10 +45,7 @@
       ((ok _)
        (do
          (log-batch-sent! (ref (:log app))
-                          (as-str (:account head))
-                          (ref (:change head))
-                          (len (:rows batch))
-                          (len (:message-ids batch)))
+                          (ref batch))
          (forgotten! app (clone (:rows batch)))))
       ((err failure)
        (after-batch-failure! app

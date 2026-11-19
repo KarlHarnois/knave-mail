@@ -1,25 +1,53 @@
+(use domain/delivery-batch delivery-batch)
 (use domain/queued-relabel relabel-request)
 (use domain/log-entry log-area)
 (use app/operations/operation-log labels-changed)
 (use domain/delivery-tally delivery-count)
 (use ports/driven/event-log event-log log-info)
 
-(export log-archived-older! log-batch-delivered!
-        log-batch-queued! log-batch-sent!
-        log-kept-in-inbox!)
+(export ->archive-report log-archived-older!
+        log-batch-delivered! log-batch-queued!
+        log-batch-sent! log-kept-in-inbox!)
 
-(defn log-batch-sent! (log account change thread-count message-count)
-  (log-info log log-area/operations
-            (str "relabel batch " account ": " thread-count
-                 " threads, " message-count
-                 " messages in one request "
-                 (labels-changed change))))
+(type log-batch-sent!
+  (fn ((ref event-log) (ref delivery-batch))
+    unit))
 
-(defn log-archived-older! (log account before threads messages requests)
+(defn log-batch-sent! (log batch)
+  (let (head (at (:rows batch) 0))
+    (log-info log log-area/operations
+              (str "relabel batch "
+                   (:account head)
+                   ": "
+                   (len (:rows batch))
+                   " threads, "
+                   (len (:message-ids batch))
+                   " messages in one request "
+                   (labels-changed (ref (:change head)))))))
+
+(defstruct archive-report
+  :account string
+  :before string
+  :thread-count usize
+  :message-count usize
+  :request-count usize)
+
+(type log-archived-older!
+  (fn ((ref event-log) (ref archive-report))
+    unit))
+
+(defn log-archived-older! (log report)
   (log-info log log-area/operations
-            (str "archive older " account ": " threads
-                 " inbox threads before " before ", "
-                 messages " messages in " requests
+            (str "archive older "
+                 (:account report)
+                 ": "
+                 (:thread-count report)
+                 " inbox threads before "
+                 (:before report)
+                 ", "
+                 (:message-count report)
+                 " messages in "
+                 (:request-count report)
                  " requests")))
 
 (defn log-kept-in-inbox! (log account thread-ids)

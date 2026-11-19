@@ -13,7 +13,7 @@
 (use domain/mail-error mail-error)
 (use ports/driven/store load-threads relabel-stored!)
 
-(export drop-stale-label! label-query)
+(export drop-stale-threads! label-query stale-check-for)
 
 (defn label-query (label limit)
   (->thread-query (label-scope/only (label-id label))
@@ -25,19 +25,14 @@
   :listing thread-query
   :removal label-change)
 
-(type drop-stale-label!
-  (fn ((mut mail-app)
-       (ref str)
-       (ref system-label)
-       (ref (vec thread-summary)))
-    (result unit mail-error)))
+(type stale-check-for
+  (fn ((ref str) (ref system-label) int)
+    stale-check))
 
-(defn drop-stale-label! (app account label listed)
-  (let (check (->stale-check :account (str account)
-                             :listing (label-query label (:sync (:limits app)))
-                             :removal (label-removal (as-str (label-id
-                                                               label)))))
-    (drop-stale-threads! app (ref check) listed)))
+(defn stale-check-for (account label limit)
+  (->stale-check :account (str account)
+                 :listing (label-query label limit)
+                 :removal (label-removal (as-str (label-id label)))))
 
 (type drop-stale-threads!
   (fn ((mut mail-app)

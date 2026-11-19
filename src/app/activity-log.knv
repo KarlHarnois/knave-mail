@@ -1,3 +1,4 @@
+(use domain/sync-plan sync-plan)
 (use domain/log-entry log-area)
 (use app/operations/operation-log labels-changed)
 (use domain/labels label-change)
@@ -7,8 +8,8 @@
 (use ports/driven/event-log event-log log-debug log-info
                             log-warn)
 
-(export ->label-restored label-restored log-changes!
-        log-first-listed! log-full-sync-done!
+(export ->changes-report ->label-restored label-restored
+        log-changes! log-first-listed! log-full-sync-done!
         log-full-sync-started! log-history-expired!
         log-incremental-sync-started! log-label-restored!
         log-preview!)
@@ -65,16 +66,31 @@
   (log-info log log-area/sync
             (str account ": full sync done at history " history-id)))
 
-(defn log-changes! (log account history-id relabeled matched downloads)
-  (log-info log log-area/sync
-            (str account ": " relabeled
-                 " threads relabeled from history, "
-                 (len downloads)
-                 " threads to download, now at history "
-                 history-id ", " matched
-                 " already matched the cache"))
-  (log-debug log log-area/sync
-             (str account ": threads to download " (join downloads " "))))
+(defstruct changes-report
+  :account string
+  :plan sync-plan
+  :pending (vec string))
+
+(type log-changes!
+  (fn ((ref event-log) (ref changes-report))
+    unit))
+
+(defn log-changes! (log report)
+  (let (account (:account report)
+        plan (ref (:plan report))
+        pending (ref (:pending report)))
+    (log-info log log-area/sync
+              (str account ": "
+                   (len (:relabels plan))
+                   " threads relabeled from history, "
+                   (len pending)
+                   " threads to download, now at history "
+                   (:history-id plan)
+                   ", "
+                   (:matched plan)
+                   " already matched the cache"))
+    (log-debug log log-area/sync
+               (str account ": threads to download " (join pending " ")))))
 
 (defn log-preview! (log account summaries)
   (log-info log log-area/sync
