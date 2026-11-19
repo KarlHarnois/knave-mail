@@ -1,0 +1,25 @@
+(use domain/labels label-change label-difference no-change?)
+(use domain/mail thread-summary)
+
+(export cache-news cached-news)
+
+(defenum cache-news
+  (new-thread (vec string))
+  (relabeled label-change)
+  unchanged)
+
+(type cached-news
+  (fn ((ref (vec thread-summary))
+       (ref (vec string)))
+    cache-news))
+
+(defn cached-news (cached gmail-labels)
+  (match (first cached)
+    ((some summary)
+     (change->news (label-difference (ref (:labels summary)) gmail-labels)))
+    (none (cache-news/new-thread (clone gmail-labels)))))
+
+(defn change->news (change)
+  (if (no-change? (ref change))
+    cache-news/unchanged
+    (cache-news/relabeled change)))

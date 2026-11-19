@@ -1,7 +1,7 @@
 (use domain/collections option->vec)
 (use app/activity-log log-gmail-relabel! log-new-thread!)
 (use app/mail-app mail-app)
-(use domain/labels label-difference no-change?)
+(use domain/cache-news cache-news cached-news)
 (use domain/mail-error mail-error)
 (use domain/mail thread thread-summary)
 (use domain/summary summarize)
@@ -29,10 +29,9 @@
                                        account
                                        (ref (vec (str thread-id)))))
         fetched (try (fetched-thread! app account thread-id)))
-    (log-difference! app account
-                     (ref cached)
-                     (ref (:labels fetched))
-                     thread-id)
+    (log-news! app account thread-id
+               (cached-news (ref cached)
+                            (ref (:labels fetched))))
     (try (save-thread! (mut (:store app))
                        account
                        (ref fetched)))
@@ -41,22 +40,21 @@
                         (ref (option->vec (summarize (ref fetched))))))
     (ok fetched)))
 
-(type log-difference!
+(type log-news!
   (fn ((ref mail-app)
        (ref str)
-       (ref (vec thread-summary))
-       (ref (vec string))
-       (ref str))
+       (ref str)
+       cache-news)
     unit))
 
-(defn log-difference! (app account cached gmail-labels thread-id)
-  (match (first cached)
-    ((some summary)
-     (let (change (label-difference (ref (:labels summary)) gmail-labels))
-       (when (not (no-change? (ref change)))
-         (log-gmail-relabel! (ref (:log app))
-                             account thread-id
-                             (ref change)))))
-    (none (log-new-thread! (ref (:log app))
-                           account thread-id
-                           gmail-labels))))
+(defn log-news! (app account thread-id news)
+  (match news
+    ((new-thread labels)
+     (log-new-thread! (ref (:log app))
+                      account thread-id
+                      (ref labels)))
+    ((relabeled change)
+     (log-gmail-relabel! (ref (:log app))
+                         account thread-id
+                         (ref change)))
+    (unchanged (do))))

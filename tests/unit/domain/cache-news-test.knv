@@ -1,0 +1,29 @@
+(use domain/cache-news cache-news cached-news)
+(use domain/labels ->label-change)
+(use domain/mail ->thread-summary)
+
+(defn cached-with (labels)
+  (->thread-summary :id (str "t")
+                    :subject (str "")
+                    :participants (str "")
+                    :snippet (str "")
+                    :date 0
+                    :labels labels
+                    :message-count 1
+                    :message-ids (vec)))
+
+(deftest a-thread-not-in-the-cache-is-new
+  (assert (= (cached-news (ref (vec))
+                          (ref (vec (str "INBOX"))))
+             (cache-news/new-thread (vec (str "INBOX"))))))
+
+(deftest a-thread-with-other-labels-was-relabeled
+  (assert (= (cached-news (ref (vec (cached-with (vec (str "INBOX")))))
+                          (ref (vec)))
+             (cache-news/relabeled (->label-change (vec)
+                                                   (vec (str "INBOX")))))))
+
+(deftest a-thread-with-the-same-labels-is-unchanged
+  (assert (= (cached-news (ref (vec (cached-with (vec (str "INBOX")))))
+                          (ref (vec (str "INBOX"))))
+             cache-news/unchanged)))
