@@ -15,14 +15,19 @@
 (use domain/mail-error mail-error)
 (use domain/results ok->option)
 
-(export e2e-outcome text->window-request window-request)
+(export ->sync-call e2e-outcome sync-call
+        text->window-request window-request)
 
 (defenum e2e-outcome
   passed
   failed)
 
+(defstruct sync-call
+  :id json-value
+  :account string)
+
 (defenum window-request
-  (sync-account :id json-value :account string)
+  (sync-account sync-call)
   (e2e-report string)
   (e2e-problem string)
   (e2e-finish e2e-outcome)
@@ -50,10 +55,11 @@
   (match (unwrap-or (ok->option (string-field request "command"))
                     (str ""))
     ("sync"
-     (ok (window-request/sync-account
-           :id (request-id request)
-           :account (try (usage-field (string-field arguments "account")
-                                      "sync needs an account")))))
+     (ok (window-request/sync-account (->sync-call :id (request-id request)
+                                                   :account (try (usage-field (string-field
+                                                                                arguments
+                                                                                "account")
+                                                                              "sync needs an account"))))))
     ("e2e-report" (ok (e2e-line arguments)))
     ("e2e-finish"
      (ok (window-request/e2e-finish (try (arguments->e2e-outcome arguments)))))

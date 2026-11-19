@@ -1,5 +1,6 @@
 (export next-request open-window reply-outbox request-inbox
-        send-reply send-window-command window-command)
+        send-reply send-window-command share-outbox
+        window-command)
 
 (defenum window-command
   (exit int)
@@ -15,6 +16,10 @@
   (rust "{0}.recv().ok()"
     (fn ((ref request-inbox))
       (option string))))
+
+(def share-outbox
+  (rust "{0}.clone()"
+    (fn ((ref reply-outbox)) reply-outbox)))
 
 (def send-reply
   (rust "drop({0}.send_event({1}))"

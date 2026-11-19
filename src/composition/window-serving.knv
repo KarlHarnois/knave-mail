@@ -5,15 +5,19 @@
                                     threaded-operations)
 
 (use adapters/driving/webview/listing-runner listing-runner)
+(use adapters/driving/webview/session serve-requests!)
 
-(use adapters/driving/webview/session ->window-workers
-                                      serve-requests!)
+(use adapters/driving/webview/window-session ->window-session
+                                             ->window-workers
+                                             window-session
+                                             window-workers)
 
 (use adapters/driving/webview/sync-runner sync-runner)
 
 (use adapters/driving/webview/window reply-outbox
                                      request-inbox
                                      send-window-command
+                                     share-outbox
                                      window-command)
 
 (use domain/mail-error error-message mail-error)
@@ -25,38 +29,67 @@
 (use composition/memory-backend memory-app)
 (use composition/operation-executor start-gmail-executor)
 (use composition/backend backend)
-(use composition/settings settings)
+(use composition/settings google-client settings)
 (use app/mail-app delivery)
 (use domain/operation priority)
 (use ports/driven/event-log event-log share-log)
 (use ports/driven/link-opener link-opener)
 
-(export serve-window!)
+(export ->window-io serve-window! window-io)
 
-(defn serve-window! (chosen log inbox outbox)
+(defstruct window-io
+  :log event-log
+  :inbox request-inbox
+  :outbox reply-outbox)
+
+(type serve-window!
+  (fn ((ref settings) (ref window-io))
+    unit))
+
+(defn serve-window! (chosen io)
   (match (:backend chosen)
-    (memory (serve-memory-window! chosen log inbox outbox))
-    (gmail (serve-gmail-window! chosen log inbox outbox))))
+    (memory (serve-memory-window! chosen io))
+    (gmail (serve-gmail-window! chosen io))))
 
-(defn serve-memory-window! (chosen log inbox outbox)
-  (local running (memory-app chosen (share-log log)))
+(type serve-memory-window!
+  (fn ((ref settings) (ref window-io))
+    unit))
+
+(defn serve-memory-window! (chosen io)
+  (local running
+    (memory-app chosen
+                (share-log (ref (:log io)))))
   (serve-requests! (mut running)
-                   (ref (->window-workers :sync sync-runner/inline
-                                          :listing listing-runner/inline
-                                          :delivery change-delivery/inline
-                                          :opener (browser-of chosen)))
-                   log inbox outbox))
+                   (ref (session-over io
+                                      (->window-workers
+                                        :sync sync-runner/inline
+                                        :listing listing-runner/inline
+                                        :delivery change-delivery/inline
+                                        :opener (browser-of chosen))))
+                   (ref (:inbox io))))
 
-(defn serve-gmail-window! (chosen log inbox outbox)
+(type serve-gmail-window!
+  (fn ((ref settings) (ref window-io))
+    unit))
+
+(defn serve-gmail-window! (chosen io)
   (match (chosen-client chosen)
-    ((ok client)
-     (serve-gmail-client! chosen (ref client) log inbox outbox))
-    ((err failure) (closed-with-failure outbox (ref failure)))))
+    ((ok client) (serve-gmail-client! chosen (ref client) io))
+    ((err failure)
+     (closed-with-failure (ref (:outbox io))
+                          (ref failure)))))
 
-(defn serve-gmail-client! (chosen client log inbox outbox)
-  (let (executor (start-gmail-executor (clone chosen) (clone client)))
+(type serve-gmail-client!
+  (fn ((ref settings)
+       (ref google-client)
+       (ref window-io))
+    unit))
+
+(defn serve-gmail-client! (chosen client io)
+  (let (executor (start-gmail-executor (clone chosen) (clone client))
+        outbox (ref (:outbox io)))
     (match (gmail-app chosen
-                      (share-log log)
+                      (share-log (ref (:log io)))
                       (threaded-operations (ref executor))
                       priority/interactive
                       delivery/deliver-later)
@@ -66,15 +99,27 @@
          (serve-requests!
            (mut running)
            (ref
-             (->window-workers
-               :sync (sync-runner/background (->background-sync
-                                               :executor (share-sender (ref executor))
-                                               :settings (clone chosen)))
-               :listing (start-background-listing outbox (ref executor) chosen)
-               :delivery (start-delivery-worker outbox (ref executor) chosen)
-               :opener (browser-of chosen)))
-           log inbox outbox)))
+             (session-over
+               io
+               (->window-workers
+                 :sync (sync-runner/background (->background-sync
+                                                 :executor (share-sender (ref executor))
+                                                 :settings (clone chosen)))
+                 :listing (start-background-listing outbox
+                                                    (ref executor)
+                                                    chosen)
+                 :delivery (start-delivery-worker outbox (ref executor) chosen)
+                 :opener (browser-of chosen))))
+           (ref (:inbox io)))))
       ((err failure) (closed-with-failure outbox (ref failure))))))
+
+(type session-over
+  (fn ((ref window-io) window-workers) window-session))
+
+(defn session-over (io workers)
+  (->window-session :workers workers
+                    :log (share-log (ref (:log io)))
+                    :outbox (share-outbox (ref (:outbox io)))))
 
 (defn closed-with-failure (outbox failure)
   (eprintln (str "knave-mail: " (error-message failure)))

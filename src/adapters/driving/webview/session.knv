@@ -4,7 +4,8 @@
                                         mail-command
                                         worker-listing?)
 
-(use adapters/driving/webview/change-delivery change-delivery)
+(use adapters/driving/webview/window-client send-waiting-changes!)
+(use adapters/driving/webview/window-session window-session)
 
 (use adapters/driving/webview/command-answers answer-relabel!
                                               start-requested-sync!)
@@ -12,11 +13,9 @@
 (use adapters/driving/webview/link-requests open-requested-link!)
 
 (use adapters/driving/webview/listing-runner hand-off
-                                             hand-off!
-                                             listing-runner)
+                                             hand-off!)
 
 (use adapters/driving/webview/logged-answers answered-and-logged!)
-(use adapters/driving/webview/sync-runner sync-runner)
 
 (use adapters/driving/webview/window next-request
                                      reply-outbox
@@ -32,83 +31,71 @@
 
 (use app/mail-app mail-app)
 (use ports/driven/event-log event-log record!)
-(use ports/driven/link-opener link-opener)
 
-(export ->window-workers serve-requests! window-workers)
+(export serve-requests!)
 
-(defstruct window-workers
-  :sync sync-runner
-  :listing listing-runner
-  :delivery change-delivery
-  :opener link-opener)
+(type serve-requests!
+  (fn ((mut mail-app)
+       (ref window-session)
+       (ref request-inbox))
+    unit))
 
-(defn serve-requests! (app workers log inbox outbox)
+(defn serve-requests! (app session inbox)
   (match (next-request inbox)
     ((some request)
-     (handle-request! app workers log (ref request) outbox)
-     (recur app workers log inbox outbox))
+     (handle-request! app session (ref request))
+     (recur app session inbox))
     (none (do))))
 
 (type handle-request!
   (fn ((mut mail-app)
-       (ref window-workers)
-       (ref event-log)
-       (ref str)
-       (ref reply-outbox))
+       (ref window-session)
+       (ref str))
     unit))
 
-(defn handle-request! (app workers log request-text outbox)
-  (match (text->window-request request-text)
-    ((sync-account id account)
-     (start-requested-sync! app
-                            (ref (:sync workers))
-                            (ref id)
-                            (ref account)
-                            outbox))
-    ((e2e-report line) (println line))
-    ((e2e-problem problem) (eprintln problem))
-    ((e2e-finish outcome) (finish-e2e outcome outbox))
-    ((zoom id level) (zoom-to (ref id) level outbox))
-    ((frontend-log entry) (record! log (ref entry)))
-    ((open-link url)
-     (open-requested-link! (ref (:opener workers))
-                           log
-                           (ref url)))
-    ((mail call) (answer-mail! app workers log call outbox))
-    ((refused id failure)
-     (send-reply outbox
-                 (failure-reply (ref id) (ref failure))))))
+(defn handle-request! (app session request-text)
+  (let (outbox (ref (:outbox session))
+        log (ref (:log session)))
+    (match (text->window-request request-text)
+      ((sync-account call)
+       (start-requested-sync! app session (ref call)))
+      ((e2e-report line) (println line))
+      ((e2e-problem problem) (eprintln problem))
+      ((e2e-finish outcome) (finish-e2e outcome outbox))
+      ((zoom id level) (zoom-to (ref id) level outbox))
+      ((frontend-log entry) (record! log (ref entry)))
+      ((open-link url)
+       (open-requested-link! (ref (:opener (:workers session)))
+                             log
+                             (ref url)))
+      ((mail call) (answer-mail! app session call))
+      ((refused id failure)
+       (send-reply outbox
+                   (failure-reply (ref id) (ref failure)))))))
 
 (type answer-mail!
-  (fn ((mut mail-app)
-       (ref window-workers)
-       (ref event-log)
-       mail-call
-       (ref reply-outbox))
+  (fn ((mut mail-app) (ref window-session) mail-call)
     unit))
 
-(defn answer-mail! (app workers log call outbox)
+(defn answer-mail! (app session call)
   (match (:command call)
     ((relabel request)
-     (answer-relabel! app
-                      (ref (:delivery workers))
-                      log
-                      (ref call)
-                      (as-str (:account request))
-                      outbox))
-    (_ (answer-here-or-hand-off! app workers log call outbox))))
+     (answer-relabel! app session (ref call))
+     (send-waiting-changes! app
+                            (ref (:outbox session))
+                            (as-str (:account request))))
+    (_ (answer-here-or-hand-off! app session call))))
 
 (type answer-here-or-hand-off!
-  (fn ((mut mail-app)
-       (ref window-workers)
-       (ref event-log)
-       mail-call
-       (ref reply-outbox))
+  (fn ((mut mail-app) (ref window-session) mail-call)
     unit))
 
-(defn answer-here-or-hand-off! (app workers log call outbox)
-  (match (hand-off! (ref (:listing workers)) call)
+(defn answer-here-or-hand-off! (app session call)
+  (match (hand-off! (ref (:listing (:workers session)))
+                    call)
     (handed (do))
     ((kept held)
-     (send-reply outbox
-                 (answered-and-logged! app log (ref held))))))
+     (send-reply (ref (:outbox session))
+                 (answered-and-logged! app
+                                       (ref (:log session))
+                                       (ref held))))))

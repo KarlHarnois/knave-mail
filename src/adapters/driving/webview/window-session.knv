@@ -1,0 +1,20 @@
+(use adapters/driving/webview/change-delivery change-delivery)
+(use adapters/driving/webview/listing-runner listing-runner)
+(use adapters/driving/webview/sync-runner sync-runner)
+(use adapters/driving/webview/window reply-outbox)
+(use ports/driven/event-log event-log)
+(use ports/driven/link-opener link-opener)
+
+(export ->window-session ->window-workers window-session
+        window-workers)
+
+(defstruct window-workers
+  :sync sync-runner
+  :listing listing-runner
+  :delivery change-delivery
+  :opener link-opener)
+
+(defstruct window-session
+  :workers window-workers
+  :log event-log
+  :outbox reply-outbox)

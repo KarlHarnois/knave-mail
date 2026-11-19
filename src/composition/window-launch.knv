@@ -6,10 +6,6 @@
 
 (use adapters/driving/webview/link-navigation link-request-for)
 (use adapters/driving/webview/listing-runner listing-runner)
-
-(use adapters/driving/webview/session ->window-workers
-                                      serve-requests!)
-
 (use adapters/driving/webview/start-account-script start-account-script)
 (use adapters/driving/webview/sync-runner sync-runner)
 
@@ -44,7 +40,7 @@
 (use domain/operation priority)
 (use ports/driven/event-log event-log log-info share-log)
 (use ports/driven/link-opener link-opener)
-(use composition/window-serving serve-window!)
+(use composition/window-serving ->window-io serve-window!)
 
 (export launch-window)
 
@@ -83,9 +79,9 @@
                        ((some socket) (forward-launches! socket (ref outbox)))
                        (none (do)))
                      (serve-window! (ref owned)
-                                    (ref log)
-                                    (ref inbox)
-                                    (ref outbox)))))))
+                                    (ref (->window-io :log log
+                                                      :inbox inbox
+                                                      :outbox outbox))))))))
 
 (type print-warnings
   (fn ((ref loaded-file)) unit))
