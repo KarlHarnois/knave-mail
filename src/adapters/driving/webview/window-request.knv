@@ -10,10 +10,10 @@
                          string-field)
 
 (use domain/log-entry ->log-entry log-area log-entry
-                      log-level)
+                      log-level text->log-level)
 
 (use domain/mail-error mail-error)
-(use domain/results unwrap-ok-or)
+(use domain/results ok->option)
 
 (export e2e-outcome text->window-request window-request)
 
@@ -46,62 +46,98 @@
   (fn ((ref json-value)) window-request))
 
 (defn json->window-request (request)
-  (let (arguments (request-arguments request))
-    (match (unwrap-ok-or (string-field request "command") (str ""))
-      ("sync" (sync-request request (ref arguments)))
-      ("e2e-report" (e2e-line (ref arguments)))
-      ("e2e-finish"
-       (window-request/e2e-finish (e2e-outcome-of (ref arguments))))
-      ("zoom"
-       (window-request/zoom :id (request-id request)
-                            :level (requested-zoom (ref arguments))))
-      ("log"
-       (window-request/frontend-log (frontend-entry (ref arguments))))
-      ("open-link"
-       (window-request/open-link (unwrap-ok-or (string-field (ref arguments)
-                                                             "url")
-                                               (str ""))))
-      (_ (mail-request request)))))
-
-(defn sync-request (request arguments)
-  (match (string-field arguments "account")
-    ((ok account)
-     (window-request/sync-account :id (request-id request)
-                                  :account account))
-    ((err _)
+  (match (parsed-request request (ref (request-arguments request)))
+    ((ok parsed) parsed)
+    ((err failure)
      (window-request/refused :id (request-id request)
-                             :failure (mail-error/usage (str "sync needs an account"))))))
+                             :failure failure))))
+
+(type parsed-request
+  (fn ((ref json-value) (ref json-value))
+    (result window-request mail-error)))
+
+(defn parsed-request (request arguments)
+  (match (unwrap-or (ok->option (string-field request "command"))
+                    (str ""))
+    ("sync"
+     (ok (window-request/sync-account
+           :id (request-id request)
+           :account (try (usage-field (string-field arguments "account")
+                                      "sync needs an account")))))
+    ("e2e-report" (ok (e2e-line arguments)))
+    ("e2e-finish"
+     (ok (window-request/e2e-finish (try (e2e-outcome-of arguments)))))
+    ("zoom"
+     (ok (window-request/zoom :id (request-id request)
+                              :level (try (requested-zoom arguments)))))
+    ("log"
+     (ok (window-request/frontend-log (try (frontend-entry arguments)))))
+    ("open-link"
+     (ok (window-request/open-link (try (link-url arguments)))))
+    (_ (map-ok (json->mail-call request)
+         (fn (call) (window-request/mail call))))))
 
 (defn e2e-line (arguments)
   (match (string-field arguments "line")
     ((ok line) (window-request/e2e-report line))
     ((err problem) (window-request/e2e-problem problem))))
 
-(defn e2e-outcome-of (arguments)
-  (match (bool-field arguments "passed")
-    ((ok true) e2e-outcome/passed)
-    (_ e2e-outcome/failed)))
+(type e2e-outcome-of
+  (fn ((ref json-value))
+    (result e2e-outcome mail-error)))
 
-(def requested-zoom
-  (rust "{0}.get(\"level\").and_then(serde_json::Value::as_f64).unwrap_or(1.0)"
-    (fn ((ref json-value)) f64)))
+(defn e2e-outcome-of (arguments)
+  (map-ok (usage-field (bool-field arguments "passed")
+                       "e2e-finish needs passed")
+          passed->e2e-outcome))
+
+(defn passed->e2e-outcome (passed)
+  (if passed e2e-outcome/passed e2e-outcome/failed))
+
+(type requested-zoom
+  (fn ((ref json-value))
+    (result f64 mail-error)))
+
+(defn requested-zoom (arguments)
+  (ok-or (zoom-level arguments)
+         (mail-error/usage (str "zoom needs a numeric level"))))
+
+(def zoom-level
+  (rust "{0}.get(\"level\").and_then(serde_json::Value::as_f64)"
+    (fn ((ref json-value)) (option f64))))
+
+(type frontend-entry
+  (fn ((ref json-value))
+    (result log-entry mail-error)))
 
 (defn frontend-entry (arguments)
-  (->log-entry (level-named (ref (unwrap-ok-or (string-field arguments "level")
-                                               (str "info"))))
-               log-area/frontend
-               (unwrap-ok-or (string-field arguments "message") (str ""))))
+  (let-try (name (usage-field (string-field arguments "level")
+                              "log needs a level")
+            message (usage-field (string-field arguments "message")
+                                 "log needs a message"))
+    (ok (->log-entry (try (named-level (as-str name)))
+                     log-area/frontend message))))
 
-(defn level-named (name)
-  (match name
-    ("error" log-level/error)
-    ("warn" log-level/warn)
-    ("debug" log-level/debug)
-    (_ log-level/info)))
+(type named-level
+  (fn ((ref str))
+    (result log-level mail-error)))
 
-(defn mail-request (request)
-  (match (json->mail-call request)
-    ((ok call) (window-request/mail call))
-    ((err failure)
-     (window-request/refused :id (request-id request)
-                             :failure failure))))
+(defn named-level (name)
+  (ok-or (text->log-level name)
+         (mail-error/usage (str "unknown log level `" name "`"))))
+
+(type link-url
+  (fn ((ref json-value))
+    (result string mail-error)))
+
+(defn link-url (arguments)
+  (let (url (try (usage-field (string-field arguments "url")
+                              "open-link needs a url")))
+    (if (empty? url)
+      (err (mail-error/usage (str "open-link needs a url")))
+      (ok url))))
+
+(defn usage-field (outcome problem)
+  (map-err outcome
+    (fn (_)
+      (mail-error/usage (str problem)))))

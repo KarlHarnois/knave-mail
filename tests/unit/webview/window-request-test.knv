@@ -27,3 +27,16 @@
 (deftest text-that-is-not-json-is-refused
   (assert (contains? (ref (refusal-of "not json"))
                      "\"kind\":\"usage\"")))
+
+(deftest a-zoom-without-a-level-is-refused
+  (assert (contains? (ref (refusal-of
+                            "{\"id\":2,\"command\":\"zoom\",\"args\":{}}"))
+                     "zoom needs a numeric level")))
+
+(deftest a-log-entry-with-an-unknown-level-is-refused
+  (assert (contains? (ref (refusal-of "{\"command\":\"log\",\"args\":{\"level\":\"loud\",\"message\":\"m\"}}"))
+                     "unknown log level `loud`")))
+
+(deftest an-empty-link-is-refused
+  (assert (contains? (ref (refusal-of "{\"command\":\"open-link\",\"args\":{\"url\":\"\"}}"))
+                     "open-link needs a url")))
