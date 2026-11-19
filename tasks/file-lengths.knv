@@ -43,7 +43,8 @@
   (let (files (appended (appended (try (knave-files-under "src"))
                                   (try (knave-files-under "tests")))
                         (try (knave-files-under "tasks")))
-        too-long (try (files-over-limit (ref files) 0 (vec))))
+        counted (try (line-counts (ref files) 0 (vec)))
+        too-long (lines-over-limit (ref counted)))
     (if (empty? too-long)
       (ok (println "All "
                    (len files)
@@ -68,14 +69,31 @@
                   (else (vec))))
       (recur entries (inc index) (appended files found)))))
 
-(defn files-over-limit (files index too-long)
-  (if (>= index (len files))
-    (ok too-long)
-    (let (path (as-str (at files index))
-          lines (try (line-count path)))
-      (recur files
-             (inc index)
-             (if (> lines line-limit)
-               (appended too-long
-                         (vec (str "  " path ": " lines " lines")))
-               too-long)))))
+(type line-counts
+  (fn ((ref (vec string))
+       usize
+       (vec (pair string usize)))
+    (result (vec (pair string usize)) string)))
+
+(defn line-counts (files index counted)
+  (match (get files index)
+    ((some path)
+     (let (lines (try (line-count (as-str path))))
+       (push! (mut counted)
+              (pair (clone path) lines))
+       (recur files (inc index) counted)))
+    (none (ok counted))))
+
+(type lines-over-limit
+  (fn ((ref (vec (pair string usize))))
+    (vec string)))
+
+(defn lines-over-limit (counted)
+  (-> (iter counted)
+      (filter (fn (entry)
+                (let-match ((pair _ lines) entry)
+                  (> (deref lines) line-limit))))
+      (map (fn (entry)
+             (let-match ((pair path lines) entry)
+               (str "  " path ": " lines " lines"))))
+      collect))
