@@ -1,0 +1,32 @@
+(use domain/attempt-outcome ->retry-plan attempt-outcome
+                            attempt-outcome-of)
+
+(use domain/mail-error mail-error)
+
+(use domain/operation operation-kind operation-result
+                      priority)
+
+(use domain/operation-policy policy-for)
+
+(defn policy ()
+  (policy-for (ref operation-kind/fetch-labels)
+              priority/interactive))
+
+(deftest a-result-finishes-the-attempt
+  (assert (= (attempt-outcome-of (ok (operation-result/ids-fetched (vec)))
+                                 1
+                                 (ref (policy)))
+             (attempt-outcome/finished (operation-result/ids-fetched (vec))))))
+
+(deftest a-network-failure-is-retried
+  (assert (match (attempt-outcome-of (err (mail-error/network (str "offline")))
+                                     1
+                                     (ref (policy)))
+            ((retry _) true)
+            (_ false))))
+
+(deftest a-usage-failure-stops
+  (assert (= (attempt-outcome-of (err (mail-error/usage (str "bad")))
+                                 1
+                                 (ref (policy)))
+             (attempt-outcome/failed (mail-error/usage (str "bad"))))))

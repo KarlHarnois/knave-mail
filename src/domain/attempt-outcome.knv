@@ -1,0 +1,36 @@
+(use domain/failure-step next-step step-after-failure)
+(use domain/mail-error mail-error)
+(use domain/operation operation-result)
+(use domain/operation-policy operation-policy)
+
+(export ->retry-plan attempt-outcome attempt-outcome-of
+        retry-plan)
+
+(defstruct retry-plan
+  :delay int
+  :failure mail-error)
+
+(defenum attempt-outcome
+  (finished operation-result)
+  (retry retry-plan)
+  (failed mail-error))
+
+(type attempt-outcome-of
+  (fn ((result operation-result mail-error)
+       int
+       (ref operation-policy))
+    attempt-outcome))
+
+(defn attempt-outcome-of (performed attempt policy)
+  (match performed
+    ((ok outcome) (attempt-outcome/finished outcome))
+    ((err failure) (failure->outcome attempt policy failure))))
+
+(type failure->outcome
+  (fn (int (ref operation-policy) mail-error) attempt-outcome))
+
+(defn failure->outcome (attempt policy failure)
+  (match (step-after-failure attempt policy (ref failure))
+    ((retry-after delay)
+     (attempt-outcome/retry (->retry-plan :delay delay :failure failure)))
+    (stop (attempt-outcome/failed failure))))

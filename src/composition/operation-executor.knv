@@ -2,12 +2,12 @@
 (use app/mailboxes ->mailboxes)
 
 (use app/operations/runner ->operation-runner attempt-once!
-                           attempt-outcome new-operation!
-                           operation-runner)
+                           new-operation! operation-runner)
 
 (use composition/gmail-backend gmail-provider-for)
 (use composition/logging chosen-log)
 (use composition/settings settings)
+(use domain/attempt-outcome attempt-outcome)
 (use domain/collections appended)
 
 (use composition/executor-channel answered-and-dropped

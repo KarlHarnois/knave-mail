@@ -8,33 +8,25 @@
 (use domain/mail-error mail-error)
 
 (use domain/operation ->operation operation operation-kind
-                      operation-result priority)
+                      priority)
 
 (use domain/operation-policy operation-policy policy-for)
 
-(use domain/failure-step next-step retryable?
-                         step-after-failure)
+(use domain/attempt-outcome attempt-outcome
+                            attempt-outcome-of)
 
+(use domain/failure-step retryable?)
 (use domain/operation-schedule scheduled)
 (use ports/driven/clock clock now-milliseconds)
 (use ports/driven/event-log event-log)
 
-(export ->operation-runner attempt-once! attempt-outcome
-        new-operation! operation-runner retry-plan)
+(export ->operation-runner attempt-once! new-operation!
+        operation-runner)
 
 (defstruct operation-runner
   :mailboxes mailboxes
   :clock clock
   :log event-log)
-
-(defstruct retry-plan
-  :delay int
-  :failure mail-error)
-
-(defenum attempt-outcome
-  (finished operation-result)
-  (retry retry-plan)
-  (failed mail-error))
 
 (type new-operation!
   (fn ((ref operation-runner) (ref str) operation-kind priority)
@@ -66,42 +58,57 @@
                   (ref policy)
                   attempt
                   (- started (:queued-at queued)))
-    (match (performed! (mut (:mailboxes runner)) queued)
-      ((ok outcome)
-       (do
-         (log-finished! (ref (:log runner))
-                        queued attempt
-                        (- (now-milliseconds (ref (:clock runner)))
-                           started)
-                        (- (now-milliseconds (ref (:clock runner)))
-                           (:queued-at queued)))
-         (attempt-outcome/finished outcome)))
-      ((err failure)
-       (outcome-of-failure runner queued attempt
-                           (ref policy)
-                           failure)))))
+    (let (outcome (attempt-outcome-of (performed! (mut (:mailboxes runner))
+                                                  queued)
+                                      attempt
+                                      (ref policy)))
+      (log-outcome! runner queued
+                    (ref (->attempt-context :attempt attempt
+                                            :policy policy
+                                            :started started))
+                    (ref outcome))
+      outcome)))
 
-(type outcome-of-failure
+(defstruct attempt-context
+  :attempt int
+  :policy operation-policy
+  :started int)
+
+(type log-outcome!
   (fn ((ref operation-runner)
        (ref operation)
-       int
-       (ref operation-policy)
-       mail-error)
-    attempt-outcome))
+       (ref attempt-context)
+       (ref attempt-outcome))
+    unit))
 
-(defn outcome-of-failure (runner queued attempt policy failure)
-  (match (step-after-failure attempt policy (ref failure))
-    ((retry-after delay)
-     (do
-       (log-waiting! (ref (:log runner))
-                     queued
-                     (ref failure)
-                     (inc attempt)
-                     delay)
-       (attempt-outcome/retry (->retry-plan :delay delay :failure failure))))
-    (stop (do
-            (log-stopped! runner queued attempt policy (ref failure))
-            (attempt-outcome/failed failure)))))
+(defn log-outcome! (runner queued context outcome)
+  (match outcome
+    ((finished _) (log-finish! runner queued context))
+    ((retry plan)
+     (log-waiting! (ref (:log runner))
+                   queued
+                   (ref (:failure plan))
+                   (inc (:attempt context))
+                   (:delay plan)))
+    ((failed failure)
+     (log-stopped! runner queued
+                   (:attempt context)
+                   (ref (:policy context))
+                   failure))))
+
+(type log-finish!
+  (fn ((ref operation-runner)
+       (ref operation)
+       (ref attempt-context))
+    unit))
+
+(defn log-finish! (runner queued context)
+  (let (finished-at (now-milliseconds (ref (:clock runner))))
+    (log-finished! (ref (:log runner))
+                   queued
+                   (:attempt context)
+                   (- finished-at (:started context))
+                   (- finished-at (:queued-at queued)))))
 
 (type log-stopped!
   (fn ((ref operation-runner)

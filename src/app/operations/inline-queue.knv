@@ -1,9 +1,9 @@
 (use app/mailboxes ->mailboxes)
 
 (use app/operations/runner ->operation-runner attempt-once!
-                           attempt-outcome new-operation!
-                           operation-runner retry-plan)
+                           new-operation! operation-runner)
 
+(use domain/attempt-outcome attempt-outcome retry-plan)
 (use domain/mail-error mail-error)
 (use domain/operation operation-result)
 (use domain/operation-schedule ->scheduled scheduled)
