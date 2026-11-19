@@ -21,8 +21,8 @@
 (use ports/driven/clock clock)
 (use ports/driven/operation-queue operation-queue)
 
-(use app/mail-app ->sync-limits delivery mail-app
-                  new-mail-app)
+(use app/mail-app ->mail-app ->sync-limits delivery
+                  mail-app)
 
 (use ports/driven/event-log event-log)
 
@@ -97,20 +97,23 @@
     mail-app))
 
 (defn app-timed-by (remote log clock)
-  (new-mail-app
-    (box (empty-memory-store))
-    (the (box operation-queue)
-         (box (->inline-queue :runner (new-runner
-                                        (box (->memory-provider (vec (str world-account))
-                                                                (vec (handle remote))))
-                                        (clock/memory clock)
-                                        (event-log/memory (same-log (ref log))))
-                              :patience (some fake-patience-milliseconds))))
-    (box (->memory-authorizer (vec (->account (str "new@example.com")))))
-    (event-log/memory log)
-    priority/interactive delivery/deliver-now
-    (->sync-limits :sync 50
-                   :preview 25
-                   :prefetch test-prefetch-limit)))
+  (->mail-app
+    :store (box (empty-memory-store))
+    :operations (the (box operation-queue)
+                     (box (->inline-queue
+                            :runner (new-runner (box (->memory-provider
+                                                       (vec (str world-account))
+                                                       (vec (handle remote))))
+                                                (clock/memory clock)
+                                                (event-log/memory (same-log (ref
+                                                                              log))))
+                            :patience (some fake-patience-milliseconds))))
+    :authorizer (box (->memory-authorizer (vec (->account (str "new@example.com")))))
+    :log (event-log/memory log)
+    :priority priority/interactive
+    :delivery delivery/deliver-now
+    :limits (->sync-limits :sync 50
+                           :preview 25
+                           :prefetch test-prefetch-limit)))
 
 (def test-prefetch-limit 20)

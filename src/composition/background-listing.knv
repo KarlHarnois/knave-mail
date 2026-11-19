@@ -15,7 +15,7 @@
                                     threaded-operations)
 
 (use composition/gmail-backend gmail-app)
-(use app/mail-app delivery)
+(use app/mail-app ->app-mode delivery)
 (use domain/operation priority)
 (use composition/logging chosen-log)
 (use composition/worker-wiring worker-wiring)
@@ -41,10 +41,9 @@
   (let (chosen (ref (:settings wiring))
         log (chosen-log chosen))
     (match (gmail-app chosen
-                      (share-log (ref log))
                       (threaded-operations (ref (:executor wiring)))
-                      priority/interactive
-                      delivery/deliver-later)
+                      (->app-mode :priority priority/interactive
+                                  :delivery delivery/deliver-later))
       ((ok app)
        (do
          (local running app)

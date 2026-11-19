@@ -11,7 +11,7 @@
 (use adapters/driven/keyring/credentials ->keyring-credentials)
 (use adapters/driven/sqlite/store open-sqlite-store)
 (use ports/driven/clock clock)
-(use app/mail-app delivery mail-app new-mail-app)
+(use app/mail-app ->mail-app app-mode delivery mail-app)
 (use domain/operation priority)
 (use app/operations/inline-queue ->inline-queue)
 (use app/operations/runner new-runner)
@@ -24,15 +24,21 @@
 
 (use domain/mail-error mail-error)
 (use ports/driven/credentials credentials)
+(use composition/logging chosen-log)
 
 (export chosen-client gmail-app gmail-operations
         gmail-provider-for)
 
-(defn gmail-app (chosen log operations rank delivery)
+(type gmail-app
+  (fn ((ref settings) (box operation-queue) app-mode)
+    (result mail-app mail-error)))
+
+(defn gmail-app (chosen operations mode)
   (let-try (client (chosen-client chosen))
-    (ok (new-mail-app (box (try (open-sqlite-store (ref (:cache-path chosen)))))
-                      operations
-                      (box (->google-authorizer
+    (ok (->mail-app
+          :store (box (try (open-sqlite-store (ref (:cache-path chosen)))))
+          :operations operations
+          :authorizer (box (->google-authorizer
                              :agent (new-agent)
                              :settings (->oauth-settings
                                          :auth-url (clone (:auth-url chosen))
@@ -44,8 +50,10 @@
                                                                       (:tuning chosen)))
                              :credentials (chosen-credentials chosen)
                              :browser (box (->system-browser (clone (:browser chosen))))))
-                      log rank delivery
-                      (clone (:limits (:tuning chosen)))))))
+          :log (chosen-log chosen)
+          :priority (:priority mode)
+          :delivery (:delivery mode)
+          :limits (clone (:limits (:tuning chosen)))))))
 
 (defn gmail-provider-for (chosen client log)
   (the (box mailbox-provider)

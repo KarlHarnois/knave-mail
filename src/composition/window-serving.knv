@@ -34,7 +34,7 @@
 (use composition/operation-executor start-gmail-executor)
 (use composition/backend backend)
 (use composition/settings google-client settings)
-(use app/mail-app delivery)
+(use app/mail-app ->app-mode delivery)
 (use domain/operation priority)
 (use ports/driven/event-log event-log share-log)
 (use ports/driven/link-opener link-opener)
@@ -93,10 +93,9 @@
   (let (executor (start-gmail-executor (clone chosen) (clone client))
         outbox (ref (:outbox io)))
     (match (gmail-app chosen
-                      (share-log (ref (:log io)))
                       (threaded-operations (ref executor))
-                      priority/interactive
-                      delivery/deliver-later)
+                      (->app-mode :priority priority/interactive
+                                  :delivery delivery/deliver-later))
       ((ok app)
        (do
          (local running app)

@@ -8,7 +8,7 @@
 (use adapters/driving/webview/window reply-outbox
                                      send-reply)
 
-(use app/mail-app mail-app)
+(use app/mail-app ->app-mode mail-app)
 (use adapters/driven/threaded-queue threaded-operations)
 (use composition/gmail-backend gmail-app)
 (use app/mail-app delivery)
@@ -65,10 +65,9 @@
         run (->sync-run :account (clone account)
                         :started (now-milliseconds (ref clock/system)))
         outcome (match (gmail-app chosen
-                                  (share-log (ref log))
                                   (threaded-operations (ref (:executor wiring)))
-                                  priority/background
-                                  delivery/deliver-later)
+                                  (->app-mode :priority priority/background
+                                              :delivery delivery/deliver-later))
                   ((ok app)
                    (do
                      (local syncing app)

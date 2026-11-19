@@ -14,7 +14,7 @@
 (use composition/gmail-backend chosen-client gmail-app
                                gmail-operations)
 
-(use app/mail-app delivery)
+(use app/mail-app ->app-mode delivery)
 (use domain/operation priority)
 (use composition/memory-backend memory-app)
 (use composition/logging chosen-log)
@@ -68,9 +68,9 @@
     (memory (ok (memory-app chosen log)))
     (gmail (let-try (client (chosen-client chosen))
              (let (operations (gmail-operations chosen (ref client) (ref log)))
-               (gmail-app chosen log operations
-                          priority/interactive
-                          delivery/deliver-now))))))
+               (gmail-app chosen operations
+                          (->app-mode :priority priority/interactive
+                                      :delivery delivery/deliver-now)))))))
 
 (defn reported-failure (failure)
   (eprintln (str "knave-mail: " (error-message failure)))

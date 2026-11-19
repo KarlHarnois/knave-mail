@@ -16,7 +16,7 @@
                                          memory-store)
 
 (use ports/driven/clock clock)
-(use app/mail-app mail-app new-mail-app)
+(use app/mail-app ->mail-app mail-app)
 (use app/operations/inline-queue ->inline-queue)
 (use app/operations/runner new-runner)
 (use app/mail-app delivery)
@@ -40,12 +40,13 @@
                                                        clock/system
                                                        (share-log (ref log)))
                                    :patience (some 0))
-        app (new-mail-app (box (store-with-accounts))
-                          (the (box operation-queue) (box operations))
-                          (box (->memory-authorizer (vec)))
-                          log priority/interactive
-                          delivery/deliver-now
-                          (clone (:limits (:tuning chosen)))))
+        app (->mail-app :store (box (store-with-accounts))
+                        :operations (the (box operation-queue) (box operations))
+                        :authorizer (box (->memory-authorizer (vec)))
+                        :log log
+                        :priority priority/interactive
+                        :delivery delivery/deliver-now
+                        :limits (clone (:limits (:tuning chosen)))))
     (sync-every-account! (mut app))
     app))
 
