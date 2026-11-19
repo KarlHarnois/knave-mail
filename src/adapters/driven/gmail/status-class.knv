@@ -1,0 +1,48 @@
+(export status->class status-class)
+
+(defenum status-class
+  success
+  bad-request
+  unauthorized
+  forbidden
+  missing
+  unavailable
+  unexpected)
+
+(defstruct status-range
+  :lowest u16
+  :highest u16
+  :class status-class)
+
+(def status-ranges
+  (vec (->status-range :lowest 200
+                       :highest 299
+                       :class status-class/success)
+       (->status-range :lowest 400
+                       :highest 400
+                       :class status-class/bad-request)
+       (->status-range :lowest 401
+                       :highest 401
+                       :class status-class/unauthorized)
+       (->status-range :lowest 403
+                       :highest 403
+                       :class status-class/forbidden)
+       (->status-range :lowest 404
+                       :highest 404
+                       :class status-class/missing)
+       (->status-range :lowest 429
+                       :highest 429
+                       :class status-class/unavailable)
+       (->status-range :lowest 500
+                       :highest 599
+                       :class status-class/unavailable)))
+
+(type status->class (fn (u16) status-class))
+
+(defn status->class (status)
+  (-> (iter status-ranges)
+      (find (fn (range)
+              (and (>= status (:lowest range))
+                   (<= status (:highest range)))))
+      (map-some (fn (range) (clone (:class range))))
+      (unwrap-or status-class/unexpected)))

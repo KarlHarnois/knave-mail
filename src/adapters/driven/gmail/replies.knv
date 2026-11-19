@@ -4,29 +4,46 @@
 
 (use adapters/json/value json-value parse-json)
 (use adapters/driven/gmail/fields text-error->internal-error)
+
+(use adapters/driven/gmail/status-class status->class
+                                        status-class)
+
 (use adapters/driven/gmail/throttling throttling-of)
 (use domain/mail-error mail-error)
 
 (export checked collect-results sent)
 
+(type checked
+  (fn (http-reply int) (result json-value mail-error)))
+
 (defn checked (reply now)
+  (cond
+    ((rate-limited? (ref reply))
+     (err (mail-error/throttled (throttling-of (ref reply) now))))
+    ((quota-exhausted? (ref reply))
+     (err (mail-error/network (str "Gmail's usage quota is used up; try again later"))))
+    (else (reply-by-class reply))))
+
+(type reply-by-class
+  (fn (http-reply) (result json-value mail-error)))
+
+(defn reply-by-class (reply)
   (let (status (:status reply)
         body (clone (:body reply)))
-    (cond
-      ((and (>= status 200) (< status 300))
-       (text-error->internal-error (parse-json (ref (non-empty-json body)))))
-      ((rate-limited? (ref reply))
-       (err (mail-error/throttled (throttling-of (ref reply) now))))
-      ((quota-exhausted? (ref reply))
-       (err (mail-error/network (str "Gmail's usage quota is used up; try again later"))))
-      ((= status 404)
-       (err (mail-error/not-found (str "Gmail has no such item: " body))))
-      ((or (= status 401) (= status 403))
-       (err (mail-error/auth-required (str "Gmail refused access: " body))))
-      ((or (= status 429) (>= status 500))
-       (err (mail-error/network (str "Gmail is unavailable (" status ")"))))
-      (else (err (mail-error/internal
-                   (str "Gmail answered " status ": " body)))))))
+    (match (status->class status)
+      (success (text-error->internal-error (parse-json (ref (non-empty-json
+                                                              body)))))
+      (missing (err (mail-error/not-found (str "Gmail has no such item: "
+                                               body))))
+      (unauthorized (err (refused-access body)))
+      (forbidden (err (refused-access body)))
+      (unavailable (err (mail-error/network
+                          (str "Gmail is unavailable (" status ")"))))
+      (_ (err (mail-error/internal
+                (str "Gmail answered " status ": " body)))))))
+
+(defn refused-access (body)
+  (mail-error/auth-required (str "Gmail refused access: " body)))
 
 (defn sent (outcome)
   (map-err outcome

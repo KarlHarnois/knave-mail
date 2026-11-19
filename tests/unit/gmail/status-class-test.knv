@@ -1,0 +1,12 @@
+(use adapters/driven/gmail/status-class status->class
+                                        status-class)
+
+(deftest a-2xx-status-is-a-success
+  (assert (= (status->class 204) status-class/success)))
+
+(deftest a-rate-limit-and-a-server-error-are-unavailable
+  (assert (= (status->class 429) status-class/unavailable))
+  (assert (= (status->class 503) status-class/unavailable)))
+
+(deftest an-unlisted-status-is-unexpected
+  (assert (= (status->class 418) status-class/unexpected)))
