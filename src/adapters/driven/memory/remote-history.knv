@@ -3,7 +3,7 @@
                                           remote-change)
 
 (use adapters/driven/memory/remote-mail remote-mail)
-(use domain/collections appended appended-once)
+(use domain/collections appended appended-once concatenated)
 
 (use domain/history ->mail-changes ->message-relabel
                     mail-changes)
@@ -85,9 +85,10 @@
     (fn (found change)
       (match (ref (:kind change))
         ((relabel relabel)
-         (with-message-relabels found remote
-                                (as-str (:thread-id change))
-                                relabel))
+         (concatenated found
+                       (message-relabels remote
+                                         (as-str (:thread-id change))
+                                         relabel)))
         (refetch found)))))
 
 (defn refetch? (kind)
@@ -95,13 +96,13 @@
     (refetch true)
     ((relabel _) false)))
 
-(defn with-message-relabels (found remote thread-id relabel)
-  (reduce (message-ids-of remote thread-id) found
-    (fn (relabels message-id)
-      (appended relabels
-                (->message-relabel :thread-id (str thread-id)
-                                   :message-id (clone message-id)
-                                   :change (clone relabel))))))
+(defn message-relabels (remote thread-id relabel)
+  (-> (iter (message-ids-of remote thread-id))
+      (map (fn (message-id)
+             (->message-relabel :thread-id (str thread-id)
+                                :message-id (clone message-id)
+                                :change (clone relabel))))
+      collect))
 
 (type message-ids-of
   (fn ((ref remote-mail) (ref str))

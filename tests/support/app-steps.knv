@@ -1,10 +1,9 @@
 (use domain/label-scope label-scope)
 (use domain/freshness ->listing-request freshness)
 
-(use adapters/driven/memory/remote-mail fail-times!
-                                        fail-when!
-                                        remote-mail
-                                        throttle-times!)
+(use adapters/driven/memory/remote-mail fail-when!
+                                        plan-failure!
+                                        remote-mail)
 
 (use adapters/driven/memory/shared shared with-shared!)
 (use app/mail-app mail-app)
@@ -18,10 +17,9 @@
 (use app/client/mail-syncer sync-account!)
 (use support/memory-world world-account)
 
-(export ada-message ada-thread fail-remote!
-        fail-remote-times! failing-kind inbox-query
-        listed-ids! remote-sent remote-thread synced!
-        throttle-remote-times!)
+(export ada-message ada-thread fail-remote! failing-kind
+        inbox-query listed-ids! plan-remote-failure!
+        remote-sent remote-thread synced!)
 
 (defn inbox-query ()
   (->thread-query (label-scope/only (str "INBOX"))
@@ -47,13 +45,9 @@
       (map (fn (summary) (clone (:id summary))))
       collect))
 
-(defn throttle-remote-times! (remote operation times delay)
+(defn plan-remote-failure! (remote plan)
   (with-shared! remote
-    (fn (state) (throttle-times! state operation times delay))))
-
-(defn fail-remote-times! (remote operation times)
-  (with-shared! remote
-    (fn (state) (fail-times! state operation times))))
+    (fn (state) (plan-failure! state plan))))
 
 (defn fail-remote! (remote operation)
   (with-shared! remote

@@ -8,9 +8,9 @@
 (use domain/mail ->message message outgoing thread)
 (use domain/mail-error ->throttling mail-error)
 
-(export ->remote-mail always-failing fail-times! fail-when!
-        guard! outgoing->message remote-mail
-        throttle-times!)
+(export ->remote-mail ->sent-stamp always-failing fail-when!
+        failing-plan guard! outgoing->message plan-failure!
+        remote-mail throttling-plan)
 
 (defenum failure-count
   always
@@ -99,39 +99,47 @@
   (set! (:failures remote)
         (map-some operation always-failing)))
 
-(type fail-times!
-  (fn ((mut remote-mail) remote-operation int) unit))
+(type plan-failure!
+  (fn ((mut remote-mail) failure-plan) unit))
 
-(defn fail-times! (remote operation times)
-  (set! (:failures remote)
-        (some (->failure-plan :target operation
-                              :count (failure-count/times times)
-                              :kind failure-kind/network))))
+(defn plan-failure! (remote plan)
+  (set! (:failures remote) (some plan)))
 
-(type throttle-times!
-  (fn ((mut remote-mail) remote-operation int int) unit))
+(type failing-plan (fn (remote-operation int) failure-plan))
 
-(defn throttle-times! (remote operation times delay)
-  (set! (:failures remote)
-        (some (->failure-plan :target operation
-                              :count (failure-count/times times)
-                              :kind (failure-kind/throttled delay)))))
+(defn failing-plan (operation times)
+  (->failure-plan :target operation
+                  :count (failure-count/times times)
+                  :kind failure-kind/network))
+
+(type throttling-plan
+  (fn (remote-operation int int) failure-plan))
+
+(defn throttling-plan (operation times delay)
+  (->failure-plan :target operation
+                  :count (failure-count/times times)
+                  :kind (failure-kind/throttled delay)))
+
+(defstruct sent-stamp
+  :message-id string
+  :thread-id string
+  :date int)
 
 (type outgoing->message
-  (fn ((ref outgoing) (ref str) (ref str) int)
+  (fn ((ref outgoing) (ref sent-stamp))
     message))
 
-(defn outgoing->message (sent message-id thread-id date)
-  (->message :id (str message-id)
-             :thread-id (str thread-id)
+(defn outgoing->message (sent stamp)
+  (->message :id (clone (:message-id stamp))
+             :thread-id (clone (:thread-id stamp))
              :from (clone (:from sent))
              :to (clone (:to sent))
              :cc (clone (:cc sent))
              :subject (clone (:subject sent))
-             :date date
+             :date (:date stamp)
              :text (clone (:body sent))
              :html none
-             :header-id (str "<" message-id "@knave-mail.memory>")
+             :header-id (str "<" (:message-id stamp) "@knave-mail.memory>")
              :references (match (reply-link-of sent)
                            ((some link) (clone (:references link)))
                            (none (str "")))))

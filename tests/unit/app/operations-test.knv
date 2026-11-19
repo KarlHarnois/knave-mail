@@ -1,3 +1,4 @@
+(use adapters/driven/memory/remote-mail failing-plan)
 (use domain/queued-relabel ->relabel-request)
 (use adapters/driven/memory/remote-operation remote-operation)
 
@@ -14,9 +15,9 @@
 (use app/client/mail-labeler relabel-threads!)
 (use app/client/mail-writer send-draft!)
 
-(use support/app-steps fail-remote! fail-remote-times!
-                       remote-sent remote-thread synced!
-                       throttle-remote-times!)
+(use support/app-steps fail-remote! plan-remote-failure!
+                       plan-remote-failure! remote-sent
+                       remote-thread synced!)
 
 (use support/log-lines mentions?)
 
@@ -52,7 +53,8 @@
                           (new-memory-log)
                           (same-clock (ref clock))))
     (synced! (mut app))
-    (fail-remote-times! (ref world) remote-operation/relabel 2)
+    (plan-remote-failure! (ref world)
+                          (failing-plan remote-operation/relabel 2))
     (unwrap-ok (archive-t-1! (mut app)))
     (assert (empty? (:labels (remote-thread (ref world) "t-1"))))
     (assert (= (pauses-of (ref clock))
@@ -65,7 +67,8 @@
                           (same-log (ref log))
                           (new-memory-clock)))
     (synced! (mut app))
-    (fail-remote-times! (ref world) remote-operation/relabel 1)
+    (plan-remote-failure! (ref world)
+                          (failing-plan remote-operation/relabel 1))
     (unwrap-ok (archive-t-1! (mut app)))
     (assert (mentions? (ref (logged-lines (ref log)))
                        "relabel ada@example.com: failed, will retry: network: simulated failure of relabel; attempt 2 in 1000ms"))))
