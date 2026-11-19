@@ -41,12 +41,12 @@
     ((fetch-message-page request)
      (map-ok (fetch-message-page! mailbox
                                   (ref (:listing request))
-                                  (as-str (:page-token request)))
+                                  (ref (:page-token request)))
              (fn (page) (operation-result/message-page-fetched page))))
     ((fetch-page request)
      (map-ok (fetch-thread-page! mailbox
                                  (ref (:listing request))
-                                 (as-str (:page-token request)))
+                                 (ref (:page-token request)))
              (fn (page) (operation-result/page-fetched page))))
     ((fetch-summaries ids)
      (map-ok (fetch-summaries! mailbox ids)

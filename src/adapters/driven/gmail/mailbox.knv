@@ -106,11 +106,8 @@
   (let (listed (try (api-get! session
                               (ref (thread-page-path query page-token)))))
     (ok (->thread-page :ids (try (thread-ids (ref listed)))
-                       :next-token (next-page-token (ref listed))))))
-
-(defn next-page-token (listed)
-  (unwrap-or (optional-string-field listed "nextPageToken")
-             (str "")))
+                       :next-token (optional-string-field (ref listed)
+                                                          "nextPageToken")))))
 
 (type summaries-of!
   (fn ((mut gmail-session) (ref (vec string)))

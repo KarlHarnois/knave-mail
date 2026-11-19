@@ -1,0 +1,47 @@
+(use adapters/driven/memory/remote-mail remote-mail)
+(use adapters/driven/memory/remote-queries matching-summaries)
+(use domain/collections as-count)
+
+(use domain/mail ->thread-page ->thread-query thread-page
+                 thread-query)
+
+(use domain/results ok->option)
+
+(export matching-page)
+
+(type matching-page
+  (fn ((ref remote-mail)
+       (ref thread-query)
+       (ref (option string)))
+    thread-page))
+
+(defn matching-page (remote query page-token)
+  (let (offset (page-offset page-token)
+        through-next (matching-summaries
+                       remote
+                       (ref (->thread-query
+                              :scope (clone (:scope query))
+                              :query (clone (:query query))
+                              :limit (+ offset (:limit query) 1))))
+        ids (page-slice (ref (-> (iter through-next)
+                                 (map (fn (summary) (clone (:id summary))))
+                                 collect))
+                        offset
+                        (:limit query)))
+    (->thread-page :ids ids
+                   :next-token (if (> (as-count (len through-next))
+                                      (+ offset (:limit query)))
+                                 (some (str (+ offset (:limit query))))
+                                 none))))
+
+(def page-slice
+  (rust "{0}.iter().skip({1} as usize).take({2} as usize).cloned().collect::<Vec<_>>()"
+    (fn ((ref (vec string)) int int)
+      (vec string))))
+
+(defn page-offset (page-token)
+  (match page-token
+    ((some token)
+     (unwrap-or (ok->option (parse (as-str token)))
+                0))
+    (none 0)))

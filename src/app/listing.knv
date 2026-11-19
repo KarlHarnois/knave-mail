@@ -36,7 +36,7 @@
   (fn ((mut mail-app)
        (ref str)
        (ref thread-query)
-       (ref str))
+       (ref (option string)))
     (result summary-page mail-error)))
 
 (defn listed-page! (app account query page-token)

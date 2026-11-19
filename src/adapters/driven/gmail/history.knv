@@ -1,6 +1,7 @@
 (use adapters/driven/gmail/session api-get!)
 (use adapters/driven/gmail/session-state gmail-session)
 (use adapters/driven/gmail/fields required-text)
+(use adapters/driven/gmail/requests page-token-part)
 
 (use adapters/driven/gmail/history-entry json->history-entry
                                          with-entry)
@@ -27,14 +28,16 @@
                                      (ref (str users-me "/profile")))))))
 
 (defn fetched-changes! (session since)
-  (collected-pages! session since
-                    (str "")
+  (collected-pages! session since none
                     (->mail-changes :refetch (vec)
                                     :relabels (vec)
                                     :history-id (str ""))))
 
 (type collected-pages!
-  (fn ((mut gmail-session) (ref str) string mail-changes)
+  (fn ((mut gmail-session)
+       (ref str)
+       (option string)
+       mail-changes)
     (result mail-changes mail-error)))
 
 (defn collected-pages! (session since page-token found)
@@ -49,16 +52,14 @@
               "gmail"
               (str "history since " since ": " (history-shape (ref page))))
     (match (optional-string-field (ref page) "nextPageToken")
-      ((some token) (recur session since token so-far))
+      ((some token) (recur session since (some token) so-far))
       (none (ok (assoc so-far
                        :history-id (try (history-id-of (ref page)))))))))
 
 (defn history-path (since page-token)
   (str users-me "/history?startHistoryId=" since
        "&maxResults=" history-page-size
-       (if (empty? page-token)
-         (str "")
-         (str "&pageToken=" page-token))
+       (page-token-part page-token)
        history-types))
 
 (def history-shape

@@ -30,10 +30,10 @@
     (let (page (unwrap-ok (list-thread-page! (mut app)
                                              world-account
                                              (ref (inbox-page 2))
-                                             "")))
+                                             (ref none))))
       (assert (= (ids-of (ref page))
                  (vec (str "t-3") (str "t-2"))))
-      (assert (not (empty? (:next-token page)))))))
+      (assert (some? (:next-token page))))))
 
 (deftest the-last-page-has-no-next-token
   (let (world (remote)
@@ -41,14 +41,14 @@
         first (unwrap-ok (list-thread-page! (mut app)
                                             world-account
                                             (ref (inbox-page 2))
-                                            ""))
+                                            (ref none)))
         last (unwrap-ok (list-thread-page! (mut app)
                                            world-account
                                            (ref (inbox-page 2))
                                            (ref (:next-token first)))))
     (assert (= (ids-of (ref last))
                (vec (str "t-1"))))
-    (assert (empty? (:next-token last)))))
+    (assert (none? (:next-token last)))))
 
 (deftest a-page-reuses-summaries-already-in-the-cache
   (let (world (remote)
@@ -58,7 +58,7 @@
     (assert (= (ids-of (ref (unwrap-ok (list-thread-page! (mut app)
                                                           world-account
                                                           (ref (inbox-page 3))
-                                                          ""))))
+                                                          (ref none)))))
                (vec (str "t-3")
                     (str "t-2")
                     (str "t-1"))))))

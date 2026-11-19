@@ -10,8 +10,8 @@
 (use domain/mail-error mail-error)
 
 (export account-argument draft-argument flag-argument
-        text-argument thread-argument thread-ids-argument
-        thread-query-argument)
+        page-token-argument text-argument thread-argument
+        thread-ids-argument thread-query-argument)
 
 (defn text-argument (arguments name)
   (text-error->usage-error (string-field arguments name)))
@@ -51,3 +51,14 @@
 (defn text-error->usage-error (outcome)
   (map-err outcome
     (fn (problem) (mail-error/usage problem))))
+
+(type page-token-argument
+  (fn ((ref json-value)) (option string)))
+
+(defn page-token-argument (arguments)
+  (match (optional-string-field arguments "pageToken")
+    ((some text) (non-empty-token text))
+    (none none)))
+
+(defn non-empty-token (text)
+  (if (empty? text) none (some text)))

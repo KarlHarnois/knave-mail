@@ -5,8 +5,8 @@
 
 (export batch-modify-body batch-modify-path label-path
         labels-path message-page-path message-path
-        modify-body modify-path send-body send-path
-        thread-list-path thread-metadata-path
+        modify-body modify-path page-token-part send-body
+        send-path thread-list-path thread-metadata-path
         thread-page-path thread-path)
 
 (def users-me "/gmail/v1/users/me")
@@ -37,15 +37,19 @@
        (:limit query)
        (label-filter (ref (:scope query)))
        (str "&q=" (url-encoded (:query query)))
-       (if (empty? page-token)
-         (str "")
-         (str "&pageToken=" (url-encoded page-token)))))
+       (page-token-part page-token)))
 
 (defn thread-page-path (query page-token)
-  (str (thread-list-path query)
-       (if (empty? page-token)
-         (str "")
-         (str "&pageToken=" (url-encoded page-token)))))
+  (str (thread-list-path query) (page-token-part page-token)))
+
+(type page-token-part
+  (fn ((ref (option string))) string))
+
+(defn page-token-part (page-token)
+  (match page-token
+    ((some token)
+     (str "&pageToken=" (url-encoded (as-str token))))
+    (none (str ""))))
 
 (type thread-metadata-path
   (fn ((ref str)) string))

@@ -52,9 +52,9 @@
                           (ref (->thread-query (label-scope/only (str "INBOX"))
                                                (str "")
                                                1))
-                          "")))
+                          (ref none))))
     (assert (= (:ids page) (vec (str "t1"))))
-    (assert (= (:next-token page) "p2"))))
+    (assert (= (:next-token page) (some (str "p2"))))))
 
 (deftest the-next-page-is-asked-for-with-its-token
   (let (server (start-fake-gmail (ref (paged-routes)))
@@ -64,6 +64,6 @@
                           (ref (->thread-query (label-scope/only (str "INBOX"))
                                                (str "")
                                                1))
-                          "p2")))
+                          (ref (some (str "p2"))))))
     (assert (= (:ids page) (vec (str "t2"))))
-    (assert (empty? (:next-token page)))))
+    (assert (none? (:next-token page)))))

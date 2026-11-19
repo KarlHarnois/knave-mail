@@ -26,15 +26,15 @@
 (defn archived-older! (app account before)
   (let (found (try (all-messages! app account
                                   (ref (inbox-query (str "before:" before)))
-                                  (str "")
+                                  none
                                   (->message-page :message-ids (vec)
                                                   :thread-ids (vec)
-                                                  :next-token (str ""))))
+                                                  :next-token none)))
         requests (try (archived-in-gmail! app account
                                           (ref (:message-ids found))))
         inboxed (try (all-thread-ids! app account
                                       (ref (inbox-query (str "")))
-                                      (str "")
+                                      none
                                       (vec)))
         check (checked-archive (ref (:thread-ids found))
                                (ref inboxed)))

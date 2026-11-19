@@ -54,14 +54,15 @@
   (fn ((mut mail-app)
        (ref str)
        (ref thread-query)
-       (ref str))
+       (ref (option string)))
     (result thread-page mail-error)))
 
 (defn fetched-thread-page! (app account query page-token)
   (match (try (run-operation! app account
-                              (operation-kind/fetch-page
-                                (->page-request :listing (clone query)
-                                                :page-token (str page-token)))))
+                              (operation-kind/fetch-page (->page-request
+                                                           :listing (clone
+                                                                      query)
+                                                           :page-token (clone page-token)))))
     ((page-fetched page) (ok page))
     (_ (unexpected "fetch page"))))
 
@@ -69,14 +70,15 @@
   (fn ((mut mail-app)
        (ref str)
        (ref thread-query)
-       (ref str))
+       (ref (option string)))
     (result message-page mail-error)))
 
 (defn fetched-message-page! (app account query page-token)
   (match (try (run-operation! app account
                               (operation-kind/fetch-message-page
                                 (->page-request :listing (clone query)
-                                                :page-token (str page-token)))))
+                                                :page-token (clone
+                                                              page-token)))))
     ((message-page-fetched page) (ok page))
     (_ (unexpected "fetch message page"))))
 

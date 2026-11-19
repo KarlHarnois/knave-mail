@@ -68,16 +68,16 @@
 
 (defstruct thread-page
   :ids (vec string)
-  :next-token string)
+  :next-token (option string))
 
 (defstruct message-page
   :message-ids (vec string)
   :thread-ids (vec string)
-  :next-token string)
+  :next-token (option string))
 
 (defstruct summary-page
   :summaries (vec thread-summary)
-  :next-token string)
+  :next-token (option string))
 
 (defstruct outgoing
   :from string

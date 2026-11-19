@@ -24,13 +24,13 @@
   (fetch-thread-page!
     (fn ((mut self)
          (ref thread-query)
-         (ref str))
+         (ref (option string)))
       (result thread-page mail-error)))
 
   (fetch-message-page!
     (fn ((mut self)
          (ref thread-query)
-         (ref str))
+         (ref (option string)))
       (result message-page mail-error)))
 
   (fetch-summaries!

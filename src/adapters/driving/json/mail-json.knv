@@ -20,7 +20,8 @@
 
 (defn summary-page-json (page)
   (page-object (summaries-json (ref (:summaries page)))
-               (ref (:next-token page))))
+               (as-str (unwrap-or (clone (:next-token page))
+                                  (str "")))))
 
 (def page-object
   (rust "serde_json::json!({{\"threads\": {0}, \"nextPageToken\": {1}}})"

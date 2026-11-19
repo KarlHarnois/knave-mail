@@ -1,6 +1,7 @@
 (use adapters/driving/json/arguments account-argument
                                      draft-argument
                                      flag-argument
+                                     page-token-argument
                                      text-argument
                                      thread-argument
                                      thread-ids-argument
@@ -30,7 +31,7 @@
                 :freshness freshness)
   (list-page :account string
              :query thread-query
-             :page-token string)
+             :page-token (option string))
   (archive-older :account string :before string)
   (open-thread thread-ref)
   (draft :message message-ref :kind draft-kind)
@@ -97,11 +98,9 @@
     (_ freshness/cached)))
 
 (defn page-command (arguments)
-  (ok (mail-command/list-page
-        :account (try (account-argument arguments))
-        :query (try (thread-query-argument arguments))
-        :page-token (unwrap-or (optional-string-field arguments "pageToken")
-                               (str "")))))
+  (ok (mail-command/list-page :account (try (account-argument arguments))
+                              :query (try (thread-query-argument arguments))
+                              :page-token (page-token-argument arguments))))
 
 (defn archive-command (arguments)
   (ok (mail-command/archive-older :account (try (account-argument arguments))

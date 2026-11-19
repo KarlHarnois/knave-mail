@@ -1,0 +1,58 @@
+(use adapters/driven/memory/remote-history record-change!)
+
+(use adapters/driven/memory/remote-mail remote-mail
+                                        sent-from)
+
+(use adapters/driven/memory/remote-queries labelled?
+                                           thread-position)
+
+(use domain/labels label-id system-label)
+(use domain/mail ->thread message outgoing thread)
+
+(export record-delivery!)
+
+(type record-delivery!
+  (fn ((mut remote-mail) (ref outgoing))
+    string))
+
+(defn record-delivery! (remote sent)
+  (let (number (:next-id remote)
+        message-id (str "sent-" number)
+        thread-id (match (ref (:thread-id sent))
+                    ((some existing) (clone existing))
+                    (none (str "thread-" message-id)))
+        message (sent-from sent
+                           (ref message-id)
+                           (ref thread-id)
+                           (now-milliseconds)))
+    (set! (:next-id remote) (inc number))
+    (push! (mut (:sent remote))
+           (clone sent))
+    (record-change! remote (ref thread-id))
+    (match (thread-position remote (ref thread-id))
+      ((some index) (append-sent-message! remote index message))
+      (none (push! (mut (:threads remote))
+                   (->thread :id (clone thread-id)
+                             :subject (clone (:subject sent))
+                             :labels (vec (label-id system-label/sent))
+                             :messages (vec message)))))
+    thread-id))
+
+(type append-sent-message!
+  (fn ((mut remote-mail) usize message) unit))
+
+(defn append-sent-message! (remote index sent)
+  (set! (at (:threads remote) index)
+        (with-sent-message (at (:threads remote) index) sent)))
+
+(defn with-sent-message (held sent)
+  (local updated (clone held))
+  (push! (mut (:messages updated)) sent)
+  (unless (labelled? held (as-str (label-id system-label/sent)))
+    (push! (mut (:labels updated))
+           (label-id system-label/sent)))
+  updated)
+
+(def now-milliseconds
+  (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as i64).unwrap_or(0)"
+    (fn () int)))

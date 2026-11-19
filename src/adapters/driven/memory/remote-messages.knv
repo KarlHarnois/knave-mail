@@ -20,7 +20,7 @@
         (filter (fn (held) (in-label? held (ref label))))
         (reduce (->message-page :message-ids (vec)
                                 :thread-ids (vec)
-                                :next-token (str ""))
+                                :next-token none)
                 (fn (page held) (with-older-messages page held cutoff))))))
 
 (type in-label?
@@ -49,7 +49,7 @@
                                                       (clone (:id message)))
                           :thread-ids (appended-once (clone (:thread-ids found))
                                                      (clone (:id held)))
-                          :next-token (str ""))))))
+                          :next-token none)))))
 
 (def before-cutoff
   (rust "native::dates::before_cutoff({0})"

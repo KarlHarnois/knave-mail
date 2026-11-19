@@ -1,4 +1,4 @@
-(use adapters/json/value json-value)
+(use adapters/json/value json-value optional-string-field)
 (use domain/mail ->message-page message-page)
 
 (export message-page-from)
@@ -9,13 +9,9 @@
 (defn message-page-from (listed)
   (->message-page :message-ids (listed-ids listed "id")
                   :thread-ids (listed-ids listed "threadId")
-                  :next-token (next-token-of listed)))
+                  :next-token (optional-string-field listed "nextPageToken")))
 
 (def listed-ids
   (rust "{{ let mut {!ids}: Vec<String> = Vec::new(); for {!message} in {0}[\"messages\"].as_array().into_iter().flatten() {{ if let Some({!id}) = {!message}[{1}].as_str() {{ if !{!ids}.iter().any(|{!known}| {!known} == {!id}) {{ {!ids}.push({!id}.to_string()); }} }} }} {!ids} }}"
     (fn ((ref json-value) (ref str))
       (vec string))))
-
-(def next-token-of
-  (rust "{0}[\"nextPageToken\"].as_str().unwrap_or_default().to_string()"
-    (fn ((ref json-value)) string)))

@@ -11,7 +11,7 @@
 
 (defstruct page-request
   :listing thread-query
-  :page-token string)
+  :page-token (option string))
 
 (defstruct message-batch
   :message-ids (vec string)
