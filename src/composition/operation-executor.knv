@@ -8,6 +8,8 @@
 (use composition/logging chosen-log)
 (use composition/settings google-client settings)
 (use domain/attempt-outcome attempt-outcome)
+(use domain/mail-error mail-error)
+(use domain/operation operation-result)
 (use domain/collections appended)
 
 (use composition/executor-channel answered-and-dropped
@@ -41,97 +43,108 @@
     (local running runner)
     (executed! (mut running)
                (ref inbox)
-               (vec)
-               (vec))))
+               (->executor-state :waiting (vec) :replies (vec)))))
 
-(defn executed! (runner inbox waiting replies)
-  (let-match ((pair queued answers) (with-arrivals!
-                                      runner inbox waiting
-                                      replies))
-    (match (executor-step! runner inbox queued answers)
-      ((some (pair left unanswered))
-       (recur runner inbox left unanswered))
+(defstruct executor-state
+  :waiting (vec scheduled)
+  :replies (vec (pair int submission)))
+
+(type executed!
+  (fn ((mut operation-runner)
+       (ref submission-inbox)
+       executor-state)
+    unit))
+
+(defn executed! (runner inbox state)
+  (let (arrived (with-arrivals! runner inbox state))
+    (match (executor-step! runner inbox arrived)
+      ((some next) (recur runner inbox next))
       (none (do)))))
 
 (type executor-step!
   (fn ((mut operation-runner)
        (ref submission-inbox)
-       (vec scheduled)
-       (vec (pair int submission)))
-    (option (pair (vec scheduled)
-                  (vec (pair int submission))))))
+       executor-state)
+    (option executor-state)))
 
-(defn executor-step! (runner inbox queued answers)
-  (let (now (now-milliseconds (ref (:clock runner))))
-    (match (next-ready (ref queued) now)
-      ((some index)
-       (some (attempted! runner queued answers index now)))
-      (none (after-waiting! runner inbox queued answers now)))))
+(defn executor-step! (runner inbox state)
+  (match (next-ready (ref (:waiting state))
+                     (now-milliseconds (ref (:clock runner))))
+    ((some index) (some (attempted! runner state index)))
+    (none (after-waiting! runner inbox state))))
 
 (type after-waiting!
   (fn ((mut operation-runner)
        (ref submission-inbox)
-       (vec scheduled)
-       (vec (pair int submission))
-       int)
-    (option (pair (vec scheduled)
-                  (vec (pair int submission))))))
+       executor-state)
+    (option executor-state)))
 
-(defn after-waiting! (runner inbox queued answers now)
-  (match (next-arrival inbox (wait-until-due (ref queued) now))
-    ((some (some arrival))
-     (some (admitted! runner arrival queued answers)))
-    ((some none) (some (pair queued answers)))
-    (none none)))
+(defn after-waiting! (runner inbox state)
+  (let (now (now-milliseconds (ref (:clock runner))))
+    (match (next-arrival inbox
+                         (wait-until-due (ref (:waiting state)) now))
+      ((some (some arrival))
+       (some (admitted! runner arrival state)))
+      ((some none) (some state))
+      (none none))))
 
-(defn with-arrivals! (runner inbox waiting replies)
+(type with-arrivals!
+  (fn ((mut operation-runner)
+       (ref submission-inbox)
+       executor-state)
+    executor-state))
+
+(defn with-arrivals! (runner inbox state)
   (match (next-arrival inbox (some 0))
     ((some (some arrival))
-     (let-match ((pair more more-answers) (admitted! runner
-                                                     arrival
-                                                     waiting
-                                                     replies))
-       (recur runner inbox more more-answers)))
-    (_ (pair waiting replies))))
+     (recur runner inbox (admitted! runner arrival state)))
+    (_ state)))
 
 (type admitted!
-  (fn ((mut operation-runner)
-       submission
-       (vec scheduled)
-       (vec (pair int submission)))
-    (pair (vec scheduled)
-          (vec (pair int submission)))))
+  (fn ((mut operation-runner) submission executor-state)
+    executor-state))
 
-(defn admitted! (runner arrival waiting replies)
+(defn admitted! (runner arrival state)
   (let (queued (new-operation! runner (clone (:request arrival)))
         id (:id queued))
-    (pair (appended waiting
-                    (->scheduled :operation queued :attempt 1 :not-before 0))
-          (appended replies (pair id arrival)))))
+    (let-match ((pair waiting replies) (state-parts state))
+      (->executor-state :waiting (appended waiting
+                                           (->scheduled :operation queued
+                                                        :attempt 1
+                                                        :not-before 0))
+                        :replies (appended replies (pair id arrival))))))
 
 (type attempted!
-  (fn ((mut operation-runner)
-       (vec scheduled)
-       (vec (pair int submission))
-       usize int)
-    (pair (vec scheduled)
-          (vec (pair int submission)))))
+  (fn ((mut operation-runner) executor-state usize)
+    executor-state))
 
-(defn attempted! (runner waiting replies index now)
-  (let (entry (clone (at waiting index)))
+(defn attempted! (runner state index)
+  (let (entry (clone (at (:waiting state) index)))
     (match (attempt-once! runner (ref entry))
-      ((finished outcome)
-       (answered waiting replies index (ok outcome)))
-      ((failed failure)
-       (answered waiting replies index (err failure)))
+      ((finished outcome) (answered state index (ok outcome)))
+      ((failed failure) (answered state index (err failure)))
       ((retry plan)
-       (pair (replaced-at waiting index
-                          (assoc entry
-                                 :attempt (inc (:attempt entry))
-                                 :not-before (+ now (:delay plan))))
-             replies)))))
+       (let (retried (assoc entry
+                            :attempt (inc (:attempt entry))
+                            :not-before (+ (now-milliseconds (ref (:clock
+                                                                    runner)))
+                                           (:delay plan))))
+         (let-match ((pair waiting replies) (state-parts state))
+           (->executor-state :waiting (replaced-at waiting index retried)
+                             :replies replies)))))))
 
-(defn answered (waiting replies index outcome)
-  (let (id (:id (:operation (at waiting index))))
-    (pair (removed-at waiting index)
-          (answered-and-dropped replies id outcome))))
+(type answered
+  (fn (executor-state usize (result operation-result mail-error))
+    executor-state))
+
+(defn answered (state index outcome)
+  (let (id (:id (:operation (at (:waiting state) index))))
+    (let-match ((pair waiting replies) (state-parts state))
+      (->executor-state :waiting (removed-at waiting index)
+                        :replies (answered-and-dropped replies id outcome)))))
+
+(def state-parts
+  (rust "({0}.waiting, {0}.replies)"
+    (fn (executor-state)
+      (pair (vec scheduled)
+            (vec (pair int submission))))))
