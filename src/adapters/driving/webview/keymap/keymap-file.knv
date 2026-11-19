@@ -2,17 +2,24 @@
                                                  string-token?
                                                  token-text)
 
-(use domain/collections appended one-of?)
+(use domain/collections appended)
 
 (export ->keymap-entry ->keymapped keymap-entry keymap-file
-        keymapped)
+        keymap-mode keymap-mode->name keymapped)
 
-(def modes (vec "normal" "insert" "visual"))
+(defenum keymap-mode
+  normal
+  insert
+  visual)
+
+(def keymap-modes
+  (vec keymap-mode/normal keymap-mode/insert
+       keymap-mode/visual))
 
 (def entry-width 5)
 
 (defstruct keymap-entry
-  :mode string
+  :mode keymap-mode
   :keys string
   :action string)
 
@@ -60,16 +67,36 @@
     (cond
       ((not (and (= opening "(") (= closing ")")))
        (err (str "write each entry as (mode \"keys\" \"action\")")))
-      ((not (one-of? (as-str mode) (ref modes)))
-       (err (str "unknown mode " mode "; use normal, insert or visual")))
       ((not (and (string-token? (ref keys))
                  (string-token? (ref action))))
        (err (str "quote the keys and the action of the " mode " entry")))
       ((empty? (token-text (ref keys)))
        (err (str "the keys of the " mode " entry are empty")))
-      (else (ok (->keymap-entry mode
+      (else (map-ok (text->keymap-mode (as-str mode))
+              (fn (parsed)
+                (->keymap-entry parsed
                                 (token-text (ref keys))
-                                (token-text (ref action))))))))
+                                (token-text (ref action)))))))))
+
+(type text->keymap-mode
+  (fn ((ref str))
+    (result keymap-mode string)))
+
+(defn text->keymap-mode (text)
+  (ok-or (-> (iter keymap-modes)
+             (find (fn (mode)
+                     (= (keymap-mode->name mode) text)))
+             (map-some (fn (mode) (deref mode))))
+         (str "unknown mode " text "; use normal, insert or visual")))
+
+(type keymap-mode->name
+  (fn ((ref keymap-mode)) (ref str)))
+
+(defn keymap-mode->name (mode)
+  (match mode
+    (normal "normal")
+    (insert "insert")
+    (visual "visual")))
 
 (defn wrapped-in-keymap? (tokens)
   (and (>= (len tokens) 3)

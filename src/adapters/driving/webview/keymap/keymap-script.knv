@@ -1,7 +1,23 @@
-(use adapters/driving/webview/keymap/keymap-file keymap-entry)
+(use adapters/driving/webview/keymap/keymap-file keymap-entry
+                                                 keymap-mode->name)
 
 (export keymap-script)
 
-(def keymap-script
-  (rust "format!(\"window.knaveKeymap = {{}};\\n\", serde_json::Value::Array({0}.iter().map(|{!entry}| serde_json::json!({{\"mode\": {!entry}.mode, \"keys\": {!entry}.keys, \"action\": {!entry}.action}})).collect()))"
-    (fn ((ref (vec keymap-entry))) string)))
+(type keymap-script
+  (fn ((ref (vec keymap-entry))) string))
+
+(defn keymap-script (entries)
+  (str "window.knaveKeymap = ["
+       (join (-> (iter entries)
+                 (map (fn (entry)
+                        (entry-json (keymap-mode->name (ref (:mode entry)))
+                                    (as-str (:keys entry))
+                                    (as-str (:action entry)))))
+                 collect)
+             ",")
+       "];\n"))
+
+(def entry-json
+  (rust "serde_json::json!({{\"mode\": {0}, \"keys\": {1}, \"action\": {2}}}).to_string()"
+    (fn ((ref str) (ref str) (ref str))
+      string)))

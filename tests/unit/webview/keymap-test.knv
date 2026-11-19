@@ -1,5 +1,6 @@
 (use adapters/driving/webview/keymap/keymap-file ->keymap-entry
-                                                 keymap-file)
+                                                 keymap-file
+                                                 keymap-mode)
 
 (use adapters/driving/webview/keymap/keymap-script keymap-script)
 
@@ -11,10 +12,8 @@
 
 (deftest reads-each-entry-with-its-mode
   (assert (= (entries-of "(keymap (insert \"jj\" \"<Esc>\") (normal \"<CR>\" \"o<Esc>\"))")
-             (vec (->keymap-entry (str "insert")
-                                  (str "jj")
-                                  (str "<Esc>"))
-                  (->keymap-entry (str "normal")
+             (vec (->keymap-entry keymap-mode/insert (str "jj") (str "<Esc>"))
+                  (->keymap-entry keymap-mode/normal
                                   (str "<CR>")
                                   (str "o<Esc>"))))))
 
