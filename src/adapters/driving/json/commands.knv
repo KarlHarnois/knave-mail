@@ -13,8 +13,8 @@
 (use adapters/driving/json/mail-json accounts-json
                                      archived-json
                                      draft-json labels-json
-                                     summaries-json
-                                     summary-page-json
+                                     summaries->json
+                                     summary-page->json
                                      thread-json)
 
 (use adapters/json/value empty-object json-value parse-json
@@ -91,10 +91,10 @@
     ((list-labels account)
      (ok (labels-json (ref (try (list-labels! app account))))))
     ((list-threads account query freshness)
-     (ok (summaries-json
+     (ok (summaries->json
            (ref (try (list-threads! app account query (clone freshness)))))))
     ((list-page account query page-token)
-     (ok (summary-page-json
+     (ok (summary-page->json
            (ref (try (list-thread-page! app account query page-token))))))
     ((archive-older account before)
      (ok (archived-json (try (archive-older! app account before)))))

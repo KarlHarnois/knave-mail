@@ -1,10 +1,11 @@
 (use adapters/driving/cli/arguments parse-arguments)
 (use composition/backend backend)
-(use composition/settings settings-from)
+(use composition/settings arguments->settings)
 (use support/sample-mail addresses)
 
 (defn settings-of (tokens)
-  (settings-from (ref (unwrap-ok (parse-arguments (ref (addresses tokens)))))))
+  (arguments->settings (ref (unwrap-ok (parse-arguments (ref (addresses
+                                                               tokens)))))))
 
 (deftest the-memory-backend-is-read
   (assert (= (:backend (unwrap-ok (settings-of (vec "--backend" "memory"))))

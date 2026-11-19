@@ -3,12 +3,12 @@
 (use domain/labels starred? unread?)
 (use domain/mail draft label message thread thread-summary)
 
-(export result-text)
+(export cli-result->text)
 
-(type result-text
+(type cli-result->text
   (fn ((ref cli-result)) string))
 
-(defn result-text (outcome)
+(defn cli-result->text (outcome)
   (match outcome
     ((accounts-listed accounts)
      (lines-of (-> (iter accounts)
@@ -22,8 +22,8 @@
      (lines-of (-> (iter summaries)
                    (map (fn (summary) (summary-line summary)))
                    collect)))
-    ((thread-shown shown format) (thread-text shown format))
-    ((draft-shown written) (draft-text written))
+    ((thread-shown shown format) (thread->text shown format))
+    ((draft-shown written) (draft->text written))
     ((account-added account) (str "Added " (:email account)))
     (done (str ""))
     ((help-shown text) (clone text))))
@@ -51,20 +51,20 @@
        (padded (:participants summary) 28)
        (:subject summary)))
 
-(type thread-text
+(type thread->text
   (fn ((ref thread) (ref body-format))
     string))
 
-(defn thread-text (shown format)
+(defn thread->text (shown format)
   (lines-of (-> (iter (:messages shown))
-                (map (fn (shown-message) (message-text shown-message format)))
+                (map (fn (shown-message) (message->text shown-message format)))
                 collect)))
 
-(type message-text
+(type message->text
   (fn ((ref message) (ref body-format))
     string))
 
-(defn message-text (shown format)
+(defn message->text (shown format)
   (str "Message: "
        (:id shown)
        "\n" "From: "
@@ -89,10 +89,10 @@
                      (clone (:text shown))))
     (plain (clone (:text shown)))))
 
-(type draft-text
+(type draft->text
   (fn ((ref draft)) string))
 
-(defn draft-text (written)
+(defn draft->text (written)
   (str "To: "
        (join (:to written) ", ")
        "\n" "Cc: "

@@ -1,8 +1,8 @@
 (use ports/driven/clock now-milliseconds)
 (use adapters/driven/memory/remote-history record-change!)
 
-(use adapters/driven/memory/remote-mail remote-mail
-                                        sent-from)
+(use adapters/driven/memory/remote-mail outgoing->message
+                                        remote-mail)
 
 (use adapters/driven/memory/remote-queries labelled?
                                            thread-position)
@@ -24,10 +24,10 @@
         thread-id (match (ref link)
                     ((some replied) (clone (:thread-id replied)))
                     (none (str "thread-" message-id)))
-        message (sent-from sent
-                           (ref message-id)
-                           (ref thread-id)
-                           (now-milliseconds (ref (:clock remote)))))
+        message (outgoing->message sent
+                                   (ref message-id)
+                                   (ref thread-id)
+                                   (now-milliseconds (ref (:clock remote)))))
     (set! (:next-id remote) (inc number))
     (push! (mut (:sent remote))
            (clone sent))

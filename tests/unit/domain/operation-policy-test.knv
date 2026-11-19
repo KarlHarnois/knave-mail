@@ -8,7 +8,8 @@
 (use domain/failure-step backoff-after next-step
                          step-after-failure)
 
-(use domain/operation-policy most-attempts policy-of)
+(use domain/operation-policy most-attempts
+                             operation-kind->policy)
 
 (defn network-failure ()
   (mail-error/network (str "connection reset")))
@@ -24,38 +25,38 @@
                                           :source relabel-source/queued)))
 
 (deftest a-read-is-tried-three-times
-  (assert (= (most-attempts (ref (policy-of (ref operation-kind/fetch-labels))))
+  (assert (= (most-attempts (ref (operation-kind->policy (ref operation-kind/fetch-labels))))
              (some 3))))
 
 (deftest a-relabel-is-tried-six-times
-  (assert (= (most-attempts (ref (policy-of (ref (relabel-kind)))))
+  (assert (= (most-attempts (ref (operation-kind->policy (ref (relabel-kind)))))
              (some 6))))
 
 (deftest an-operation-is-named-by-its-kind
-  (assert (= (:name (policy-of (ref (relabel-kind))))
+  (assert (= (:name (operation-kind->policy (ref (relabel-kind))))
              "relabel")))
 
 (deftest a-network-failure-is-retried-after-a-second
   (assert (= (step-after-failure 1
-                                 (ref (policy-of (ref (relabel-kind))))
+                                 (ref (operation-kind->policy (ref (relabel-kind))))
                                  (ref (network-failure)))
              (next-step/retry-after 1000))))
 
 (deftest each-retry-waits-twice-as-long
   (assert (= (step-after-failure 2
-                                 (ref (policy-of (ref (relabel-kind))))
+                                 (ref (operation-kind->policy (ref (relabel-kind))))
                                  (ref (network-failure)))
              (next-step/retry-after 2000))))
 
 (deftest the-last-attempt-stops
   (assert (= (step-after-failure 3
-                                 (ref (policy-of (ref operation-kind/fetch-labels)))
+                                 (ref (operation-kind->policy (ref operation-kind/fetch-labels)))
                                  (ref (network-failure)))
              next-step/stop)))
 
 (deftest a-missing-item-is-not-retried
   (assert (= (step-after-failure 1
-                                 (ref (policy-of (ref (relabel-kind))))
+                                 (ref (operation-kind->policy (ref (relabel-kind))))
                                  (ref (mail-error/not-found (str
                                                               "no thread t"))))
              next-step/stop)))
@@ -74,25 +75,25 @@
 
 (deftest a-throttled-call-waits-as-long-as-gmail-asks
   (assert (= (step-after-failure 1
-                                 (ref (policy-of (ref (relabel-kind))))
+                                 (ref (operation-kind->policy (ref (relabel-kind))))
                                  (ref (throttled-for 7000)))
              (next-step/retry-after 7000))))
 
 (deftest a-throttled-call-without-a-wait-backs-off
   (assert (= (step-after-failure 2
-                                 (ref (policy-of (ref (relabel-kind))))
+                                 (ref (operation-kind->policy (ref (relabel-kind))))
                                  (ref (throttled-for 0)))
              (next-step/retry-after 2000))))
 
 (deftest a-throttled-send-is-retried
   (assert (= (step-after-failure 1
-                                 (ref (policy-of (ref (send-kind))))
+                                 (ref (operation-kind->policy (ref (send-kind))))
                                  (ref (throttled-for 0)))
              (next-step/retry-after 1000))))
 
 (deftest a-send-that-failed-on-the-network-is-not-retried
   (assert (= (step-after-failure 1
-                                 (ref (policy-of (ref (send-kind))))
+                                 (ref (operation-kind->policy (ref (send-kind))))
                                  (ref (network-failure)))
              next-step/stop)))
 
@@ -101,30 +102,30 @@
 
 (deftest a-queued-relabel-keeps-trying
   (assert (= (step-after-failure 40
-                                 (ref (policy-of (ref (queued-relabel-kind))))
+                                 (ref (operation-kind->policy (ref (queued-relabel-kind))))
                                  (ref (network-failure)))
              (next-step/retry-after 60000))))
 
 (deftest a-queued-relabel-waits-for-a-new-sign-in
   (assert (= (step-after-failure 1
-                                 (ref (policy-of (ref (queued-relabel-kind))))
+                                 (ref (operation-kind->policy (ref (queued-relabel-kind))))
                                  (ref (mail-error/auth-required (str "sign in again"))))
              (next-step/retry-after 1000))))
 
 (deftest an-unqueued-relabel-gives-up-on-a-refused-sign-in
   (assert (= (step-after-failure 1
-                                 (ref (policy-of (ref (relabel-kind))))
+                                 (ref (operation-kind->policy (ref (relabel-kind))))
                                  (ref (mail-error/auth-required (str "sign in again"))))
              next-step/stop)))
 
 (deftest a-read-gives-up-when-gmail-asks-for-a-long-wait
   (assert (= (step-after-failure 1
-                                 (ref (policy-of (ref operation-kind/fetch-labels)))
+                                 (ref (operation-kind->policy (ref operation-kind/fetch-labels)))
                                  (ref (throttled-for 120000)))
              next-step/stop)))
 
 (deftest a-queued-relabel-waits-as-long-as-gmail-asks
   (assert (= (step-after-failure 1
-                                 (ref (policy-of (ref (queued-relabel-kind))))
+                                 (ref (operation-kind->policy (ref (queued-relabel-kind))))
                                  (ref (throttled-for 120000)))
              (next-step/retry-after 120000))))

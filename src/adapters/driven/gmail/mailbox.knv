@@ -24,7 +24,7 @@
                                    api-post!)
 
 (use adapters/driven/gmail/session-state gmail-session)
-(use adapters/driven/gmail/message-page message-page-from)
+(use adapters/driven/gmail/message-page json->message-page)
 
 (use domain/mail ->thread ->thread-page message thread
                  thread-page thread-query thread-summary)
@@ -64,7 +64,7 @@
     (listed-thread-page! (mut (:session box)) query page-token))
 
   (fetch-message-page! (box query page-token)
-    (ok (message-page-from
+    (ok (json->message-page
           (ref (try (api-get! (mut (:session box))
                               (ref (message-page-path query page-token))))))))
 

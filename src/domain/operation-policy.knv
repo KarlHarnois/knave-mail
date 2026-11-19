@@ -3,8 +3,8 @@
 
 (export ->operation-policy longest-backoff-milliseconds
         longest-wait most-attempts network-failure
-        operation-policy persistence policy-for policy-of
-        retry-limits)
+        operation-kind->policy operation-policy persistence
+        policy-for retry-limits)
 
 (def read-attempts 3)
 
@@ -56,7 +56,7 @@
     ((transient limits) (some (:longest-wait limits)))))
 
 (defn policy-for (kind rank)
-  (paced-for (policy-of kind) rank))
+  (paced-for (operation-kind->policy kind) rank))
 
 (defn paced-for (policy rank)
   (match (:persistence policy)
@@ -75,7 +75,7 @@
     (background (->retry-limits :most-attempts background-attempts
                                 :longest-wait background-wait-milliseconds))))
 
-(defn policy-of (kind)
+(defn operation-kind->policy (kind)
   (match kind
     (fetch-labels (read-policy "fetch labels"))
     ((fetch-threads _) (read-policy "fetch threads"))

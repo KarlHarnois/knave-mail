@@ -1,7 +1,7 @@
 (use adapters/driven/memory/remote-mail remote-mail)
 (use adapters/driven/memory/remote-queries labelled?)
 (use domain/collections appended-once)
-(use domain/label-scope label-of)
+(use domain/label-scope label-scope->label)
 (use domain/labels in-all-mail?)
 
 (use domain/mail ->message-page message-page thread
@@ -15,7 +15,7 @@
 
 (defn messages-matching (remote query)
   (let (cutoff (before-cutoff (as-str (:query query)))
-        label (label-of (ref (:scope query))))
+        label (label-scope->label (ref (:scope query))))
     (-> (iter (:threads remote))
         (filter (fn (held) (in-label? held (ref label))))
         (reduce (->message-page :message-ids (vec)

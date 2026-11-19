@@ -1,17 +1,17 @@
-(use domain/label-commands label-change-named)
+(use domain/label-commands command-name->label-change)
 
 (use domain/labels archive-change inbox-change read-change
                    untrash-change)
 
 (deftest names-every-label-command
-  (assert (= (label-change-named "move-to-inbox")
+  (assert (= (command-name->label-change "move-to-inbox")
              (some (inbox-change))))
-  (assert (= (label-change-named "untrash")
+  (assert (= (command-name->label-change "untrash")
              (some (untrash-change))))
-  (assert (= (label-change-named "archive")
+  (assert (= (command-name->label-change "archive")
              (some (archive-change))))
-  (assert (= (label-change-named "mark-read")
+  (assert (= (command-name->label-change "mark-read")
              (some (read-change)))))
 
 (deftest an-unknown-command-names-no-change
-  (assert (= (label-change-named "explode") none)))
+  (assert (= (command-name->label-change "explode") none)))

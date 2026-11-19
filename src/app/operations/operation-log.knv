@@ -1,12 +1,13 @@
 (use domain/log-entry log-area)
-(use domain/label-scope label-of)
+(use domain/label-scope label-scope->label)
 (use domain/labels label-change)
 (use domain/mail thread-query)
 (use domain/mail-error error-kind error-message mail-error)
 (use domain/operation operation operation-kind priority)
 
-(use domain/operation-policy most-attempts operation-policy
-                             policy-of)
+(use domain/operation-policy most-attempts
+                             operation-kind->policy
+                             operation-policy)
 
 (use ports/driven/event-log log-debug log-info log-warn)
 
@@ -94,7 +95,7 @@
   (str "#"
        (:id queued)
        " "
-       (:name (policy-of (ref (:kind queued))))
+       (:name (operation-kind->policy (ref (:kind queued))))
        " "
        (:account queued)
        ": " step))
@@ -128,7 +129,7 @@
     (_ (str ""))))
 
 (defn listing-of (query)
-  (match (label-of (ref (:scope query)))
+  (match (label-scope->label (ref (:scope query)))
     ((some label) (str "label " label))
     (none (str "all mail"))))
 

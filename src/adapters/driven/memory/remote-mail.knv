@@ -9,7 +9,8 @@
 (use domain/mail-error ->throttling mail-error)
 
 (export ->remote-mail always-failing fail-times! fail-when!
-        guard! remote-mail sent-from throttle-times!)
+        guard! outgoing->message remote-mail
+        throttle-times!)
 
 (defenum failure-count
   always
@@ -125,11 +126,11 @@
                               :count (failure-count/times times)
                               :kind (failure-kind/throttled delay)))))
 
-(type sent-from
+(type outgoing->message
   (fn ((ref outgoing) (ref str) (ref str) int)
     message))
 
-(defn sent-from (sent message-id thread-id date)
+(defn outgoing->message (sent message-id thread-id date)
   (->message :id (str message-id)
              :thread-id (str thread-id)
              :from (clone (:from sent))

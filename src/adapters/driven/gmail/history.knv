@@ -26,8 +26,8 @@
   "&historyTypes=messageAdded&historyTypes=messageDeleted&historyTypes=labelAdded&historyTypes=labelRemoved")
 
 (defn fetched-history-id! (session)
-  (history-id-of (ref (try (api-get! session
-                                     (ref (str users-me "/profile")))))))
+  (json->history-id (ref (try (api-get! session
+                                        (ref (str users-me "/profile")))))))
 
 (defn fetched-changes! (session since)
   (collected-pages! session since none (vec)))
@@ -55,7 +55,7 @@
     (match (optional-string-field (ref page) "nextPageToken")
       ((some token) (recur session since (some token) so-far))
       (none (ok (entries->mail-changes (ref so-far)
-                                       (try (history-id-of (ref page)))))))))
+                                       (try (json->history-id (ref page)))))))))
 
 (type not-found->history-expired
   (fn (mail-error) mail-error))
@@ -75,5 +75,5 @@
   (rust "native::gmail_history::history_shape({0})"
     (fn ((ref json-value)) string)))
 
-(defn history-id-of (reply)
+(defn json->history-id (reply)
   (required-text reply "historyId"))

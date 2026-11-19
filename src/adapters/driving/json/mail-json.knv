@@ -5,7 +5,7 @@
                  thread thread-summary)
 
 (export accounts-json archived-json draft-json labels-json
-        summaries-json summary-page-json thread-json)
+        summaries->json summary-page->json thread-json)
 
 (def accounts-json
   (rust "serde_json::Value::Array({0}.iter().map(|{!account}| serde_json::json!({{\"email\": {!account}.email}})).collect())"
@@ -15,11 +15,11 @@
   (rust "serde_json::Value::Array({0}.iter().map(|{!label}| serde_json::json!({{\"id\": {!label}.id, \"name\": {!label}.name, \"unread\": {!label}.unread, \"total\": {!label}.total}})).collect())"
     (fn ((ref (vec label))) json-value)))
 
-(type summary-page-json
+(type summary-page->json
   (fn ((ref summary-page)) json-value))
 
-(defn summary-page-json (page)
-  (page-object (summaries-json (ref (:summaries page)))
+(defn summary-page->json (page)
+  (page-object (summaries->json (ref (:summaries page)))
                (as-str (unwrap-or (clone (:next-token page))
                                   (str "")))))
 
@@ -27,12 +27,12 @@
   (rust "serde_json::json!({{\"threads\": {0}, \"nextPageToken\": {1}}})"
     (fn (json-value (ref str)) json-value)))
 
-(defn summaries-json (summaries)
+(defn summaries->json (summaries)
   (json-array (-> (iter summaries)
-                  (map (fn (summary) (summary-json summary)))
+                  (map (fn (summary) (summary->json summary)))
                   collect)))
 
-(defn summary-json (summary)
+(defn summary->json (summary)
   (summary-object summary
                   (unread? (ref (:labels summary)))
                   (starred? (ref (:labels summary)))))

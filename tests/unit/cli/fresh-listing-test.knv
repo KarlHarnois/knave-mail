@@ -5,7 +5,7 @@
 (use adapters/driving/cli/runner ->cli-request
                                  run-cli-command! sending)
 
-(use adapters/driving/cli/text-presenter result-text)
+(use adapters/driving/cli/text-presenter cli-result->text)
 (use support/app-steps synced!)
 
 (use support/memory-world app-over remote-with sample-thread
@@ -23,16 +23,16 @@
     (synced! (mut app))
     (surface-remotely! (ref world)
                        (sample-thread "t-0" (vec "INBOX") 1600000000000))
-    (result-text (ref (unwrap-ok (run-cli-command!
-                                   (mut app)
-                                   (ref (->cli-request (cli-command/list-threads
-                                                         (label-scope/only (str "INBOX"))
-                                                         (str "")
-                                                         10
-                                                         fresh)
-                                                       (str world-account)
-                                                       (str "")
-                                                       sending/deliver))))))))
+    (cli-result->text
+      (ref (unwrap-ok (run-cli-command!
+                        (mut app)
+                        (ref (->cli-request (cli-command/list-threads
+                                              (label-scope/only (str "INBOX"))
+                                              (str "")
+                                              10 fresh)
+                                            (str world-account)
+                                            (str "")
+                                            sending/deliver))))))))
 
 (deftest fresh-lists-threads-the-cache-has-not-seen
   (assert (contains? (ref (listed-with-a-surfaced-thread freshness/fresh))

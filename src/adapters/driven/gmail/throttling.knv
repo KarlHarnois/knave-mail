@@ -1,7 +1,7 @@
 (use adapters/driven/gmail/http-reply http-reply)
 (use domain/mail-error ->throttling throttling)
 
-(export retry-wait-in throttling-of)
+(export http-reply->throttling retry-wait-in)
 
 (def retry-marker "Retry after ")
 
@@ -14,10 +14,10 @@
 (def rate-limit-notice
   "Gmail is rate limiting this account")
 
-(type throttling-of
+(type http-reply->throttling
   (fn ((ref http-reply) int) throttling))
 
-(defn throttling-of (reply now)
+(defn http-reply->throttling (reply now)
   (let (gmail-message (clone (:message (:refusal reply))))
     (->throttling :message (notice-with (ref gmail-message))
                   :retry-after-milliseconds (asked-wait (:retry-after reply)

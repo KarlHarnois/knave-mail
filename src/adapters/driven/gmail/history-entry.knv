@@ -76,7 +76,7 @@
 (defn thread-ids-in (entry record)
   (-> (array-field entry record)
       iter
-      (map (fn (item) (thread-id-of item)))
+      (map (fn (item) (json->thread-id item)))
       collect-ok))
 
 (type relabels-in
@@ -86,7 +86,7 @@
 (defn relabels-in (entry record)
   (-> (array-field entry (record-name record))
       iter
-      (map (fn (item) (relabel-of item record)))
+      (map (fn (item) (json->message-relabel item record)))
       collect-ok))
 
 (defn record-name (record)
@@ -99,11 +99,11 @@
     (labels-added (->label-change :added labels :removed (vec)))
     (labels-removed (->label-change :added (vec) :removed labels))))
 
-(type relabel-of
+(type json->message-relabel
   (fn ((ref json-value) label-record)
     (result message-relabel mail-error)))
 
-(defn relabel-of (item record)
+(defn json->message-relabel (item record)
   (let (message (try (message-of item))
         labels (listed-labels item))
     (ok (->message-relabel :thread-id (try (required-text (ref message)
@@ -111,11 +111,11 @@
                            :message-id (try (required-text (ref message) "id"))
                            :change (record-change record labels)))))
 
-(type thread-id-of
+(type json->thread-id
   (fn ((ref json-value))
     (result string mail-error)))
 
-(defn thread-id-of (item)
+(defn json->thread-id (item)
   (required-text (ref (try (message-of item)))
                  "threadId"))
 

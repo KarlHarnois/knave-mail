@@ -4,7 +4,10 @@
                                     positional)
 
 (use adapters/driving/cli/cli run-cli!)
-(use adapters/driving/cli/command cli-command command-from)
+
+(use adapters/driving/cli/command arguments->cli-command
+                                  cli-command)
+
 (use adapters/driving/cli/exit-codes exit-code success-code)
 (use adapters/driving/cli/help usage-text)
 
@@ -32,7 +35,7 @@
     (run-cli-with-app chosen parsed)))
 
 (defn help-asked? (parsed)
-  (match (command-from parsed)
+  (match (arguments->cli-command parsed)
     ((ok help) true)
     (_ false)))
 

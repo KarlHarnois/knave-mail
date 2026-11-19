@@ -4,14 +4,14 @@
 (use adapters/driving/cli/command cli-command-word?)
 (use composition/launch launch-cli)
 (use composition/window-launch launch-window)
-(use composition/settings settings settings-from)
+(use composition/settings arguments->settings settings)
 
 (defenum startup
   (cli :settings settings :arguments parsed-arguments)
   (window :settings settings :scenario string))
 
 (defn main ()
-  (match (startup-from (command-line-args))
+  (match (arguments->startup (command-line-args))
     ((ok (cli chosen parsed)) (exit (launch-cli chosen parsed)))
     ((ok (window chosen scenario))
      (launch-window chosen scenario))
@@ -19,13 +19,13 @@
      (eprintln (str "knave-mail: " problem))
      (exit 1))))
 
-(type startup-from
+(type arguments->startup
   (fn ((vec string))
     (result startup string)))
 
-(defn startup-from (arguments)
+(defn arguments->startup (arguments)
   (let (parsed (try (parse-arguments (ref arguments)))
-        chosen (try (settings-from (ref parsed))))
+        chosen (try (arguments->settings (ref parsed))))
     (if (cli-command-word? (ref parsed))
       (ok (startup/cli :settings chosen :arguments parsed))
       (ok (startup/window :scenario (try (e2e-scenario (ref (:e2e-script-path

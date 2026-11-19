@@ -4,9 +4,10 @@
 (use adapters/driving/cli/arguments parse-arguments switch?
                                     value-of)
 
-(use adapters/driving/cli/command cli-command
+(use adapters/driving/cli/command arguments->cli-command
+                                  cli-command
                                   cli-command-word?
-                                  command-from reply-scope)
+                                  reply-scope)
 
 (use adapters/driving/cli/command-options body-format)
 (use domain/labels archive-change inbox-change)
@@ -17,10 +18,10 @@
   (unwrap-ok (parse-arguments (ref (addresses tokens)))))
 
 (defn command (tokens)
-  (unwrap-ok (command-from (ref (parsed tokens)))))
+  (unwrap-ok (arguments->cli-command (ref (parsed tokens)))))
 
 (defn failure (tokens)
-  (str (error-message (ref (unwrap-err (command-from (ref (parsed tokens))))))))
+  (str (error-message (ref (unwrap-err (arguments->cli-command (ref (parsed tokens))))))))
 
 (deftest threads-show-reads-the-html-format
   (assert (= (command (vec "threads" "show" "t-1" "--format" "html"))

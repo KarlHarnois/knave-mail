@@ -1,4 +1,4 @@
-(use domain/label-scope label-of)
+(use domain/label-scope label-scope->label)
 (use adapters/driven/sqlite/connection sqlite-connection)
 (use adapters/driven/sqlite/rows text-error->internal-error)
 (use adapters/driven/sqlite/threads set-thread-labels)
@@ -40,11 +40,12 @@
 (defn read-summaries (connection account query)
   (let (rows (try (text-error->internal-error
                     (summary-rows connection account
-                                  (ref (label-of (ref (:scope query))))
+                                  (ref (label-scope->label (ref (:scope
+                                                                  query))))
                                   (:limit query)
                                   select-summaries-in-label))))
     (ok (-> (iter rows)
-            (map (fn (row) (summary-from row)))
+            (map (fn (row) (summary-row->summary row)))
             collect))))
 
 (defn read-summaries-with-ids (connection account ids)
@@ -53,7 +54,7 @@
                                                 account ids
                                                 select-summaries-with-ids))))
     (ok (-> (iter rows)
-            (map (fn (row) (summary-from row)))
+            (map (fn (row) (summary-row->summary row)))
             collect))))
 
 (def summary-rows-with-ids
@@ -64,10 +65,10 @@
          (ref str))
       (result (vec summary-row) string))))
 
-(type summary-from
+(type summary-row->summary
   (fn ((ref summary-row)) thread-summary))
 
-(defn summary-from (row)
+(defn summary-row->summary (row)
   (->thread-summary :id (clone (:id row))
                     :subject (clone (:subject row))
                     :participants (clone (:participants row))

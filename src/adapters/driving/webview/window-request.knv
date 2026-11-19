@@ -66,7 +66,7 @@
                                       "sync needs an account")))))
     ("e2e-report" (ok (e2e-line arguments)))
     ("e2e-finish"
-     (ok (window-request/e2e-finish (try (e2e-outcome-of arguments)))))
+     (ok (window-request/e2e-finish (try (arguments->e2e-outcome arguments)))))
     ("zoom"
      (ok (window-request/zoom :id (request-id request)
                               :level (try (requested-zoom arguments)))))
@@ -82,11 +82,11 @@
     ((ok line) (window-request/e2e-report line))
     ((err problem) (window-request/e2e-problem problem))))
 
-(type e2e-outcome-of
+(type arguments->e2e-outcome
   (fn ((ref json-value))
     (result e2e-outcome mail-error)))
 
-(defn e2e-outcome-of (arguments)
+(defn arguments->e2e-outcome (arguments)
   (map-ok (usage-field (bool-field arguments "passed")
                        "e2e-finish needs passed")
           passed->e2e-outcome))

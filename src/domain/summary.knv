@@ -1,5 +1,5 @@
 (use domain/collections as-count)
-(use domain/label-scope label-of label-scope)
+(use domain/label-scope label-scope label-scope->label)
 (use domain/labels in-all-mail?)
 
 (use domain/mail ->thread-summary message thread
@@ -38,7 +38,7 @@
     bool))
 
 (defn in-scope? (summary scope)
-  (match (label-of scope)
+  (match (label-scope->label scope)
     ((some label)
      (any? (iter (:labels summary))
        (fn (held)

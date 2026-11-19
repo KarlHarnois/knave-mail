@@ -1,7 +1,7 @@
 (use domain/labels label-change)
 (use domain/mail outgoing reply-link thread-query)
 (use domain/outgoing reply-link-of)
-(use domain/label-scope label-of)
+(use domain/label-scope label-scope->label)
 (use adapters/url url-encoded)
 
 (export batch-modify-body batch-modify-path label-path
@@ -29,7 +29,7 @@
          (str "&q=" (url-encoded (:query query))))))
 
 (defn label-filter (scope)
-  (match (label-of scope)
+  (match (label-scope->label scope)
     ((some label) (str "&labelIds=" (url-encoded (ref label))))
     (none (str ""))))
 

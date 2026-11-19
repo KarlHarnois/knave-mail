@@ -2,16 +2,19 @@
                                     value-of)
 
 (use adapters/driving/cli/cli-result cli-result)
-(use adapters/driving/cli/command cli-command command-from)
+
+(use adapters/driving/cli/command arguments->cli-command
+                                  cli-command)
+
 (use adapters/driving/cli/exit-codes exit-code success-code)
 
-(use adapters/driving/cli/json-presenter error-json-text
-                                         result-json-text)
+(use adapters/driving/cli/json-presenter cli-result->json-text
+                                         mail-error->json-text)
 
 (use adapters/driving/cli/runner ->cli-request
                                  run-cli-command! sending)
 
-(use adapters/driving/cli/text-presenter result-text)
+(use adapters/driving/cli/text-presenter cli-result->text)
 (use domain/mail-error error-message mail-error)
 (use app/client/account-book list-accounts!)
 (use app/mail-app mail-app)
@@ -54,7 +57,7 @@
     (result cli-result mail-error)))
 
 (defn cli-outcome! (client parsed options)
-  (let (command (try (command-from parsed))
+  (let (command (try (arguments->cli-command parsed))
         account (try (chosen-account! client
                                       (ref (:account options))
                                       (ref command)))
@@ -112,12 +115,12 @@
 
 (defn print-result (output outcome)
   (match output
-    (json (println (result-json-text outcome)))
-    (text (print-unless-empty (result-text outcome)))))
+    (json (println (cli-result->json-text outcome)))
+    (text (print-unless-empty (cli-result->text outcome)))))
 
 (defn print-failure (output failure)
   (match output
-    (json (eprintln (error-json-text failure)))
+    (json (eprintln (mail-error->json-text failure)))
     (text (eprintln (str "knave-mail: " (error-message failure))))))
 
 (defn print-unless-empty (text)

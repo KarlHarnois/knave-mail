@@ -15,9 +15,9 @@
 
 (defn finish-e2e (outcome outbox)
   (send-window-command outbox
-                       (window-command/exit (exit-code-of outcome))))
+                       (window-command/exit (e2e-outcome->exit-code outcome))))
 
-(defn exit-code-of (outcome)
+(defn e2e-outcome->exit-code (outcome)
   (match outcome (passed 0) (failed 1)))
 
 (type zoom-to

@@ -12,8 +12,8 @@
 (use composition/tuning tuning tuning-for)
 (use domain/level-spec level-spec text->level-spec)
 
-(export ->google-client ->settings google-client
-        missing-client-message settings settings-from)
+(export ->google-client ->settings arguments->settings
+        google-client missing-client-message settings)
 
 (defstruct google-client
   :id string
@@ -41,11 +41,11 @@
 (def missing-client-message
   "set KNAVE_MAIL_CLIENT_ID and KNAVE_MAIL_CLIENT_SECRET to your Google OAuth client, or pass --backend memory")
 
-(type settings-from
+(type arguments->settings
   (fn ((ref parsed-arguments))
     (result settings string)))
 
-(defn settings-from (parsed)
+(defn arguments->settings (parsed)
   (let-try (chosen-backend (text->backend (as-str (or-default (setting
                                                                 parsed
                                                                 "--backend"

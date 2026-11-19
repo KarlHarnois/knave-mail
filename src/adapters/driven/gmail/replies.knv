@@ -8,7 +8,7 @@
 (use adapters/driven/gmail/status-class status->class
                                         status-class)
 
-(use adapters/driven/gmail/throttling throttling-of)
+(use adapters/driven/gmail/throttling http-reply->throttling)
 (use domain/mail-error mail-error)
 
 (export checked sent)
@@ -19,7 +19,7 @@
 (defn checked (reply now)
   (cond
     ((rate-limited? (ref reply))
-     (err (mail-error/throttled (throttling-of (ref reply) now))))
+     (err (mail-error/throttled (http-reply->throttling (ref reply) now))))
     ((quota-exhausted? (ref reply))
      (err (mail-error/network (str "Gmail's usage quota is used up; try again later"))))
     (else (reply-by-class reply))))

@@ -1,4 +1,4 @@
-(use domain/label-commands label-change-named)
+(use domain/label-commands command-name->label-change)
 (use domain/labels label-change)
 (use domain/mail-error mail-error)
 
@@ -18,7 +18,7 @@
     (result label-change mail-error)))
 
 (defn change-named (word)
-  (ok-or (label-change-named (canonical-command word))
+  (ok-or (command-name->label-change (canonical-command word))
          (mail-error/usage (str "unknown command `" word
                                 "`; try `knave-mail help`"))))
 

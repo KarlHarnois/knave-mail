@@ -16,8 +16,8 @@
 (use domain/mail-error mail-error)
 (use domain/labels label-change)
 
-(export body-format cli-command cli-command-word?
-        command-from reply-scope)
+(export arguments->cli-command body-format cli-command
+        cli-command-word? reply-scope)
 
 (def command-words
   (vec "accounts" "labels" "threads" "search" "send" "reply"
@@ -50,7 +50,7 @@
     ((some word) (one-of? (as-str word) (ref command-words)))
     (none false)))
 
-(defn command-from (parsed)
+(defn arguments->cli-command (parsed)
   (let (word (unwrap-or (positional parsed 0) (str "help"))
         topic (unwrap-or (positional parsed 1) (str "")))
     (match (as-str word)
@@ -66,7 +66,7 @@
                                                  (str "")))))
       ("reply"
        (ok (cli-command/reply :message-id (try (required topic "a message id"))
-                              :scope (reply-scope-of parsed))))
+                              :scope (arguments->reply-scope parsed))))
       ("forward"
        (ok (cli-command/forward :message-id (try (required topic
                                                            "a message id"))
@@ -106,13 +106,13 @@
                                 :query query
                                 :limit (try (limit-of (value-of parsed
                                                                 "--limit")))
-                                :freshness (freshness-of parsed))))
+                                :freshness (arguments->freshness parsed))))
 
-(defn reply-scope-of (parsed)
+(defn arguments->reply-scope (parsed)
   (if (switch? parsed "--all")
     reply-scope/everyone reply-scope/sender))
 
-(defn freshness-of (parsed)
+(defn arguments->freshness (parsed)
   (if (switch? parsed "--fresh")
     freshness/fresh freshness/cached))
 

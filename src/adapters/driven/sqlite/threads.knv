@@ -60,13 +60,13 @@
                     (message-rows connection
                                   select-thread-messages
                                   account thread-id))))
-    (ok (-> (iter rows) (map message-from) collect))))
+    (ok (-> (iter rows) (map message-row->message) collect))))
 
 (defn read-message (connection account message-id)
   (let (rows (try (text-error->internal-error
                     (message-rows connection select-message
                                   account message-id))))
-    (ok (-> rows first (map-some message-from)))))
+    (ok (-> rows first (map-some message-row->message)))))
 
 (defn write-thread (connection account saved)
   (text-error->internal-error
@@ -84,10 +84,10 @@
                                            (ref thread-erasures)
                                            (ref (vec account thread-id)))))
 
-(type message-from
+(type message-row->message
   (fn ((ref message-row)) message))
 
-(defn message-from (row)
+(defn message-row->message (row)
   (->message :id (clone (:id row))
              :thread-id (clone (:thread-id row))
              :from (clone (:from row))

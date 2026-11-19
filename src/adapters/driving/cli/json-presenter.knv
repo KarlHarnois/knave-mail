@@ -2,24 +2,25 @@
 
 (use adapters/driving/json/mail-json accounts-json
                                      draft-json labels-json
-                                     summaries-json
+                                     summaries->json
                                      thread-json)
 
 (use adapters/json/value empty-object json-value)
 (use domain/mail-error error-kind error-message mail-error)
 
-(export error-json-text result-json-text)
+(export cli-result->json-text mail-error->json-text)
 
 (def schema-version 1)
 
-(defn result-json-text (outcome)
-  (document-text schema-version (ref (result-json outcome))))
+(defn cli-result->json-text (outcome)
+  (document-text schema-version
+                 (ref (cli-result->json outcome))))
 
-(defn result-json (outcome)
+(defn cli-result->json (outcome)
   (match outcome
     ((accounts-listed accounts) (accounts-json accounts))
     ((labels-listed labels) (labels-json labels))
-    ((threads-listed summaries) (summaries-json summaries))
+    ((threads-listed summaries) (summaries->json summaries))
     ((thread-shown shown _) (thread-json shown))
     ((draft-shown written) (draft-json written))
     ((account-added account)
@@ -27,7 +28,7 @@
     (done (empty-object))
     ((help-shown text) (text-json text))))
 
-(defn error-json-text (failure)
+(defn mail-error->json-text (failure)
   (error-document-text schema-version
                        (error-kind failure)
                        (error-message failure)))

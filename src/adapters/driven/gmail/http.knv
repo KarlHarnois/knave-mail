@@ -34,9 +34,10 @@
     (fn ((ref http-agent) (ref str) (ref str))
       (result http-response string))))
 
-(defn first-reply (outcome) (then-ok outcome reply-from))
+(defn first-reply (outcome)
+  (then-ok outcome response->http-reply))
 
-(defn reply-from (response)
+(defn response->http-reply (response)
   (map-ok (raw-reply-from response)
     (fn (reply)
       (let (refusal (body->refusal (as-str (:body reply))))

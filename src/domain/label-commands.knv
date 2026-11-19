@@ -3,7 +3,7 @@
                    unread-change unstar-change
                    untrash-change)
 
-(export label-change-named)
+(export command-name->label-change)
 
 (defstruct label-command
   :name (ref str)
@@ -21,10 +21,10 @@
        (->label-command :name "mark-unread"
                         :change (unread-change))))
 
-(type label-change-named
+(type command-name->label-change
   (fn ((ref str)) (option label-change)))
 
-(defn label-change-named (command)
+(defn command-name->label-change (command)
   (-> (iter label-commands)
       (find (fn (listed) (= (:name listed) command)))
       (map-some (fn (listed) (clone (:change listed))))))

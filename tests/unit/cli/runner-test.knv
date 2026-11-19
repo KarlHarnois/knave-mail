@@ -3,13 +3,13 @@
 (use adapters/driving/cli/cli-result cli-result)
 (use adapters/driving/cli/command cli-command reply-scope)
 
-(use adapters/driving/cli/json-presenter error-json-text
-                                         result-json-text)
+(use adapters/driving/cli/json-presenter cli-result->json-text
+                                         mail-error->json-text)
 
 (use adapters/driving/cli/runner ->cli-request
                                  run-cli-command! sending)
 
-(use adapters/driving/cli/text-presenter result-text)
+(use adapters/driving/cli/text-presenter cli-result->text)
 (use adapters/driving/cli/exit-codes exit-code)
 (use adapters/driving/cli/command-options body-format)
 (use domain/labels archive-change inbox-change)
@@ -36,7 +36,7 @@
                                           dry-run)))))
 
 (defn text-of (command)
-  (result-text (ref (unwrap-ok (ran command "" sending/deliver)))))
+  (cli-result->text (ref (unwrap-ok (ran command "" sending/deliver)))))
 
 (deftest lists-threads-as-aligned-text
   (assert (= (text-of (cli-command/list-threads (label-scope/only (str "INBOX"))
@@ -54,11 +54,11 @@
              "INBOX                   1 unread\nUNREAD                  1 unread")))
 
 (deftest a-dry-run-reply-shows-the-draft-without-sending
-  (assert (= (result-text (ref (unwrap-ok (ran (cli-command/reply
-                                                 (str "m-t-1")
-                                                 reply-scope/sender)
-                                               "Sounds good."
-                                               sending/preview))))
+  (assert (= (cli-result->text (ref (unwrap-ok (ran (cli-command/reply
+                                                      (str "m-t-1")
+                                                      reply-scope/sender)
+                                                    "Sounds good."
+                                                    sending/preview))))
              "To: Grace <grace@example.com>\nCc: \nSubject: Re: Subject of t-1\n\nSounds good.\n\nGrace <grace@example.com> wrote:\n> Body of t-1")))
 
 (deftest sending-delivers-the-body
@@ -76,15 +76,15 @@
                "Hello there"))))
 
 (deftest prints-results-as-versioned-json
-  (assert (= (result-json-text (ref (unwrap-ok (ran (cli-command/relabel (archive-change)
-                                                                         (addresses
-                                                                           (vec "t-1")))
-                                                    ""
-                                                    sending/deliver))))
+  (assert (= (cli-result->json-text
+               (ref (unwrap-ok (ran (cli-command/relabel (archive-change)
+                                                         (addresses (vec
+                                                                      "t-1")))
+                                    "" sending/deliver))))
              "{\"result\":{},\"schema\":1}")))
 
 (deftest prints-errors-as-versioned-json
-  (assert (= (error-json-text
+  (assert (= (mail-error->json-text
                (ref (unwrap-err (ran (cli-command/show-thread (str "t-9")
                                                               body-format/plain)
                                      "" sending/deliver))))

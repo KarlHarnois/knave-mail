@@ -1,12 +1,12 @@
 (use adapters/json/value json-value optional-string-field)
 (use domain/mail ->message-page message-page)
 
-(export message-page-from)
+(export json->message-page)
 
-(type message-page-from
+(type json->message-page
   (fn ((ref json-value)) message-page))
 
-(defn message-page-from (listed)
+(defn json->message-page (listed)
   (->message-page :message-ids (listed-ids listed "id")
                   :thread-ids (listed-ids listed "threadId")
                   :next-token (optional-string-field listed "nextPageToken")))

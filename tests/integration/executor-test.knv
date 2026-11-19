@@ -1,7 +1,7 @@
 (use adapters/driven/threaded-queue threaded-operations)
 (use composition/operation-executor start-gmail-executor)
 (use adapters/driving/cli/arguments parse-arguments)
-(use composition/settings settings settings-from)
+(use composition/settings arguments->settings settings)
 
 (use domain/operation operation-kind operation-result
                       priority)
@@ -17,8 +17,8 @@
 
 (defn settings-over (server tokens)
   (let (base (fake-gmail-base server))
-    (unwrap-ok (settings-from (ref (unwrap-ok
-                                     (parse-arguments (ref (vec
+    (unwrap-ok (arguments->settings (ref (unwrap-ok (parse-arguments
+                                                      (ref (vec
                                                              (str "--gmail-base-url")
                                                              (clone base)
                                                              (str "--token-url")

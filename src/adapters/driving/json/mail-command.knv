@@ -9,7 +9,7 @@
 
 (use adapters/json/value json-value optional-string-field)
 (use domain/freshness freshness)
-(use domain/label-commands label-change-named)
+(use domain/label-commands command-name->label-change)
 (use domain/labels label-change)
 
 (use domain/mail ->message-ref draft message-ref
@@ -133,5 +133,5 @@
                               :change change))))
 
 (defn change-named (name)
-  (ok-or (label-change-named name)
+  (ok-or (command-name->label-change name)
          (mail-error/usage (str "unknown command `" name "`"))))
