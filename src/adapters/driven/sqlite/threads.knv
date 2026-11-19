@@ -107,7 +107,7 @@
   "SELECT id, thread_id, sender, recipients, copied, subject, date, text, html, header_id, refs FROM messages WHERE account = ?1 AND id = ?2")
 
 (def thread-row-of
-  (rust "{0}.prepare_cached({3}).and_then(|mut {!statement}| {!statement}.query_row(rusqlite::params![{1}, {2}], |{!row}| Ok(ThreadRow {{ subject: {!row}.get(0)?, labels: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(1)?).unwrap_or_default() }})).map(Some).or_else(|{!error}| if {!error} == rusqlite::Error::QueryReturnedNoRows {{ Ok(None) }} else {{ Err({!error}) }})).map_err(|{!error}| {!error}.to_string())"
+  (rust "{0}.prepare_cached({3}).and_then(|mut {!statement}| {!statement}.query_row(rusqlite::params![{1}, {2}], |{!row}| Ok(ThreadRow {{ subject: {!row}.get(0)?, labels: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(1)?).map_err(|{!bad}| rusqlite::Error::FromSqlConversionFailure(1, rusqlite::types::Type::Text, Box::new({!bad})))? }})).map(Some).or_else(|{!error}| if {!error} == rusqlite::Error::QueryReturnedNoRows {{ Ok(None) }} else {{ Err({!error}) }})).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection)
          (ref str)
          (ref str)
@@ -115,7 +115,7 @@
       (result (option thread-row) string))))
 
 (def message-rows
-  (rust "{0}.prepare_cached({1}).and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{2}, {3}], |{!row}| Ok(MessageRow {{ id: {!row}.get(0)?, thread_id: {!row}.get(1)?, from: {!row}.get(2)?, to: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(3)?).unwrap_or_default(), cc: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(4)?).unwrap_or_default(), subject: {!row}.get(5)?, date: {!row}.get(6)?, text: {!row}.get(7)?, html: {!row}.get(8)?, header_id: {!row}.get(9)?, references: {!row}.get(10)? }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
+  (rust "{0}.prepare_cached({1}).and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{2}, {3}], |{!row}| Ok(MessageRow {{ id: {!row}.get(0)?, thread_id: {!row}.get(1)?, from: {!row}.get(2)?, to: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(3)?).map_err(|{!bad}| rusqlite::Error::FromSqlConversionFailure(3, rusqlite::types::Type::Text, Box::new({!bad})))?, cc: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(4)?).map_err(|{!bad}| rusqlite::Error::FromSqlConversionFailure(4, rusqlite::types::Type::Text, Box::new({!bad})))?, subject: {!row}.get(5)?, date: {!row}.get(6)?, text: {!row}.get(7)?, html: {!row}.get(8)?, header_id: {!row}.get(9)?, references: {!row}.get(10)? }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection)
          (ref str)
          (ref str)

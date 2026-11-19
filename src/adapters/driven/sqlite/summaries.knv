@@ -57,7 +57,7 @@
             collect))))
 
 (def summary-rows-with-ids
-  (rust "{0}.prepare_cached({3}).and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{1}, serde_json::to_string({2}).unwrap_or_default()], |{!row}| Ok(SummaryRow {{ id: {!row}.get(0)?, subject: {!row}.get(1)?, participants: {!row}.get(2)?, snippet: {!row}.get(3)?, date: {!row}.get(4)?, labels: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(5)?).unwrap_or_default(), message_count: {!row}.get(6)?, message_ids: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(7)?).unwrap_or_default() }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
+  (rust "{0}.prepare_cached({3}).and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{1}, serde_json::to_string({2}).unwrap_or_default()], |{!row}| Ok(SummaryRow {{ id: {!row}.get(0)?, subject: {!row}.get(1)?, participants: {!row}.get(2)?, snippet: {!row}.get(3)?, date: {!row}.get(4)?, labels: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(5)?).map_err(|{!bad}| rusqlite::Error::FromSqlConversionFailure(5, rusqlite::types::Type::Text, Box::new({!bad})))?, message_count: {!row}.get(6)?, message_ids: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(7)?).map_err(|{!bad}| rusqlite::Error::FromSqlConversionFailure(7, rusqlite::types::Type::Text, Box::new({!bad})))? }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection)
          (ref str)
          (ref (vec string))
@@ -96,7 +96,7 @@
                                 select-summary-labels)))
 
 (def stored-summary-labels
-  (rust "{{ use rusqlite::OptionalExtension; {0}.query_row({3}, [{1}, {2}], |{!row}| {!row}.get::<_, String>(0)).optional().map(|{!found}| {!found}.map(|{!text}| serde_json::from_str::<Vec<String>>(&{!text}).unwrap_or_default())).map_err(|{!error}| {!error}.to_string()) }}"
+  (rust "{{ use rusqlite::OptionalExtension; {0}.query_row({3}, [{1}, {2}], |{!row}| {!row}.get::<_, String>(0)).optional().map_err(|{!error}| {!error}.to_string()).and_then(|{!found}| {!found}.map(|{!text}| serde_json::from_str::<Vec<String>>(&{!text}).map_err(|{!bad}| {!bad}.to_string())).transpose()) }}"
     (fn ((ref sqlite-connection)
          (ref str)
          (ref str)
@@ -104,7 +104,7 @@
       (result (option (vec string)) string))))
 
 (def summary-rows
-  (rust "{0}.prepare_cached({4}).and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{1}, {2}, {3}], |{!row}| Ok(SummaryRow {{ id: {!row}.get(0)?, subject: {!row}.get(1)?, participants: {!row}.get(2)?, snippet: {!row}.get(3)?, date: {!row}.get(4)?, labels: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(5)?).unwrap_or_default(), message_count: {!row}.get(6)?, message_ids: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(7)?).unwrap_or_default() }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
+  (rust "{0}.prepare_cached({4}).and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{1}, {2}, {3}], |{!row}| Ok(SummaryRow {{ id: {!row}.get(0)?, subject: {!row}.get(1)?, participants: {!row}.get(2)?, snippet: {!row}.get(3)?, date: {!row}.get(4)?, labels: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(5)?).map_err(|{!bad}| rusqlite::Error::FromSqlConversionFailure(5, rusqlite::types::Type::Text, Box::new({!bad})))?, message_count: {!row}.get(6)?, message_ids: serde_json::from_str::<Vec<String>>(&{!row}.get::<_, String>(7)?).map_err(|{!bad}| rusqlite::Error::FromSqlConversionFailure(7, rusqlite::types::Type::Text, Box::new({!bad})))? }})).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection)
          (ref str)
          (ref (option string))
