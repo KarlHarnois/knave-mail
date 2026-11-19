@@ -7,9 +7,7 @@
                                      thread-ids-argument
                                      thread-query-argument)
 
-(use adapters/json/value bool-field json-value
-                         optional-string-field)
-
+(use adapters/json/value json-value optional-string-field)
 (use domain/freshness freshness)
 (use domain/label-commands label-change-named)
 (use domain/labels label-change)
@@ -77,7 +75,7 @@
     ("thread"
      (ok (mail-command/open-thread (try (thread-argument arguments)))))
     ("reply-draft"
-     (draft-command arguments (reply-kind arguments)))
+     (draft-command arguments (try (reply-kind arguments))))
     ("forward-draft"
      (draft-command arguments draft-kind/forward))
     ("send"
@@ -90,12 +88,11 @@
 (defn threads-command (arguments)
   (ok (mail-command/list-threads :account (try (account-argument arguments))
                                  :query (try (thread-query-argument arguments))
-                                 :freshness (asked-freshness arguments))))
+                                 :freshness (try (asked-freshness arguments)))))
 
 (defn asked-freshness (arguments)
-  (match (bool-field arguments "fresh")
-    ((ok true) freshness/fresh)
-    (_ freshness/cached)))
+  (map-ok (flag-argument arguments "fresh")
+    (fn (fresh) (if fresh freshness/fresh freshness/cached))))
 
 (defn page-command (arguments)
   (ok (mail-command/list-page :account (try (account-argument arguments))
@@ -125,9 +122,9 @@
         :kind kind)))
 
 (defn reply-kind (arguments)
-  (match (flag-argument arguments "all")
-    ((ok true) draft-kind/reply-all)
-    (_ draft-kind/reply)))
+  (map-ok (flag-argument arguments "all")
+    (fn (everyone)
+      (if everyone draft-kind/reply-all draft-kind/reply))))
 
 (defn relabel-command (name arguments)
   (let (change (try (change-named name)))

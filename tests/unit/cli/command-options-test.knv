@@ -1,0 +1,44 @@
+(use domain/freshness freshness)
+(use domain/label-scope label-scope)
+
+(use adapters/driving/cli/arguments parse-arguments switch?
+                                    value-of)
+
+(use adapters/driving/cli/command cli-command
+                                  cli-command-word?
+                                  command-from reply-scope)
+
+(use adapters/driving/cli/command-options body-format)
+(use domain/labels archive-change inbox-change)
+(use domain/mail-error error-message)
+(use support/sample-mail addresses)
+
+(defn parsed (tokens)
+  (unwrap-ok (parse-arguments (ref (addresses tokens)))))
+
+(defn command (tokens)
+  (unwrap-ok (command-from (ref (parsed tokens)))))
+
+(defn failure (tokens)
+  (str (error-message (ref (unwrap-err (command-from (ref (parsed tokens))))))))
+
+(deftest threads-show-reads-the-html-format
+  (assert (= (command (vec "threads" "show" "t-1" "--format" "html"))
+             (cli-command/show-thread (str "t-1") body-format/html))))
+
+(deftest an-unknown-format-is-a-usage-error
+  (assert (= (failure (vec "threads" "show" "t-1" "--format" "pdf"))
+             "--format expects text or html, not `pdf`")))
+
+(deftest a-limit-that-is-not-a-number-is-a-usage-error
+  (assert (= (failure (vec "threads" "list" "--limit" "lots"))
+             "--limit expects a number, not `lots`")))
+
+(deftest an-unknown-command-word-is-a-usage-error
+  (assert (= (failure (vec "explode" "t-1"))
+             "unknown command `explode`; try `knave-mail help`")))
+
+(deftest an-option-without-its-value-is-refused
+  (assert (= (parse-arguments (ref (addresses
+                                     (vec "threads" "list" "--limit"))))
+             (err (str "--limit expects a value")))))

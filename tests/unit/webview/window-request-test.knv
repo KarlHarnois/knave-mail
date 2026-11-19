@@ -40,3 +40,7 @@
 (deftest an-empty-link-is-refused
   (assert (contains? (ref (refusal-of "{\"command\":\"open-link\",\"args\":{\"url\":\"\"}}"))
                      "open-link needs a url")))
+
+(deftest a-flag-that-is-not-a-boolean-is-refused
+  (assert (contains? (ref (refusal-of "{\"id\":3,\"command\":\"reply-draft\",\"args\":{\"account\":\"a\",\"messageId\":\"m\",\"all\":\"yes\"}}"))
+                     "expected a boolean in `all`")))

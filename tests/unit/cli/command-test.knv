@@ -14,7 +14,7 @@
 (use support/sample-mail addresses)
 
 (defn parsed (tokens)
-  (parse-arguments (ref (addresses tokens))))
+  (unwrap-ok (parse-arguments (ref (addresses tokens)))))
 
 (defn command (tokens)
   (unwrap-ok (command-from (ref (parsed tokens)))))
@@ -130,19 +130,3 @@
                                        (str "")
                                        50
                                        freshness/fresh))))
-
-(deftest threads-show-reads-the-html-format
-  (assert (= (command (vec "threads" "show" "t-1" "--format" "html"))
-             (cli-command/show-thread (str "t-1") body-format/html))))
-
-(deftest an-unknown-format-is-a-usage-error
-  (assert (= (failure (vec "threads" "show" "t-1" "--format" "pdf"))
-             "--format expects text or html, not `pdf`")))
-
-(deftest a-limit-that-is-not-a-number-is-a-usage-error
-  (assert (= (failure (vec "threads" "list" "--limit" "lots"))
-             "--limit expects a number, not `lots`")))
-
-(deftest an-unknown-command-word-is-a-usage-error
-  (assert (= (failure (vec "explode" "t-1"))
-             "unknown command `explode`; try `knave-mail help`")))

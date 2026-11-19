@@ -17,20 +17,20 @@
 
 (defn settings-over (server tokens)
   (let (base (fake-gmail-base server))
-    (unwrap-ok (settings-from (ref (parse-arguments
-                                     (ref (vec (str "--gmail-base-url")
-                                               (clone base)
-                                               (str "--token-url")
-                                               (str base "/token")
-                                               (str "--client-id")
-                                               (str "fake-client")
-                                               (str "--client-secret")
-                                               (str "fake-secret")
-                                               (str "--credentials-file")
-                                               tokens
-                                               (str "--log-file")
-                                               (temporary-path
-                                                 "executor.log")))))))))
+    (unwrap-ok (settings-from (ref (unwrap-ok
+                                     (parse-arguments (ref (vec
+                                                             (str "--gmail-base-url")
+                                                             (clone base)
+                                                             (str "--token-url")
+                                                             (str base "/token")
+                                                             (str "--client-id")
+                                                             (str "fake-client")
+                                                             (str "--client-secret")
+                                                             (str "fake-secret")
+                                                             (str "--credentials-file")
+                                                             tokens
+                                                             (str "--log-file")
+                                                             (temporary-path "executor.log"))))))))))
 
 (deftest the-executor-answers-an-operation-submitted-from-another-thread
   (let (server (start-fake-gmail (ref (fixture-routes)))

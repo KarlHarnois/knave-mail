@@ -4,7 +4,7 @@
 (use support/sample-mail addresses)
 
 (defn settings-of (tokens)
-  (settings-from (ref (parse-arguments (ref (addresses tokens))))))
+  (settings-from (ref (unwrap-ok (parse-arguments (ref (addresses tokens)))))))
 
 (deftest the-memory-backend-is-read
   (assert (= (:backend (unwrap-ok (settings-of (vec "--backend" "memory"))))

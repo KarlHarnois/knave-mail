@@ -18,14 +18,25 @@
   :options (vec (pair string string))
   :switches (vec string))
 
+(type parse-arguments
+  (fn ((ref (vec string)))
+    (result parsed-arguments string)))
+
 (defn parse-arguments (tokens)
-  (loop (index 0
-         parsed (->parsed-arguments (vec) (vec) (vec)))
-    (match (get tokens index)
-      ((some token)
-       (recur (+ index (token-width token))
-              (with-token parsed tokens index)))
-      (none parsed))))
+  (parsed-from tokens 0
+               (->parsed-arguments (vec) (vec) (vec))))
+
+(type parsed-from
+  (fn ((ref (vec string)) usize parsed-arguments)
+    (result parsed-arguments string)))
+
+(defn parsed-from (tokens index parsed)
+  (match (get tokens index)
+    ((some token)
+     (recur tokens
+            (+ index (token-width token))
+            (try (with-token parsed tokens index))))
+    (none (ok parsed))))
 
 (defn valued? (token)
   (one-of? (as-str token) valued-options))
@@ -33,13 +44,18 @@
 (defn token-width (token)
   (if (valued? token) 2 1))
 
+(type with-token
+  (fn (parsed-arguments (ref (vec string)) usize)
+    (result parsed-arguments string)))
+
 (defn with-token (parsed tokens index)
   (let (token (at tokens index))
     (cond
       ((valued? token)
-       (with-option parsed token (value-after tokens index)))
-      ((flag? token) (with-switch parsed token))
-      (else (with-positional parsed token)))))
+       (let-try (value (value-after tokens index))
+         (ok (with-option parsed token value))))
+      ((flag? token) (ok (with-switch parsed token)))
+      (else (ok (with-positional parsed token))))))
 
 (defn positional (parsed index)
   (if (< index (len (:positionals parsed)))
@@ -92,10 +108,14 @@
 
 (defn flag? (token) (starts-with? token "--"))
 
+(type value-after
+  (fn ((ref (vec string)) usize)
+    (result string string)))
+
 (defn value-after (tokens index)
   (match (get tokens (inc index))
-    ((some value) (clone value))
-    (none (str ""))))
+    ((some value) (ok (clone value)))
+    (none (err (str (at tokens index) " expects a value")))))
 
 (type key-of
   (fn ((ref (pair string string)))

@@ -24,7 +24,7 @@
     (result startup string)))
 
 (defn startup-from (arguments)
-  (let (parsed (parse-arguments (ref arguments))
+  (let (parsed (try (parse-arguments (ref arguments)))
         chosen (try (settings-from (ref parsed))))
     (if (cli-command-word? (ref parsed))
       (ok (startup/cli :settings chosen :arguments parsed))

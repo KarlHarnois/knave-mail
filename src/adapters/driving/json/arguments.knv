@@ -16,8 +16,17 @@
 (defn text-argument (arguments name)
   (text-error->usage-error (string-field arguments name)))
 
+(type flag-argument
+  (fn ((ref json-value) (ref str))
+    (result bool mail-error)))
+
 (defn flag-argument (arguments name)
-  (text-error->usage-error (bool-field arguments name)))
+  (text-error->usage-error (optional-bool-field arguments name)))
+
+(def optional-bool-field
+  (rust "{{ let {!name} = {1}; match {0}.get({!name}) {{ None => Ok(false), Some({!value}) => {!value}.as_bool().ok_or_else(|| format!(\"expected a boolean in `{{}}`\", {!name})) }} }}"
+    (fn ((ref json-value) (ref str))
+      (result bool string))))
 
 (defn account-argument (arguments)
   (text-argument arguments "account"))
