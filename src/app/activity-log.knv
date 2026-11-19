@@ -1,3 +1,4 @@
+(use domain/log-entry log-area)
 (use app/operations/operation-log labels-changed)
 (use domain/mail-error error-kind error-message)
 (use domain/mail thread-summary)
@@ -12,16 +13,14 @@
         log-sent-but-uncached! log-skipped-prefetch!
         log-still-unread! log-vanished-thread!)
 
-(def sync-area "sync")
-
 (defn log-gmail-relabel! (log account thread-id change)
-  (log-info log sync-area
+  (log-info log log-area/sync
             (str account ": Gmail has " thread-id " "
                  (labels-changed change)
                  " compared with the cache")))
 
 (defn log-new-thread! (log account thread-id labels)
-  (log-info log sync-area
+  (log-info log log-area/sync
             (str account ": cached " thread-id
                  " for the first time with ["
                  (join labels ",")
@@ -34,7 +33,7 @@
     unit))
 
 (defn log-first-listed! (log account fetched)
-  (log-info log sync-area
+  (log-info log log-area/sync
             (str account ": a Gmail listing found "
                  (len fetched)
                  " threads the cache did not hold: "
@@ -44,7 +43,7 @@
                      (join " ")))))
 
 (defn log-label-restored! (log account label thread-ids)
-  (log-info log sync-area
+  (log-info log log-area/sync
             (str account ": a Gmail listing has "
                  (len thread-ids)
                  " threads under " label
@@ -52,52 +51,52 @@
                  (join thread-ids " "))))
 
 (defn log-incremental-sync-started! (log account since)
-  (log-info log sync-area
+  (log-info log log-area/sync
             (str account ": incremental sync from history " since)))
 
 (defn log-full-sync-started! (log account)
-  (log-info log sync-area
+  (log-info log log-area/sync
             (str account ": full sync, no checkpoint yet")))
 
 (defn log-history-expired! (log account since)
-  (log-warn log sync-area
+  (log-warn log log-area/sync
             (str account ": history " since
                  " expired, running a full sync")))
 
 (defn log-full-sync-done! (log account history-id)
-  (log-info log sync-area
+  (log-info log log-area/sync
             (str account ": full sync done at history " history-id)))
 
 (defn log-changes! (log account history-id relabeled matched downloads)
-  (log-info log sync-area
+  (log-info log log-area/sync
             (str account ": " relabeled
                  " threads relabeled from history, "
                  (len downloads)
                  " threads to download, now at history "
                  history-id ", " matched
                  " already matched the cache"))
-  (log-debug log sync-area
+  (log-debug log log-area/sync
              (str account ": threads to download " (join downloads " "))))
 
 (defn log-vanished-thread! (log account thread-id)
-  (log-debug log sync-area
+  (log-debug log log-area/sync
              (str account ": changed thread " thread-id
                   " no longer exists")))
 
 (defn log-skipped-prefetch! (log account thread-id failure)
-  (log-warn log sync-area
+  (log-warn log log-area/sync
             (str account ": skipped downloading thread "
                  thread-id ": "
                  (error-message failure))))
 
 (defn log-preview! (log account summaries)
-  (log-info log sync-area
+  (log-info log log-area/sync
             (str account ": preview listed "
                  (len summaries)
                  " inbox threads")))
 
 (defn log-sent-but-uncached! (log account thread-id failure)
-  (log-warn log "send"
+  (log-warn log log-area/send
             (str account ": sent into thread " thread-id
                  ", but caching it failed: "
                  (error-kind failure)
@@ -105,7 +104,7 @@
                  (error-message failure))))
 
 (defn log-still-unread! (log account thread-id failure)
-  (log-warn log "read"
+  (log-warn log log-area/read
             (str account ": could not mark thread "
                  thread-id " read: "
                  (error-kind failure)

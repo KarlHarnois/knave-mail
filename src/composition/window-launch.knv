@@ -1,3 +1,4 @@
+(use domain/log-entry log-area)
 (use adapters/driven/browser/system-browser ->system-browser)
 
 (use adapters/driven/threaded-queue share-sender
@@ -54,7 +55,7 @@
     ((claimed socket)
      (scripted-window chosen (some socket) scenario))
     (another-window-open (log-info (ref (chosen-log (ref chosen)))
-                                   "app"
+                                   log-area/app
                                    (str "a window is already open, so it came forward instead")))
     (unguarded (scripted-window chosen none scenario))))
 

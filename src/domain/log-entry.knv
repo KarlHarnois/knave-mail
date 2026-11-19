@@ -1,5 +1,6 @@
-(export ->log-entry log-entry log-level log-level->name
-        severity text->log-level)
+(export ->log-entry log-area log-area->name log-entry
+        log-level log-level->name severity text->log-area
+        text->log-level)
 
 (defenum log-level
   error
@@ -7,10 +8,50 @@
   info
   debug)
 
+(defenum log-area
+  app
+  delivery
+  frontend
+  gmail
+  operations
+  read
+  send
+  sync
+  window)
+
 (defstruct log-entry
   :level log-level
-  :area string
+  :area log-area
   :message string)
+
+(def log-areas
+  (vec log-area/app log-area/delivery log-area/frontend
+       log-area/gmail log-area/operations log-area/read
+       log-area/send log-area/sync log-area/window))
+
+(type log-area->name
+  (fn ((ref log-area)) (ref str)))
+
+(defn log-area->name (area)
+  (match area
+    (app "app")
+    (delivery "delivery")
+    (frontend "frontend")
+    (gmail "gmail")
+    (operations "operations")
+    (read "read")
+    (send "send")
+    (sync "sync")
+    (window "window")))
+
+(type text->log-area
+  (fn ((ref str)) (option log-area)))
+
+(defn text->log-area (text)
+  (-> (iter log-areas)
+      (find (fn (area)
+              (= (log-area->name area) text)))
+      (map-some (fn (area) (deref area)))))
 
 (def levels-by-severity
   (vec log-level/error log-level/warn log-level/info

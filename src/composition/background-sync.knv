@@ -1,3 +1,4 @@
+(use domain/log-entry log-area)
 (use adapters/driving/json/envelope sync-progress-event)
 (use adapters/driving/webview/sync-requests sync-event)
 
@@ -77,11 +78,11 @@
     (sync-event outcome account)))
 
 (defn previewed-then-synced! (app account progress log started)
-  (log-info log "sync"
+  (log-info log log-area/sync
             (str account ": background sync started"))
   (when (previewed? (preview-account! app account))
     (send-reply progress (sync-progress-event account))
-    (log-info log "sync"
+    (log-info log log-area/sync
               (str account ": preview shown after "
                    (- (clock-milliseconds) started)
                    "ms")))
@@ -91,10 +92,10 @@
   (let (elapsed (- (clock-milliseconds) started))
     (match outcome
       ((ok _)
-       (log-info log "sync"
+       (log-info log log-area/sync
                  (str account ": sync finished after " elapsed "ms")))
       ((err failure)
-       (log-warn log "sync"
+       (log-warn log log-area/sync
                  (str account ": sync failed after " elapsed
                       "ms: "
                       (error-kind failure)

@@ -1,17 +1,17 @@
 (use domain/collections collect-ok)
 
-(use domain/log-entry log-entry log-level severity
-                      text->log-level)
+(use domain/log-entry log-area log-entry log-level severity
+                      text->log-area text->log-level)
 
 (export ->level-spec allows? level-spec text->level-spec)
 
 (defstruct level-spec
   :default log-level
-  :areas (vec (pair string log-level)))
+  :areas (vec (pair log-area log-level)))
 
 (defenum level-part
   (everywhere log-level)
-  (in-area :area string :level log-level))
+  (in-area :area log-area :level log-level))
 
 (type text->level-spec
   (fn ((ref str))
@@ -31,12 +31,12 @@
 
 (defn with-part (spec part)
   (match part
-    ((everywhere level) (assoc spec :default (clone level)))
+    ((everywhere level) (assoc spec :default (deref level)))
     ((in-area area level)
-     (with-area spec (clone area) (clone level)))))
+     (with-area spec (deref area) (deref level)))))
 
 (type with-area
-  (fn (level-spec string log-level) level-spec))
+  (fn (level-spec log-area log-level) level-spec))
 
 (defn with-area (spec area level)
   (push! (mut (:areas spec))
@@ -61,9 +61,17 @@
     (result level-part string)))
 
 (defn area-part (area level)
-  (map-ok (named-level level)
-    (fn (found)
-      (level-part/in-area :area (str (trim area)) :level found))))
+  (let-try (found-area (named-area area)
+            found-level (named-level level))
+    (ok (level-part/in-area :area found-area :level found-level))))
+
+(type named-area
+  (fn ((ref str))
+    (result log-area string)))
+
+(defn named-area (name)
+  (ok-or (text->log-area (trim name))
+         (str "unknown log area `" name "`")))
 
 (type named-level
   (fn ((ref str))
@@ -82,15 +90,15 @@
       (severity (ref (threshold-for spec (ref (:area entry)))))))
 
 (type threshold-for
-  (fn ((ref level-spec) (ref string))
+  (fn ((ref level-spec) (ref log-area))
     log-level))
 
 (defn threshold-for (spec area)
   (-> (iter (:areas spec))
       (find (fn (entry)
-              (let-match ((pair name _) entry)
-                (= name area))))
+              (let-match ((pair listed _) entry)
+                (= listed area))))
       (map-some (fn (entry)
                   (let-match ((pair _ threshold) entry)
-                    (clone threshold))))
-      (unwrap-or (clone (:default spec)))))
+                    (deref threshold))))
+      (unwrap-or (:default spec))))

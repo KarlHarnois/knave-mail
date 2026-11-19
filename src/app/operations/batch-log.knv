@@ -1,3 +1,4 @@
+(use domain/log-entry log-area)
 (use app/operations/operation-log labels-changed)
 (use domain/delivery-tally delivery-count)
 (use ports/driven/event-log event-log log-info)
@@ -6,31 +7,29 @@
         log-batch-queued! log-batch-sent!
         log-kept-in-inbox!)
 
-(def operations-area "operations")
-
 (defn log-batch-sent! (log account change thread-count message-count)
-  (log-info log operations-area
+  (log-info log log-area/operations
             (str "relabel batch " account ": " thread-count
                  " threads, " message-count
                  " messages in one request "
                  (labels-changed change))))
 
 (defn log-archived-older! (log account before threads messages requests)
-  (log-info log operations-area
+  (log-info log log-area/operations
             (str "archive older " account ": " threads
                  " inbox threads before " before ", "
                  messages " messages in " requests
                  " requests")))
 
 (defn log-kept-in-inbox! (log account thread-ids)
-  (log-info log operations-area
+  (log-info log log-area/operations
             (str "archive older " account ": "
                  (len thread-ids)
                  " threads stay in the inbox with newer mail: "
                  (join thread-ids " "))))
 
 (defn log-batch-queued! (log account name change thread-ids)
-  (log-info log operations-area
+  (log-info log log-area/operations
             (str name " " account ": queued "
                  (len thread-ids)
                  " "
@@ -47,7 +46,7 @@
 (defn log-batch-delivered! (log name counts)
   (for-each (iter counts)
     (fn (count)
-      (log-info log operations-area
+      (log-info log log-area/operations
                 (str name " "
                      (:account count)
                      ": delivered "

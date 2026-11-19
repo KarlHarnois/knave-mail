@@ -1,3 +1,4 @@
+(use domain/log-entry log-area)
 (use domain/label-scope label-of)
 (use domain/labels label-change)
 (use domain/mail thread-query)
@@ -13,10 +14,8 @@
         log-gave-up! log-left-queued! log-queued!
         log-started! log-waiting!)
 
-(def operations-area "operations")
-
 (defn log-queued! (log queued)
-  (log-debug log operations-area
+  (log-debug log log-area/operations
              (line-of queued
                       (with-target (str "queued, "
                                         (rank-name (:priority queued)))
@@ -28,7 +27,7 @@
     (background (str "background"))))
 
 (defn log-started! (log queued policy attempt waited)
-  (log-debug log operations-area
+  (log-debug log log-area/operations
              (line-of queued
                       (str "started, attempt " attempt
                            " of "
@@ -41,20 +40,20 @@
     (none (str "unlimited"))))
 
 (defn log-left-queued! (log queued failure waited)
-  (log-info log operations-area
+  (log-info log log-area/operations
             (line-of queued
                      (str "left queued after " waited "ms: "
                           (failure-text failure)))))
 
 (defn log-finished! (log queued attempt took since-queued)
   (log-debug
-    log operations-area
+    log log-area/operations
     (line-of queued
              (str "finished in " took "ms, attempt " attempt
                   ", " since-queued "ms since queued"))))
 
 (defn log-waiting! (log queued failure next-attempt delay)
-  (log-info log operations-area
+  (log-info log log-area/operations
             (line-of queued
                      (str (waiting-step failure)
                           "; attempt " next-attempt " in "
@@ -75,7 +74,7 @@
     (_ false)))
 
 (defn log-gave-up! (log queued failure attempts)
-  (log-warn log operations-area
+  (log-warn log log-area/operations
             (line-of queued
                      (str "gave up after "
                           (attempts-text attempts)
@@ -83,7 +82,7 @@
                           (failure-text failure)))))
 
 (defn log-failed! (log queued failure attempt)
-  (log-info log operations-area
+  (log-info log log-area/operations
             (line-of queued
                      (str "failed on attempt " attempt ": "
                           (failure-text failure)))))

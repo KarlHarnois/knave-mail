@@ -1,3 +1,4 @@
+(use domain/log-entry log-area)
 (use composition/settings backend settings)
 (use ports/driven/event-log event-log log-info)
 (use adapters/clock clock-milliseconds)
@@ -5,7 +6,7 @@
 (export clock-milliseconds log-started trimmed)
 
 (defn log-started (log chosen mode)
-  (log-info log "app"
+  (log-info log log-area/app
             (str "knave-mail "
                  (app-version)
                  " started: " mode ", backend "

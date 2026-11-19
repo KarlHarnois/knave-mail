@@ -1,7 +1,7 @@
 (use adapters/driven/memory/shared handle share shared
                                    with-shared!)
 
-(use domain/log-entry log-entry)
+(use domain/log-entry log-area->name log-entry)
 
 (export ->memory-log logged-lines memory-log new-memory-log
         same-log written-to-memory!)
@@ -41,5 +41,7 @@
 (defn entry-lines (entries)
   (-> (iter entries)
       (map (fn (entry)
-             (str (:area entry) " " (:message entry))))
+             (str (log-area->name (ref (:area entry)))
+                  " "
+                  (:message entry))))
       collect))

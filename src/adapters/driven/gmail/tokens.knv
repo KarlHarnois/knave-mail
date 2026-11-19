@@ -1,3 +1,4 @@
+(use domain/log-entry log-area)
 (use adapters/driven/gmail/http http-post-form)
 (use adapters/driven/gmail/fields text-error->internal-error)
 (use adapters/driven/gmail/replies sent)
@@ -7,8 +8,6 @@
 (use ports/driven/event-log log-info log-warn)
 
 (export access-token! refresh!)
-
-(def area "gmail")
 
 (type access-token!
   (fn ((mut gmail-session))
@@ -50,13 +49,13 @@
           (some (try (text-error->internal-error
                        (string-field (ref fields) "access_token")))))
     (log-info (ref (:log session))
-              area
+              log-area/gmail
               (str "refreshed the access token"))
     (ok (do))))
 
 (defn failed-refresh (log reply)
   (let (status (:status reply))
-    (log-warn log area
+    (log-warn log log-area/gmail
               (str "Google's token endpoint answered " status))
     (cond
       ((or (= status 400) (= status 401))

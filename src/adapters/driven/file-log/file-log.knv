@@ -1,5 +1,7 @@
 (use domain/level-spec allows? level-spec)
-(use domain/log-entry log-entry log-level log-level->name)
+
+(use domain/log-entry log-area->name log-entry log-level
+                      log-level->name)
 
 (export file-log open-file-log written-to-file!)
 
@@ -33,7 +35,8 @@
        (padded (level-name (ref (:level entry)))
                5)
        " "
-       (padded (str (:area entry)) 8)
+       (padded (str (log-area->name (ref (:area entry))))
+               8)
        " "
        (one-line (ref (:message entry)))
        "\n"))

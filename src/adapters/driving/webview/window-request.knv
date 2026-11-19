@@ -9,7 +9,9 @@
 (use adapters/json/value bool-field json-value parse-json
                          string-field)
 
-(use domain/log-entry ->log-entry log-entry log-level)
+(use domain/log-entry ->log-entry log-area log-entry
+                      log-level)
+
 (use domain/mail-error mail-error)
 (use domain/results unwrap-ok-or)
 
@@ -87,7 +89,7 @@
 (defn frontend-entry (arguments)
   (->log-entry (level-named (ref (unwrap-ok-or (string-field arguments "level")
                                                (str "info"))))
-               (str "frontend")
+               log-area/frontend
                (unwrap-ok-or (string-field arguments "message") (str ""))))
 
 (defn level-named (name)

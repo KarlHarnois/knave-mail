@@ -1,3 +1,5 @@
+(use domain/log-entry log-area)
+
 (use adapters/driven/gmail/http-method http-method
                                        http-method->name)
 
@@ -7,20 +9,19 @@
 
 (export clock-milliseconds log-outcome!)
 
-(def area "gmail")
-
 (defn log-outcome! (log method path outcome started)
   (let (shown (str (http-method->name method) " " (without-query path)))
     (match outcome
       ((ok reply)
-       (log-debug log area
+       (log-debug log log-area/gmail
                   (str shown " "
                        (:status reply)
                        " "
                        (- (clock-milliseconds) started)
                        "ms")))
       ((err problem)
-       (log-warn log area (str shown " failed: " problem))))))
+       (log-warn log log-area/gmail
+                 (str shown " failed: " problem))))))
 
 (defn without-query (path)
   (let (parts (collect (split path "?")))

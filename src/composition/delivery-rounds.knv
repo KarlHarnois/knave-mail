@@ -1,3 +1,4 @@
+(use domain/log-entry log-area)
 (use adapters/driving/webview/window reply-outbox)
 (use app/mail-app mail-app)
 
@@ -46,7 +47,7 @@
                   (reported-steps! app outbox (ref steps) counts)))
     ((err failure)
      (do
-       (log-warn log "delivery"
+       (log-warn log log-area/delivery
                  (str "could not read queued changes: "
                       (error-message (ref failure))))
        (delivery-round/finished counts)))))

@@ -1,3 +1,4 @@
+(use domain/log-entry log-area)
 (use adapters/driven/gmail/session api-get!)
 (use adapters/driven/gmail/session-state gmail-session)
 (use adapters/driven/gmail/fields required-text)
@@ -47,7 +48,7 @@
                          collect-ok))
         so-far (concatenated found entries))
     (log-info (ref (:log session))
-              "gmail"
+              log-area/gmail
               (str "history since " since ": " (history-shape (ref page))))
     (match (optional-string-field (ref page) "nextPageToken")
       ((some token) (recur session since (some token) so-far))

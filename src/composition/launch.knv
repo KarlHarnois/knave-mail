@@ -1,3 +1,4 @@
+(use domain/log-entry log-area)
 (use adapters/driving/cli/arguments positional)
 (use adapters/driving/cli/cli run-cli!)
 (use adapters/driving/cli/command cli-command command-from)
@@ -49,7 +50,7 @@
          (local running app)
          (let (code (run-cli! (mut running) (ref parsed)))
            (log-info (ref log)
-                     "app"
+                     log-area/app
                      (str "cli " command " exited with "
                           code " after "
                           (- (clock-milliseconds) started)

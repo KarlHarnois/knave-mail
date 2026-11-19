@@ -4,7 +4,8 @@
 (use adapters/driven/memory/memory-log memory-log same-log
                                        written-to-memory!)
 
-(use domain/log-entry ->log-entry log-entry log-level)
+(use domain/log-entry ->log-entry log-area log-entry
+                      log-level)
 
 (export event-log log-debug log-error log-info log-warn
         record! share-log)
@@ -31,33 +32,29 @@
     ((memory held) (event-log/memory (same-log held)))))
 
 (type log-error
-  (fn ((ref event-log) (ref str) string)
-    unit))
+  (fn ((ref event-log) log-area string) unit))
 
 (defn log-error (log area message)
   (record! log
-           (ref (->log-entry log-level/error (str area) message))))
+           (ref (->log-entry log-level/error area message))))
 
 (type log-warn
-  (fn ((ref event-log) (ref str) string)
-    unit))
+  (fn ((ref event-log) log-area string) unit))
 
 (defn log-warn (log area message)
   (record! log
-           (ref (->log-entry log-level/warn (str area) message))))
+           (ref (->log-entry log-level/warn area message))))
 
 (type log-info
-  (fn ((ref event-log) (ref str) string)
-    unit))
+  (fn ((ref event-log) log-area string) unit))
 
 (defn log-info (log area message)
   (record! log
-           (ref (->log-entry log-level/info (str area) message))))
+           (ref (->log-entry log-level/info area message))))
 
 (type log-debug
-  (fn ((ref event-log) (ref str) string)
-    unit))
+  (fn ((ref event-log) log-area string) unit))
 
 (defn log-debug (log area message)
   (record! log
-           (ref (->log-entry log-level/debug (str area) message))))
+           (ref (->log-entry log-level/debug area message))))

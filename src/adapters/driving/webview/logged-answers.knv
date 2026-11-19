@@ -1,3 +1,4 @@
+(use domain/log-entry log-area)
 (use adapters/driving/json/commands reply-for run-command!)
 (use adapters/driving/json/envelope failure-reply)
 (use adapters/driving/json/mail-command mail-call)
@@ -19,7 +20,7 @@
         refuse-listings!)
 
 (defn answer-listings! (app log inbox sink)
-  (log-debug log "window"
+  (log-debug log log-area/window
              (str "listing worker ready for "
                   (len (unwrap-ok-or (list-accounts! app) (vec)))
                   " accounts"))
@@ -64,9 +65,10 @@
 (defn log-answer (log call outcome elapsed)
   (match outcome
     ((ok _)
-     (log-debug log "window" (str (:name call) " " elapsed "ms")))
+     (log-debug log log-area/window
+                (str (:name call) " " elapsed "ms")))
     ((err failure)
-     (log-warn log "window"
+     (log-warn log log-area/window
                (str (:name call)
                     " failed after " elapsed "ms: "
                     (error-kind failure)

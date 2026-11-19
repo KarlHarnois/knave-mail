@@ -1,3 +1,5 @@
+(use domain/log-entry log-area)
+
 (use adapters/driving/webview/listing-runner call-inbox
                                              listing-queue
                                              listing-runner
@@ -50,7 +52,7 @@
                            (ref (reply-sink/outbox outbox)))))
       ((err failure)
        (log-warn (ref log)
-                 "window"
+                 log-area/window
                  (str "the listing worker could not start, so it refuses Gmail listings: "
                       (error-message (ref failure))))
        (refuse-listings! (ref failure)

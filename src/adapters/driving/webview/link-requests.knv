@@ -1,10 +1,9 @@
+(use domain/log-entry log-area)
 (use domain/web-link web-link-host)
 (use ports/driven/event-log event-log log-info log-warn)
 (use ports/driven/link-opener link-opener open-link!)
 
 (export open-requested-link!)
-
-(def area "window")
 
 (type open-requested-link!
   (fn ((ref link-opener)
@@ -17,6 +16,6 @@
     ((some host)
      (do
        (open-link! opener url)
-       (log-info log area (str "opened link to " host))))
-    (none (log-warn log area
+       (log-info log log-area/window (str "opened link to " host))))
+    (none (log-warn log log-area/window
                     (str "refused to open a link that is not http or https")))))
