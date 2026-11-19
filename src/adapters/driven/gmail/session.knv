@@ -8,11 +8,8 @@
 (use adapters/driven/gmail/pacing slowed-down!)
 (use adapters/driven/gmail/quota take-units!)
 (use adapters/driven/gmail/quota-costs units-for)
-
-(use adapters/driven/gmail/replies checked collect-results
-                                   sent)
-
-(use domain/collections owned-items)
+(use adapters/driven/gmail/replies checked sent)
+(use domain/collections collect-ok owned-items)
 (use adapters/driven/gmail/request-log log-outcome!)
 (use ports/driven/clock now-milliseconds)
 
@@ -74,10 +71,10 @@
                                     http-method/get
                                     (at paths index)
                                     outcome elapsed)))))
-    (collect-results (-> (owned-items replies)
-                         (map (fn (outcome)
-                                (checked (try (sent outcome)) now)))
-                         collect))))
+    (-> (owned-items replies)
+        (map (fn (outcome)
+               (checked (try (sent outcome)) now)))
+        collect-ok)))
 
 (defn api-post! (session path body)
   (let (first-reply (try (post-one! session path body)))

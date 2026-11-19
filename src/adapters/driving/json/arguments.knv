@@ -10,7 +10,8 @@
 (use domain/mail-error mail-error)
 
 (export account-argument draft-argument flag-argument
-        page-token-argument text-argument thread-argument
+        page-token-argument text-argument
+        text-error->usage-error thread-argument
         thread-ids-argument thread-query-argument)
 
 (defn text-argument (arguments name)

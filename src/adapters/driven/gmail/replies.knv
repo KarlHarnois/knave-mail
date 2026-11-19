@@ -11,7 +11,7 @@
 (use adapters/driven/gmail/throttling throttling-of)
 (use domain/mail-error mail-error)
 
-(export checked collect-results sent)
+(export checked sent)
 
 (type checked
   (fn (http-reply int) (result json-value mail-error)))
@@ -54,8 +54,3 @@
   (if (empty? (trim (as-str body)))
     (str "{}")
     body))
-
-(def collect-results
-  (rust "{0}.into_iter().collect::<Result<Vec<_>, _>>()"
-    (fn ((vec (result json-value mail-error)))
-      (result (vec json-value) mail-error))))

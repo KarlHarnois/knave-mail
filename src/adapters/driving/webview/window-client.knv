@@ -1,4 +1,3 @@
-(use adapters/driving/json/commands answer!)
 (use app/client/mail-labeler waiting-changes)
 (use app/client/mail-syncer sync-account!)
 (use app/mail-app mail-app)
@@ -13,13 +12,7 @@
 (use domain/log-entry log-area)
 (use ports/driven/event-log log-warn)
 
-(export answer-request! send-waiting-changes! sync-mail!)
-
-(type answer-request!
-  (fn ((mut mail-app) (ref str)) string))
-
-(defn answer-request! (app request-text)
-  (answer! app request-text))
+(export send-waiting-changes! sync-mail!)
 
 (type sync-mail!
   (fn ((mut mail-app) (ref str))

@@ -1,7 +1,7 @@
 (use domain/collections concatenated)
 
 (export ->label-change apply-label-change archive-change
-        in-all-mail? inbox-change label-change
+        holds? in-all-mail? inbox-change label-change
         label-difference label-id label-removal no-change?
         read-change reversed-change star-change starred?
         system-label trash-change unread-change unread?

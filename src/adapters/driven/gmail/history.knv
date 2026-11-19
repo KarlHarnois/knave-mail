@@ -2,7 +2,9 @@
 (use adapters/driven/gmail/session api-get!)
 (use adapters/driven/gmail/session-state gmail-session)
 (use adapters/driven/gmail/fields required-text)
-(use adapters/driven/gmail/requests page-token-part)
+
+(use adapters/driven/gmail/requests page-token-part
+                                    users-me)
 
 (use adapters/driven/gmail/history-entry entries->mail-changes
                                          history-entry
@@ -17,8 +19,6 @@
 (use ports/driven/event-log log-info)
 
 (export fetched-changes! fetched-history-id!)
-
-(def users-me "/gmail/v1/users/me")
 
 (def history-page-size 500)
 

@@ -3,14 +3,7 @@
 (use domain/results ok->option)
 
 (export failure-reply null-id open-link-request
-        request-arguments request-command request-id
-        success-reply)
-
-(defn request-command (request-text)
-  (match (parse-json request-text)
-    ((ok request)
-     (ok->option (string-field (ref request) "command")))
-    ((err _) none)))
+        request-arguments request-id success-reply)
 
 (defn failure-reply (id failure)
   (error-reply id

@@ -1,5 +1,5 @@
 (use domain/collections appended-once as-count)
-(use domain/labels ->label-change label-change)
+(use domain/labels ->label-change holds? label-change)
 
 (export ->mail-changes ->message-relabel already-applied?
         history-change mail-changes message-relabel
@@ -112,10 +112,3 @@
                      (reduce (vec)
                        (fn (ids relabel)
                          (appended-once ids (clone (:message-id relabel)))))))))
-
-(type holds?
-  (fn ((ref (vec string)) (ref str)) bool))
-
-(defn holds? (labels wanted)
-  (any? (iter labels)
-    (fn (label) (= label wanted))))

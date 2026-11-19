@@ -1,3 +1,5 @@
+(use adapters/driving/json/arguments text-error->usage-error)
+
 (use adapters/driving/json/envelope failure-reply null-id
                                     request-arguments
                                     request-id
@@ -67,10 +69,6 @@
                                                        (ref (request-arguments
                                                               request))))
                      :name name))))
-
-(defn text-error->usage-error (outcome)
-  (map-err outcome
-    (fn (problem) (mail-error/usage problem))))
 
 (type reply-for
   (fn ((ref mail-call) (result json-value mail-error))

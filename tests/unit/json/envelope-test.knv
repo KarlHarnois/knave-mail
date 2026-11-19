@@ -1,5 +1,4 @@
 (use adapters/driving/json/commands answer!)
-(use adapters/driving/json/envelope request-command)
 (use support/app-steps synced!)
 
 (use support/memory-world app-over remote-with
@@ -33,10 +32,6 @@
 (deftest reports-malformed-json-without-an-id
   (assert (= (answered "{nope")
              "{\"error\":{\"kind\":\"usage\",\"message\":\"key must be a string at line 1 column 2\"},\"id\":null}")))
-
-(deftest reads-the-command-of-a-request
-  (assert (= (request-command "{\"command\":\"sync\"}")
-             (some (str "sync")))))
 
 (deftest reports-an-unreadable-date-as-a-usage-error
   (assert (= (answered "{\"id\":15,\"command\":\"archive-older\",\"args\":{\"account\":\"ada@example.com\",\"before\":\"last week\"}}")

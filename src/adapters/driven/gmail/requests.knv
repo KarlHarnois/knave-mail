@@ -8,7 +8,7 @@
         labels-path message-page-path message-path
         modify-body modify-path page-token-part send-body
         send-path thread-list-path thread-metadata-path
-        thread-page-path thread-path)
+        thread-page-path thread-path users-me)
 
 (def users-me "/gmail/v1/users/me")
 
