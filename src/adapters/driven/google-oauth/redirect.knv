@@ -8,11 +8,16 @@
 (use adapters/driven/google-oauth/redirect-query query-field)
 (use domain/mail-error mail-error)
 
-(export browser-redirect redirect-answer reply-to-browser!
+(export ->consent-grant browser-redirect consent-grant
+        redirect-answer reply-to-browser!
         target->redirect-answer wait-for-redirect)
 
+(defstruct consent-grant
+  :code string
+  :state string)
+
 (defenum redirect-answer
-  (granted :code string :state string)
+  (granted consent-grant)
   (refused string)
   not-a-redirect)
 
@@ -46,7 +51,8 @@
       ((not (empty? refusal)) (redirect-answer/refused refusal))
       ((and (empty? code) (empty? state))
        redirect-answer/not-a-redirect)
-      (else (redirect-answer/granted :code code :state state)))))
+      (else (redirect-answer/granted (->consent-grant :code code
+                                                      :state state))))))
 
 (type reply-to-browser!
   (where (value)

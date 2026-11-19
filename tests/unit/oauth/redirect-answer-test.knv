@@ -1,9 +1,11 @@
-(use adapters/driven/google-oauth/redirect redirect-answer
+(use adapters/driven/google-oauth/redirect ->consent-grant
+                                           redirect-answer
                                            target->redirect-answer)
 
 (deftest a-code-and-state-grant-the-sign-in
   (assert (= (target->redirect-answer "/?code=c&state=s")
-             (redirect-answer/granted :code (str "c") :state (str "s")))))
+             (redirect-answer/granted (->consent-grant :code (str "c")
+                                                       :state (str "s"))))))
 
 (deftest an-error-refuses-the-sign-in
   (assert (= (target->redirect-answer "/?error=access_denied")

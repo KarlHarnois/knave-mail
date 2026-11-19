@@ -7,7 +7,8 @@
 (use adapters/driven/google-oauth/loopback bind-loopback
                                            loopback-port)
 
-(use adapters/driven/google-oauth/redirect redirect-answer
+(use adapters/driven/google-oauth/redirect consent-grant
+                                           redirect-answer
                                            reply-to-browser!
                                            wait-for-redirect)
 
@@ -19,7 +20,9 @@
                                               text-error->auth-error
                                               text-error->network-error)
 
-(use adapters/driven/google-oauth/oauth-settings consent-url
+(use adapters/driven/google-oauth/oauth-settings ->consent-request
+                                                 consent-request
+                                                 consent-url
                                                  oauth-settings)
 
 (use domain/mail ->account account)
@@ -46,9 +49,7 @@
   (let (listener (try (text-error->auth-error (bind-loopback)))
         request (consent-request-on (ref listener))
         url (consent-url (ref (:settings granting))
-                         (ref (:redirect-uri request))
-                         (ref (:pkce request))
-                         (ref (:state request))))
+                         (ref request)))
     (try (open-url! (mut (:browser granting))
                     (ref url)))
     (let (wait (:sign-in-wait-milliseconds (:settings granting))
@@ -65,11 +66,6 @@
                      :pkce (new-pkce-pair)
                      :state (new-state)))
 
-(defstruct consent-request
-  :redirect-uri string
-  :pkce pkce-pair
-  :state string)
-
 (type answered-account!
   (fn ((mut google-authorizer)
        (ref redirect-answer)
@@ -78,35 +74,29 @@
 
 (defn answered-account! (granting answer request)
   (match answer
-    ((granted code state)
-     (granted-account! granting code state request))
+    ((granted grant) (granted-account! granting grant request))
     ((refused reason)
      (err (mail-error/auth-required (str "Google refused consent: " reason))))
     (not-a-redirect (err (mail-error/auth-required (str "the browser sent no sign-in answer"))))))
 
 (type granted-account!
   (fn ((mut google-authorizer)
-       (ref string)
-       (ref string)
+       (ref consent-grant)
        (ref consent-request))
     (result account mail-error)))
 
-(defn granted-account! (granting code state request)
-  (if (= state (:state request))
-    (exchange-code! granting
-                    (as-str code)
-                    (ref (:redirect-uri request))
-                    (ref (:pkce request)))
+(defn granted-account! (granting grant request)
+  (if (= (:state grant) (:state request))
+    (exchange-code! granting (as-str (:code grant)) request)
     (err (mail-error/auth-required (str "the sign-in answer did not match this request")))))
 
 (type exchange-code!
   (fn ((mut google-authorizer)
        (ref str)
-       (ref str)
-       (ref pkce-pair))
+       (ref consent-request))
     (result account mail-error)))
 
-(defn exchange-code! (granting code redirect-uri pkce)
+(defn exchange-code! (granting code request)
   (let (settings (ref (:settings granting))
         form (vec (pair (str "grant_type") (str "authorization_code"))
                   (pair (str "code") (str code))
@@ -114,9 +104,10 @@
                         (clone (:client-id settings)))
                   (pair (str "client_secret")
                         (clone (:client-secret settings)))
-                  (pair (str "redirect_uri") (str redirect-uri))
+                  (pair (str "redirect_uri")
+                        (clone (:redirect-uri request)))
                   (pair (str "code_verifier")
-                        (clone (:verifier pkce))))
+                        (clone (:verifier (:pkce request)))))
         reply (try (text-error->network-error (http-post-form
                                                 (ref (:agent granting))
                                                 (ref (:token-url settings))
