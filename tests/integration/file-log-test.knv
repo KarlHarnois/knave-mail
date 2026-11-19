@@ -27,16 +27,16 @@
 (defn line-count (text)
   (count (lines text)))
 
-(defn record-at! (log level area message)
-  (record! (ref log)
-           (ref (->log-entry level area (str message)))))
+(defn record-at! (log entry)
+  (record! (ref log) (ref entry)))
 
 (deftest writes-one-timestamped-line-per-entry
   (let (path (temporary-path "one-line-per-entry.log")
         log (event-log/file
               (open-file-log (ref path) (levels "info") clock/system)))
-    (record-at! log log-level/info log-area/gmail
-                "GET /labels 200 12ms")
+    (record-at! log
+                (->log-entry log-level/info log-area/gmail
+                             (str "GET /labels 200 12ms")))
     (let (written (read-file (ref path)))
       (assert (contains? (ref written)
                          "INFO  gmail    GET /labels 200 12ms\n"))
@@ -46,8 +46,10 @@
   (let (path (temporary-path "below-level.log")
         log (event-log/file
               (open-file-log (ref path) (levels "info") clock/system)))
-    (record-at! log log-level/debug log-area/gmail "hidden")
-    (record-at! log log-level/warn log-area/gmail "shown")
+    (record-at! log
+                (->log-entry log-level/debug log-area/gmail (str "hidden")))
+    (record-at! log
+                (->log-entry log-level/warn log-area/gmail (str "shown")))
     (assert (= (line-count (ref (read-file (ref path))))
                1))))
 
@@ -56,8 +58,10 @@
         log (event-log/file (open-file-log (ref path)
                                            (levels "warn,gmail=debug")
                                            clock/system)))
-    (record-at! log log-level/debug log-area/gmail "request")
-    (record-at! log log-level/info log-area/sync "dropped")
+    (record-at! log
+                (->log-entry log-level/debug log-area/gmail (str "request")))
+    (record-at! log
+                (->log-entry log-level/info log-area/sync (str "dropped")))
     (assert (= (line-count (ref (read-file (ref path))))
                1))))
 
@@ -65,8 +69,10 @@
   (let (path (temporary-path "single-line.log")
         log (event-log/file
               (open-file-log (ref path) (levels "info") clock/system)))
-    (record-at! log log-level/error log-area/frontend
-                "first\nsecond")
+    (record-at! log
+                (->log-entry log-level/error
+                             log-area/frontend
+                             (str "first\nsecond")))
     (assert (= (line-count (ref (read-file (ref path))))
                1))))
 
@@ -75,7 +81,8 @@
     (write-bytes (ref path) 5000001)
     (let (log (event-log/file
                 (open-file-log (ref path) (levels "info") clock/system)))
-      (record-at! log log-level/info log-area/app "fresh")
+      (record-at! log
+                  (->log-entry log-level/info log-area/app (str "fresh")))
       (assert (exists? (ref (str path ".1"))))
       (assert (= (line-count (ref (read-file (ref path))))
                  1)))))
