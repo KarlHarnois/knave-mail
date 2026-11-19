@@ -4,18 +4,29 @@
 
 (export change-named)
 
+(defstruct word-alias
+  :word (ref str)
+  :command (ref str))
+
+(def word-aliases
+  (vec (->word-alias :word "read" :command "mark-read")
+       (->word-alias :word "unread" :command "mark-unread")
+       (->word-alias :word "inbox" :command "move-to-inbox")))
+
 (type change-named
   (fn ((ref str))
     (result label-change mail-error)))
 
 (defn change-named (word)
-  (ok-or (label-change-named (ref (canonical-command word)))
+  (ok-or (label-change-named (canonical-command word))
          (mail-error/usage (str "unknown command `" word
                                 "`; try `knave-mail help`"))))
 
+(type canonical-command
+  (fn ((ref str)) (ref str)))
+
 (defn canonical-command (word)
-  (match word
-    ("read" (str "mark-read"))
-    ("unread" (str "mark-unread"))
-    ("inbox" (str "move-to-inbox"))
-    (_ (str word))))
+  (-> (iter word-aliases)
+      (find (fn (alias) (= (:word alias) word)))
+      (map-some (fn (alias) (:command alias)))
+      (unwrap-or word)))

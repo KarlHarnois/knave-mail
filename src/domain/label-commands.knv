@@ -3,21 +3,28 @@
                    unread-change unstar-change
                    untrash-change)
 
-(export label-change-named label-command?)
+(export label-change-named)
+
+(defstruct label-command
+  :name (ref str)
+  :change label-change)
+
+(def label-commands
+  (vec (->label-command :name "archive" :change (archive-change))
+       (->label-command :name "move-to-inbox"
+                        :change (inbox-change))
+       (->label-command :name "trash" :change (trash-change))
+       (->label-command :name "untrash" :change (untrash-change))
+       (->label-command :name "star" :change (star-change))
+       (->label-command :name "unstar" :change (unstar-change))
+       (->label-command :name "mark-read" :change (read-change))
+       (->label-command :name "mark-unread"
+                        :change (unread-change))))
+
+(type label-change-named
+  (fn ((ref str)) (option label-change)))
 
 (defn label-change-named (command)
-  (match command
-    ("archive" (some (archive-change)))
-    ("move-to-inbox" (some (inbox-change)))
-    ("trash" (some (trash-change)))
-    ("untrash" (some (untrash-change)))
-    ("star" (some (star-change)))
-    ("unstar" (some (unstar-change)))
-    ("mark-read" (some (read-change)))
-    ("mark-unread" (some (unread-change)))
-    (_ none)))
-
-(defn label-command? (command)
-  (match (label-change-named command)
-    ((some _) true)
-    (none false)))
+  (-> (iter label-commands)
+      (find (fn (listed) (= (:name listed) command)))
+      (map-some (fn (listed) (clone (:change listed))))))

@@ -14,7 +14,7 @@
 (use adapters/driving/webview/listing-runner call-inbox
                                              reply-sink)
 
-(use domain/label-commands label-command?)
+(use domain/label-commands label-change-named)
 
 (use adapters/driving/webview/logged-answers answer-listings!
                                              refuse-listings!)
@@ -62,8 +62,8 @@
   (assert (not (to-worker?
                  "archive"
                  "{\"account\":\"ada@example.com\",\"threadIds\":[]}")))
-  (assert (label-command? "archive"))
-  (assert (label-command? "mark-unread")))
+  (assert (some? (label-change-named "archive")))
+  (assert (some? (label-change-named "mark-unread"))))
 
 (deftest gmail-listings-go-to-the-worker
   (assert (to-worker? "thread-page"
