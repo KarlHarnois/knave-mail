@@ -1,3 +1,6 @@
+(use adapters/driven/gmail/http-method http-method
+                                       http-method->name)
+
 (use adapters/driven/gmail/http-reply http-reply)
 (use ports/driven/event-log event-log log-debug log-warn)
 (use adapters/clock clock-milliseconds)
@@ -7,7 +10,7 @@
 (def area "gmail")
 
 (defn log-outcome! (log method path outcome started)
-  (let (shown (str method " " (without-query path)))
+  (let (shown (str (http-method->name method) " " (without-query path)))
     (match outcome
       ((ok reply)
        (log-debug log area

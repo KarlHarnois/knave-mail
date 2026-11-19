@@ -1,3 +1,5 @@
+(use adapters/driven/gmail/http-method http-method)
+
 (export ->quota-bucket current-pace full-bucket pace-at
         quota-bucket slowed! slowed-at! take-units!
         units-for)
@@ -96,14 +98,14 @@
           (current-pace bucket))))
 
 (type units-for
-  (fn ((ref str) (ref str)) int))
+  (fn (http-method (ref str)) int))
 
 (defn units-for (method path)
   (cond
     ((ends-with? path "/messages/send") 100)
     ((ends-with? path "/batchModify") 50)
     ((ends-with? path "/modify") 10)
-    ((= method "POST") 10)
+    ((= method http-method/post) 10)
     ((contains? path "/threads") 10)
     ((contains? path "/messages") 5)
     ((contains? path "/history") 2)

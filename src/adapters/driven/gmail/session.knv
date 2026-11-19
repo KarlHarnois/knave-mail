@@ -1,3 +1,4 @@
+(use adapters/driven/gmail/http-method http-method)
 (use adapters/driven/gmail/http http-post-json)
 (use adapters/driven/gmail/paced-gets fetched-all!)
 
@@ -49,7 +50,7 @@
                                             (ref (vec (str path)))
                                             (ref token))))
     (log-outcome! (ref (:log session))
-                  "GET" path
+                  http-method/get path
                   (ref outcome)
                   started)
     (sent outcome)))
@@ -67,7 +68,7 @@
         (for-each (fn (numbered)
                     (let-match ((pair index outcome) numbered)
                       (log-outcome! (ref (:log session))
-                                    "GET"
+                                    http-method/get
                                     (at paths index)
                                     outcome started)))))
     (collect-results (-> (owned-items replies)
@@ -85,7 +86,7 @@
 
 (defn post-one! (session path body)
   (take-units! (mut (:quota session))
-               (units-for "POST" path))
+               (units-for http-method/post path))
   (let (token (try (access-token! session))
         started (clock-milliseconds)
         outcome (http-post-json (ref (:agent session))
@@ -95,7 +96,7 @@
     (when (posted-rate-limited? (ref outcome))
       (slowed-down! session))
     (log-outcome! (ref (:log session))
-                  "POST" path
+                  http-method/post path
                   (ref outcome)
                   started)
     (sent outcome)))

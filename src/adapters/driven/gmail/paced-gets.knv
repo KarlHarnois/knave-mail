@@ -1,3 +1,4 @@
+(use adapters/driven/gmail/http-method http-method)
 (use domain/collections concatenated)
 (use adapters/driven/gmail/http batch-size http-get-all)
 
@@ -36,7 +37,7 @@
 (defn units-of-gets (paths)
   (reduce (iter paths) 0
     (fn (total path)
-      (+ total (units-for "GET" (as-str path))))))
+      (+ total (units-for http-method/get (as-str path))))))
 
 (defn any-rate-limited? (outcomes)
   (any? (iter outcomes)
