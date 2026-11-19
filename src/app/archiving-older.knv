@@ -5,6 +5,7 @@
 
 (use app/gmail-pages all-messages! all-thread-ids!)
 (use app/operations/relabel-calls delivered-batch!)
+(use domain/archive-check checked-archive)
 (use domain/collections as-count in-chunks try-for-each)
 (use domain/delivery-batch most-batched-messages)
 (use domain/label-scope label-scope)
@@ -35,11 +36,9 @@
                                       (ref (inbox-query (str "")))
                                       (str "")
                                       (vec)))
-        kept (in-inbox (ref (:thread-ids found))
-                       (ref inboxed))
-        left (out-of-inbox (ref (:thread-ids found))
-                           (ref inboxed)))
-    (try (try-for-each (iter left)
+        check (checked-archive (ref (:thread-ids found))
+                               (ref inboxed)))
+    (try (try-for-each (iter (:left check))
            (fn (thread-id)
              (archived-in-cache! app account (as-str thread-id)))))
     (log-archived-older! (ref (:log app))
@@ -47,11 +46,11 @@
                          (len (:thread-ids found))
                          (len (:message-ids found))
                          requests)
-    (when (not (empty? kept))
+    (when (not (empty? (:kept check)))
       (log-kept-in-inbox! (ref (:log app))
                           account
-                          (ref kept)))
-    (ok (as-count (len left)))))
+                          (ref (:kept check))))
+    (ok (as-count (len (:left check))))))
 
 (defn inbox-query (search)
   (->thread-query (label-scope/only (label-id system-label/inbox))
@@ -72,28 +71,6 @@
                                                 :thread-ids (vec)
                                                 :change (archive-change))))))
     (ok (len chunks))))
-
-(type in-inbox
-  (fn ((ref (vec string)) (ref (vec string)))
-    (vec string)))
-
-(defn in-inbox (thread-ids inboxed)
-  (-> (iter thread-ids)
-      (filter (fn (thread-id)
-                (contains? inboxed (clone thread-id))))
-      (map (fn (thread-id) (clone thread-id)))
-      collect))
-
-(type out-of-inbox
-  (fn ((ref (vec string)) (ref (vec string)))
-    (vec string)))
-
-(defn out-of-inbox (thread-ids inboxed)
-  (-> (iter thread-ids)
-      (filter (fn (thread-id)
-                (not (contains? inboxed (clone thread-id)))))
-      (map (fn (thread-id) (clone thread-id)))
-      collect))
 
 (type archived-in-cache!
   (fn ((mut mail-app) (ref str) (ref str))

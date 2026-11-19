@@ -1,0 +1,7 @@
+(use domain/archive-check checked-archive)
+
+(deftest a-thread-still-in-the-inbox-is-kept
+  (let (check (checked-archive (ref (vec (str "t-1") (str "t-2")))
+                               (ref (vec (str "t-2")))))
+    (assert (= (:kept check) (vec (str "t-2"))))
+    (assert (= (:left check) (vec (str "t-1"))))))
