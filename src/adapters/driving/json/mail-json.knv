@@ -4,8 +4,8 @@
 (use domain/mail account draft label message summary-page
                  thread thread-summary)
 
-(export accounts-json draft-json labels-json summaries-json
-        summary-page-json thread-json)
+(export accounts-json archived-json draft-json labels-json
+        summaries-json summary-page-json thread-json)
 
 (def accounts-json
   (rust "serde_json::Value::Array({0}.iter().map(|{!account}| serde_json::json!({{\"email\": {!account}.email}})).collect())"
@@ -51,3 +51,7 @@
 (def draft-json
   (rust "serde_json::json!({{\"to\": {0}.to, \"cc\": {0}.cc, \"subject\": {0}.subject, \"body\": {0}.body, \"replyTo\": {0}.reply_to}})"
     (fn ((ref draft)) json-value)))
+
+(def archived-json
+  (rust "serde_json::json!({{\"archived\": {0}}})"
+    (fn (int) json-value)))

@@ -1,0 +1,120 @@
+(use adapters/driving/json/arguments account-argument
+                                     draft-argument
+                                     flag-argument
+                                     text-argument
+                                     thread-argument
+                                     thread-ids-argument
+                                     thread-query-argument)
+
+(use adapters/json/value bool-field json-value
+                         optional-string-field)
+
+(use domain/freshness freshness)
+(use domain/label-commands label-change-named)
+(use domain/labels label-change)
+
+(use domain/mail ->message-ref draft message-ref
+                 thread-query thread-ref)
+
+(use domain/mail-error mail-error)
+(use domain/reply draft-kind)
+
+(export json->mail-command mail-command)
+
+(defenum mail-command
+  list-accounts
+  (list-labels :account string)
+  (list-threads :account string
+                :query thread-query
+                :freshness freshness)
+  (list-page :account string
+             :query thread-query
+             :page-token string)
+  (archive-older :account string :before string)
+  (open-thread thread-ref)
+  (draft :message message-ref :kind draft-kind)
+  (send :account string :draft draft)
+  (sync :account string)
+  (relabel :account string
+           :thread-ids (vec string)
+           :change label-change))
+
+(type json->mail-command
+  (fn ((ref str) (ref json-value))
+    (result mail-command mail-error)))
+
+(defn json->mail-command (name arguments)
+  (match name
+    ("accounts" (ok mail-command/list-accounts))
+    ("labels"
+     (ok (mail-command/list-labels :account (try (account-argument
+                                                   arguments)))))
+    ("threads" (threads-command arguments))
+    ("thread-page" (page-command arguments))
+    ("archive-older" (archive-command arguments))
+    ("thread"
+     (ok (mail-command/open-thread (try (thread-argument arguments)))))
+    ("reply-draft"
+     (draft-command arguments (reply-kind arguments)))
+    ("forward-draft"
+     (draft-command arguments draft-kind/forward))
+    ("send"
+     (ok (mail-command/send :account (try (account-argument arguments))
+                            :draft (try (draft-argument arguments)))))
+    ("sync"
+     (ok (mail-command/sync :account (try (account-argument arguments)))))
+    (_ (relabel-command name arguments))))
+
+(defn threads-command (arguments)
+  (ok (mail-command/list-threads :account (try (account-argument arguments))
+                                 :query (try (thread-query-argument arguments))
+                                 :freshness (asked-freshness arguments))))
+
+(defn asked-freshness (arguments)
+  (match (bool-field arguments "fresh")
+    ((ok true) freshness/fresh)
+    (_ freshness/cached)))
+
+(defn page-command (arguments)
+  (ok (mail-command/list-page
+        :account (try (account-argument arguments))
+        :query (try (thread-query-argument arguments))
+        :page-token (unwrap-or (optional-string-field arguments "pageToken")
+                               (str "")))))
+
+(defn archive-command (arguments)
+  (ok (mail-command/archive-older :account (try (account-argument arguments))
+                                  :before (try (gmail-date-argument
+                                                 arguments)))))
+
+(defn gmail-date-argument (arguments)
+  (let (written (try (text-argument arguments "before")))
+    (ok-or (gmail-date (as-str written))
+           (mail-error/usage (str "expected a date like 2026/10/01 in `before`, not "
+                                  written)))))
+
+(def gmail-date
+  (rust "native::dates::gmail_date({0})"
+    (fn ((ref str)) (option string))))
+
+(defn draft-command (arguments kind)
+  (ok (mail-command/draft
+        :message (->message-ref :account (try (account-argument arguments))
+                                :message-id (try (text-argument arguments
+                                                                "messageId")))
+        :kind kind)))
+
+(defn reply-kind (arguments)
+  (match (flag-argument arguments "all")
+    ((ok true) draft-kind/reply-all)
+    (_ draft-kind/reply)))
+
+(defn relabel-command (name arguments)
+  (let (change (try (change-named name)))
+    (ok (mail-command/relabel :account (try (account-argument arguments))
+                              :thread-ids (try (thread-ids-argument arguments))
+                              :change change))))
+
+(defn change-named (name)
+  (ok-or (label-change-named name)
+         (mail-error/usage (str "unknown command `" name "`"))))
