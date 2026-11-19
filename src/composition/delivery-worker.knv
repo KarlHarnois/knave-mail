@@ -63,7 +63,7 @@
                       (error-message (ref failure))))))))
 
 (defn kept-delivering! (app wakeups outbox log)
-  (log-batch-delivered! log "relabel"
+  (log-batch-delivered! log
                         (ref (delivered-all! app outbox log (vec))))
   (when (woken? wakeups retry-milliseconds)
     (recur app wakeups outbox log)))

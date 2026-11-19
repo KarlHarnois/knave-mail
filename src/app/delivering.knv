@@ -53,7 +53,6 @@
     (if (delivery-finished? (ref steps))
       (do
         (log-batch-delivered! (ref (:log app))
-                              "relabel"
                               (ref tallied))
         (refused-or-done refusal))
       (recur app refusal tallied))))

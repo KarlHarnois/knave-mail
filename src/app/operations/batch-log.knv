@@ -28,9 +28,9 @@
                  " threads stay in the inbox with newer mail: "
                  (join thread-ids " "))))
 
-(defn log-batch-queued! (log account name change thread-ids)
+(defn log-batch-queued! (log account change thread-ids)
   (log-info log log-area/operations
-            (str name " " account ": queued "
+            (str "relabel " account ": queued "
                  (len thread-ids)
                  " "
                  (labels-changed change)
@@ -39,15 +39,14 @@
 
 (type log-batch-delivered!
   (fn ((ref event-log)
-       (ref str)
        (ref (vec delivery-count)))
     unit))
 
-(defn log-batch-delivered! (log name counts)
+(defn log-batch-delivered! (log counts)
   (for-each (iter counts)
     (fn (count)
       (log-info log log-area/operations
-                (str name " "
+                (str "relabel "
                      (:account count)
                      ": delivered "
                      (:delivered count))))))
