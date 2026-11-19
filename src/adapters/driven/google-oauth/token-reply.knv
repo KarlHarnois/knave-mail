@@ -1,0 +1,52 @@
+(use adapters/json/value json-value parse-json string-field)
+(use domain/mail-error mail-error)
+
+(export ->granted-tokens body->granted-tokens
+        body->profile-email granted-tokens
+        text-error->auth-error text-error->network-error)
+
+(defstruct granted-tokens
+  :refresh-token string
+  :access-token string)
+
+(type body->granted-tokens
+  (fn ((ref str))
+    (result granted-tokens mail-error)))
+
+(defn body->granted-tokens (body)
+  (let (tokens (try (body->json body)))
+    (ok (->granted-tokens
+          :refresh-token (try (required-field (ref tokens) "refresh_token"))
+          :access-token (try (required-field (ref tokens) "access_token"))))))
+
+(type body->profile-email
+  (fn ((ref str))
+    (result string mail-error)))
+
+(defn body->profile-email (body)
+  (required-field (ref (try (body->json body)))
+                  "emailAddress"))
+
+(type body->json
+  (fn ((ref str))
+    (result json-value mail-error)))
+
+(defn body->json (body)
+  (text-error->auth-error (parse-json body)))
+
+(type required-field
+  (fn ((ref json-value) (ref str))
+    (result string mail-error)))
+
+(defn required-field (value key)
+  (text-error->auth-error (string-field value key)))
+
+(defn text-error->auth-error (outcome)
+  (map-err outcome
+    (fn (problem)
+      (mail-error/auth-required (str "sign-in failed: " problem)))))
+
+(defn text-error->network-error (outcome)
+  (map-err outcome
+    (fn (problem)
+      (mail-error/network (str "cannot reach Google: " problem)))))

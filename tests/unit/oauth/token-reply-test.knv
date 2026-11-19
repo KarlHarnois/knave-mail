@@ -1,0 +1,14 @@
+(use adapters/driven/google-oauth/token-reply body->granted-tokens
+                                              body->profile-email)
+
+(deftest a-token-reply-decodes-both-tokens
+  (let (tokens (unwrap-ok (body->granted-tokens "{\"refresh_token\":\"r\",\"access_token\":\"a\"}")))
+    (assert (= (:refresh-token tokens) (str "r")))
+    (assert (= (:access-token tokens) (str "a")))))
+
+(deftest a-token-reply-without-a-refresh-token-fails-the-sign-in
+  (assert (err? (body->granted-tokens "{\"access_token\":\"a\"}"))))
+
+(deftest a-profile-reply-gives-the-email
+  (assert (= (body->profile-email "{\"emailAddress\":\"ada@example.com\"}")
+             (ok (str "ada@example.com")))))

@@ -14,7 +14,10 @@
 (use adapters/driven/google-oauth/pkce new-pkce-pair
                                        new-state pkce-pair)
 
-(use adapters/json/value parse-json string-field)
+(use adapters/driven/google-oauth/token-reply body->granted-tokens
+                                              body->profile-email
+                                              text-error->auth-error
+                                              text-error->network-error)
 
 (use adapters/driven/google-oauth/oauth-settings consent-url
                                                  oauth-settings)
@@ -107,15 +110,11 @@
                                                 (ref (:agent granting))
                                                 (ref (:token-url settings))
                                                 (ref form))))
-        tokens (try (text-error->auth-error (parse-json (:body reply))))
-        refresh-token (try (text-error->auth-error
-                             (string-field (ref tokens) "refresh_token")))
-        access-token (try (text-error->auth-error
-                            (string-field (ref tokens) "access_token")))
-        email (try (profile-email granting (ref access-token))))
+        tokens (try (body->granted-tokens (as-str (:body reply))))
+        email (try (profile-email granting (as-str (:access-token tokens)))))
     (try (save-token! (mut (:credentials granting))
                       (ref email)
-                      (ref refresh-token)))
+                      (ref (:refresh-token tokens))))
     (ok (->account email))))
 
 (type profile-email
@@ -127,16 +126,5 @@
                  "/gmail/v1/users/me/profile")
         reply (try (text-error->network-error (http-get (ref (:agent granting))
                                                         (ref url)
-                                                        access-token)))
-        profile (try (text-error->auth-error (parse-json (:body reply)))))
-    (text-error->auth-error (string-field (ref profile) "emailAddress"))))
-
-(defn text-error->auth-error (outcome)
-  (map-err outcome
-    (fn (problem)
-      (mail-error/auth-required (str "sign-in failed: " problem)))))
-
-(defn text-error->network-error (outcome)
-  (map-err outcome
-    (fn (problem)
-      (mail-error/network (str "cannot reach Google: " problem)))))
+                                                        access-token))))
+    (body->profile-email (as-str (:body reply)))))
