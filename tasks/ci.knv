@@ -1,4 +1,4 @@
-(use steps ->command run!)
+(use steps ->command run-all!)
 
 (def lint-tasks
   "for task in tasks/*.knv; do knave lint --color never \"$task\" || exit 1; done")
@@ -9,54 +9,57 @@
 (def check-native-crates
   "for crate in native native/testing; do (cd \"$crate\" && cargo fmt --check && CARGO_TARGET_DIR=\"$OLDPWD/target/native\" cargo clippy --quiet -- -D warnings) || exit 1; done")
 
+(def ci-steps
+  (vec (->command :desc "knave fmt --check"
+                  :dir "."
+                  :cmd "knave"
+                  :args (vec "fmt" "--check"))
+       (->command :desc "knave lint"
+                  :dir "."
+                  :cmd "knave"
+                  :args (vec "lint" "--color" "never"))
+       (->command :desc "knave lint tasks"
+                  :dir "."
+                  :cmd "sh"
+                  :args (vec "-c" lint-tasks))
+       (->command :desc "file lengths"
+                  :dir "."
+                  :cmd "knave"
+                  :args (vec "task" "check-file-lengths"))
+       (->command :desc "frontend lint"
+                  :dir "frontend"
+                  :cmd "bun"
+                  :args (vec "run" "lint"))
+       (->command :desc "frontend typecheck"
+                  :dir "frontend"
+                  :cmd "bun"
+                  :args (vec "run" "typecheck"))
+       (->command :desc "frontend tests"
+                  :dir "frontend"
+                  :cmd "sh"
+                  :args (vec "-c" capped-bun-test))
+       (->command :desc "frontend build"
+                  :dir "frontend"
+                  :cmd "bun"
+                  :args (vec "run" "build"))
+       (->command :desc "native crates"
+                  :dir "."
+                  :cmd "sh"
+                  :args (vec "-c" check-native-crates))
+       (->command :desc "knave build"
+                  :dir "."
+                  :cmd "knave"
+                  :args (vec "build"))
+       (->command :desc "knave tests"
+                  :dir "."
+                  :cmd "knave"
+                  :args (vec "test"))
+       (->command :desc "GUI scenarios"
+                  :dir "."
+                  :cmd "knave"
+                  :args (vec "task" "e2e"))))
+
 (deftask ci ()
   "Runs every check in order: formatting, lint, file lengths, the frontend, the native Rust crates, the build, the knave tests and the GUI scenarios."
-  (try (run! (->command :desc "knave fmt --check"
-                        :dir "."
-                        :cmd "knave"
-                        :args (vec "fmt" "--check"))))
-  (try (run! (->command :desc "knave lint"
-                        :dir "."
-                        :cmd "knave"
-                        :args (vec "lint" "--color" "never"))))
-  (try (run! (->command :desc "knave lint tasks"
-                        :dir "."
-                        :cmd "sh"
-                        :args (vec "-c" lint-tasks))))
-  (try (run! (->command :desc "file lengths"
-                        :dir "."
-                        :cmd "knave"
-                        :args (vec "task" "check-file-lengths"))))
-  (try (run! (->command :desc "frontend lint"
-                        :dir "frontend"
-                        :cmd "bun"
-                        :args (vec "run" "lint"))))
-  (try (run! (->command :desc "frontend typecheck"
-                        :dir "frontend"
-                        :cmd "bun"
-                        :args (vec "run" "typecheck"))))
-  (try (run! (->command :desc "frontend tests"
-                        :dir "frontend"
-                        :cmd "sh"
-                        :args (vec "-c" capped-bun-test))))
-  (try (run! (->command :desc "frontend build"
-                        :dir "frontend"
-                        :cmd "bun"
-                        :args (vec "run" "build"))))
-  (try (run! (->command :desc "native crates"
-                        :dir "."
-                        :cmd "sh"
-                        :args (vec "-c" check-native-crates))))
-  (try (run! (->command :desc "knave build"
-                        :dir "."
-                        :cmd "knave"
-                        :args (vec "build"))))
-  (try (run! (->command :desc "knave tests"
-                        :dir "."
-                        :cmd "knave"
-                        :args (vec "test"))))
-  (try (run! (->command :desc "GUI scenarios"
-                        :dir "."
-                        :cmd "knave"
-                        :args (vec "task" "e2e"))))
+  (try (run-all! (ref ci-steps)))
   (ok (println "All checks passed.")))

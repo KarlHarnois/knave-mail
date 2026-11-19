@@ -1,24 +1,27 @@
-(use steps ->command run!)
+(use steps ->command run-all!)
 
 (def install-binary
   "install -Dm755 target/knave/knave-mail/knave-mail \"$HOME/.local/bin/knave-mail\"")
 
+(def install-steps
+  (vec (->command :desc "frontend dependencies"
+                  :dir "frontend"
+                  :cmd "bun"
+                  :args (vec "install" "--frozen-lockfile"))
+       (->command :desc "frontend build"
+                  :dir "frontend"
+                  :cmd "bun"
+                  :args (vec "run" "build"))
+       (->command :desc "knave build --release"
+                  :dir "."
+                  :cmd "knave"
+                  :args (vec "build" "--release"))
+       (->command :desc "install to ~/.local/bin"
+                  :dir "."
+                  :cmd "sh"
+                  :args (vec "-c" install-binary))))
+
 (deftask install ()
   "Builds the frontend and the release binary, then installs knave-mail to ~/.local/bin."
-  (try (run! (->command :desc "frontend dependencies"
-                        :dir "frontend"
-                        :cmd "bun"
-                        :args (vec "install" "--frozen-lockfile"))))
-  (try (run! (->command :desc "frontend build"
-                        :dir "frontend"
-                        :cmd "bun"
-                        :args (vec "run" "build"))))
-  (try (run! (->command :desc "knave build --release"
-                        :dir "."
-                        :cmd "knave"
-                        :args (vec "build" "--release"))))
-  (try (run! (->command :desc "install to ~/.local/bin"
-                        :dir "."
-                        :cmd "sh"
-                        :args (vec "-c" install-binary))))
+  (try (run-all! (ref install-steps)))
   (ok (println "Installed knave-mail to ~/.local/bin/knave-mail.")))

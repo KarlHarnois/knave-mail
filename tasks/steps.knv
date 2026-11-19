@@ -1,10 +1,23 @@
-(export ->command command run!)
+(export ->command command run! run-all!)
 
 (defstruct command
   :desc str
   :dir str
   :cmd str
   :args (vec str))
+
+(type run-all!
+  (fn ((ref (vec command)))
+    (result unit string)))
+
+(defn run-all! (commands)
+  (loop (index 0)
+    (match (get commands index)
+      ((some cmd)
+       (match (run! cmd)
+         ((ok _) (recur (inc index)))
+         ((err problem) (err problem))))
+      (none (ok (do))))))
 
 (defn run! (cmd)
   (println "== " (:desc cmd))
