@@ -1,4 +1,5 @@
-(use adapters/driven/gmail/http-reply http-reply)
+(use adapters/driven/gmail/http-reply body->refusal
+                                      http-reply)
 
 (export agent-with-timeouts batch-size http-agent http-get
         http-get-all http-post-form http-post-json
@@ -35,8 +36,14 @@
 
 (defn first-reply (outcome) (then-ok outcome reply-from))
 
-(def reply-from
-  (rust "native::http_reply::reply_from({0}).map(|{!reply}| crate::adapters::driven::gmail::http_reply::HttpReply {{ status: {!reply}.status, body: {!reply}.body, retry_after: {!reply}.retry_after }})"
+(defn reply-from (response)
+  (map-ok (raw-reply-from response)
+    (fn (reply)
+      (let (refusal (body->refusal (as-str (:body reply))))
+        (assoc reply :refusal refusal)))))
+
+(def raw-reply-from
+  (rust "native::http_reply::reply_from({0}).map(|{!reply}| crate::adapters::driven::gmail::http_reply::HttpReply {{ status: {!reply}.status, body: {!reply}.body, retry_after: {!reply}.retry_after, refusal: crate::adapters::driven::gmail::http_reply::GmailRefusal {{ message: String::new(), reasons: Vec::new() }} }})"
     (fn (http-response) (result http-reply string))))
 
 (def batch-size 8)

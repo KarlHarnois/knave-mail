@@ -1,25 +1,39 @@
-(export http-reply quota-exhausted? rate-limited?)
+(export ->http-reply body->refusal gmail-refusal http-reply
+        quota-exhausted? rate-limited?)
+
+(defstruct gmail-refusal
+  :message string
+  :reasons (vec string))
 
 (defstruct http-reply
   :status u16
   :body string
-  :retry-after (option int))
+  :retry-after (option int)
+  :refusal gmail-refusal)
+
+(def rate-limit-reasons
+  (vec "rateLimitExceeded" "userRateLimitExceeded"))
+
+(def quota-reasons
+  (vec "dailyLimitExceeded" "quotaExceeded"))
 
 (defn rate-limited? (reply)
   (or (= (:status reply) 429)
-      (refused-for-any? reply
-                        (vec "rateLimitExceeded" "userRateLimitExceeded"))))
+      (refused-for-any? reply (ref rate-limit-reasons))))
 
 (defn quota-exhausted? (reply)
-  (refused-for-any? reply
-                    (vec "dailyLimitExceeded" "quotaExceeded")))
+  (refused-for-any? reply (ref quota-reasons)))
+
+(type refused-for-any?
+  (fn ((ref http-reply) (ref (vec (ref str))))
+    bool))
 
 (defn refused-for-any? (reply reasons)
   (and (= (:status reply) 403)
-       (names-any-reason? (ref (:body reply))
-                          (ref reasons))))
+       (any? (iter (:reasons (:refusal reply)))
+         (fn (reason)
+           (contains? reasons (as-str reason))))))
 
-(def names-any-reason?
-  (rust "serde_json::from_str::<serde_json::Value>({0}).ok().and_then(|{!answer}| {!answer}[\"error\"][\"errors\"].as_array().map(|{!errors}| {!errors}.iter().any(|{!error}| {!error}[\"reason\"].as_str().is_some_and(|{!reason}| {1}.contains(&{!reason}))))).unwrap_or(false)"
-    (fn ((ref str) (ref (vec (ref str))))
-      bool)))
+(def body->refusal
+  (rust "{{ let {!answer} = serde_json::from_str::<serde_json::Value>({0}).unwrap_or_default(); crate::adapters::driven::gmail::http_reply::GmailRefusal {{ message: {!answer}[\"error\"][\"message\"].as_str().map(|{!message}| {!message}.split_whitespace().collect::<Vec<_>>().join(\" \")).unwrap_or_default(), reasons: {!answer}[\"error\"][\"errors\"].as_array().map(|{!errors}| {!errors}.iter().filter_map(|{!error}| {!error}[\"reason\"].as_str().map(str::to_string)).collect()).unwrap_or_default() }} }}"
+    (fn ((ref str)) gmail-refusal)))

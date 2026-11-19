@@ -18,7 +18,7 @@
   (fn ((ref http-reply)) throttling))
 
 (defn throttling-of (reply)
-  (let (gmail-message (gmail-error-message (ref (:body reply))))
+  (let (gmail-message (clone (:message (:refusal reply))))
     (->throttling :message (notice-with (ref gmail-message))
                   :retry-after-milliseconds (asked-wait (:retry-after reply)
                                                         (as-str
@@ -49,10 +49,6 @@
   (+ (- milliseconds-per-minute
         (rem now milliseconds-per-minute))
      past-the-minute-milliseconds))
-
-(def gmail-error-message
-  (rust "serde_json::from_str::<serde_json::Value>({0}).ok().and_then(|{!answer}| {!answer}[\"error\"][\"message\"].as_str().map(|{!message}| {!message}.split_whitespace().collect::<Vec<_>>().join(\" \"))).unwrap_or_default()"
-    (fn ((ref str)) string)))
 
 (def utc-milliseconds-after
   (rust "native::dates::utc_milliseconds_after({0}, {1})"

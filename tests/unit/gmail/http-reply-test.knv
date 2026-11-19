@@ -1,0 +1,26 @@
+(use adapters/driven/gmail/http-reply ->http-reply
+                                      body->refusal
+                                      quota-exhausted?
+                                      rate-limited?)
+
+(defn refused-with (reason)
+  (let (body (str "{\"error\":{\"message\":\"Slow  down\",\"errors\":[{\"reason\":\""
+                  reason "\"}]}}"))
+    (->http-reply :status 403
+                  :refusal (body->refusal (as-str body))
+                  :body body
+                  :retry-after none)))
+
+(deftest the-refusal-message-is-read-once-with-spaces-collapsed
+  (assert (= (:message (body->refusal
+                         "{\"error\":{\"message\":\"Slow  down\"}}"))
+             (str "Slow down"))))
+
+(deftest a-rate-limit-reason-marks-the-reply-rate-limited
+  (assert (rate-limited? (ref (refused-with "userRateLimitExceeded")))))
+
+(deftest a-quota-reason-marks-the-quota-used-up
+  (assert (quota-exhausted? (ref (refused-with "dailyLimitExceeded")))))
+
+(deftest a-body-that-is-not-json-has-no-reasons
+  (assert (empty? (:reasons (body->refusal "<html>")))))
