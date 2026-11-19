@@ -6,22 +6,45 @@
 (use domain/collections appended-once concatenated)
 (use domain/mail ->message-page message-page thread-query)
 (use domain/mail-error mail-error)
+(use domain/operation ->page-request page-request)
 
 (export all-messages! all-thread-ids!)
+
+(defstruct message-paging
+  :request page-request
+  :found message-page)
+
+(defstruct id-paging
+  :request page-request
+  :found (vec string))
 
 (type all-messages!
   (fn ((mut mail-app)
        (ref str)
-       (ref thread-query)
-       (option string)
-       message-page)
+       (ref thread-query))
     (result message-page mail-error)))
 
-(defn all-messages! (app account query page-token found)
-  (let (page (try (fetched-message-page! app account query (ref page-token)))
-        merged (merged-pages found (ref page)))
+(defn all-messages! (app account query)
+  (messages-from! app account
+                  (->message-paging :request (first-page query)
+                                    :found (->message-page :message-ids (vec)
+                                                           :thread-ids (vec)
+                                                           :next-token none))))
+
+(type messages-from!
+  (fn ((mut mail-app) (ref str) message-paging)
+    (result message-page mail-error)))
+
+(defn messages-from! (app account paging)
+  (let (page (try (fetched-message-page! app account (ref (:request paging))))
+        merged (merged-pages (clone (:found paging))
+                             (ref page)))
     (match (clone (:next-token page))
-      ((some token) (recur app account query (some token) merged))
+      ((some token)
+       (recur app account
+              (->message-paging :request (next-page (clone (:request paging))
+                                                    token)
+                                :found merged)))
       (none (ok merged)))))
 
 (type merged-pages
@@ -39,14 +62,32 @@
 (type all-thread-ids!
   (fn ((mut mail-app)
        (ref str)
-       (ref thread-query)
-       (option string)
-       (vec string))
+       (ref thread-query))
     (result (vec string) mail-error)))
 
-(defn all-thread-ids! (app account query page-token found)
-  (let (page (try (fetched-thread-page! app account query (ref page-token)))
-        ids (concatenated found (clone (:ids page))))
+(defn all-thread-ids! (app account query)
+  (thread-ids-from! app account
+                    (->id-paging :request (first-page query) :found (vec))))
+
+(type thread-ids-from!
+  (fn ((mut mail-app) (ref str) id-paging)
+    (result (vec string) mail-error)))
+
+(defn thread-ids-from! (app account paging)
+  (let (page (try (fetched-thread-page! app account (ref (:request paging))))
+        ids (concatenated (clone (:found paging))
+                          (clone (:ids page))))
     (match (clone (:next-token page))
-      ((some token) (recur app account query (some token) ids))
+      ((some token)
+       (recur app account
+              (->id-paging :request (next-page (clone (:request paging)) token)
+                           :found ids)))
       (none (ok ids)))))
+
+(defn first-page (query)
+  (->page-request :listing (clone query) :page-token none))
+
+(type next-page (fn (page-request string) page-request))
+
+(defn next-page (request token)
+  (assoc request :page-token (some token)))

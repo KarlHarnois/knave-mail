@@ -83,9 +83,9 @@
     ((list-threads account query freshness)
      (ok (summaries->json
            (ref (try (list-threads! app account query (clone freshness)))))))
-    ((list-page account query page-token)
-     (ok (summary-page->json
-           (ref (try (list-thread-page! app account query page-token))))))
+    ((list-page account request)
+     (ok (summary-page->json (ref (try
+                                    (list-thread-page! app account request))))))
     ((archive-older account before)
      (ok (archived-json (try (archive-older! app account before)))))
     ((open-thread wanted)

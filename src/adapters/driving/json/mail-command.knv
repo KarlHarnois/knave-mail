@@ -1,3 +1,5 @@
+(use domain/operation ->page-request page-request)
+
 (use domain/queued-relabel ->relabel-request
                            relabel-request)
 
@@ -30,9 +32,7 @@
   (list-threads :account string
                 :query thread-query
                 :freshness freshness)
-  (list-page :account string
-             :query thread-query
-             :page-token (option string))
+  (list-page :account string :request page-request)
   (archive-older :account string :before string)
   (open-thread thread-ref)
   (draft :message message-ref :kind draft-kind)
@@ -47,7 +47,7 @@
 
 (defn worker-listing? (command)
   (match command
-    ((list-page _ _ _) true)
+    ((list-page _ _) true)
     ((archive-older _ _) true)
     ((list-threads _ query freshness)
      (gmail-listing? query freshness))
@@ -93,8 +93,10 @@
 
 (defn page-command (arguments)
   (ok (mail-command/list-page :account (try (account-argument arguments))
-                              :query (try (thread-query-argument arguments))
-                              :page-token (page-token-argument arguments))))
+                              :request (->page-request :listing (try (thread-query-argument
+                                                                       arguments))
+                                                       :page-token (page-token-argument
+                                                                     arguments)))))
 
 (defn archive-command (arguments)
   (ok (mail-command/archive-older :account (try (account-argument arguments))

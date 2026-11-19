@@ -1,3 +1,4 @@
+(use domain/operation ->page-request)
 (use adapters/driven/memory/remote-operation remote-operation)
 (use domain/label-scope label-scope)
 (use domain/mail ->thread-query summary-page)
@@ -30,8 +31,10 @@
         app (app-over (ref world)))
     (let (page (unwrap-ok (list-thread-page! (mut app)
                                              world-account
-                                             (ref (inbox-page 2))
-                                             (ref none))))
+                                             (ref (->page-request
+                                                    :listing (clone (ref (inbox-page
+                                                                           2)))
+                                                    :page-token none)))))
       (assert (= (ids-of (ref page))
                  (vec (str "t-3") (str "t-2"))))
       (assert (some? (:next-token page))))))
@@ -41,12 +44,16 @@
         app (app-over (ref world))
         first (unwrap-ok (list-thread-page! (mut app)
                                             world-account
-                                            (ref (inbox-page 2))
-                                            (ref none)))
+                                            (ref (->page-request
+                                                   :listing (clone (ref (inbox-page
+                                                                          2)))
+                                                   :page-token none))))
         last (unwrap-ok (list-thread-page! (mut app)
                                            world-account
-                                           (ref (inbox-page 2))
-                                           (ref (:next-token first)))))
+                                           (ref (->page-request
+                                                  :listing (inbox-page 2)
+                                                  :page-token (clone (:next-token
+                                                                       first)))))))
     (assert (= (ids-of (ref last))
                (vec (str "t-1"))))
     (assert (none? (:next-token last)))))
@@ -56,10 +63,13 @@
         app (app-over (ref world)))
     (synced! (mut app))
     (fail-remote! (ref world) remote-operation/fetch-summaries)
-    (assert (= (ids-of (ref (unwrap-ok (list-thread-page! (mut app)
-                                                          world-account
-                                                          (ref (inbox-page 3))
-                                                          (ref none)))))
+    (assert (= (ids-of (ref (unwrap-ok (list-thread-page!
+                                         (mut app)
+                                         world-account
+                                         (ref (->page-request
+                                                :listing (clone (ref (inbox-page
+                                                                       3)))
+                                                :page-token none))))))
                (vec (str "t-3")
                     (str "t-2")
                     (str "t-1"))))))

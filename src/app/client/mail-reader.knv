@@ -1,3 +1,4 @@
+(use domain/operation page-request)
 (use domain/freshness freshness)
 (use app/mail-app mail-app)
 (use app/listing listed-page! listed-threads!)
@@ -34,12 +35,11 @@
 (type list-thread-page!
   (fn ((mut mail-app)
        (ref str)
-       (ref thread-query)
-       (ref (option string)))
+       (ref page-request))
     (result summary-page mail-error)))
 
-(defn list-thread-page! (app account query page-token)
-  (listed-page! app account query page-token))
+(defn list-thread-page! (app account request)
+  (listed-page! app account request))
 
 (type open-thread!
   (fn ((mut mail-app) (ref thread-ref))

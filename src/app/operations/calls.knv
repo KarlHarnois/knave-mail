@@ -8,8 +8,8 @@
 
 (use domain/mail-error mail-error)
 
-(use domain/operation ->page-request ->relabel-work
-                      operation-kind operation-result)
+(use domain/operation ->relabel-work operation-kind
+                      operation-result page-request)
 
 (export delivered! fetched-changes! fetched-history-id!
         fetched-labels! fetched-message-page!
@@ -53,32 +53,25 @@
 (type fetched-thread-page!
   (fn ((mut mail-app)
        (ref str)
-       (ref thread-query)
-       (ref (option string)))
+       (ref page-request))
     (result thread-page mail-error)))
 
-(defn fetched-thread-page! (app account query page-token)
+(defn fetched-thread-page! (app account request)
   (match (try (run-operation! app account
-                              (operation-kind/fetch-page (->page-request
-                                                           :listing (clone
-                                                                      query)
-                                                           :page-token (clone page-token)))))
+                              (operation-kind/fetch-page (clone request))))
     ((page-fetched page) (ok page))
     (_ (unexpected "fetch page"))))
 
 (type fetched-message-page!
   (fn ((mut mail-app)
        (ref str)
-       (ref thread-query)
-       (ref (option string)))
+       (ref page-request))
     (result message-page mail-error)))
 
-(defn fetched-message-page! (app account query page-token)
+(defn fetched-message-page! (app account request)
   (match (try (run-operation! app account
-                              (operation-kind/fetch-message-page
-                                (->page-request :listing (clone query)
-                                                :page-token (clone
-                                                              page-token)))))
+                              (operation-kind/fetch-message-page (clone
+                                                                   request))))
     ((message-page-fetched page) (ok page))
     (_ (unexpected "fetch message page"))))
 

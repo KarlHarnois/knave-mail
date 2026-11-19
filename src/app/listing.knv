@@ -1,3 +1,4 @@
+(use domain/operation page-request)
 (use app/activity-log log-first-listed! log-label-restored!)
 (use app/mail-app mail-app)
 (use domain/collections concatenated)
@@ -35,16 +36,15 @@
 (type listed-page!
   (fn ((mut mail-app)
        (ref str)
-       (ref thread-query)
-       (ref (option string)))
+       (ref page-request))
     (result summary-page mail-error)))
 
-(defn listed-page! (app account query page-token)
-  (let (page (try (fetched-thread-page! app account query page-token)))
+(defn listed-page! (app account request)
+  (let (page (try (fetched-thread-page! app account request)))
     (ok (->summary-page :summaries (try (summaries-for! app
                                                         account
                                                         (ref (:ids page))
-                                                        (ref (:scope query))))
+                                                        (ref (:scope (:listing request)))))
                         :next-token (clone (:next-token page))))))
 
 (type summaries-for!
