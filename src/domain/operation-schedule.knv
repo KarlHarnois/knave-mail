@@ -1,3 +1,6 @@
+(use domain/collections concatenated first-present
+                        owned-items)
+
 (use domain/operation operation priority)
 
 (export ->scheduled next-ready scheduled wait-until-due)
@@ -7,25 +10,27 @@
   :attempt int
   :not-before int)
 
+(type next-ready
+  (fn ((ref (vec scheduled)) int)
+    (option usize)))
+
 (defn next-ready (waiting now)
-  (loop (index 0
-         best none)
-    (if (>= index (len waiting))
-      best
-      (recur (inc index) (better-ready waiting index now best)))))
+  (let (due (-> (range 0 (len waiting))
+                (filter (fn (index)
+                          (<= (:not-before (at waiting index)) now)))
+                collect)
+        interactive (-> (iter due)
+                        (filter (fn (index)
+                                  (interactive-at? waiting (deref index))))
+                        (map (fn (index) (deref index)))
+                        collect))
+    (-> (concatenated interactive due)
+        owned-items
+        (map some)
+        first-present)))
 
-(defn better-ready (waiting index now best)
-  (if (and (<= (:not-before (at waiting index)) now)
-           (runs-before? waiting index best))
-    (some index)
-    best))
-
-(defn runs-before? (waiting index best)
-  (match best
-    ((some chosen)
-     (and (interactive? (:priority (:operation (at waiting index))))
-          (not (interactive? (:priority (:operation (at waiting chosen)))))))
-    (none true)))
+(defn interactive-at? (waiting index)
+  (interactive? (:priority (:operation (at waiting index)))))
 
 (defn interactive? (rank)
   (match rank (interactive true) (background false)))

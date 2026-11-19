@@ -32,28 +32,37 @@
     (if (wrapped-in-keymap? (ref tokens))
       (read-entries (ref tokens)
                     2
-                    (vec)
-                    (vec))
+                    (->keymapped (vec) (vec)))
       (->keymapped (vec)
                    (vec (str "keymap.knv: the file must be one (keymap ...) form"))))))
 
-(defn read-entries (tokens index entries warnings)
+(defn read-entries (tokens index mapped)
   (if (>= (inc index) (len tokens))
-    (->keymapped entries warnings)
-    (read-entry tokens index entries warnings)))
+    mapped
+    (read-entry tokens index mapped)))
 
-(defn read-entry (tokens index entries warnings)
+(defn read-entry (tokens index mapped)
   (match (entry-at tokens index)
     ((ok entry)
      (read-entries tokens
                    (+ index entry-width)
-                   (appended entries entry)
-                   warnings))
+                   (with-entry mapped entry)))
     ((err problem)
      (read-entries tokens
                    (next-entry tokens index)
-                   entries
-                   (appended warnings (str "keymap.knv: " problem))))))
+                   (with-warning mapped (str "keymap.knv: " problem))))))
+
+(type with-entry (fn (keymapped keymap-entry) keymapped))
+
+(defn with-entry (mapped entry)
+  (push! (mut (:entries mapped)) entry)
+  mapped)
+
+(type with-warning (fn (keymapped string) keymapped))
+
+(defn with-warning (mapped warning)
+  (push! (mut (:warnings mapped)) warning)
+  mapped)
 
 (defn entry-at (tokens index)
   (let (opening (token-at tokens index)

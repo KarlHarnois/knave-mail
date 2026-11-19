@@ -12,36 +12,42 @@
   :message-ids (vec string))
 
 (defn batch-from (queued summaries pending)
-  (gathered queued 0 summaries pending
-            (->delivery-batch :rows (vec) :message-ids (vec))))
+  (let (head (at queued 0)
+        candidates (-> (iter queued)
+                       (take-while (fn (row) (same-change? row head)))
+                       (map (fn (row)
+                              (pair (clone row)
+                                    (message-ids-of row summaries pending))))
+                       collect))
+    (gathered (ref candidates)
+              0
+              (->delivery-batch :rows (vec) :message-ids (vec)))))
 
 (defenum gather-step
   (take :row queued-relabel :ids (vec string))
   skip
   stop)
 
-(defn gathered (queued index summaries pending batch)
-  (match (step-at queued index summaries pending (ref batch))
+(type gathered
+  (fn ((ref (vec (pair queued-relabel (option (vec string)))))
+       usize delivery-batch)
+    delivery-batch))
+
+(defn gathered (candidates index batch)
+  (match (step-at candidates index (ref batch))
     ((take row ids)
-     (recur queued
+     (recur candidates
             (inc index)
-            summaries pending
             (with-row batch row (clone ids))))
-    (skip (recur queued (inc index) summaries pending batch))
+    (skip (recur candidates (inc index) batch))
     (stop batch)))
 
-(defn step-at (queued index summaries pending batch)
-  (match (get queued index)
-    ((some row)
-     (step-for row (at queued 0) summaries pending batch))
+(defn step-at (candidates index batch)
+  (match (get candidates index)
+    ((some candidate)
+     (let-match ((pair row found) candidate)
+       (step-with-ids row (clone found) batch)))
     (none gather-step/stop)))
-
-(defn step-for (row head summaries pending batch)
-  (if (same-change? row head)
-    (step-with-ids row
-                   (message-ids-of row summaries pending)
-                   batch)
-    gather-step/stop))
 
 (defn step-with-ids (row found batch)
   (match found
