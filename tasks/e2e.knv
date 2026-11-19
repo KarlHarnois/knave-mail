@@ -14,54 +14,68 @@
 
 (def keymap-file "tests/fixtures/keymap/e2e-keymap.sexp")
 
+(defenum scenario-outcome
+  passed
+  failed)
+
 (deftask e2e ()
   "Builds knave-mail and runs each GUI scenario under xvfb-run against the memory backend."
   (try (succeeded "knave build"
                   (run-command! "knave" (vec (str "build")))))
   (let (scenarios (try (scenario-files scenario-directory runner-script))
-        failures (count-failures (ref scenarios) 0 0))
+        outcomes (-> (iter scenarios) (map run-scenario) collect)
+        failures (failure-count (ref outcomes)))
     (if (zero? failures)
       (ok (println "All " (len scenarios) " GUI scenarios passed."))
       (err (str failures " of "
                 (len scenarios)
                 " GUI scenarios failed")))))
 
-(type count-failures
-  (fn ((ref (vec string)) usize int) int))
+(type failure-count
+  (fn ((ref (vec scenario-outcome)))
+    usize))
 
-(defn count-failures (scenarios index failures)
-  (if (>= index (len scenarios))
-    failures
-    (let (passed (run-scenario (at scenarios index)))
-      (recur scenarios
-             (inc index)
-             (if passed failures (inc failures))))))
+(defn failure-count (outcomes)
+  (-> (iter outcomes) (filter failed?) count))
+
+(defn failed? (outcome)
+  (match outcome (passed false) (failed true)))
 
 (type run-scenario
-  (fn ((ref str)) bool))
+  (fn ((ref string)) scenario-outcome))
 
 (defn run-scenario (scenario)
   (println "== " scenario)
-  (match (scenario-script scenario runner-script script-directory)
+  (match (scenario-script (as-str scenario)
+                          runner-script script-directory)
     ((ok script)
-     (run-command! "timeout"
-                   (vec (str run-seconds)
-                        (str "xvfb-run")
-                        (str "-a")
-                        (str "-s")
-                        (str screen-size)
-                        (str binary)
-                        (str "--backend")
-                        (str "memory")
-                        (str "--theme")
-                        (str theme-file)
-                        (str "--keymap")
-                        (str keymap-file)
-                        (str "--log-file")
-                        (str script-directory "/gui.log")
-                        (str "--e2e-script")
-                        script)))
-    ((err problem) (do (eprintln problem) false))))
+     (status->outcome (run-command! "timeout" (scenario-arguments script))))
+    ((err problem) (eprintln problem) scenario-outcome/failed)))
+
+(defn status->outcome (succeeded)
+  (if succeeded
+    scenario-outcome/passed scenario-outcome/failed))
+
+(type scenario-arguments
+  (fn (string) (vec string)))
+
+(defn scenario-arguments (script)
+  (vec (str run-seconds)
+       (str "xvfb-run")
+       (str "-a")
+       (str "-s")
+       (str screen-size)
+       (str binary)
+       (str "--backend")
+       (str "memory")
+       (str "--theme")
+       (str theme-file)
+       (str "--keymap")
+       (str keymap-file)
+       (str "--log-file")
+       (str script-directory "/gui.log")
+       (str "--e2e-script")
+       script))
 
 (defn succeeded (description outcome)
   (if outcome
