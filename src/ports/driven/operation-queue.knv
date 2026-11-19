@@ -1,11 +1,9 @@
 (use domain/mail-error mail-error)
-
-(use domain/operation operation-kind operation-result
-                      priority)
+(use domain/operation operation-request operation-result)
 
 (export operation-queue)
 
 (deftrait operation-queue
   (submit!
-    (fn ((mut self) (ref str) operation-kind priority)
+    (fn ((mut self) operation-request)
       (result operation-result mail-error))))

@@ -17,7 +17,8 @@
 
 (use ports/driven/clock clock)
 (use app/mail-app mail-app new-mail-app)
-(use app/operations/inline-queue new-inline-queue)
+(use app/operations/inline-queue ->inline-queue)
+(use app/operations/runner new-runner)
 (use app/mail-app delivery)
 (use domain/operation priority)
 (use ports/driven/event-log event-log log-warn share-log)
@@ -35,10 +36,10 @@
 
 (defn memory-app (chosen log)
   (let (provider (->memory-provider (account-emails) (seeded-remotes chosen))
-        operations (new-inline-queue (box provider)
-                                     clock/system
-                                     (share-log (ref log))
-                                     (some 0))
+        operations (->inline-queue :runner (new-runner (box provider)
+                                                       clock/system
+                                                       (share-log (ref log)))
+                                   :patience (some 0))
         app (new-mail-app (box (store-with-accounts))
                           (the (box operation-queue) (box operations))
                           (box (->memory-authorizer (vec)))

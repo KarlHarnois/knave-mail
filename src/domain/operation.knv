@@ -4,10 +4,16 @@
 (use domain/mail label message-page outgoing thread
                  thread-page thread-query thread-summary)
 
-(export ->message-batch ->operation ->page-request
-        ->relabel-work message-batch operation
-        operation-kind operation-result page-request
-        priority relabel-source relabel-work)
+(export ->message-batch ->operation ->operation-request
+        ->page-request ->relabel-work message-batch
+        operation operation-kind operation-request
+        operation-result page-request priority
+        relabel-source relabel-work)
+
+(defstruct operation-request
+  :account string
+  :kind operation-kind
+  :priority priority)
 
 (defstruct page-request
   :listing thread-query

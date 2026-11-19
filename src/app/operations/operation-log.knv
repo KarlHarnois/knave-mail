@@ -9,11 +9,14 @@
                              operation-kind->policy
                              operation-policy)
 
-(use ports/driven/event-log log-debug log-info log-warn)
+(use app/operations/operation-event event-step
+                                    operation-event)
 
-(export labels-changed log-failed! log-finished!
-        log-gave-up! log-left-queued! log-queued!
-        log-started! log-waiting!)
+(use ports/driven/event-log event-log log-debug log-info
+                            log-warn)
+
+(export labels-changed log-operation! log-queued!
+        operation-event)
 
 (defn log-queued! (log queued)
   (log-debug log log-area/operations
@@ -27,66 +30,19 @@
     (interactive (str "interactive"))
     (background (str "background"))))
 
-(defn log-started! (log queued policy attempt waited)
-  (log-debug log log-area/operations
-             (line-of queued
-                      (str "started, attempt " attempt
-                           " of "
-                           (attempts-limit (most-attempts policy))
-                           ", waited " waited "ms"))))
+(type log-operation!
+  (fn ((ref event-log)
+       (ref operation)
+       (ref operation-event))
+    unit))
 
-(defn attempts-limit (most-attempts)
-  (match most-attempts
-    ((some most) (str most))
-    (none (str "unlimited"))))
-
-(defn log-left-queued! (log queued failure waited)
-  (log-info log log-area/operations
-            (line-of queued
-                     (str "left queued after " waited "ms: "
-                          (failure-text failure)))))
-
-(defn log-finished! (log queued attempt took since-queued)
-  (log-debug
-    log log-area/operations
-    (line-of queued
-             (str "finished in " took "ms, attempt " attempt
-                  ", " since-queued "ms since queued"))))
-
-(defn log-waiting! (log queued failure next-attempt delay)
-  (log-info log log-area/operations
-            (line-of queued
-                     (str (waiting-step failure)
-                          "; attempt " next-attempt " in "
-                          delay "ms"
-                          (if (from-retry-after? failure delay)
-                            ", as Gmail asked" "")))))
-
-(defn waiting-step (failure)
-  (match failure
-    ((throttled throttle)
-     (str "throttled: " (:message throttle)))
-    (_ (str "failed, will retry: " (failure-text failure)))))
-
-(defn from-retry-after? (failure delay)
-  (match failure
-    ((throttled throttle)
-     (= (:retry-after-milliseconds throttle) delay))
-    (_ false)))
-
-(defn log-gave-up! (log queued failure attempts)
-  (log-warn log log-area/operations
-            (line-of queued
-                     (str "gave up after "
-                          (attempts-text attempts)
-                          ": "
-                          (failure-text failure)))))
-
-(defn log-failed! (log queued failure attempt)
-  (log-info log log-area/operations
-            (line-of queued
-                     (str "failed on attempt " attempt ": "
-                          (failure-text failure)))))
+(defn log-operation! (log queued event)
+  (let (line (line-of queued (event-step event)))
+    (match event
+      ((started _ _ _) (log-debug log log-area/operations line))
+      ((finished _ _ _) (log-debug log log-area/operations line))
+      ((gave-up _ _) (log-warn log log-area/operations line))
+      (_ (log-info log log-area/operations line)))))
 
 (type line-of
   (fn ((ref operation) string) string))
@@ -139,11 +95,3 @@
        "] -["
        (join (ref (:removed change)) ",")
        "]"))
-
-(defn failure-text (failure)
-  (str (error-kind failure) ": " (error-message failure)))
-
-(defn attempts-text (attempts)
-  (if (= attempts 1)
-    (str "1 attempt")
-    (str attempts " attempts")))

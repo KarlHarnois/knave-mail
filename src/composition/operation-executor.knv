@@ -103,10 +103,7 @@
           (vec (pair int submission)))))
 
 (defn admitted! (runner arrival waiting replies)
-  (let (queued (new-operation! runner
-                               (as-str (:account arrival))
-                               (clone (:kind arrival))
-                               (:priority arrival))
+  (let (queued (new-operation! runner (clone (:request arrival)))
         id (:id queued))
     (pair (appended waiting
                     (->scheduled :operation queued :attempt 1 :not-before 0))

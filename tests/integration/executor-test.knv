@@ -3,8 +3,8 @@
 (use adapters/driving/cli/arguments parse-arguments)
 (use composition/settings arguments->settings settings)
 
-(use domain/operation operation-kind operation-result
-                      priority)
+(use domain/operation ->operation-request operation-kind
+                      operation-result priority)
 
 (use ports/driven/operation-queue submit!)
 (use support/cli-world signed-in-tokens)
@@ -40,8 +40,9 @@
         queue (threaded-operations (ref executor)))
     (local asking queue)
     (assert (match (submit! (mut asking)
-                            "ada@example.com"
-                            operation-kind/fetch-labels
-                            priority/interactive)
+                            (->operation-request
+                              :account (str "ada@example.com")
+                              :kind operation-kind/fetch-labels
+                              :priority priority/interactive))
               ((ok (labels-fetched labels)) (not (empty? labels)))
               (_ false)))))

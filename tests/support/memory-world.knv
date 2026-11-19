@@ -15,7 +15,8 @@
 (use adapters/driven/memory/memory-clock memory-clock
                                          new-memory-clock)
 
-(use app/operations/inline-queue new-inline-queue)
+(use app/operations/inline-queue ->inline-queue)
+(use app/operations/runner new-runner)
 (use domain/operation priority)
 (use ports/driven/clock clock)
 (use ports/driven/operation-queue operation-queue)
@@ -96,19 +97,20 @@
     mail-app))
 
 (defn app-timed-by (remote log clock)
-  (new-mail-app (box (empty-memory-store))
-                (the (box operation-queue)
-                     (box (new-inline-queue
-                            (box (->memory-provider (vec (str world-account))
-                                                    (vec (handle remote))))
-                            (clock/memory clock)
-                            (event-log/memory (same-log (ref log)))
-                            (some fake-patience-milliseconds))))
-                (box (->memory-authorizer (vec (->account (str "new@example.com")))))
-                (event-log/memory log)
-                priority/interactive delivery/deliver-now
-                (->sync-limits :sync 50
-                               :preview 25
-                               :prefetch test-prefetch-limit)))
+  (new-mail-app
+    (box (empty-memory-store))
+    (the (box operation-queue)
+         (box (->inline-queue :runner (new-runner
+                                        (box (->memory-provider (vec (str world-account))
+                                                                (vec (handle remote))))
+                                        (clock/memory clock)
+                                        (event-log/memory (same-log (ref log))))
+                              :patience (some fake-patience-milliseconds))))
+    (box (->memory-authorizer (vec (->account (str "new@example.com")))))
+    (event-log/memory log)
+    priority/interactive delivery/deliver-now
+    (->sync-limits :sync 50
+                   :preview 25
+                   :prefetch test-prefetch-limit)))
 
 (def test-prefetch-limit 20)

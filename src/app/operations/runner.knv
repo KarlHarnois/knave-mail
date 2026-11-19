@@ -1,16 +1,18 @@
-(use app/mailboxes mailboxes)
+(use ports/driven/mailbox-provider mailbox-provider)
+(use app/mailboxes ->mailboxes mailboxes)
 (use app/operations/performing performed!)
 
-(use app/operations/operation-log log-failed! log-finished!
-                                  log-gave-up! log-queued!
-                                  log-started! log-waiting!)
+(use app/operations/operation-log log-operation!
+                                  log-queued!)
 
+(use app/operations/operation-event operation-event)
 (use domain/mail-error mail-error)
 
 (use domain/operation ->operation operation operation-kind
-                      priority)
+                      operation-request priority)
 
-(use domain/operation-policy operation-policy policy-for)
+(use domain/operation-policy most-attempts operation-policy
+                             policy-for)
 
 (use domain/attempt-outcome attempt-outcome
                             attempt-outcome-of)
@@ -21,22 +23,30 @@
 (use ports/driven/event-log event-log)
 
 (export ->operation-runner attempt-once! new-operation!
-        operation-runner)
+        new-runner operation-runner)
 
 (defstruct operation-runner
   :mailboxes mailboxes
   :clock clock
   :log event-log)
 
-(type new-operation!
-  (fn ((ref operation-runner) (ref str) operation-kind priority)
-    operation))
+(type new-runner
+  (fn ((box mailbox-provider) clock event-log)
+    operation-runner))
 
-(defn new-operation! (runner account kind rank)
+(defn new-runner (provider chosen log)
+  (->operation-runner :mailboxes (->mailboxes provider (vec))
+                      :clock chosen
+                      :log log))
+
+(type new-operation!
+  (fn ((ref operation-runner) operation-request) operation))
+
+(defn new-operation! (runner request)
   (let (queued (->operation :id (next-operation-id)
-                            :account (str account)
-                            :kind kind
-                            :priority rank
+                            :account (clone (:account request))
+                            :kind (clone (:kind request))
+                            :priority (:priority request)
                             :queued-at (now-milliseconds (ref (:clock
                                                                 runner)))))
     (log-queued! (ref (:log runner))
@@ -53,75 +63,60 @@
         policy (policy-for (ref (:kind queued))
                            (:priority queued))
         started (now-milliseconds (ref (:clock runner))))
-    (log-started! (ref (:log runner))
-                  queued
-                  (ref policy)
-                  attempt
-                  (- started (:queued-at queued)))
+    (log-operation! (ref (:log runner))
+                    queued
+                    (ref (operation-event/started
+                           :attempt attempt
+                           :limit (most-attempts (ref policy))
+                           :waited (- started (:queued-at queued)))))
     (let (outcome (attempt-outcome-of (performed! (mut (:mailboxes runner))
                                                   queued)
                                       attempt
-                                      (ref policy)))
-      (log-outcome! runner queued
-                    (ref (->attempt-context :attempt attempt
-                                            :policy policy
-                                            :started started))
-                    (ref outcome))
+                                      (ref policy))
+          context (->attempt-context :attempt attempt
+                                     :policy policy
+                                     :started started
+                                     :queued-at (:queued-at queued)))
+      (log-operation! (ref (:log runner))
+                      queued
+                      (ref (outcome->event (ref outcome)
+                                           (ref context)
+                                           (now-milliseconds (ref (:clock
+                                                                    runner))))))
       outcome)))
 
 (defstruct attempt-context
   :attempt int
   :policy operation-policy
-  :started int)
+  :started int
+  :queued-at int)
 
-(type log-outcome!
-  (fn ((ref operation-runner)
-       (ref operation)
-       (ref attempt-context)
-       (ref attempt-outcome))
-    unit))
+(type outcome->event
+  (fn ((ref attempt-outcome) (ref attempt-context) int)
+    operation-event))
 
-(defn log-outcome! (runner queued context outcome)
+(defn outcome->event (outcome context now)
   (match outcome
-    ((finished _) (log-finish! runner queued context))
+    ((finished _)
+     (operation-event/finished :attempt (:attempt context)
+                               :took (- now (:started context))
+                               :since-queued (- now (:queued-at context))))
     ((retry plan)
-     (log-waiting! (ref (:log runner))
-                   queued
-                   (ref (:failure plan))
-                   (inc (:attempt context))
-                   (:delay plan)))
-    ((failed failure)
-     (log-stopped! runner queued
-                   (:attempt context)
-                   (ref (:policy context))
-                   failure))))
+     (operation-event/waiting :failure (clone (:failure plan))
+                              :next-attempt (inc (:attempt context))
+                              :delay (:delay plan)))
+    ((failed failure) (stopped-event context (clone failure)))))
 
-(type log-finish!
-  (fn ((ref operation-runner)
-       (ref operation)
-       (ref attempt-context))
-    unit))
+(type stopped-event
+  (fn ((ref attempt-context) mail-error) operation-event))
 
-(defn log-finish! (runner queued context)
-  (let (finished-at (now-milliseconds (ref (:clock runner))))
-    (log-finished! (ref (:log runner))
-                   queued
-                   (:attempt context)
-                   (- finished-at (:started context))
-                   (- finished-at (:queued-at queued)))))
-
-(type log-stopped!
-  (fn ((ref operation-runner)
-       (ref operation)
-       int
-       (ref operation-policy)
-       (ref mail-error))
-    unit))
-
-(defn log-stopped! (runner queued attempt policy failure)
-  (if (retryable? policy failure)
-    (log-gave-up! (ref (:log runner)) queued failure attempt)
-    (log-failed! (ref (:log runner)) queued failure attempt)))
+(defn stopped-event (context failure)
+  (if (retryable? (ref (:policy context))
+                  (ref failure))
+    (operation-event/gave-up :failure failure
+                             :attempts (:attempt context))
+    (operation-event/failed :failure failure
+                            :attempt (:attempt context))))
 
 (def next-operation-id
   (rust "{{ static NEXT: std::sync::atomic::AtomicI64 = std::sync::atomic::AtomicI64::new(1); NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed) }}"

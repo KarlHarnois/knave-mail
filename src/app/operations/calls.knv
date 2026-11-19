@@ -8,8 +8,9 @@
 
 (use domain/mail-error mail-error)
 
-(use domain/operation ->relabel-work operation-kind
-                      operation-result page-request)
+(use domain/operation ->operation-request ->relabel-work
+                      operation-kind operation-result
+                      page-request)
 
 (export delivered! fetched-changes! fetched-history-id!
         fetched-labels! fetched-message-page!
@@ -134,8 +135,9 @@
 
 (defn run-operation! (app account kind)
   (submit! (mut (:operations app))
-           account kind
-           (:priority app)))
+           (->operation-request :account (str account)
+                                :kind kind
+                                :priority (:priority app))))
 
 (defn unexpected (name)
   (err (mail-error/internal (str name

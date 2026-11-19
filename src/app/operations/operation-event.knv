@@ -1,0 +1,65 @@
+(use domain/mail-error error-kind error-message mail-error)
+
+(export event-step operation-event)
+
+(defenum operation-event
+  (started :attempt int :limit (option int) :waited int)
+  (finished :attempt int :took int :since-queued int)
+  (waiting :failure mail-error :next-attempt int :delay int)
+  (gave-up :failure mail-error :attempts int)
+  (failed :failure mail-error :attempt int)
+  (left-queued :failure mail-error :waited int))
+
+(type event-step
+  (fn ((ref operation-event)) string))
+
+(defn event-step (event)
+  (match event
+    ((started attempt limit waited)
+     (str "started, attempt " attempt " of "
+          (attempts-limit (deref limit))
+          ", waited " waited "ms"))
+    ((finished attempt took since-queued)
+     (str "finished in " took "ms, attempt " attempt ", "
+          since-queued "ms since queued"))
+    ((waiting failure next-attempt delay)
+     (str (waiting-step failure)
+          "; attempt " next-attempt " in " delay "ms"
+          (if (from-retry-after? failure (deref delay))
+            ", as Gmail asked" "")))
+    ((gave-up failure attempts)
+     (str "gave up after "
+          (attempts-text (deref attempts))
+          ": "
+          (failure-text failure)))
+    ((failed failure attempt)
+     (str "failed on attempt " attempt ": "
+          (failure-text failure)))
+    ((left-queued failure waited)
+     (str "left queued after " waited "ms: "
+          (failure-text failure)))))
+
+(defn attempts-limit (most-attempts)
+  (match most-attempts
+    ((some most) (str most))
+    (none (str "unlimited"))))
+
+(defn waiting-step (failure)
+  (match failure
+    ((throttled throttle)
+     (str "throttled: " (:message throttle)))
+    (_ (str "failed, will retry: " (failure-text failure)))))
+
+(defn from-retry-after? (failure delay)
+  (match failure
+    ((throttled throttle)
+     (= (:retry-after-milliseconds throttle) delay))
+    (_ false)))
+
+(defn failure-text (failure)
+  (str (error-kind failure) ": " (error-message failure)))
+
+(defn attempts-text (attempts)
+  (if (= attempts 1)
+    (str "1 attempt")
+    (str attempts " attempts")))

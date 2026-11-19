@@ -1,5 +1,3 @@
-(use app/mailboxes ->mailboxes)
-
 (use app/operations/runner ->operation-runner attempt-once!
                            new-operation! operation-runner)
 
@@ -7,61 +5,57 @@
 (use domain/mail-error mail-error)
 (use domain/operation operation-result)
 (use domain/operation-schedule ->scheduled scheduled)
-(use app/operations/operation-log log-left-queued!)
+(use app/operations/operation-log log-operation!)
+(use app/operations/operation-event operation-event)
 (use ports/driven/clock clock now-milliseconds pause!)
 (use ports/driven/event-log event-log)
 (use ports/driven/mailbox-provider mailbox-provider)
 (use ports/driven/operation-queue operation-queue)
 
-(export ->inline-queue inline-queue new-inline-queue)
+(export ->inline-queue inline-queue)
 
 (defstruct inline-queue
   :runner operation-runner
   :patience (option int))
 
-(defn new-inline-queue (provider clock log patience)
-  (->inline-queue :runner (->operation-runner :mailboxes (->mailboxes provider
-                                                                      (vec))
-                                              :clock clock
-                                              :log log)
-                  :patience patience))
-
 (impl operation-queue inline-queue
-  (submit! (queue account kind rank)
-    (let (queued (new-operation! (ref (:runner queue)) account kind rank))
-      (run-to-end! (mut (:runner queue))
-                   (:patience queue)
+  (submit! (queue request)
+    (let (queued (new-operation! (ref (:runner queue)) request))
+      (run-to-end! queue
                    (->scheduled :operation queued :attempt 1 :not-before 0)))))
 
 (type run-to-end!
-  (fn ((mut operation-runner) (option int) scheduled)
+  (fn ((mut inline-queue) scheduled)
     (result operation-result mail-error)))
 
-(defn run-to-end! (runner patience entry)
-  (match (attempt-once! runner (ref entry))
+(defn run-to-end! (queue entry)
+  (match (attempt-once! (mut (:runner queue))
+                        (ref entry))
     ((finished outcome) (ok outcome))
-    ((retry plan) (retried! runner patience entry plan))
+    ((retry plan) (retried! queue entry plan))
     ((failed failure) (err failure))))
 
 (type retried!
-  (fn ((mut operation-runner) (option int) scheduled retry-plan)
+  (fn ((mut inline-queue) scheduled retry-plan)
     (result operation-result mail-error)))
 
-(defn retried! (runner patience entry plan)
-  (let (waited (- (+ (now-milliseconds (ref (:clock runner)))
+(defn retried! (queue entry plan)
+  (let (runner (ref (:runner queue))
+        waited (- (+ (now-milliseconds (ref (:clock runner)))
                      (:delay plan))
                   (:queued-at (:operation entry))))
-    (if (out-of-patience? patience waited)
+    (if (out-of-patience? (:patience queue) waited)
       (do
-        (log-left-queued! (ref (:log runner))
-                          (ref (:operation entry))
-                          (ref (:failure plan))
-                          waited)
+        (log-operation! (ref (:log runner))
+                        (ref (:operation entry))
+                        (ref (operation-event/left-queued :failure (clone (:failure
+                                                                            plan))
+                                                          :waited waited)))
         (err (clone (:failure plan))))
       (do
         (pause! (ref (:clock runner))
                 (:delay plan))
-        (run-to-end! runner patience
+        (run-to-end! queue
                      (assoc entry :attempt (inc (:attempt entry))))))))
 
 (defn out-of-patience? (patience waited)
