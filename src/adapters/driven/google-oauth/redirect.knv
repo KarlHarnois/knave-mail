@@ -9,12 +9,12 @@
 (use domain/mail-error mail-error)
 
 (export browser-redirect redirect-answer reply-to-browser!
-        wait-for-redirect)
+        target->redirect-answer wait-for-redirect)
 
-(defstruct redirect-answer
-  :code string
-  :state string
-  :error string)
+(defenum redirect-answer
+  (granted :code string :state string)
+  (refused string)
+  not-a-redirect)
 
 (defstruct browser-redirect
   :answer redirect-answer
@@ -32,25 +32,24 @@
 
 (defn next-redirect (listener deadline)
   (let (connection (try (next-connection listener deadline))
-        answer (answer-in (as-str (request-target (ref connection)))))
-    (if (carries-redirect? (ref answer))
-      (ok (->browser-redirect :answer answer :connection connection))
-      (do
-        (answer-browser! (ref connection) "404 Not Found" "")
-        (next-redirect listener deadline)))))
+        answer (target->redirect-answer (as-str (request-target (ref connection)))))
+    (match answer
+      (not-a-redirect (answer-browser! (ref connection) "404 Not Found" "")
+                      (next-redirect listener deadline))
+      (_ (ok (->browser-redirect :answer answer :connection connection))))))
 
-(defn answer-in (target)
-  (->redirect-answer :code (query-field target "code")
-                     :state (query-field target "state")
-                     :error (query-field target "error")))
+(type target->redirect-answer
+  (fn ((ref str)) redirect-answer))
 
-(type carries-redirect?
-  (fn ((ref redirect-answer)) bool))
-
-(defn carries-redirect? (answer)
-  (not (and (empty? (:code answer))
-            (empty? (:state answer))
-            (empty? (:error answer)))))
+(defn target->redirect-answer (target)
+  (let (code (query-field target "code")
+        state (query-field target "state")
+        refusal (query-field target "error"))
+    (cond
+      ((not (empty? refusal)) (redirect-answer/refused refusal))
+      ((and (empty? code) (empty? state))
+       redirect-answer/not-a-redirect)
+      (else (redirect-answer/granted :code code :state state)))))
 
 (type reply-to-browser!
   (where (value)

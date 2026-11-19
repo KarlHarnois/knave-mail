@@ -1,0 +1,14 @@
+(use adapters/driven/google-oauth/redirect redirect-answer
+                                           target->redirect-answer)
+
+(deftest a-code-and-state-grant-the-sign-in
+  (assert (= (target->redirect-answer "/?code=c&state=s")
+             (redirect-answer/granted :code (str "c") :state (str "s")))))
+
+(deftest an-error-refuses-the-sign-in
+  (assert (= (target->redirect-answer "/?error=access_denied")
+             (redirect-answer/refused (str "access_denied")))))
+
+(deftest a-page-without-an-answer-is-not-a-redirect
+  (assert (= (target->redirect-answer "/favicon.ico")
+             redirect-answer/not-a-redirect)))

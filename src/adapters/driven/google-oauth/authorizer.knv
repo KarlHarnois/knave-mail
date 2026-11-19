@@ -77,16 +77,27 @@
     (result account mail-error)))
 
 (defn answered-account! (granting answer request)
-  (cond
-    ((not (empty? (:error answer)))
-     (err (mail-error/auth-required (str "Google refused consent: "
-                                         (:error answer)))))
-    ((not= (:state answer) (:state request))
-     (err (mail-error/auth-required (str "the sign-in answer did not match this request"))))
-    (else (exchange-code! granting
-                          (ref (:code answer))
-                          (ref (:redirect-uri request))
-                          (ref (:pkce request))))))
+  (match answer
+    ((granted code state)
+     (granted-account! granting code state request))
+    ((refused reason)
+     (err (mail-error/auth-required (str "Google refused consent: " reason))))
+    (not-a-redirect (err (mail-error/auth-required (str "the browser sent no sign-in answer"))))))
+
+(type granted-account!
+  (fn ((mut google-authorizer)
+       (ref string)
+       (ref string)
+       (ref consent-request))
+    (result account mail-error)))
+
+(defn granted-account! (granting code state request)
+  (if (= state (:state request))
+    (exchange-code! granting
+                    (as-str code)
+                    (ref (:redirect-uri request))
+                    (ref (:pkce request)))
+    (err (mail-error/auth-required (str "the sign-in answer did not match this request")))))
 
 (type exchange-code!
   (fn ((mut google-authorizer)
