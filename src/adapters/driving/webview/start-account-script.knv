@@ -1,5 +1,13 @@
 (export start-account-script)
 
-(def start-account-script
-  (rust "if {0}.is_empty() {{ String::new() }} else {{ format!(\"window.knaveStartAccount = {{}};\\n\", serde_json::Value::String({0}.to_string())) }}"
+(type start-account-script
+  (fn ((ref (option string))) string))
+
+(defn start-account-script (account)
+  (match account
+    ((some email) (account-assignment (as-str email)))
+    (none (str ""))))
+
+(def account-assignment
+  (rust "format!(\"window.knaveStartAccount = {{}};\\n\", serde_json::Value::String({0}.to_string()))"
     (fn ((ref str)) string)))

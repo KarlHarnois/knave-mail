@@ -3,11 +3,15 @@
 (use adapters/driving/cli/command cli-command command-from)
 (use adapters/driving/cli/exit-codes exit-code)
 (use adapters/driving/cli/help usage-text)
-(use composition/gmail-backend gmail-app gmail-operations)
+
+(use composition/gmail-backend chosen-client gmail-app
+                               gmail-operations)
+
 (use app/mail-app delivery)
 (use domain/operation priority)
 (use composition/memory-backend memory-app)
 (use composition/logging chosen-log)
+(use composition/settings backend settings)
 
 (use composition/startup-log clock-milliseconds log-started
                              trimmed)
@@ -15,9 +19,7 @@
 (use domain/mail-error error-message mail-error)
 (use ports/driven/event-log event-log log-info share-log)
 
-(export chosen-app fail-with launch-cli memory-backend)
-
-(def memory-backend "memory")
+(export chosen-app fail-with launch-cli)
 
 (defn launch-cli (chosen parsed)
   (if (help-asked? (ref parsed))
@@ -56,11 +58,13 @@
       ((err failure) (fail-with (ref failure))))))
 
 (defn chosen-app (chosen log)
-  (if (= (:backend chosen) memory-backend)
-    (ok (memory-app chosen log))
-    (let (operations (gmail-operations chosen (ref log)))
-      (gmail-app chosen log operations priority/interactive
-                 delivery/deliver-now))))
+  (match (:backend chosen)
+    (memory (ok (memory-app chosen log)))
+    (gmail (let-try (client (chosen-client chosen))
+             (let (operations (gmail-operations chosen (ref client) (ref log)))
+               (gmail-app chosen log operations
+                          priority/interactive
+                          delivery/deliver-now))))))
 
 (defn fail-with (failure)
   (eprintln (str "knave-mail: " (error-message failure)))

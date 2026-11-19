@@ -1,0 +1,26 @@
+(use adapters/driving/cli/arguments parse-arguments)
+(use composition/settings backend settings-from)
+(use support/sample-mail addresses)
+
+(defn settings-of (tokens)
+  (settings-from (ref (parse-arguments (ref (addresses tokens))))))
+
+(deftest the-memory-backend-is-read
+  (assert (= (:backend (unwrap-ok (settings-of (vec "--backend" "memory"))))
+             backend/memory)))
+
+(deftest an-unknown-backend-is-refused
+  (assert (= (unwrap-err (settings-of (vec "--backend" "imap")))
+             (str "--backend expects gmail or memory, not `imap`"))))
+
+(deftest a-latency-that-is-not-a-number-is-refused
+  (assert (= (unwrap-err (settings-of (vec "--latency" "slow")))
+             (str "--latency expects milliseconds, not `slow`"))))
+
+(deftest a-client-needs-both-its-id-and-secret
+  (assert (none? (:google-client (unwrap-ok (settings-of (vec "--client-id"
+                                                              "id")))))))
+
+(deftest an-absent-start-account-is-none
+  (assert (none? (:start-account (unwrap-ok (settings-of (the (vec (ref str))
+                                                              (vec))))))))

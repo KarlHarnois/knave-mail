@@ -1,19 +1,45 @@
-(use adapters/driving/cli/arguments parse-arguments)
+(use adapters/driving/cli/arguments parse-arguments
+                                    parsed-arguments)
+
 (use adapters/driving/cli/command cli-command-word?)
 (use composition/launch launch-cli)
 (use composition/window-launch launch-window)
-(use composition/settings settings-from)
+(use composition/settings settings settings-from)
+
+(defenum startup
+  (cli :settings settings :arguments parsed-arguments)
+  (window :settings settings :scenario string))
 
 (defn main ()
-  (let (arguments (command-line-args)
-        parsed (parse-arguments (ref arguments)))
-    (match (settings-from (ref arguments))
-      ((ok chosen) (launch chosen parsed))
-      ((err problem)
-       (eprintln (str "knave-mail: " problem))
-       (exit 1)))))
+  (match (startup-from (command-line-args))
+    ((ok (cli chosen parsed)) (launch-cli chosen parsed))
+    ((ok (window chosen scenario))
+     (launch-window chosen scenario))
+    ((err problem)
+     (eprintln (str "knave-mail: " problem))
+     (exit 1))))
 
-(defn launch (chosen parsed)
-  (if (cli-command-word? (ref parsed))
-    (launch-cli chosen parsed)
-    (launch-window chosen)))
+(type startup-from
+  (fn ((vec string))
+    (result startup string)))
+
+(defn startup-from (arguments)
+  (let (parsed (parse-arguments (ref arguments))
+        chosen (try (settings-from (ref parsed))))
+    (if (cli-command-word? (ref parsed))
+      (ok (startup/cli :settings chosen :arguments parsed))
+      (ok (startup/window :scenario (try (e2e-scenario (ref (:e2e-script-path
+                                                              chosen))))
+                          :settings chosen)))))
+
+(type e2e-scenario
+  (fn ((ref (option string)))
+    (result string string)))
+
+(defn e2e-scenario (path)
+  (match path
+    ((some script)
+     (map-err (slurp script)
+       (fn (problem)
+         (str "cannot read the e2e script " script ": " problem))))
+    (none (ok (str "")))))

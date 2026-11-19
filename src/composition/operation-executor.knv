@@ -6,7 +6,7 @@
 
 (use composition/gmail-backend gmail-provider-for)
 (use composition/logging chosen-log)
-(use composition/settings settings)
+(use composition/settings google-client settings)
 (use domain/attempt-outcome attempt-outcome)
 (use domain/collections appended)
 
@@ -23,16 +23,17 @@
 
 (export start-gmail-executor)
 
-(defn start-gmail-executor (chosen)
-  (spawn-executor (fn (inbox) (run-gmail-executor chosen inbox))))
+(defn start-gmail-executor (chosen client)
+  (spawn-executor (fn (inbox) (run-gmail-executor chosen client inbox))))
 
 (type run-gmail-executor
-  (fn (settings submission-inbox) unit))
+  (fn (settings google-client submission-inbox) unit))
 
-(defn run-gmail-executor (chosen inbox)
+(defn run-gmail-executor (chosen client inbox)
   (let (log (chosen-log (ref chosen))
         runner (->operation-runner :mailboxes (->mailboxes (gmail-provider-for
                                                              (ref chosen)
+                                                             (ref client)
                                                              (ref log))
                                                            (vec)
                                                            (vec))

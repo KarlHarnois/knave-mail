@@ -1,5 +1,6 @@
 (use adapters/driven/threaded-queue threaded-operations)
 (use composition/operation-executor start-gmail-executor)
+(use adapters/driving/cli/arguments parse-arguments)
 (use composition/settings settings settings-from)
 
 (use domain/operation operation-kind operation-result
@@ -16,23 +17,26 @@
 
 (defn settings-over (server tokens)
   (let (base (fake-gmail-base server))
-    (unwrap-ok (settings-from (ref (vec (str "--gmail-base-url")
-                                        (clone base)
-                                        (str "--token-url")
-                                        (str base "/token")
-                                        (str "--client-id")
-                                        (str "fake-client")
-                                        (str "--client-secret")
-                                        (str "fake-secret")
-                                        (str "--credentials-file")
-                                        tokens
-                                        (str "--log-file")
-                                        (temporary-path "executor.log")))))))
+    (unwrap-ok (settings-from (ref (parse-arguments
+                                     (ref (vec (str "--gmail-base-url")
+                                               (clone base)
+                                               (str "--token-url")
+                                               (str base "/token")
+                                               (str "--client-id")
+                                               (str "fake-client")
+                                               (str "--client-secret")
+                                               (str "fake-secret")
+                                               (str "--credentials-file")
+                                               tokens
+                                               (str "--log-file")
+                                               (temporary-path
+                                                 "executor.log")))))))))
 
 (deftest the-executor-answers-an-operation-submitted-from-another-thread
   (let (server (start-fake-gmail (ref (fixture-routes)))
-        executor (start-gmail-executor (settings-over (ref server)
-                                                      (signed-in-tokens)))
+        chosen (settings-over (ref server) (signed-in-tokens))
+        client (unwrap (clone (:google-client chosen)))
+        executor (start-gmail-executor chosen client)
         queue (threaded-operations (ref executor)))
     (local asking queue)
     (assert (match (submit! (mut asking)

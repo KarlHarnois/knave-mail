@@ -1,4 +1,4 @@
-(use composition/settings settings)
+(use composition/settings backend settings)
 (use ports/driven/event-log event-log log-info)
 (use adapters/clock clock-milliseconds)
 
@@ -9,9 +9,12 @@
             (str "knave-mail "
                  (app-version)
                  " started: " mode ", backend "
-                 (:backend chosen)
+                 (backend-name (:backend chosen))
                  ", cache "
                  (:cache-path chosen))))
+
+(defn backend-name (chosen)
+  (match chosen (gmail "gmail") (memory "memory")))
 
 (defn trimmed (text)
   (str (trim (as-str text))))

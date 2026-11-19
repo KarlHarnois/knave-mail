@@ -11,16 +11,21 @@
 (use adapters/driven/keyring/credentials ->keyring-credentials)
 (use adapters/driven/sqlite/store open-sqlite-store)
 (use ports/driven/clock clock)
-(use app/mail-app new-mail-app)
+(use app/mail-app delivery mail-app new-mail-app)
+(use domain/operation priority)
 (use app/operations/inline-queue new-inline-queue)
 (use ports/driven/event-log event-log share-log)
 (use ports/driven/mailbox-provider mailbox-provider)
 (use ports/driven/operation-queue operation-queue)
-(use composition/settings settings)
+
+(use composition/settings google-client
+                          missing-client-message settings)
+
 (use domain/mail-error mail-error)
 (use ports/driven/credentials credentials)
 
-(export gmail-app gmail-operations gmail-provider-for)
+(export chosen-client gmail-app gmail-operations
+        gmail-provider-for)
 
 (def sync-limit 100)
 
@@ -30,67 +35,80 @@
 
 (def sign-in-wait-milliseconds 300000)
 
+(type gmail-app
+  (fn ((ref settings)
+       event-log
+       (box operation-queue)
+       priority delivery)
+    (result mail-app mail-error)))
+
 (defn gmail-app (chosen log operations rank delivery)
-  (try (check-client chosen))
-  (ok (new-mail-app
-        (box (try (open-sqlite-store (ref (:cache-path chosen)))))
-        operations
-        (box (->google-authorizer
-               :agent (new-agent)
-               :settings (->oauth-settings
-                           :auth-url (clone (:auth-url chosen))
-                           :token-url (clone (:token-url chosen))
-                           :api-base (clone (:api-base chosen))
-                           :client-id (clone (:client-id chosen))
-                           :client-secret (clone (:client-secret chosen))
-                           :sign-in-wait-milliseconds sign-in-wait-milliseconds)
-               :credentials (chosen-credentials chosen)
-               :browser (box (->system-browser (clone (:browser chosen))))))
-        log rank delivery sync-limit)))
+  (let-try (client (chosen-client chosen))
+    (ok (new-mail-app
+          (box (try (open-sqlite-store (ref (:cache-path chosen)))))
+          operations
+          (box
+            (->google-authorizer
+              :agent (new-agent)
+              :settings (->oauth-settings
+                          :auth-url (clone (:auth-url chosen))
+                          :token-url (clone (:token-url chosen))
+                          :api-base (clone (:api-base chosen))
+                          :client-id (clone (:id client))
+                          :client-secret (clone (:secret client))
+                          :sign-in-wait-milliseconds sign-in-wait-milliseconds)
+              :credentials (chosen-credentials chosen)
+              :browser (box (->system-browser (clone (:browser chosen))))))
+          log rank delivery sync-limit))))
 
 (type gmail-provider-for
-  (fn ((ref settings) (ref event-log))
+  (fn ((ref settings)
+       (ref google-client)
+       (ref event-log))
     (box mailbox-provider)))
 
-(defn gmail-provider-for (chosen log)
+(defn gmail-provider-for (chosen client log)
   (the (box mailbox-provider)
-       (box (->gmail-provider (endpoints chosen)
+       (box (->gmail-provider (endpoints chosen client)
                               (chosen-credentials chosen)
                               (share-log log)))))
 
 (type gmail-operations
-  (fn ((ref settings) (ref event-log))
+  (fn ((ref settings)
+       (ref google-client)
+       (ref event-log))
     (box operation-queue)))
 
-(defn gmail-operations (chosen log)
+(defn gmail-operations (chosen client log)
   (the (box operation-queue)
-       (box (new-inline-queue (gmail-provider-for chosen log)
+       (box (new-inline-queue (gmail-provider-for chosen client log)
                               clock/system
                               (share-log log)
                               (some cli-patience-milliseconds)))))
 
-(type check-client
+(type chosen-client
   (fn ((ref settings))
-    (result unit mail-error)))
+    (result google-client mail-error)))
 
-(defn check-client (chosen)
-  (if (empty? (:client-id chosen))
-    (err (mail-error/usage (str "set KNAVE_MAIL_CLIENT_ID and KNAVE_MAIL_CLIENT_SECRET to your Google OAuth client, or pass --backend memory")))
-    (ok (do))))
+(defn chosen-client (chosen)
+  (ok-or (clone (:google-client chosen))
+         (mail-error/usage (str missing-client-message))))
 
 (type endpoints
-  (fn ((ref settings)) gmail-endpoints))
+  (fn ((ref settings) (ref google-client))
+    gmail-endpoints))
 
-(defn endpoints (chosen)
+(defn endpoints (chosen client)
   (->gmail-endpoints :api-base (clone (:api-base chosen))
                      :token-url (clone (:token-url chosen))
-                     :client-id (clone (:client-id chosen))
-                     :client-secret (clone (:client-secret chosen))
+                     :client-id (clone (:id client))
+                     :client-secret (clone (:secret client))
                      :quota-units-per-second quota-units-per-second))
 
+(type chosen-credentials
+  (fn ((ref settings)) (box credentials)))
+
 (defn chosen-credentials (chosen)
-  (if (empty? (:credentials-file chosen))
-    (the (box credentials)
-         (box (->keyring-credentials (str "knave-mail"))))
-    (the (box credentials)
-         (box (->file-credentials (clone (:credentials-file chosen)))))))
+  (match (:credentials-file chosen)
+    ((some path) (box (->file-credentials (clone path))))
+    (none (box (->keyring-credentials (str "knave-mail"))))))

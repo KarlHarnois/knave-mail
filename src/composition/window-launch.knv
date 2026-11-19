@@ -26,13 +26,13 @@
 (use composition/background-listing start-background-listing)
 (use composition/background-sync ->background-sync)
 (use composition/delivery-worker start-delivery-worker)
-(use composition/gmail-backend gmail-app)
+(use composition/gmail-backend chosen-client gmail-app)
 (use composition/keymap-loader keymap-startup-script)
-(use composition/launch fail-with memory-backend)
+(use composition/launch fail-with)
 (use composition/logging chosen-log)
 (use composition/memory-backend memory-app)
 (use composition/operation-executor start-gmail-executor)
-(use composition/settings e2e-script settings)
+(use composition/settings backend settings)
 (use composition/startup-log log-started)
 (use composition/theme-file theme-stylesheet)
 (use app/mail-app delivery)
@@ -42,26 +42,24 @@
 
 (export launch-window)
 
-(defn launch-window (chosen)
-  (if (= (:backend chosen) memory-backend)
-    (opened-window chosen none)
-    (guarded-window chosen)))
+(type launch-window (fn (settings string) unit))
 
-(defn guarded-window (chosen)
+(defn launch-window (chosen scenario)
+  (match (:backend chosen)
+    (memory (scripted-window chosen none scenario))
+    (gmail (guarded-window chosen scenario))))
+
+(defn guarded-window (chosen scenario)
   (match (claimed-window (as-str (:cache-path chosen)))
-    ((claimed socket) (opened-window chosen (some socket)))
+    ((claimed socket)
+     (scripted-window chosen (some socket) scenario))
     (another-window-open (log-info (ref (chosen-log (ref chosen)))
                                    "app"
                                    (str "a window is already open, so it came forward instead")))
-    (unguarded (opened-window chosen none))))
+    (unguarded (scripted-window chosen none scenario))))
 
-(type opened-window
-  (fn (settings (option window-socket)) unit))
-
-(defn opened-window (chosen claim)
-  (match (e2e-script (ref chosen))
-    ((ok scenario) (scripted-window chosen claim scenario))
-    ((err problem) (eprintln problem) (exit 1))))
+(type scripted-window
+  (fn (settings (option window-socket) string) unit))
 
 (defn scripted-window (chosen claim scenario)
   (let (script (str (keymap-startup-script (ref chosen))
@@ -79,15 +77,15 @@
                      (match claim
                        ((some socket) (forward-launches! socket (ref outbox)))
                        (none (do)))
-                     (if (= (:backend owned) memory-backend)
-                       (serve-memory-window! (ref owned)
-                                             (ref log)
-                                             (ref inbox)
-                                             (ref outbox))
-                       (serve-gmail-window! (ref owned)
-                                            (ref log)
-                                            (ref inbox)
-                                            (ref outbox))))))))
+                     (serve-window! (ref owned)
+                                    (ref log)
+                                    (ref inbox)
+                                    (ref outbox)))))))
+
+(defn serve-window! (chosen log inbox outbox)
+  (match (:backend chosen)
+    (memory (serve-memory-window! chosen log inbox outbox))
+    (gmail (serve-gmail-window! chosen log inbox outbox))))
 
 (defn serve-memory-window! (chosen log inbox outbox)
   (local running (memory-app chosen (share-log log)))
@@ -99,7 +97,13 @@
                    log inbox outbox))
 
 (defn serve-gmail-window! (chosen log inbox outbox)
-  (let (executor (start-gmail-executor (clone chosen)))
+  (match (chosen-client chosen)
+    ((ok client)
+     (serve-gmail-client! chosen (ref client) log inbox outbox))
+    ((err failure) (fail-with (ref failure)))))
+
+(defn serve-gmail-client! (chosen client log inbox outbox)
+  (let (executor (start-gmail-executor (clone chosen) (clone client)))
     (match (gmail-app chosen
                       (share-log log)
                       (threaded-operations (ref executor))
