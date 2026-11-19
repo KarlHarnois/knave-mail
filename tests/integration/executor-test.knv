@@ -1,4 +1,4 @@
-(use ports/driven/operation-queue threaded-operations)
+(use adapters/driven/threaded-queue threaded-operations)
 (use composition/operation-executor start-gmail-executor)
 (use composition/settings settings settings-from)
 

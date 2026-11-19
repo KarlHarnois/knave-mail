@@ -95,15 +95,15 @@
     mail-app))
 
 (defn app-timed-by (remote log clock)
-  (new-mail-app (box (empty-memory-store))
-                (operation-queue/inline
-                  (new-inline-queue
-                    (mailbox-provider/memory (->memory-provider (vec (str world-account))
-                                                                (vec (handle remote))))
-                    (clock/memory clock)
-                    (event-log/memory (same-log (ref log)))
-                    (some fake-patience-milliseconds)))
-                (authorizer/memory (->memory-authorizer (vec (->account (str "new@example.com")))))
-                (event-log/memory log)
-                priority/interactive delivery/deliver-now
-                50))
+  (new-mail-app
+    (box (empty-memory-store))
+    (the (box operation-queue)
+         (box (new-inline-queue (mailbox-provider/memory
+                                  (->memory-provider (vec (str world-account))
+                                                     (vec (handle remote))))
+                                (clock/memory clock)
+                                (event-log/memory (same-log (ref log)))
+                                (some fake-patience-milliseconds))))
+    (authorizer/memory (->memory-authorizer (vec (->account (str "new@example.com")))))
+    (event-log/memory log)
+    priority/interactive delivery/deliver-now 50))

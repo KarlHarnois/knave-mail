@@ -7,9 +7,9 @@
 (use app/mail-app mail-app)
 
 (use adapters/driven/threaded-queue share-sender
-                                    submission-sender)
+                                    submission-sender
+                                    threaded-operations)
 
-(use ports/driven/operation-queue threaded-operations)
 (use composition/gmail-backend gmail-app)
 (use app/mail-app delivery)
 (use domain/operation priority)

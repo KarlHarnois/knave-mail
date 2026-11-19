@@ -8,8 +8,9 @@
 (use adapters/driving/webview/window reply-outbox
                                      request-inbox)
 
-(use adapters/driven/threaded-queue share-sender)
-(use ports/driven/operation-queue threaded-operations)
+(use adapters/driven/threaded-queue share-sender
+                                    threaded-operations)
+
 (use composition/gmail-backend gmail-app)
 (use app/mail-app delivery)
 (use domain/operation priority)
