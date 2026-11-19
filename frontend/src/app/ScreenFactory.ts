@@ -1,6 +1,8 @@
 import { DarkReaderWarmup } from "../darkmail/DarkReaderWarmup";
 import { MailDarkening } from "../darkmail/MailDarkening";
 import { HelpScreen } from "../help/HelpScreen";
+import { HeldKeys } from "../keys/HeldKeys";
+import { KeyboardInput } from "../keys/KeyboardInput";
 import { WhichKeyPopup } from "../keys/WhichKeyPopup";
 import { LabelPalette } from "../labels/LabelPalette";
 import type { LabelRef } from "../mail/LabelDirectory";
@@ -37,6 +39,12 @@ export class ScreenFactory {
       scheduler: this.services.scheduler,
       startup,
     });
+  }
+
+  heldKeyboard(press: (token: string) => void): HeldKeys {
+    const keys = new HeldKeys(press);
+    new KeyboardInput((token) => keys.press(token)).listen(this.services.document);
+    return keys;
   }
 
   zoomControl(): ZoomControl {

@@ -3,7 +3,6 @@ import type { ThreadSummary } from "../bridge/Protocol";
 import type { Transport } from "../bridge/Transport";
 import { ComposeScreen } from "../compose/ComposeScreen";
 import type { HelpScreen } from "../help/HelpScreen";
-import { KeyboardInput } from "../keys/KeyboardInput";
 import { KeyNotation } from "../keys/KeyNotation";
 import type { LabelPalette } from "../labels/LabelPalette";
 import { ListScreen } from "../list/ListScreen";
@@ -48,11 +47,12 @@ export class KnaveMail {
   start(): void {
     this.mount();
     new GlobalErrorLog(this.window, this.services.logger).watch();
-    new KeyboardInput((token) => this.app.press(token)).listen(this.services.document);
+    const startupKeys = this.factory.heldKeyboard((token) => this.app.press(token));
     new FocusGuard(this.window, () => this.app.focusScreen()).watch();
     this.factory.zoomControl().listen(this.services.document);
     this.factory.darkReaderWarmup().start();
     const startup = this.services.session.start(this.services.startAccount).then(() => this.services.launched());
+    startupKeys.releaseAfter(startup);
     this.factory.testDriver((token) => this.app.press(token), startup).installOn(this.window);
     this.app.refreshStatus();
     this.services.errors.run(startup);
