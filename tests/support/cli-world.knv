@@ -10,11 +10,12 @@
 (use support/sample-mail addresses)
 (use support/temporary temporary-path)
 
-(export gmail-cli last-request signed-in-tokens)
+(export cli-environment gmail-cli last-request
+        signed-in-tokens)
 
 (def account "ada@example.com")
 
-(defn environment-for (server cache tokens)
+(defn cli-environment (server cache tokens)
   (let (base (fake-gmail-base server))
     (vec (pair (str "KNAVE_MAIL_GMAIL_BASE_URL") (clone base))
          (pair (str "KNAVE_MAIL_TOKEN_URL") (str base "/token"))
@@ -30,12 +31,9 @@
     (unwrap-ok (save-token! (mut saving) account "fake-refresh"))
     path))
 
-(defn gmail-cli (server cache tokens arguments input)
+(defn gmail-cli (environment arguments input)
   (let (written (addresses (with-account-flag arguments)))
-    (run-binary binary-path
-                (ref written)
-                (ref (environment-for server cache tokens))
-                input)))
+    (run-binary binary-path (ref written) environment input)))
 
 (type with-account-flag
   (fn ((vec (ref str))) (vec (ref str))))

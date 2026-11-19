@@ -1,7 +1,7 @@
 (use support/binary output-code)
 
-(use support/cli-world gmail-cli last-request
-                       signed-in-tokens)
+(use support/cli-world cli-environment gmail-cli
+                       last-request signed-in-tokens)
 
 (use support/fake-gmail start-fake-gmail)
 (use support/gmail-world fixture-routes)
@@ -21,15 +21,15 @@
         cache (temporary-path "log-cache.sqlite3")
         tokens (signed-in-tokens)
         log-path (temporary-path "cli-debug.log"))
-    (assert (zero? (output-code (ref (gmail-cli (ref server)
-                                                (ref cache)
-                                                (ref tokens)
-                                                (vec "--log-file"
-                                                     (as-str log-path)
-                                                     "--log-level"
-                                                     "debug"
-                                                     "sync")
-                                                "")))))
+    (assert (zero? (output-code (ref (gmail-cli
+                                       (ref (cli-environment (ref server)
+                                                             (ref cache)
+                                                             (ref tokens)))
+                                       (vec "--log-file"
+                                            (as-str log-path)
+                                            "--log-level"
+                                            "debug" "sync")
+                                       "")))))
     (log-lines-of (ref log-path))))
 
 (deftest a-cli-sync-logs-startup-requests-and-the-sync
