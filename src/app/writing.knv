@@ -76,10 +76,6 @@
     (deliver-now (deliver-everything-now! app))
     (deliver-later (ok (do)))))
 
-(type stored-message
-  (fn ((ref mail-app) (ref str) (ref str))
-    (result message mail-error)))
-
 (defn stored-message (app account message-id)
   (ok-or (try (load-message (ref (:store app))
                             (ref (->message-ref :account (str account)

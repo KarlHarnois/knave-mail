@@ -14,10 +14,6 @@
 
 (export json->summary thread-labels)
 
-(type json->summary
-  (fn ((ref json-value))
-    (result thread-summary mail-error)))
-
 (defn json->summary (thread)
   (let (messages (array-field thread "messages"))
     (ok (->thread-summary :id (try (required-text thread "id"))

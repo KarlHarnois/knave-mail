@@ -51,10 +51,6 @@
      (failure-reply (ref (request-id request))
                     (ref failure)))))
 
-(type json->mail-call
-  (fn ((ref json-value))
-    (result mail-call mail-error)))
-
 (defn json->mail-call (request)
   (let (name (try (text-error->usage-error (string-field request "command"))))
     (ok (->mail-call :id (request-id request)

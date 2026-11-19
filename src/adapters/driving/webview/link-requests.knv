@@ -5,12 +5,6 @@
 
 (export open-requested-link!)
 
-(type open-requested-link!
-  (fn ((ref link-opener)
-       (ref event-log)
-       (ref str))
-    unit))
-
 (defn open-requested-link! (opener log url)
   (match (web-link-host url)
     ((some host)

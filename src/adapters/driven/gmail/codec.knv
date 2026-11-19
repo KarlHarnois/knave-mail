@@ -19,19 +19,11 @@
   :header-id string
   :references string)
 
-(type json->label
-  (fn ((ref json-value))
-    (result label mail-error)))
-
 (defn json->label (details)
   (ok (->label :id (try (required-text details "id"))
                :name (try (required-text details "name"))
                :unread (try (required-number details "threadsUnread"))
                :total (try (required-number details "threadsTotal")))))
-
-(type json->message
-  (fn ((ref json-value) (ref str))
-    (result message mail-error)))
 
 (defn json->message (raw-message thread-id)
   (let (parts (message-parts-of raw-message))

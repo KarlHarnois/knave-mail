@@ -46,10 +46,6 @@
      (window-request/refused :id (request-id request)
                              :failure failure))))
 
-(type parsed-request
-  (fn ((ref json-value) (ref json-value))
-    (result window-request mail-error)))
-
 (defn parsed-request (request arguments)
   (match (unwrap-or (ok->option (string-field request "command"))
                     (str ""))
@@ -92,10 +88,6 @@
   (rust "{0}.get(\"level\").and_then(serde_json::Value::as_f64)"
     (fn ((ref json-value)) (option f64))))
 
-(type frontend-entry
-  (fn ((ref json-value))
-    (result log-entry mail-error)))
-
 (defn frontend-entry (arguments)
   (let-try (name (usage-field (string-field arguments "level")
                               "log needs a level")
@@ -107,10 +99,6 @@
 (defn named-level (name)
   (ok-or (text->log-level name)
          (mail-error/usage (str "unknown log level `" name "`"))))
-
-(type link-url
-  (fn ((ref json-value))
-    (result string mail-error)))
 
 (defn link-url (arguments)
   (let (url (try (usage-field (string-field arguments "url")

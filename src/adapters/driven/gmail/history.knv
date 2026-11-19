@@ -32,13 +32,6 @@
 (defn fetched-changes! (session since)
   (collected-pages! session since none (vec)))
 
-(type collected-pages!
-  (fn ((mut gmail-session)
-       (ref str)
-       (option string)
-       (vec history-entry))
-    (result mail-changes mail-error)))
-
 (defn collected-pages! (session since page-token found)
   (let (page (try (map-err (api-get! session
                                      (ref (history-path since

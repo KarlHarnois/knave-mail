@@ -69,12 +69,6 @@
                   (else (vec))))
       (recur entries (inc index) (appended files found)))))
 
-(type line-counts
-  (fn ((ref (vec string))
-       usize
-       (vec (pair string usize)))
-    (result (vec (pair string usize)) string)))
-
 (defn line-counts (files index counted)
   (match (get files index)
     ((some path)

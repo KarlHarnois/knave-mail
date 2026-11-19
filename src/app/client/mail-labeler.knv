@@ -20,10 +20,6 @@
 (defn relabel-threads! (app account thread-ids change)
   (relabel-each! app account thread-ids change))
 
-(type deliver-next-change!
-  (fn ((mut mail-app))
-    (result (vec delivery-step) mail-error)))
-
 (defn deliver-next-change! (app) (deliver-next! app))
 
 (type archive-older!

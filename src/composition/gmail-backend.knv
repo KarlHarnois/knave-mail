@@ -27,13 +27,6 @@
 (export chosen-client gmail-app gmail-operations
         gmail-provider-for)
 
-(type gmail-app
-  (fn ((ref settings)
-       event-log
-       (box operation-queue)
-       priority delivery)
-    (result mail-app mail-error)))
-
 (defn gmail-app (chosen log operations rank delivery)
   (let-try (client (chosen-client chosen))
     (ok (new-mail-app (box (try (open-sqlite-store (ref (:cache-path chosen)))))

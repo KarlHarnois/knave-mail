@@ -22,10 +22,6 @@
   (parsed-from tokens 0
                (->parsed-arguments (vec) (vec) (vec))))
 
-(type parsed-from
-  (fn ((ref (vec string)) usize parsed-arguments)
-    (result parsed-arguments string)))
-
 (defn parsed-from (tokens index parsed)
   (match (get tokens index)
     ((some token)
@@ -39,10 +35,6 @@
 
 (defn token-width (token)
   (if (valued? token) 2 1))
-
-(type with-token
-  (fn (parsed-arguments (ref (vec string)) usize)
-    (result parsed-arguments string)))
 
 (defn with-token (parsed tokens index)
   (let (token (at tokens index))

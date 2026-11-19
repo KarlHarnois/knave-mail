@@ -59,10 +59,6 @@
 (defn fresh? (freshness)
   (match freshness (fresh true) (cached false)))
 
-(type json->mail-command
-  (fn ((ref str) (ref json-value))
-    (result mail-command mail-error)))
-
 (defn json->mail-command (name arguments)
   (match name
     ("accounts" (ok mail-command/list-accounts))

@@ -41,10 +41,6 @@
 (def missing-client-message
   "set KNAVE_MAIL_CLIENT_ID and KNAVE_MAIL_CLIENT_SECRET to your Google OAuth client, or pass --backend memory")
 
-(type arguments->settings
-  (fn ((ref parsed-arguments))
-    (result settings string)))
-
 (defn arguments->settings (parsed)
   (let-try (chosen-backend (text->backend (as-str (or-default (setting
                                                                 parsed
@@ -52,10 +48,6 @@
                                                                 "KNAVE_MAIL_BACKEND")
                                                               "gmail"))))
     (settings-with parsed chosen-backend)))
-
-(type settings-with
-  (fn ((ref parsed-arguments) backend)
-    (result settings string)))
 
 (defn settings-with (parsed chosen-backend)
   (ok

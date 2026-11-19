@@ -25,10 +25,6 @@
   labels-added
   labels-removed)
 
-(type json->history-entry
-  (fn ((ref json-value))
-    (result history-entry mail-error)))
-
 (defn json->history-entry (entry)
   (ok (->history-entry :downloads (try (downloaded-threads entry))
                        :relabels (concatenated (try (relabels-in entry
@@ -57,10 +53,6 @@
 (defn with-relabels (found entry)
   (concatenated found (clone (:relabels entry))))
 
-(type downloaded-threads
-  (fn ((ref json-value))
-    (result (vec string) mail-error)))
-
 (defn downloaded-threads (entry)
   (ok (concatenated (try (thread-ids-in entry "messagesAdded"))
                     (try (thread-ids-in entry "messagesDeleted")))))
@@ -87,10 +79,6 @@
     (labels-added (->label-change :added labels :removed (vec)))
     (labels-removed (->label-change :added (vec) :removed labels))))
 
-(type json->message-relabel
-  (fn ((ref json-value) label-record)
-    (result message-relabel mail-error)))
-
 (defn json->message-relabel (item record)
   (let (message (try (message-of item))
         labels (listed-labels item))
@@ -98,10 +86,6 @@
                                                           "threadId"))
                            :message-id (try (required-text (ref message) "id"))
                            :change (record-change record labels)))))
-
-(type json->thread-id
-  (fn ((ref json-value))
-    (result string mail-error)))
 
 (defn json->thread-id (item)
   (required-text (ref (try (message-of item)))

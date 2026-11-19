@@ -19,10 +19,6 @@
      (eprintln (str "knave-mail: " problem))
      (exit 1))))
 
-(type arguments->startup
-  (fn ((vec string))
-    (result startup string)))
-
 (defn arguments->startup (arguments)
   (let (parsed (try (parse-arguments (ref arguments)))
         chosen (try (arguments->settings (ref parsed))))

@@ -9,19 +9,11 @@
   :refresh-token string
   :access-token string)
 
-(type body->granted-tokens
-  (fn ((ref str))
-    (result granted-tokens mail-error)))
-
 (defn body->granted-tokens (body)
   (let (tokens (try (body->json body)))
     (ok (->granted-tokens
           :refresh-token (try (required-field (ref tokens) "refresh_token"))
           :access-token (try (required-field (ref tokens) "access_token"))))))
-
-(type body->profile-email
-  (fn ((ref str))
-    (result string mail-error)))
 
 (defn body->profile-email (body)
   (required-field (ref (try (body->json body)))
