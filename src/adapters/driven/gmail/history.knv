@@ -1,10 +1,14 @@
 (use adapters/driven/gmail/session api-get!)
 (use adapters/driven/gmail/session-state gmail-session)
-(use adapters/driven/gmail/history-entry with-entry)
+(use adapters/driven/gmail/fields required-text)
+
+(use adapters/driven/gmail/history-entry json->history-entry
+                                         with-entry)
 
 (use adapters/json/value array-field json-value
                          optional-string-field)
 
+(use domain/collections collect-ok)
 (use domain/history ->mail-changes mail-changes)
 (use domain/mail-error mail-error)
 (use ports/driven/event-log log-info)
@@ -19,8 +23,8 @@
   "&historyTypes=messageAdded&historyTypes=messageDeleted&historyTypes=labelAdded&historyTypes=labelRemoved")
 
 (defn fetched-history-id! (session)
-  (ok (history-id-of (ref (try (api-get! session
-                                         (ref (str users-me "/profile"))))))))
+  (history-id-of (ref (try (api-get! session
+                                     (ref (str users-me "/profile")))))))
 
 (defn fetched-changes! (session since)
   (collected-pages! session since
@@ -36,13 +40,18 @@
 (defn collected-pages! (session since page-token found)
   (let (page (try (api-get! session
                             (ref (history-path since (ref page-token)))))
-        so-far (reduce (array-field (ref page) "history") found with-entry))
+        entries (try (-> (array-field (ref page) "history")
+                         iter
+                         (map (fn (entry) (json->history-entry entry)))
+                         collect-ok))
+        so-far (reduce (iter entries) found with-entry))
     (log-info (ref (:log session))
               "gmail"
               (str "history since " since ": " (history-shape (ref page))))
     (match (optional-string-field (ref page) "nextPageToken")
       ((some token) (recur session since token so-far))
-      (none (ok (assoc so-far :history-id (history-id-of (ref page))))))))
+      (none (ok (assoc so-far
+                       :history-id (try (history-id-of (ref page)))))))))
 
 (defn history-path (since page-token)
   (str users-me "/history?startHistoryId=" since
@@ -56,6 +65,5 @@
   (rust "native::gmail_history::history_shape({0})"
     (fn ((ref json-value)) string)))
 
-(def history-id-of
-  (rust "{0}.get(\"historyId\").map(|{!value}| {!value}.as_str().map(str::to_string).unwrap_or_else(|| {!value}.to_string())).unwrap_or_default()"
-    (fn ((ref json-value)) string)))
+(defn history-id-of (reply)
+  (required-text reply "historyId"))

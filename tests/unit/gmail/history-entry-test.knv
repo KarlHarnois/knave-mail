@@ -1,0 +1,16 @@
+(use adapters/driven/gmail/history-entry json->history-entry)
+(use adapters/json/value parse-json)
+
+(defn entry-of (text)
+  (json->history-entry (ref (unwrap-ok (parse-json text)))))
+
+(deftest an-added-message-downloads-its-thread
+  (assert (= (:downloads (unwrap-ok (entry-of "{\"messagesAdded\":[{\"message\":{\"id\":\"m\",\"threadId\":\"t\"}}]}")))
+             (vec (str "t")))))
+
+(deftest an-added-label-becomes-a-relabel
+  (let (entry (unwrap-ok (entry-of "{\"labelsAdded\":[{\"message\":{\"id\":\"m\",\"threadId\":\"t\"},\"labelIds\":[\"STARRED\"]}]}")))
+    (assert (= (len (:relabels entry)) 1))))
+
+(deftest a-relabel-without-a-thread-is-an-unexpected-answer
+  (assert (err? (entry-of "{\"labelsRemoved\":[{\"message\":{\"id\":\"m\"},\"labelIds\":[\"INBOX\"]}]}"))))

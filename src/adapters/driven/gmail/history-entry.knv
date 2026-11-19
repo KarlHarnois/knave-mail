@@ -1,73 +1,109 @@
-(use adapters/json/value array-field empty-object json-value
-                         object-field optional-string-field
-                         string-list-field)
+(use adapters/driven/gmail/fields listed-labels
+                                  required-text
+                                  text-error->internal-error)
 
-(use domain/collections appended appended-once)
+(use adapters/json/value array-field json-value
+                         object-field)
+
+(use domain/collections appended-once collect-ok
+                        concatenated)
 
 (use domain/history ->mail-changes ->message-relabel
                     mail-changes message-relabel)
 
 (use domain/labels ->label-change)
-(use domain/results unwrap-ok-or)
+(use domain/mail-error mail-error)
 
-(export with-entry)
+(export json->history-entry with-entry)
 
-(def downloaded-records
-  (vec "messagesAdded" "messagesDeleted"))
+(defstruct history-entry
+  :downloads (vec string)
+  :relabels (vec message-relabel))
+
+(defenum label-record
+  labels-added
+  labels-removed)
+
+(type json->history-entry
+  (fn ((ref json-value))
+    (result history-entry mail-error)))
+
+(defn json->history-entry (entry)
+  (ok (->history-entry :downloads (try (downloaded-threads entry))
+                       :relabels (concatenated (try (relabels-in entry
+                                                                 label-record/labels-added))
+                                               (try (relabels-in entry
+                                                                 label-record/labels-removed))))))
+
+(type with-entry
+  (fn (mail-changes (ref history-entry)) mail-changes))
 
 (defn with-entry (changes entry)
-  (->mail-changes :refetch (reduce (iter (downloaded-threads (ref entry)))
+  (->mail-changes :refetch (reduce (iter (:downloads entry))
                                    (clone (:refetch changes))
                                    (fn (found thread-id)
                                      (appended-once found (clone thread-id))))
-                  :relabels (reduce (iter (entry-relabels (ref entry)))
-                                    (clone (:relabels changes))
-                                    (fn (found relabel)
-                                      (appended found (clone relabel))))
+                  :relabels (concatenated (clone (:relabels changes))
+                                          (clone (:relabels entry)))
                   :history-id (str "")))
 
+(type downloaded-threads
+  (fn ((ref json-value))
+    (result (vec string) mail-error)))
+
 (defn downloaded-threads (entry)
-  (reduce (iter downloaded-records) (vec)
-    (fn (found record)
-      (reduce (array-field entry record) found
-        (fn (threads item)
-          (with-thread-of threads (ref (message-of item))))))))
+  (ok (concatenated (try (thread-ids-in entry "messagesAdded"))
+                    (try (thread-ids-in entry "messagesDeleted")))))
 
-(defn entry-relabels (entry)
-  (reduce (array-field entry "labelsRemoved")
-          (reduce (array-field entry "labelsAdded") (vec)
-            (fn (found item)
-              (with-relabel found
-                            (relabel-of item (labels-of item) (vec)))))
-          (fn (found item)
-            (with-relabel found
-                          (relabel-of item (vec) (labels-of item))))))
+(type thread-ids-in
+  (fn ((ref json-value) (ref str))
+    (result (vec string) mail-error)))
 
-(defn with-relabel (found relabel)
-  (match relabel
-    ((some made) (appended found made))
-    (none found)))
+(defn thread-ids-in (entry record)
+  (-> (array-field entry record)
+      iter
+      (map (fn (item) (thread-id-of item)))
+      collect-ok))
 
-(defn relabel-of (item added removed)
-  (let (message (message-of item))
-    (match (optional-string-field (ref message) "threadId")
-      ((some thread-id)
-       (some (->message-relabel :thread-id thread-id
-                                :message-id (message-id-of (ref message))
-                                :change (->label-change :added added
-                                                        :removed removed))))
-      (none none))))
+(type relabels-in
+  (fn ((ref json-value) label-record)
+    (result (vec message-relabel) mail-error)))
+
+(defn relabels-in (entry record)
+  (-> (array-field entry (record-name record))
+      iter
+      (map (fn (item) (relabel-of item record)))
+      collect-ok))
+
+(defn record-name (record)
+  (match record
+    (labels-added "labelsAdded")
+    (labels-removed "labelsRemoved")))
+
+(defn record-change (record labels)
+  (match record
+    (labels-added (->label-change :added labels :removed (vec)))
+    (labels-removed (->label-change :added (vec) :removed labels))))
+
+(type relabel-of
+  (fn ((ref json-value) label-record)
+    (result message-relabel mail-error)))
+
+(defn relabel-of (item record)
+  (let (message (try (message-of item))
+        labels (listed-labels item))
+    (ok (->message-relabel :thread-id (try (required-text (ref message)
+                                                          "threadId"))
+                           :message-id (try (required-text (ref message) "id"))
+                           :change (record-change record labels)))))
+
+(type thread-id-of
+  (fn ((ref json-value))
+    (result string mail-error)))
+
+(defn thread-id-of (item)
+  (required-text (ref (try (message-of item)))
+                 "threadId"))
 
 (defn message-of (item)
-  (unwrap-ok-or (object-field item "message") (empty-object)))
-
-(defn message-id-of (message)
-  (unwrap-or (optional-string-field message "id") (str "")))
-
-(defn labels-of (item)
-  (unwrap-ok-or (string-list-field item "labelIds") (vec)))
-
-(defn with-thread-of (found message)
-  (match (optional-string-field message "threadId")
-    ((some thread-id) (appended-once found thread-id))
-    (none found)))
+  (text-error->internal-error (object-field item "message")))
