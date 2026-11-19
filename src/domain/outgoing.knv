@@ -1,38 +1,36 @@
-(use domain/mail ->outgoing draft message outgoing)
+(use domain/mail ->outgoing ->reply-link draft message
+                 outgoing outgoing-thread reply-link)
 
-(export draft->outgoing)
+(export draft->outgoing reply-link-of)
 
 (type draft->outgoing
   (fn ((ref draft) (ref str) (option message))
     outgoing))
 
 (defn draft->outgoing (written from original)
-  (match original
-    ((some replied) (reply-outgoing written from (ref replied)))
-    (none (new-outgoing written from))))
-
-(type new-outgoing
-  (fn ((ref draft) (ref str)) outgoing))
-
-(defn new-outgoing (written from)
   (->outgoing :from (str from)
               :to (clone (:to written))
               :cc (clone (:cc written))
               :subject (clone (:subject written))
               :body (clone (:body written))
-              :thread-id none
-              :in-reply-to none
-              :references (str "")))
+              :thread (thread-for original)))
 
-(type reply-outgoing
-  (fn ((ref draft) (ref str) (ref message))
-    outgoing))
+(type thread-for
+  (fn ((option message)) outgoing-thread))
 
-(defn reply-outgoing (written from original)
-  (assoc (new-outgoing written from)
-         :thread-id (some (clone (:thread-id original)))
-         :in-reply-to (some (clone (:header-id original)))
-         :references (references-after original)))
+(defn thread-for (original)
+  (match original
+    ((some replied)
+     (outgoing-thread/reply (reply-link-to (ref replied))))
+    (none outgoing-thread/new-thread)))
+
+(type reply-link-to
+  (fn ((ref message)) reply-link))
+
+(defn reply-link-to (original)
+  (->reply-link :thread-id (clone (:thread-id original))
+                :in-reply-to (clone (:header-id original))
+                :references (references-after original)))
 
 (type references-after
   (fn ((ref message)) string))
@@ -41,3 +39,12 @@
   (if (empty? (:references original))
     (clone (:header-id original))
     (str (:references original) " " (:header-id original))))
+
+(type reply-link-of
+  (fn ((ref outgoing))
+    (option reply-link)))
+
+(defn reply-link-of (sent)
+  (match (:thread sent)
+    ((reply link) (some (clone link)))
+    (new-thread none)))

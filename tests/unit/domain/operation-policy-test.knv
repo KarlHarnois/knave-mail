@@ -1,5 +1,5 @@
 (use domain/labels archive-change)
-(use domain/mail ->outgoing)
+(use domain/mail ->outgoing outgoing-thread)
 (use domain/mail-error ->throttling mail-error)
 (use domain/operation ->relabel-work operation-kind)
 
@@ -68,9 +68,7 @@
                                    :cc (vec)
                                    :subject (str "")
                                    :body (str "")
-                                   :thread-id none
-                                   :in-reply-to none
-                                   :references (str ""))))
+                                   :thread outgoing-thread/new-thread)))
 
 (deftest a-throttled-call-waits-as-long-as-gmail-asks
   (assert (= (step-after-failure 1

@@ -8,6 +8,7 @@
 
 (use domain/labels label-id system-label)
 (use domain/mail ->thread message outgoing thread)
+(use domain/outgoing reply-link-of)
 
 (export record-delivery!)
 
@@ -18,8 +19,9 @@
 (defn record-delivery! (remote sent)
   (let (number (:next-id remote)
         message-id (str "sent-" number)
-        thread-id (match (ref (:thread-id sent))
-                    ((some existing) (clone existing))
+        link (reply-link-of sent)
+        thread-id (match (ref link)
+                    ((some replied) (clone (:thread-id replied)))
                     (none (str "thread-" message-id)))
         message (sent-from sent
                            (ref message-id)

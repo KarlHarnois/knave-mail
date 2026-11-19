@@ -1,5 +1,6 @@
 (use domain/labels label-change)
-(use domain/mail outgoing thread-query)
+(use domain/mail outgoing reply-link thread-query)
+(use domain/outgoing reply-link-of)
 (use domain/label-scope label-of)
 (use adapters/url url-encoded)
 
@@ -91,6 +92,7 @@
 
 (defn send-body (sent)
   (encoded-send-body sent
+                     (ref (reply-link-of sent))
                      (ref (new-message-id (ref (:from sent))))))
 
 (def new-message-id
@@ -98,5 +100,8 @@
     (fn ((ref str)) string)))
 
 (def encoded-send-body
-  (rust "{{ let {!sent} = {0}; native::gmail_send::encoded_send_body(&native::gmail_send::OutgoingMail {{ from: &{!sent}.from, to: &{!sent}.to, cc: &{!sent}.cc, subject: &{!sent}.subject, body: &{!sent}.body, thread_id: {!sent}.thread_id.as_deref(), in_reply_to: {!sent}.in_reply_to.as_deref(), references: &{!sent}.references }}, {1}) }}"
-    (fn ((ref outgoing) (ref str)) string)))
+  (rust "{{ let {!sent} = {0}; native::gmail_send::encoded_send_body(&native::gmail_send::OutgoingMail {{ from: &{!sent}.from, to: &{!sent}.to, cc: &{!sent}.cc, subject: &{!sent}.subject, body: &{!sent}.body, thread_id: {1}.as_ref().map(|{!link}| {!link}.thread_id.as_str()), in_reply_to: {1}.as_ref().map(|{!link}| {!link}.in_reply_to.as_str()), references: {1}.as_ref().map_or(\"\", |{!link}| {!link}.references.as_str()) }}, {2}) }}"
+    (fn ((ref outgoing)
+         (ref (option reply-link))
+         (ref str))
+      string)))

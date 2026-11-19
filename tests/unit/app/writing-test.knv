@@ -1,3 +1,5 @@
+(use domain/mail outgoing-thread)
+(use domain/outgoing reply-link-of)
 (use domain/labels archive-change star-change)
 (use domain/mail ->draft)
 (use app/client/mail-writer draft! send-draft!)
@@ -74,8 +76,8 @@
     (unwrap-ok (send-draft! (mut app)
                             world-account
                             (ref (new-draft none))))
-    (assert (= (:thread-id (at (remote-sent (ref world)) 0))
-               none))))
+    (assert (= (:thread (at (remote-sent (ref world)) 0))
+               outgoing-thread/new-thread))))
 
 (deftest a-reply-joins-the-original-thread
   (let (world (remote)
@@ -94,7 +96,8 @@
     (unwrap-ok (send-draft! (mut app)
                             world-account
                             (ref (new-draft (some (str "m-t-1"))))))
-    (assert (= (:in-reply-to (at (remote-sent (ref world)) 0))
+    (assert (= (map-some (reply-link-of (at (remote-sent (ref world)) 0))
+                 (fn (link) (clone (:in-reply-to link))))
                (some (str "<m-t-1@example.com>"))))))
 
 (deftest a-failed-delivery-reports-a-network-error

@@ -1,6 +1,9 @@
 (use adapters/driven/gmail/mailbox gmail-mailbox)
 (use domain/labels archive-change)
-(use domain/mail ->outgoing ->thread-query)
+
+(use domain/mail ->outgoing ->reply-link ->thread-query
+                 outgoing-thread)
+
 (use domain/mail-error error-kind)
 
 (use ports/driven/mailbox deliver! fetch-labels!
@@ -23,9 +26,11 @@
                                           :cc (vec)
                                           :subject (str "Re: Compiler meeting")
                                           :body (str "Tuesday works.")
-                                          :thread-id (some (str "t1"))
-                                          :in-reply-to (some (str "<m1@example.com>"))
-                                          :references (str "<m0@example.com> <m1@example.com>")))))
+                                          :thread (outgoing-thread/reply
+                                                    (->reply-link
+                                                      :thread-id (str "t1")
+                                                      :in-reply-to (str "<m1@example.com>")
+                                                      :references (str "<m0@example.com> <m1@example.com>")))))))
     (assert (contains? (at (requests-matching
                              (ref server)
                              "POST /gmail/v1/users/me/messages/send")
@@ -35,16 +40,15 @@
 (deftest sending-returns-the-thread-gmail-filed-it-in
   (let (server (start-fake-gmail (ref (fixture-routes)))
         gmail (gmail-over (ref server)))
-    (assert (= (unwrap-ok (deliver! (mut gmail)
-                                    (ref (->outgoing :from (str
-                                                             "ada@example.com")
-                                                     :to (addresses (vec "grace@example.com"))
-                                                     :cc (vec)
-                                                     :subject (str "Hello")
-                                                     :body (str "Hi")
-                                                     :thread-id none
-                                                     :in-reply-to none
-                                                     :references (str "")))))
+    (assert (= (unwrap-ok (deliver!
+                            (mut gmail)
+                            (ref (->outgoing
+                                   :from (str "ada@example.com")
+                                   :to (addresses (vec "grace@example.com"))
+                                   :cc (vec)
+                                   :subject (str "Hello")
+                                   :body (str "Hi")
+                                   :thread outgoing-thread/new-thread))))
                "t1"))))
 
 (deftest a-sent-message-id-names-the-sender-s-domain
@@ -57,9 +61,7 @@
                                           :cc (vec)
                                           :subject (str "Hello")
                                           :body (str "Hi")
-                                          :thread-id none
-                                          :in-reply-to none
-                                          :references (str "")))))
+                                          :thread outgoing-thread/new-thread))))
     (let (sent (requests-matching (ref server)
                                   "POST /gmail/v1/users/me/messages/send")
           message-id (mime-header (ref (sent-mime (at sent 0)))
