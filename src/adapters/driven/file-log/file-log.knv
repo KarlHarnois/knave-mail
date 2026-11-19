@@ -1,7 +1,5 @@
-(use adapters/driven/file-log/level-spec allows? level-spec
-                                         parse-level-spec)
-
-(use domain/log-entry log-entry log-level)
+(use domain/level-spec allows? level-spec)
+(use domain/log-entry log-entry log-level log-level->name)
 
 (export file-log open-file-log written-to-file!)
 
@@ -14,12 +12,11 @@
   :levels level-spec)
 
 (type open-file-log
-  (fn ((ref str) (ref str)) file-log))
+  (fn ((ref str) level-spec) file-log))
 
 (defn open-file-log (path levels)
   (rotate-when-large path rotate-above-bytes kept-old-files)
-  (->file-log :path (str path)
-              :levels (parse-level-spec levels)))
+  (->file-log :path (str path) :levels levels))
 
 (type written-to-file!
   (fn ((ref file-log) (ref log-entry))
@@ -45,11 +42,7 @@
   (fn ((ref log-level)) string))
 
 (defn level-name (level)
-  (match level
-    (log-level/error (str "ERROR"))
-    (log-level/warn (str "WARN"))
-    (log-level/info (str "INFO"))
-    (log-level/debug (str "DEBUG"))))
+  (upper-case (log-level->name level)))
 
 (defn padded (text width)
   (for-each (range (count (chars (as-str (ref text))))

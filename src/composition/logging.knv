@@ -6,4 +6,4 @@
 
 (defn chosen-log (chosen)
   (event-log/file (open-file-log (ref (:log-path chosen))
-                                 (ref (:log-level chosen)))))
+                                 (clone (:log-levels chosen)))))

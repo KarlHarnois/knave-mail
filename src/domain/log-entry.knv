@@ -1,4 +1,5 @@
-(export ->log-entry log-entry log-level severity)
+(export ->log-entry log-entry log-level log-level->name
+        severity text->log-level)
 
 (defenum log-level
   error
@@ -11,12 +12,34 @@
   :area string
   :message string)
 
+(def levels-by-severity
+  (vec log-level/error log-level/warn log-level/info
+       log-level/debug))
+
+(type log-level->name
+  (fn ((ref log-level)) (ref str)))
+
+(defn log-level->name (level)
+  (match level
+    (error "error")
+    (warn "warn")
+    (info "info")
+    (debug "debug")))
+
+(type text->log-level
+  (fn ((ref str)) (option log-level)))
+
+(defn text->log-level (text)
+  (-> (iter levels-by-severity)
+      (find (fn (level)
+              (= (log-level->name level) text)))
+      (map-some (fn (level) (deref level)))))
+
 (type severity
-  (fn ((ref log-level)) u8))
+  (fn ((ref log-level)) usize))
 
 (defn severity (level)
-  (match level
-    (log-level/error 0)
-    (log-level/warn 1)
-    (log-level/info 2)
-    (log-level/debug 3)))
+  (-> (iter levels-by-severity)
+      (take-while (fn (listed)
+                    (not= (deref listed) (deref level))))
+      count))

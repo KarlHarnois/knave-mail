@@ -1,0 +1,96 @@
+(use domain/collections collect-ok)
+
+(use domain/log-entry log-entry log-level severity
+                      text->log-level)
+
+(export ->level-spec allows? level-spec text->level-spec)
+
+(defstruct level-spec
+  :default log-level
+  :areas (vec (pair string log-level)))
+
+(defenum level-part
+  (everywhere log-level)
+  (in-area :area string :level log-level))
+
+(type text->level-spec
+  (fn ((ref str))
+    (result level-spec string)))
+
+(defn text->level-spec (text)
+  (let (parts (try (-> (split text ",")
+                       (map (fn (part)
+                              (text->level-part (trim part))))
+                       collect-ok)))
+    (ok (reduce (iter parts)
+                (->level-spec :default log-level/info :areas (vec))
+                with-part))))
+
+(type with-part
+  (fn (level-spec (ref level-part)) level-spec))
+
+(defn with-part (spec part)
+  (match part
+    ((everywhere level) (assoc spec :default (clone level)))
+    ((in-area area level)
+     (with-area spec (clone area) (clone level)))))
+
+(type with-area
+  (fn (level-spec string log-level) level-spec))
+
+(defn with-area (spec area level)
+  (push! (mut (:areas spec))
+         (pair area level))
+  spec)
+
+(type text->level-part
+  (fn ((ref str))
+    (result level-part string)))
+
+(defn text->level-part (part)
+  (let (sides (collect (split part "=")))
+    (match (len sides)
+      (1
+       (map-ok (named-level part)
+         (fn (level) (level-part/everywhere level))))
+      (2 (area-part (deref (at sides 0)) (deref (at sides 1))))
+      (_ (err (str "cannot read the log level `" part "`"))))))
+
+(type area-part
+  (fn ((ref str) (ref str))
+    (result level-part string)))
+
+(defn area-part (area level)
+  (map-ok (named-level level)
+    (fn (found)
+      (level-part/in-area :area (str (trim area)) :level found))))
+
+(type named-level
+  (fn ((ref str))
+    (result log-level string)))
+
+(defn named-level (name)
+  (ok-or (text->log-level (as-str (ref (lower-case (trim name)))))
+         (str "unknown log level `" name "`")))
+
+(type allows?
+  (fn ((ref level-spec) (ref log-entry))
+    bool))
+
+(defn allows? (spec entry)
+  (<= (severity (ref (:level entry)))
+      (severity (ref (threshold-for spec (ref (:area entry)))))))
+
+(type threshold-for
+  (fn ((ref level-spec) (ref string))
+    log-level))
+
+(defn threshold-for (spec area)
+  (-> (iter (:areas spec))
+      (find (fn (entry)
+              (let-match ((pair name _) entry)
+                (= name area))))
+      (map-some (fn (entry)
+                  (let-match ((pair _ threshold) entry)
+                    (clone threshold))))
+      (unwrap-or (clone (:default spec)))))

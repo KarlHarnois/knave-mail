@@ -1,0 +1,21 @@
+(use domain/level-spec allows? text->level-spec)
+(use domain/log-entry ->log-entry log-level)
+
+(defn entry (level area)
+  (->log-entry :level level
+               :area (str area)
+               :message (str "")))
+
+(deftest an-area-can-log-more-than-the-default
+  (let (spec (unwrap-ok (text->level-spec "warn,gmail=debug")))
+    (assert (allows? (ref spec)
+                     (ref (entry log-level/debug "gmail"))))
+    (assert (not (allows? (ref spec)
+                          (ref (entry log-level/info "sync")))))))
+
+(deftest an-unknown-level-is-an-error
+  (assert (= (text->level-spec "loud")
+             (err (str "unknown log level `loud`")))))
+
+(deftest level-names-ignore-case
+  (assert (ok? (text->level-spec "INFO"))))

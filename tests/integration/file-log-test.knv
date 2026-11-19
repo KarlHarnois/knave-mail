@@ -1,4 +1,9 @@
 (use adapters/driven/file-log/file-log open-file-log)
+(use domain/level-spec text->level-spec)
+
+(defn levels (text)
+  (unwrap-ok (text->level-spec text)))
+
 (use domain/log-entry ->log-entry log-level)
 (use ports/driven/event-log event-log record!)
 (use support/temporary temporary-path)
@@ -27,7 +32,7 @@
 
 (deftest writes-one-timestamped-line-per-entry
   (let (path (temporary-path "one-line-per-entry.log")
-        log (event-log/file (open-file-log (ref path) "info")))
+        log (event-log/file (open-file-log (ref path) (levels "info"))))
     (record-at! log log-level/info "gmail"
                 "GET /labels 200 12ms")
     (let (written (read-file (ref path)))
@@ -37,7 +42,7 @@
 
 (deftest drops-entries-below-the-level
   (let (path (temporary-path "below-level.log")
-        log (event-log/file (open-file-log (ref path) "info")))
+        log (event-log/file (open-file-log (ref path) (levels "info"))))
     (record-at! log log-level/debug "gmail" "hidden")
     (record-at! log log-level/warn "gmail" "shown")
     (assert (= (line-count (ref (read-file (ref path))))
@@ -45,7 +50,8 @@
 
 (deftest an-area-can-log-more-than-the-default
   (let (path (temporary-path "area-level.log")
-        log (event-log/file (open-file-log (ref path) "warn,gmail=debug")))
+        log (event-log/file (open-file-log (ref path)
+                                           (levels "warn,gmail=debug"))))
     (record-at! log log-level/debug "gmail" "request")
     (record-at! log log-level/info "sync" "dropped")
     (assert (= (line-count (ref (read-file (ref path))))
@@ -53,7 +59,7 @@
 
 (deftest keeps-each-entry-on-one-line
   (let (path (temporary-path "single-line.log")
-        log (event-log/file (open-file-log (ref path) "info")))
+        log (event-log/file (open-file-log (ref path) (levels "info"))))
     (record-at! log log-level/error "frontend" "first\nsecond")
     (assert (= (line-count (ref (read-file (ref path))))
                1))))
@@ -61,7 +67,7 @@
 (deftest rotates-a-large-log-when-opened
   (let (path (temporary-path "rotation.log"))
     (write-bytes (ref path) 5000001)
-    (let (log (event-log/file (open-file-log (ref path) "info")))
+    (let (log (event-log/file (open-file-log (ref path) (levels "info"))))
       (record-at! log log-level/info "app" "fresh")
       (assert (exists? (ref (str path ".1"))))
       (assert (= (line-count (ref (read-file (ref path))))
