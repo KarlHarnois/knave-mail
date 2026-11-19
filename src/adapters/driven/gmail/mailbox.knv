@@ -2,8 +2,8 @@
                                          thread-labels)
 
 (use adapters/driven/gmail/codec label-from label-ids
-                                 message-from-raw
-                                 message-ids sent-thread-id)
+                                 message-ids raw->message
+                                 sent-thread-id)
 
 (use adapters/driven/gmail/codec thread-ids)
 
@@ -134,7 +134,7 @@
                   collect)
         raws (try (api-get-all! session (ref paths)))
         messages (-> (iter raws)
-                     (map (fn (raw) (message-from-raw raw thread-id)))
+                     (map (fn (raw) (raw->message raw thread-id)))
                      collect))
     (ok (->thread :id (str thread-id)
                   :subject (first-subject (ref messages))

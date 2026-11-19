@@ -1,5 +1,5 @@
 (use adapters/driven/sqlite/connection sqlite-connection)
-(use adapters/driven/sqlite/rows as-internal)
+(use adapters/driven/sqlite/rows text-error->internal-error)
 (use adapters/driven/sqlite/statements execute-all)
 (use domain/mail ->account ->label account label)
 (use domain/mail-error mail-error)
@@ -37,23 +37,26 @@
   "INSERT INTO labels (account, id, name, unread, total) VALUES (?1, ?2, ?3, ?4, ?5)")
 
 (defn read-accounts (connection)
-  (let (emails (try (as-internal (account-emails connection select-emails))))
+  (let (emails (try (text-error->internal-error
+                      (account-emails connection select-emails))))
     (ok (-> (iter emails)
             (map (fn (email) (->account (clone email))))
             collect))))
 
 (defn write-account (connection saved)
-  (as-internal (execute-all connection
-                            (ref (vec insert-account))
-                            (ref (vec (as-str (:email saved)))))))
+  (text-error->internal-error (execute-all connection
+                                           (ref (vec insert-account))
+                                           (ref (vec (as-str (:email
+                                                               saved)))))))
 
 (defn erase-account (connection email)
-  (as-internal (execute-all connection
-                            (ref account-erasures)
-                            (ref (vec email)))))
+  (text-error->internal-error (execute-all connection
+                                           (ref account-erasures)
+                                           (ref (vec email)))))
 
 (defn read-labels (connection account)
-  (let (rows (try (as-internal (label-rows connection select-labels account))))
+  (let (rows (try (text-error->internal-error
+                    (label-rows connection select-labels account))))
     (ok (-> (iter rows)
             (map (fn (row)
                    (->label (clone (:id row))
@@ -63,9 +66,9 @@
             collect))))
 
 (defn write-labels (connection account labels)
-  (as-internal (replace-labels connection delete-labels
-                               insert-label account
-                               labels)))
+  (text-error->internal-error
+    (replace-labels connection delete-labels insert-label
+                    account labels)))
 
 (def account-emails
   (rust "{0}.prepare_cached({1}).and_then(|mut {!statement}| {!statement}.query_map([], |{!row}| {!row}.get::<_, String>(0)).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string())"

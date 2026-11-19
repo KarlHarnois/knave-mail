@@ -6,14 +6,15 @@
 (use adapters/driven/gmail/throttling throttling-of)
 (use domain/mail-error mail-error)
 
-(export as-internal checked collect-results sent)
+(export checked collect-results sent
+        text-error->internal-error)
 
 (defn checked (reply)
   (let (status (:status reply)
         body (clone (:body reply)))
     (cond
       ((and (>= status 200) (< status 300))
-       (as-internal (parse-json (ref (non-empty-json body)))))
+       (text-error->internal-error (parse-json (ref (non-empty-json body)))))
       ((rate-limited? (ref reply))
        (err (mail-error/throttled (throttling-of (ref reply)))))
       ((quota-exhausted? (ref reply))
@@ -32,7 +33,7 @@
     (fn (problem)
       (mail-error/network (str "cannot reach Google: " problem)))))
 
-(defn as-internal (outcome)
+(defn text-error->internal-error (outcome)
   (map-err outcome
     (fn (problem)
       (mail-error/internal (str "unexpected Gmail answer: " problem)))))

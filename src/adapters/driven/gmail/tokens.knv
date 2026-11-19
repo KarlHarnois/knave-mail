@@ -1,5 +1,8 @@
 (use adapters/driven/gmail/http http-post-form)
-(use adapters/driven/gmail/replies as-internal sent)
+
+(use adapters/driven/gmail/replies sent
+                                   text-error->internal-error)
+
 (use adapters/driven/gmail/session-state gmail-session)
 (use adapters/json/value parse-json string-field)
 (use domain/mail-error mail-error)
@@ -44,9 +47,10 @@
     (result unit mail-error)))
 
 (defn keep-access-token! (session body)
-  (let (fields (try (as-internal (parse-json body))))
+  (let (fields (try (text-error->internal-error (parse-json body))))
     (set! (:access-token session)
-          (some (try (as-internal (string-field (ref fields) "access_token")))))
+          (some (try (text-error->internal-error
+                       (string-field (ref fields) "access_token")))))
     (log-info (ref (:log session))
               area
               (str "refreshed the access token"))

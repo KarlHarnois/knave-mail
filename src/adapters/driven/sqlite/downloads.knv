@@ -1,5 +1,5 @@
 (use adapters/driven/sqlite/connection sqlite-connection)
-(use adapters/driven/sqlite/rows as-internal)
+(use adapters/driven/sqlite/rows text-error->internal-error)
 (use adapters/driven/sqlite/statements execute-all)
 
 (export erase-download insert-downloads read-downloads)
@@ -14,18 +14,19 @@
   "DELETE FROM pending_downloads WHERE account = ?1 AND thread_id = ?2")
 
 (defn insert-downloads (connection account thread-ids)
-  (as-internal (rows-inserted connection insert-download-row
-                              account thread-ids)))
+  (text-error->internal-error
+    (rows-inserted connection insert-download-row account
+                   thread-ids)))
 
 (defn read-downloads (connection account)
-  (as-internal (thread-ids-of connection
-                              select-downloads-newest-first
-                              account)))
+  (text-error->internal-error (thread-ids-of connection
+                                             select-downloads-newest-first
+                                             account)))
 
 (defn erase-download (connection account thread-id)
-  (as-internal (execute-all connection
-                            (ref (vec delete-download-row))
-                            (ref (vec account thread-id)))))
+  (text-error->internal-error (execute-all connection
+                                           (ref (vec delete-download-row))
+                                           (ref (vec account thread-id)))))
 
 (def rows-inserted
   (rust "{0}.unchecked_transaction().and_then(|{!transaction}| {{ {{ let mut {!statement} = {!transaction}.prepare({1})?; for {!thread_id} in {3}.iter() {{ {!statement}.execute(rusqlite::params![{2}, {!thread_id}])?; }} }} {!transaction}.commit() }}).map_err(|{!error}| {!error}.to_string())"

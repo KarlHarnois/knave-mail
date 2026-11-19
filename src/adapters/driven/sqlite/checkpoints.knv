@@ -1,5 +1,5 @@
 (use adapters/driven/sqlite/connection sqlite-connection)
-(use adapters/driven/sqlite/rows as-internal)
+(use adapters/driven/sqlite/rows text-error->internal-error)
 (use adapters/driven/sqlite/statements execute-all)
 (use domain/mail-error mail-error)
 
@@ -12,12 +12,13 @@
   "INSERT INTO checkpoints (account, history_id) VALUES (?1, ?2) ON CONFLICT (account) DO UPDATE SET history_id = excluded.history_id")
 
 (defn read-checkpoint (connection account)
-  (as-internal (checkpoint-row connection select-checkpoint account)))
+  (text-error->internal-error
+    (checkpoint-row connection select-checkpoint account)))
 
 (defn write-checkpoint (connection account history-id)
-  (as-internal (execute-all connection
-                            (ref (vec upsert-checkpoint))
-                            (ref (vec account history-id)))))
+  (text-error->internal-error (execute-all connection
+                                           (ref (vec upsert-checkpoint))
+                                           (ref (vec account history-id)))))
 
 (def checkpoint-row
   (rust "{{ use rusqlite::OptionalExtension; {0}.query_row({1}, [{2}], |{!row}| {!row}.get::<_, String>(0)).optional().map_err(|{!error}| {!error}.to_string()) }}"

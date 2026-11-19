@@ -1,8 +1,8 @@
 (use domain/mail-error mail-error)
 
-(export as-internal)
+(export text-error->internal-error)
 
-(defn as-internal (outcome)
+(defn text-error->internal-error (outcome)
   (map-err outcome
     (fn (problem)
       (mail-error/internal (str "cache: " problem)))))

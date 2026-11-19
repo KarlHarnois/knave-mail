@@ -14,10 +14,10 @@
         thread-query-argument)
 
 (defn text-argument (arguments name)
-  (as-usage (string-field arguments name)))
+  (text-error->usage-error (string-field arguments name)))
 
 (defn flag-argument (arguments name)
-  (as-usage (bool-field arguments name)))
+  (text-error->usage-error (bool-field arguments name)))
 
 (defn account-argument (arguments)
   (text-argument arguments "account"))
@@ -27,23 +27,27 @@
                     :thread-id (try (text-argument arguments "threadId")))))
 
 (defn thread-ids-argument (arguments)
-  (as-usage (string-list-field arguments "threadIds")))
+  (text-error->usage-error (string-list-field arguments "threadIds")))
 
 (defn thread-query-argument (arguments)
-  (ok (->thread-query
-        :scope (scope-named (as-str (ref (try (text-argument arguments
-                                                             "label")))))
-        :query (try (text-argument arguments "query"))
-        :limit (try (as-usage (number-field arguments "limit"))))))
+  (ok (->thread-query :scope (scope-named (as-str (ref (try (text-argument
+                                                              arguments
+                                                              "label")))))
+                      :query (try (text-argument arguments "query"))
+                      :limit (try (text-error->usage-error
+                                    (number-field arguments "limit"))))))
 
 (defn draft-argument (arguments)
-  (let (written (try (as-usage (object-field arguments "draft"))))
-    (ok (->draft :to (try (as-usage (string-list-field (ref written) "to")))
-                 :cc (try (as-usage (string-list-field (ref written) "cc")))
+  (let (written (try (text-error->usage-error (object-field arguments
+                                                            "draft"))))
+    (ok (->draft :to (try (text-error->usage-error
+                            (string-list-field (ref written) "to")))
+                 :cc (try (text-error->usage-error
+                            (string-list-field (ref written) "cc")))
                  :subject (try (text-argument (ref written) "subject"))
                  :body (try (text-argument (ref written) "body"))
                  :reply-to (optional-string-field (ref written) "replyTo")))))
 
-(defn as-usage (outcome)
+(defn text-error->usage-error (outcome)
   (map-err outcome
     (fn (problem) (mail-error/usage problem))))

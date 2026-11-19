@@ -40,7 +40,7 @@
     (result account mail-error)))
 
 (defn consented-account! (granting)
-  (let (listener (try (as-auth (bind-loopback)))
+  (let (listener (try (text-error->auth-error (bind-loopback)))
         request (consent-request-on (ref listener))
         url (consent-url (ref (:settings granting))
                          (ref (:redirect-uri request))
@@ -49,7 +49,8 @@
     (try (open-url! (mut (:browser granting))
                     (ref url)))
     (let (wait (:sign-in-wait-milliseconds (:settings granting))
-          redirect (try (as-auth (wait-for-redirect (ref listener) wait)))
+          redirect (try (text-error->auth-error
+                          (wait-for-redirect (ref listener) wait)))
           outcome (answered-account! granting
                                      (ref (:answer redirect))
                                      (ref request)))
@@ -102,13 +103,15 @@
                   (pair (str "redirect_uri") (str redirect-uri))
                   (pair (str "code_verifier")
                         (clone (:verifier pkce))))
-        reply (try (as-network (http-post-form (ref (:agent granting))
-                                               (ref (:token-url settings))
-                                               (ref form))))
-        tokens (try (as-auth (parse-json (:body reply))))
-        refresh-token (try (as-auth (string-field (ref tokens)
-                                                  "refresh_token")))
-        access-token (try (as-auth (string-field (ref tokens) "access_token")))
+        reply (try (text-error->network-error (http-post-form
+                                                (ref (:agent granting))
+                                                (ref (:token-url settings))
+                                                (ref form))))
+        tokens (try (text-error->auth-error (parse-json (:body reply))))
+        refresh-token (try (text-error->auth-error
+                             (string-field (ref tokens) "refresh_token")))
+        access-token (try (text-error->auth-error
+                            (string-field (ref tokens) "access_token")))
         email (try (profile-email granting (ref access-token))))
     (try (save-token! (mut (:credentials granting))
                       (ref email)
@@ -122,18 +125,18 @@
 (defn profile-email (granting access-token)
   (let (url (str (:api-base (:settings granting))
                  "/gmail/v1/users/me/profile")
-        reply (try (as-network (http-get (ref (:agent granting))
-                                         (ref url)
-                                         access-token)))
-        profile (try (as-auth (parse-json (:body reply)))))
-    (as-auth (string-field (ref profile) "emailAddress"))))
+        reply (try (text-error->network-error (http-get (ref (:agent granting))
+                                                        (ref url)
+                                                        access-token)))
+        profile (try (text-error->auth-error (parse-json (:body reply)))))
+    (text-error->auth-error (string-field (ref profile) "emailAddress"))))
 
-(defn as-auth (outcome)
+(defn text-error->auth-error (outcome)
   (map-err outcome
     (fn (problem)
       (mail-error/auth-required (str "sign-in failed: " problem)))))
 
-(defn as-network (outcome)
+(defn text-error->network-error (outcome)
   (map-err outcome
     (fn (problem)
       (mail-error/network (str "cannot reach Google: " problem)))))

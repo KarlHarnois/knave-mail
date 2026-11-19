@@ -1,6 +1,6 @@
 (use domain/label-scope label-of)
 (use adapters/driven/sqlite/connection sqlite-connection)
-(use adapters/driven/sqlite/rows as-internal)
+(use adapters/driven/sqlite/rows text-error->internal-error)
 (use adapters/driven/sqlite/threads set-thread-labels)
 (use domain/labels label-change)
 
@@ -38,19 +38,20 @@
   "UPDATE summaries SET labels = ?3 WHERE account = ?1 AND id = ?2")
 
 (defn read-summaries (connection account query)
-  (let (rows (try (as-internal (summary-rows
-                                 connection account
-                                 (ref (label-of (ref (:scope query))))
-                                 (:limit query)
-                                 select-summaries-in-label))))
+  (let (rows (try (text-error->internal-error
+                    (summary-rows connection account
+                                  (ref (label-of (ref (:scope query))))
+                                  (:limit query)
+                                  select-summaries-in-label))))
     (ok (-> (iter rows)
             (map (fn (row) (summary-from row)))
             collect))))
 
 (defn read-summaries-with-ids (connection account ids)
-  (let (rows (try (as-internal (summary-rows-with-ids
-                                 connection account ids
-                                 select-summaries-with-ids))))
+  (let (rows (try (text-error->internal-error (summary-rows-with-ids
+                                                connection
+                                                account ids
+                                                select-summaries-with-ids))))
     (ok (-> (iter rows)
             (map (fn (row) (summary-from row)))
             collect))))
@@ -77,22 +78,22 @@
                     :message-ids (clone (:message-ids row))))
 
 (defn write-summaries (connection account summaries)
-  (try (as-internal (upsert-summaries connection account
-                                      summaries
-                                      upsert-summary)))
-  (as-internal (align-thread-labels connection account
-                                    summaries
-                                    set-thread-labels)))
+  (try (text-error->internal-error
+         (upsert-summaries connection account summaries
+                           upsert-summary)))
+  (text-error->internal-error (align-thread-labels
+                                connection account summaries
+                                set-thread-labels)))
 
 (defn relabel-summary (connection account thread-id labels)
-  (as-internal (update-summary-labels connection account
-                                      thread-id labels
-                                      set-summary-labels)))
+  (text-error->internal-error (update-summary-labels
+                                connection account thread-id
+                                labels set-summary-labels)))
 
 (defn read-summary-labels (connection account thread-id)
-  (as-internal (stored-summary-labels connection account
-                                      thread-id
-                                      select-summary-labels)))
+  (text-error->internal-error (stored-summary-labels
+                                connection account thread-id
+                                select-summary-labels)))
 
 (def stored-summary-labels
   (rust "{{ use rusqlite::OptionalExtension; {0}.query_row({3}, [{1}, {2}], |{!row}| {!row}.get::<_, String>(0)).optional().map(|{!found}| {!found}.map(|{!text}| serde_json::from_str::<Vec<String>>(&{!text}).unwrap_or_default())).map_err(|{!error}| {!error}.to_string()) }}"

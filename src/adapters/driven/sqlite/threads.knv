@@ -1,5 +1,5 @@
 (use adapters/driven/sqlite/connection sqlite-connection)
-(use adapters/driven/sqlite/rows as-internal)
+(use adapters/driven/sqlite/rows text-error->internal-error)
 (use adapters/driven/sqlite/statements execute-all)
 (use domain/mail ->message ->thread message thread)
 (use domain/mail-error mail-error)
@@ -45,7 +45,7 @@
   "INSERT OR REPLACE INTO messages (account, id, thread_id, position, sender, recipients, copied, subject, date, text, html, header_id, refs) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)")
 
 (defn read-thread (connection account thread-id)
-  (match (try (as-internal
+  (match (try (text-error->internal-error
                 (thread-row-of connection account thread-id select-thread)))
     ((some row)
      (let (messages (try (thread-messages connection account thread-id)))
@@ -56,32 +56,33 @@
     (none (ok none))))
 
 (defn thread-messages (connection account thread-id)
-  (let (rows (try (as-internal (message-rows connection
-                                             select-thread-messages
-                                             account
-                                             thread-id))))
+  (let (rows (try (text-error->internal-error
+                    (message-rows connection
+                                  select-thread-messages
+                                  account thread-id))))
     (ok (-> (iter rows) (map message-from) collect))))
 
 (defn read-message (connection account message-id)
-  (let (rows (try (as-internal (message-rows
-                                 connection select-message
-                                 account message-id))))
+  (let (rows (try (text-error->internal-error
+                    (message-rows connection select-message
+                                  account message-id))))
     (ok (-> rows first (map-some message-from)))))
 
 (defn write-thread (connection account saved)
-  (as-internal (replace-thread-rows
-                 connection account saved insert-thread
-                 delete-thread-messages insert-message)))
+  (text-error->internal-error
+    (replace-thread-rows
+      connection account saved insert-thread
+      delete-thread-messages insert-message)))
 
 (defn relabel-thread (connection account thread-id labels)
-  (as-internal (update-thread-labels connection account
-                                     thread-id labels
-                                     set-thread-labels)))
+  (text-error->internal-error (update-thread-labels
+                                connection account thread-id
+                                labels set-thread-labels)))
 
 (defn erase-thread (connection account thread-id)
-  (as-internal (execute-all connection
-                            (ref thread-erasures)
-                            (ref (vec account thread-id)))))
+  (text-error->internal-error (execute-all connection
+                                           (ref thread-erasures)
+                                           (ref (vec account thread-id)))))
 
 (type message-from
   (fn ((ref message-row)) message))

@@ -5,7 +5,7 @@
 (use domain/collections appended)
 (use domain/mail ->label ->message label message)
 
-(export label-from label-ids message-from-raw message-ids
+(export label-from label-ids message-ids raw->message
         sent-thread-id text-at thread-ids)
 
 (defstruct message-parts
@@ -25,7 +25,7 @@
            :unread (number-at details "threadsUnread")
            :total (number-at details "threadsTotal")))
 
-(defn message-from-raw (raw-message thread-id)
+(defn raw->message (raw-message thread-id)
   (let (parts (message-parts-of raw-message))
     (->message :id (text-at raw-message "id")
                :thread-id (str thread-id)

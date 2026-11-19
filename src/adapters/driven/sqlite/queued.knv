@@ -1,5 +1,5 @@
 (use adapters/driven/sqlite/connection sqlite-connection)
-(use adapters/driven/sqlite/rows as-internal)
+(use adapters/driven/sqlite/rows text-error->internal-error)
 (use domain/labels label-change)
 (use domain/mail-error mail-error)
 (use domain/queued-relabel ->queued-relabel queued-relabel)
@@ -24,29 +24,31 @@
   "SELECT COUNT(*) FROM queued_relabels WHERE account = ?1")
 
 (defn insert-queued (connection email thread-id change)
-  (as-internal (inserted-row connection email thread-id
-                             change insert-queued-row)))
+  (text-error->internal-error (inserted-row connection email
+                                            thread-id change
+                                            insert-queued-row)))
 
 (defn read-all-queued (connection)
-  (as-internal (queued-rows connection select-all-queued "")))
+  (text-error->internal-error (queued-rows connection select-all-queued "")))
 
 (defn read-queued-of (connection email)
-  (as-internal (queued-rows connection select-queued-of-account email)))
+  (text-error->internal-error
+    (queued-rows connection select-queued-of-account email)))
 
 (defn erase-queued (connection id)
-  (as-internal (row-erased connection delete-queued-row id)))
+  (text-error->internal-error (row-erased connection delete-queued-row id)))
 
 (defn count-queued (connection email)
-  (as-internal (counted connection count-queued-rows email)))
+  (text-error->internal-error (counted connection count-queued-rows email)))
 
 (defn begin! (connection)
-  (as-internal (batch-run connection "BEGIN IMMEDIATE")))
+  (text-error->internal-error (batch-run connection "BEGIN IMMEDIATE")))
 
 (defn commit! (connection)
-  (as-internal (batch-run connection "COMMIT")))
+  (text-error->internal-error (batch-run connection "COMMIT")))
 
 (defn rollback! (connection)
-  (as-internal (batch-run connection "ROLLBACK")))
+  (text-error->internal-error (batch-run connection "ROLLBACK")))
 
 (def inserted-row
   (rust "{0}.execute({4}, rusqlite::params![{1}, {2}, serde_json::to_string(&{3}.added).unwrap_or_default(), serde_json::to_string(&{3}.removed).unwrap_or_default()]).map(|_| {0}.last_insert_rowid()).map_err(|{!error}| {!error}.to_string())"
