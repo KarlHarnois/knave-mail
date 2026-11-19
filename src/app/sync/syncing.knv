@@ -48,31 +48,37 @@
 (defn incremental-sync! (app account since)
   (log-incremental-sync-started! (ref (:log app))
                                  account since)
-  (try (apply-changes-or-full-sync! app account since))
+  (try (apply-changes-or-full-sync! app
+                                    (ref (->history-start :account (str account)
+                                                          :since (str since)))))
   (relist-labels! app account (ref synced-labels)))
 
+(defstruct history-start
+  :account string
+  :since string)
+
 (type apply-changes-or-full-sync!
-  (fn ((mut mail-app) (ref str) (ref str))
+  (fn ((mut mail-app) (ref history-start))
     (result unit mail-error)))
 
-(defn apply-changes-or-full-sync! (app account since)
-  (match (sync-changes! app account since)
-    ((err failure)
-     (full-sync-if-expired! app account since failure))
+(defn apply-changes-or-full-sync! (app start)
+  (match (sync-changes! app
+                        (as-str (:account start))
+                        (as-str (:since start)))
+    ((err failure) (full-sync-if-expired! app start failure))
     (done done)))
 
 (type full-sync-if-expired!
-  (fn ((mut mail-app)
-       (ref str)
-       (ref str)
-       mail-error)
+  (fn ((mut mail-app) (ref history-start) mail-error)
     (result unit mail-error)))
 
-(defn full-sync-if-expired! (app account since failure)
+(defn full-sync-if-expired! (app start failure)
   (if (history-expired? (ref failure))
     (do
-      (log-history-expired! (ref (:log app)) account since)
-      (full-sync! app account))
+      (log-history-expired! (ref (:log app))
+                            (ref (:account start))
+                            (ref (:since start)))
+      (full-sync! app (as-str (:account start))))
     (err failure)))
 
 (defenum preview-outcome

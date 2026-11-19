@@ -20,6 +20,11 @@
                   (str "")
                   limit))
 
+(defstruct stale-check
+  :account string
+  :listing thread-query
+  :removal label-change)
+
 (type drop-stale-label!
   (fn ((mut mail-app)
        (ref str)
@@ -28,41 +33,40 @@
     (result unit mail-error)))
 
 (defn drop-stale-label! (app account label listed)
-  (let (query (label-query label (:sync (:limits app)))
-        removal (label-removal (as-str (label-id label))))
-    (drop-stale-threads! app account
-                         (ref query)
-                         listed
-                         (ref removal))))
+  (let (check (->stale-check :account (str account)
+                             :listing (label-query label (:sync (:limits app)))
+                             :removal (label-removal (as-str (label-id
+                                                               label)))))
+    (drop-stale-threads! app (ref check) listed)))
 
 (type drop-stale-threads!
   (fn ((mut mail-app)
-       (ref str)
-       (ref thread-query)
-       (ref (vec thread-summary))
-       (ref label-change))
+       (ref stale-check)
+       (ref (vec thread-summary)))
     (result unit mail-error)))
 
-(defn drop-stale-threads! (app account query listed removal)
-  (let (cached (try (load-threads (ref (:store app)) account query))
+(defn drop-stale-threads! (app check listed)
+  (let (query (ref (:listing check))
+        cached (try (load-threads (ref (:store app))
+                                  (as-str (:account check))
+                                  query))
         stale (missing-from-listing (ref cached) listed (:limit query)))
     (if (empty? stale)
       (ok (do))
       (do
-        (try (unlabel-threads! app account (ref stale) removal))
-        (recur app account query listed removal)))))
+        (try (unlabel-threads! app check (ref stale)))
+        (recur app check listed)))))
 
 (type unlabel-threads!
   (fn ((mut mail-app)
-       (ref str)
-       (ref (vec string))
-       (ref label-change))
+       (ref stale-check)
+       (ref (vec string)))
     (result unit mail-error)))
 
-(defn unlabel-threads! (app account thread-ids removal)
+(defn unlabel-threads! (app check thread-ids)
   (try-for-each (iter thread-ids)
     (fn (thread-id)
       (relabel-stored! (mut (:store app))
-                       (ref (->thread-ref :account (str account)
-                                          :thread-id (str thread-id)))
-                       removal))))
+                       (ref (->thread-ref :account (clone (:account check))
+                                          :thread-id (clone thread-id)))
+                       (ref (:removal check))))))
