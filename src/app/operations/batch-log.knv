@@ -1,3 +1,4 @@
+(use domain/queued-relabel relabel-request)
 (use domain/log-entry log-area)
 (use app/operations/operation-log labels-changed)
 (use domain/delivery-tally delivery-count)
@@ -28,14 +29,20 @@
                  " threads stay in the inbox with newer mail: "
                  (join thread-ids " "))))
 
-(defn log-batch-queued! (log account change thread-ids)
+(type log-batch-queued!
+  (fn ((ref event-log) (ref relabel-request))
+    unit))
+
+(defn log-batch-queued! (log request)
   (log-info log log-area/operations
-            (str "relabel " account ": queued "
-                 (len thread-ids)
+            (str "relabel "
+                 (:account request)
+                 ": queued "
+                 (len (:thread-ids request))
                  " "
-                 (labels-changed change)
+                 (labels-changed (ref (:change request)))
                  " for "
-                 (join thread-ids " "))))
+                 (join (:thread-ids request) " "))))
 
 (type log-batch-delivered!
   (fn ((ref event-log)

@@ -89,12 +89,12 @@
 
 (defn answer-mail! (app workers log call outbox)
   (match (:command call)
-    ((relabel account _ _)
+    ((relabel request)
      (answer-relabel! app
                       (ref (:delivery workers))
                       log
                       (ref call)
-                      (as-str account)
+                      (as-str (:account request))
                       outbox))
     (_ (answer-here-or-hand-off! app workers log call outbox))))
 

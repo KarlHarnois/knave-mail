@@ -121,8 +121,8 @@
   (relabel-stored! (cache relabeled change)
     (ok (relabel-everywhere! cache relabeled change)))
 
-  (queue-relabels! (cache email thread-ids change)
-    (ok (queued-each! cache email thread-ids change)))
+  (queue-relabels! (cache request)
+    (ok (queued-each! cache request)))
 
   (load-queued (cache)
     (ok (clone (:queued cache))))

@@ -1,3 +1,4 @@
+(use domain/queued-relabel ->relabel-request)
 (use app/mail-app mail-app)
 (use domain/freshness freshness)
 (use adapters/driving/cli/cli-result cli-result)
@@ -83,7 +84,11 @@
                                   :to (clone to)))))
       ((relabel change thread-ids)
        (do
-         (try (relabel-threads! client account thread-ids change))
+         (try (relabel-threads! client
+                                (ref (->relabel-request :account (str account)
+                                                        :thread-ids (clone thread-ids)
+                                                        :change (clone
+                                                                  change)))))
          (all-delivered client account)))
       (sync (do
               (try (sync-account! client account))

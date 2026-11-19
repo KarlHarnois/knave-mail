@@ -4,7 +4,7 @@
                  thread-query thread-ref thread-summary)
 
 (use domain/mail-error mail-error)
-(use domain/queued-relabel queued-relabel)
+(use domain/queued-relabel queued-relabel relabel-request)
 
 (export store)
 
@@ -98,10 +98,7 @@
       (result unit mail-error)))
 
   (queue-relabels!
-    (fn ((mut self)
-         (ref str)
-         (ref (vec string))
-         (ref label-change))
+    (fn ((mut self) (ref relabel-request))
       (result (vec queued-relabel) mail-error)))
 
   (load-queued

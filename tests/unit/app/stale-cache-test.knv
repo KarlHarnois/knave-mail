@@ -1,3 +1,4 @@
+(use domain/queued-relabel ->relabel-request)
 (use domain/labels archive-change inbox-change)
 (use app/client/mail-labeler relabel-threads!)
 (use app/client/mail-reader open-thread!)
@@ -19,9 +20,10 @@
         app (app-over (ref world)))
     (synced! (mut app))
     (unwrap-ok (relabel-threads! (mut app)
-                                 world-account
-                                 (ref (vec (str "t-2")))
-                                 (ref (archive-change))))
+                                 (ref (->relabel-request
+                                        :account (str world-account)
+                                        :thread-ids (clone (vec (str "t-2")))
+                                        :change (clone (archive-change))))))
     (relabel-silently! (ref world)
                        "t-2"
                        (ref (inbox-change)))

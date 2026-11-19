@@ -6,7 +6,7 @@
 
 (use adapters/driven/memory/memory-clock new-memory-clock)
 (use domain/labels archive-change)
-(use domain/queued-relabel delivery-step)
+(use domain/queued-relabel ->relabel-request delivery-step)
 
 (use app/client/mail-labeler deliver-next-change!
                              relabel-threads!
@@ -27,9 +27,11 @@
                     (sample-thread "t-2" (vec "INBOX") 200))))
 
 (defn archive-t-1! (app)
-  (relabel-threads! app world-account
-                    (ref (vec (str "t-1")))
-                    (ref (archive-change))))
+  (relabel-threads! app
+                    (ref (->relabel-request :account (str world-account)
+                                            :thread-ids (clone (vec (str
+                                                                      "t-1")))
+                                            :change (clone (archive-change))))))
 
 (deftest an-archive-gmail-cannot-take-stays-queued-and-shown
   (let (world (remote)
@@ -90,9 +92,11 @@
                           (same-log (ref log))
                           (new-memory-clock)))
     (synced! (mut app))
-    (unwrap-ok (relabel-threads! (mut app)
-                                 world-account
-                                 (ref (vec (str "t-1") (str "t-2")))
-                                 (ref (archive-change))))
+    (unwrap-ok (relabel-threads!
+                 (mut app)
+                 (ref (->relabel-request
+                        :account (str world-account)
+                        :thread-ids (clone (ref (vec (str "t-1") (str "t-2"))))
+                        :change (clone (archive-change))))))
     (assert (mentions? (ref (logged-lines (ref log)))
                        "relabel ada@example.com: delivered 2"))))

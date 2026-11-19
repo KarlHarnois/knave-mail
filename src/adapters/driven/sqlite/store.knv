@@ -114,9 +114,8 @@
     (relabel-everywhere (ref (:connection cache))
                         relabeled change))
 
-  (queue-relabels! (cache email thread-ids change)
-    (queued-together (ref (:connection cache))
-                     email thread-ids change))
+  (queue-relabels! (cache request)
+    (queued-together (ref (:connection cache)) request))
 
   (load-queued (cache)
     (read-all-queued (ref (:connection cache))))

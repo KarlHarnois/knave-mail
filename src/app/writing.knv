@@ -1,3 +1,4 @@
+(use domain/queued-relabel relabel-request)
 (use app/thread-log log-sent-but-uncached!)
 (use app/operations/batch-log log-batch-queued!)
 (use app/delivering deliver-everything-now!)
@@ -66,17 +67,12 @@
     (_ (do))))
 
 (type relabel-each!
-  (fn ((mut mail-app)
-       (ref str)
-       (ref (vec string))
-       (ref label-change))
+  (fn ((mut mail-app) (ref relabel-request))
     (result unit mail-error)))
 
-(defn relabel-each! (app account thread-ids change)
-  (try (queue-relabels! (mut (:store app))
-                        account thread-ids change))
-  (log-batch-queued! (ref (:log app))
-                     account change thread-ids)
+(defn relabel-each! (app request)
+  (try (queue-relabels! (mut (:store app)) request))
+  (log-batch-queued! (ref (:log app)) request)
   (match (:delivery app)
     (deliver-now (deliver-everything-now! app))
     (deliver-later (ok (do)))))

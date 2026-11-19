@@ -1,3 +1,4 @@
+(use domain/queued-relabel ->relabel-request)
 (use domain/freshness freshness)
 (use domain/mail thread-summary)
 (use domain/summary summarize)
@@ -28,9 +29,11 @@
                     (sample-thread "t-3" (vec "INBOX") 300))))
 
 (defn archive-first-two! (app)
-  (relabel-threads! app world-account
-                    (ref (vec (str "t-1") (str "t-2")))
-                    (ref (archive-change))))
+  (relabel-threads! app
+                    (ref (->relabel-request :account (str world-account)
+                                            :thread-ids (clone (ref (vec (str "t-1")
+                                                                         (str "t-2"))))
+                                            :change (clone (archive-change))))))
 
 (deftest archiving-several-threads-sends-one-batch
   (let (world (remote)

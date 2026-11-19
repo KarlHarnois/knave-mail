@@ -1,8 +1,14 @@
 (use domain/labels label-change)
 (use domain/mail-error mail-error)
 
-(export ->queued-relabel ->refusal delivery-finished?
-        delivery-step queued-relabel refusal step-account)
+(export ->queued-relabel ->refusal ->relabel-request
+        delivery-finished? delivery-step queued-relabel
+        refusal relabel-request step-account)
+
+(defstruct relabel-request
+  :account string
+  :thread-ids (vec string)
+  :change label-change)
 
 (defstruct queued-relabel
   :id int

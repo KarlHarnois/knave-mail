@@ -1,3 +1,4 @@
+(use domain/queued-relabel ->relabel-request)
 (use adapters/driven/memory/remote-operation remote-operation)
 
 (use adapters/driven/memory/memory-clock new-memory-clock
@@ -31,9 +32,11 @@
   (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100))))
 
 (defn archive-t-1! (app)
-  (relabel-threads! app world-account
-                    (ref (vec (str "t-1")))
-                    (ref (archive-change))))
+  (relabel-threads! app
+                    (ref (->relabel-request :account (str world-account)
+                                            :thread-ids (clone (vec (str
+                                                                      "t-1")))
+                                            :change (clone (archive-change))))))
 
 (defn draft-to-alan ()
   (->draft :to (addresses (vec "alan@example.com"))

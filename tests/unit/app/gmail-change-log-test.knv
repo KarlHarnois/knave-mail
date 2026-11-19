@@ -1,3 +1,4 @@
+(use domain/queued-relabel ->relabel-request)
 (use app/client/mail-labeler relabel-threads!)
 (use domain/freshness freshness)
 (use domain/labels archive-change)
@@ -63,9 +64,10 @@
                             (same-log (ref log))))
     (synced! (mut app))
     (unwrap-ok (relabel-threads! (mut app)
-                                 world-account
-                                 (ref (vec (str "t-1")))
-                                 (ref (archive-change))))
+                                 (ref (->relabel-request
+                                        :account (str world-account)
+                                        :thread-ids (clone (vec (str "t-1")))
+                                        :change (clone (archive-change))))))
     (synced! (mut app))
     (assert (not (mentions? (ref (logged-lines (ref log)))
                             "Gmail has t-1")))

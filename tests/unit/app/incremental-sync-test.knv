@@ -1,3 +1,4 @@
+(use domain/queued-relabel ->relabel-request)
 (use adapters/driven/memory/remote-operation remote-operation)
 (use domain/freshness freshness)
 (use app/client/mail-reader list-threads!)
@@ -56,9 +57,10 @@
         app (app-over (ref world)))
     (synced! (mut app))
     (unwrap-ok (relabel-threads! (mut app)
-                                 world-account
-                                 (ref (vec (str "t-1")))
-                                 (ref (archive-change))))
+                                 (ref (->relabel-request
+                                        :account (str world-account)
+                                        :thread-ids (clone (vec (str "t-1")))
+                                        :change (clone (archive-change))))))
     (synced! (mut app))
     (assert (= (listed-ids! (mut app)
                             (ref (inbox-query)))

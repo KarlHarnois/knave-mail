@@ -1,3 +1,6 @@
+(use domain/queued-relabel ->relabel-request
+                           relabel-request)
+
 (use adapters/driving/json/arguments account-argument
                                      draft-argument
                                      flag-argument
@@ -35,9 +38,7 @@
   (draft :message message-ref :kind draft-kind)
   (send :account string :draft draft)
   (sync :account string)
-  (relabel :account string
-           :thread-ids (vec string)
-           :change label-change))
+  (relabel relabel-request))
 
 (defstruct mail-call
   :id json-value
@@ -124,9 +125,10 @@
 
 (defn relabel-command (name arguments)
   (let (change (try (change-named name)))
-    (ok (mail-command/relabel :account (try (account-argument arguments))
-                              :thread-ids (try (thread-ids-argument arguments))
-                              :change change))))
+    (ok (mail-command/relabel
+          (->relabel-request :account (try (account-argument arguments))
+                             :thread-ids (try (thread-ids-argument arguments))
+                             :change change)))))
 
 (defn change-named (name)
   (ok-or (command-name->label-change name)

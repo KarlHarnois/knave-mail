@@ -1,3 +1,4 @@
+(use domain/queued-relabel ->relabel-request)
 (use adapters/driven/memory/remote-operation remote-operation)
 (use domain/mail outgoing-thread)
 (use domain/outgoing reply-link-of)
@@ -115,9 +116,11 @@
         app (app-over (ref world)))
     (synced! (mut app))
     (unwrap-ok (relabel-threads! (mut app)
-                                 world-account
-                                 (ref (addresses (vec "t-1" "t-2")))
-                                 (ref (archive-change))))
+                                 (ref (->relabel-request
+                                        :account (str world-account)
+                                        :thread-ids (clone (addresses
+                                                             (vec "t-1" "t-2")))
+                                        :change (clone (archive-change))))))
     (assert (empty? (listed-ids! (mut app)
                                  (ref (inbox-query)))))))
 
@@ -125,10 +128,11 @@
   (let (world (remote)
         app (app-over (ref world)))
     (synced! (mut app))
-    (unwrap-ok (relabel-threads! (mut app)
-                                 world-account
-                                 (ref (addresses (vec "t-1")))
-                                 (ref (archive-change))))
+    (unwrap-ok (relabel-threads!
+                 (mut app)
+                 (ref (->relabel-request :account (str world-account)
+                                         :thread-ids (clone (addresses (vec "t-1")))
+                                         :change (clone (archive-change))))))
     (assert (empty? (:labels (remote-thread (ref world) "t-1"))))))
 
 (deftest a-failed-relabel-keeps-the-local-labels
@@ -137,9 +141,10 @@
     (synced! (mut app))
     (fail-remote! (ref world) remote-operation/relabel)
     (relabel-threads! (mut app)
-                      world-account
-                      (ref (addresses (vec "t-1")))
-                      (ref (star-change)))
+                      (ref (->relabel-request :account (str world-account)
+                                              :thread-ids (clone (addresses (vec
+                                                                              "t-1")))
+                                              :change (clone (star-change)))))
     (assert (= (listed-ids! (mut app)
                             (ref (inbox-query)))
                (addresses (vec "t-2" "t-1"))))))

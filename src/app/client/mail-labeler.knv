@@ -4,21 +4,18 @@
 (use app/writing relabel-each!)
 (use domain/labels label-change)
 (use domain/mail-error mail-error)
-(use domain/queued-relabel delivery-step)
+(use domain/queued-relabel delivery-step relabel-request)
 (use ports/driven/store queued-count)
 
 (export archive-older! deliver-next-change! relabel-threads!
         waiting-changes)
 
 (type relabel-threads!
-  (fn ((mut mail-app)
-       (ref str)
-       (ref (vec string))
-       (ref label-change))
+  (fn ((mut mail-app) (ref relabel-request))
     (result unit mail-error)))
 
-(defn relabel-threads! (app account thread-ids change)
-  (relabel-each! app account thread-ids change))
+(defn relabel-threads! (app request)
+  (relabel-each! app request))
 
 (defn deliver-next-change! (app) (deliver-next! app))
 

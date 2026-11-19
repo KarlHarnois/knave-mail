@@ -1,3 +1,4 @@
+(use domain/queued-relabel ->relabel-request)
 (use adapters/driven/memory/remote-operation remote-operation)
 
 (use adapters/driven/memory/memory-log logged-lines
@@ -105,10 +106,12 @@
         app (app-logging-to (ref world)
                             (same-log (ref log))))
     (synced! (mut app))
-    (unwrap-ok (relabel-threads! (mut app)
-                                 world-account
-                                 (ref (vec (str "t-1") (str "t-2")))
-                                 (ref (archive-change))))
+    (unwrap-ok (relabel-threads!
+                 (mut app)
+                 (ref (->relabel-request
+                        :account (str world-account)
+                        :thread-ids (clone (ref (vec (str "t-1") (str "t-2"))))
+                        :change (clone (archive-change))))))
     (assert (mentions?
               (ref (logged-lines (ref log)))
               "relabel ada@example.com: queued 2 +[] -[INBOX] for t-1 t-2"))

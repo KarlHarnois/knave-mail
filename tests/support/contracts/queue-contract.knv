@@ -1,3 +1,4 @@
+(use domain/queued-relabel ->relabel-request)
 (use domain/label-scope label-scope)
 (use domain/labels archive-change)
 (use domain/mail ->thread-query)
@@ -34,9 +35,11 @@
                               (ref (vec (unwrap (summarize (ref saved)))))))))
 
 (defn archived! (cache thread-ids)
-  (unwrap-ok (queue-relabels! cache account
-                              (ref thread-ids)
-                              (ref (archive-change))))
+  (unwrap-ok (queue-relabels! cache
+                              (ref (->relabel-request :account (str account)
+                                                      :thread-ids (clone
+                                                                    thread-ids)
+                                                      :change (clone (archive-change))))))
   (do))
 
 (defn queues-and-applies-at-once! (cache)

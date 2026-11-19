@@ -17,31 +17,38 @@
                    reversed-change)
 
 (use domain/mail-error mail-error)
-(use domain/queued-relabel ->queued-relabel queued-relabel)
+
+(use domain/queued-relabel ->queued-relabel queued-relabel
+                           relabel-request)
 
 (export queued-together reapply-queued relabel-everywhere
         reverted)
 
-(defn queued-together (connection email thread-ids change)
+(defn queued-together (connection request)
   (try (begin! connection))
-  (match (queued-each connection email thread-ids change)
+  (match (queued-each connection request)
     ((ok rows) (do (try (commit! connection)) (ok rows)))
     ((err failure)
      (do
        (try (rollback! connection))
        (err failure)))))
 
-(defn queued-each (connection email thread-ids change)
+(type queued-each
+  (fn ((ref sqlite-connection) (ref relabel-request))
+    (result (vec queued-relabel) mail-error)))
+
+(defn queued-each (connection request)
   (local rows (vec))
-  (try (try-for-each (iter thread-ids)
+  (try (try-for-each (iter (:thread-ids request))
          (fn (thread-id)
-           (let (thread (->thread-ref :account (str email)
-                                      :thread-id (clone thread-id)))
+           (let (thread (->thread-ref :account (clone (:account request))
+                                      :thread-id (clone thread-id))
+                 change (ref (:change request)))
              (try (relabel-everywhere connection (ref thread) change))
              (push! rows
                     (->queued-relabel
                       :id (try (insert-queued connection (ref thread) change))
-                      :account (str email)
+                      :account (clone (:account request))
                       :thread-id (clone thread-id)
                       :change (clone change))))
            (ok (do)))))

@@ -1,3 +1,4 @@
+(use domain/queued-relabel ->relabel-request)
 (use adapters/driving/json/arguments text-error->usage-error)
 
 (use adapters/driving/json/envelope failure-reply null-id
@@ -94,8 +95,8 @@
     ((send account written)
      (done-after (send-draft! app account written)))
     ((sync account) (done-after (sync-account! app account)))
-    ((relabel account thread-ids change)
-     (done-after (relabel-threads! app account thread-ids change)))))
+    ((relabel request)
+     (done-after (relabel-threads! app request)))))
 
 (defn done-after (outcome)
   (map-ok outcome (fn (_) (empty-object))))

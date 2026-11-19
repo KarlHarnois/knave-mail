@@ -2,6 +2,7 @@
 (use adapters/driven/memory/memory-store empty-memory-store)
 (use adapters/driven/sqlite/store open-sqlite-store)
 (use domain/labels archive-change)
+(use domain/queued-relabel ->relabel-request)
 (use ports/driven/store load-queued queue-relabels!)
 
 (use support/contracts/queue-contract counts-queued-per-account!
@@ -60,9 +61,9 @@
     (local first
       (unwrap-ok (open-sqlite-store (ref path))))
     (unwrap-ok (queue-relabels! (mut first)
-                                "ada@example.com"
-                                (ref (vec (str "t-1")))
-                                (ref (archive-change))))
+                                (ref (->relabel-request :account (str "ada@example.com")
+                                                        :thread-ids (vec (str "t-1"))
+                                                        :change (archive-change)))))
     (let (second (unwrap-ok (open-sqlite-store (ref path))))
       (assert (= (len (unwrap-ok (load-queued (ref second))))
                  1)))))
