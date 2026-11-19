@@ -12,7 +12,7 @@
 
 (defn main ()
   (match (startup-from (command-line-args))
-    ((ok (cli chosen parsed)) (launch-cli chosen parsed))
+    ((ok (cli chosen parsed)) (exit (launch-cli chosen parsed)))
     ((ok (window chosen scenario))
      (launch-window chosen scenario))
     ((err problem)

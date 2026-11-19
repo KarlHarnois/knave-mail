@@ -15,8 +15,11 @@
 
 (use adapters/driving/webview/window open-window
                                      reply-outbox
-                                     request-inbox)
+                                     request-inbox
+                                     send-window-command
+                                     window-command)
 
+(use domain/mail-error error-message mail-error)
 (use adapters/driving/webview/change-delivery change-delivery)
 
 (use adapters/driving/webview/single-window claimed-window
@@ -29,7 +32,6 @@
 (use composition/delivery-worker start-delivery-worker)
 (use composition/gmail-backend chosen-client gmail-app)
 (use composition/keymap-loader keymap-startup-script)
-(use composition/launch fail-with)
 (use composition/logging chosen-log)
 (use composition/memory-backend memory-app)
 (use composition/operation-executor start-gmail-executor)
@@ -102,7 +104,7 @@
   (match (chosen-client chosen)
     ((ok client)
      (serve-gmail-client! chosen (ref client) log inbox outbox))
-    ((err failure) (fail-with (ref failure)))))
+    ((err failure) (closed-with-failure outbox (ref failure)))))
 
 (defn serve-gmail-client! (chosen client log inbox outbox)
   (let (executor (start-gmail-executor (clone chosen) (clone client)))
@@ -125,7 +127,15 @@
                :delivery (start-delivery-worker outbox (ref executor) chosen)
                :opener (browser-of chosen)))
            log inbox outbox)))
-      ((err failure) (fail-with (ref failure))))))
+      ((err failure) (closed-with-failure outbox (ref failure))))))
+
+(type closed-with-failure
+  (fn ((ref reply-outbox) (ref mail-error))
+    unit))
+
+(defn closed-with-failure (outbox failure)
+  (eprintln (str "knave-mail: " (error-message failure)))
+  (send-window-command outbox (window-command/exit 1)))
 
 (type browser-of
   (fn ((ref settings)) link-opener))
