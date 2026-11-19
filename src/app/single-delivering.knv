@@ -2,45 +2,35 @@
 (use app/mail-app mail-app)
 (use app/operations/relabel-calls delivered-queued!)
 (use domain/mail-error mail-error)
-
-(use domain/queued-relabel ->refusal delivery-step
-                           queued-relabel)
-
+(use domain/delivery-plan single-result->step)
+(use domain/queued-relabel delivery-step queued-relabel)
 (use ports/driven/store forget-queued! revert-queued!)
 
-(export delivered-or-kept! one-at-a-time! worth-keeping?)
+(export delivered-or-kept! one-at-a-time!)
 
 (type delivered-or-kept!
   (fn ((mut mail-app) queued-relabel)
     (result delivery-step mail-error)))
 
 (defn delivered-or-kept! (app row)
-  (match (delivered-queued! app (ref row))
-    ((ok _)
-     (do
-       (try (forget-queued! (mut (:store app))
-                            (:id row)))
-       (ok (delivery-step/delivered row))))
-    ((err failure) (kept-or-refused! app row failure))))
+  (let (outcome (delivered-queued! app (ref row))
+        step (single-result->step row outcome))
+    (try (apply-delivery-step! app (ref step)))
+    (ok step)))
 
-(type kept-or-refused!
-  (fn ((mut mail-app) queued-relabel mail-error)
-    (result delivery-step mail-error)))
+(type apply-delivery-step!
+  (fn ((mut mail-app) (ref delivery-step))
+    (result unit mail-error)))
 
-(defn kept-or-refused! (app row failure)
-  (if (worth-keeping? (ref failure))
-    (ok (delivery-step/kept row))
-    (do
-      (try (revert-queued! (mut (:store app))
-                           (ref row)))
-      (ok (delivery-step/refused (->refusal :queued row :failure failure))))))
-
-(defn worth-keeping? (failure)
-  (match failure
-    ((network _) true)
-    ((throttled _) true)
-    ((auth-required _) true)
-    (_ false)))
+(defn apply-delivery-step! (app step)
+  (match step
+    ((delivered row)
+     (forget-queued! (mut (:store app))
+                     (:id row)))
+    ((kept _) (ok (do)))
+    ((refused refusal)
+     (revert-queued! (mut (:store app))
+                     (ref (:queued refusal))))))
 
 (type one-at-a-time!
   (fn ((mut mail-app)

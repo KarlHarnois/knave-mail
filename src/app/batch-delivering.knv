@@ -1,11 +1,15 @@
 (use app/mail-app mail-app)
 (use app/operations/batch-log log-batch-sent!)
 (use app/operations/relabel-calls delivered-batch!)
-(use app/single-delivering one-at-a-time! worth-keeping?)
+(use app/single-delivering one-at-a-time!)
 (use domain/collections try-for-each)
 (use domain/delivery-batch batch-from delivery-batch)
+
+(use domain/delivery-plan batch->message-batch
+                          batch-failure->fallback
+                          batch-fallback thread-ids-in)
+
 (use domain/mail-error mail-error)
-(use domain/operation ->message-batch)
 (use domain/queued-relabel delivery-step queued-relabel)
 
 (use ports/driven/store forget-queued!
@@ -29,16 +33,6 @@
                     (ref (try (load-pending-downloads (ref (:store app))
                                                       account)))))))
 
-(type thread-ids-in
-  (fn ((ref str) (ref (vec queued-relabel)))
-    (vec string)))
-
-(defn thread-ids-in (account queued)
-  (-> (iter queued)
-      (filter (fn (row) (= (:account row) account)))
-      (map (fn (row) (clone (:thread-id row))))
-      collect))
-
 (type delivered-as-batch!
   (fn ((mut mail-app) delivery-batch)
     (result (vec delivery-step) mail-error)))
@@ -47,12 +41,7 @@
   (let (head (clone (at (:rows batch) 0)))
     (match (delivered-batch! app
                              (as-str (:account head))
-                             (->message-batch
-                               :message-ids (clone (:message-ids batch))
-                               :thread-ids (thread-ids-in (as-str (:account
-                                                                    head))
-                                                          (ref (:rows batch)))
-                               :change (clone (:change head))))
+                             (batch->message-batch (ref batch)))
       ((ok _)
        (do
          (log-batch-sent! (ref (:log app))
@@ -62,21 +51,24 @@
                           (len (:message-ids batch)))
          (forgotten! app (clone (:rows batch)))))
       ((err failure)
-       (after-batch-failure! app (ref batch) head failure)))))
+       (after-batch-failure! app
+                             (ref batch)
+                             head
+                             (batch-failure->fallback (ref failure)))))))
 
 (type after-batch-failure!
   (fn ((mut mail-app)
        (ref delivery-batch)
-       queued-relabel mail-error)
+       queued-relabel batch-fallback)
     (result (vec delivery-step) mail-error)))
 
-(defn after-batch-failure! (app batch head failure)
-  (if (worth-keeping? (ref failure))
-    (ok (vec (delivery-step/kept head)))
-    (one-at-a-time! app
-                    (ref (:rows batch))
-                    0
-                    (vec))))
+(defn after-batch-failure! (app batch head fallback)
+  (match fallback
+    (keep-queued (ok (vec (delivery-step/kept head))))
+    (one-at-a-time (one-at-a-time! app
+                                   (ref (:rows batch))
+                                   0
+                                   (vec)))))
 
 (type forgotten!
   (fn ((mut mail-app) (vec queued-relabel))

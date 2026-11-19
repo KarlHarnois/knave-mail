@@ -3,6 +3,7 @@
 (use domain/delivery-tally counted-delivery delivery-count)
 (use app/batch-delivering batch-for delivered-as-batch!)
 (use app/single-delivering delivered-or-kept!)
+(use domain/delivery-plan delivery-route delivery-route-for)
 (use domain/mail-error mail-error)
 
 (use domain/queued-relabel delivery-finished? delivery-step
@@ -11,8 +12,6 @@
 (use ports/driven/store load-queued)
 
 (export deliver-everything-now! deliver-next!)
-
-(def smallest-batch 2)
 
 (type deliver-next!
   (fn ((mut mail-app))
@@ -30,10 +29,9 @@
     (result (vec delivery-step) mail-error)))
 
 (defn delivered-from! (app queued)
-  (let (batch (try (batch-for app queued)))
-    (if (>= (len (:rows batch)) smallest-batch)
-      (delivered-as-batch! app batch)
-      (ok (vec (try (delivered-or-kept! app (clone (at queued 0)))))))))
+  (match (delivery-route-for (try (batch-for app queued)) queued)
+    ((as-batch batch) (delivered-as-batch! app batch))
+    ((single row) (ok (vec (try (delivered-or-kept! app row)))))))
 
 (type deliver-everything-now!
   (fn ((mut mail-app))

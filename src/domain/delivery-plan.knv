@@ -1,0 +1,77 @@
+(use domain/delivery-batch delivery-batch)
+(use domain/mail-error mail-error)
+(use domain/operation ->message-batch message-batch)
+
+(use domain/queued-relabel ->refusal delivery-step
+                           queued-relabel)
+
+(export batch->message-batch batch-failure->fallback
+        batch-fallback delivery-route delivery-route-for
+        single-result->step thread-ids-in)
+
+(def smallest-batch 2)
+
+(defenum delivery-route
+  (as-batch delivery-batch)
+  (single queued-relabel))
+
+(defenum batch-fallback
+  keep-queued
+  one-at-a-time)
+
+(type delivery-route-for
+  (fn (delivery-batch (ref (vec queued-relabel)))
+    delivery-route))
+
+(defn delivery-route-for (batch queued)
+  (if (>= (len (:rows batch)) smallest-batch)
+    (delivery-route/as-batch batch)
+    (delivery-route/single (clone (at queued 0)))))
+
+(type single-result->step
+  (fn (queued-relabel (result unit mail-error)) delivery-step))
+
+(defn single-result->step (row outcome)
+  (match outcome
+    ((ok _) (delivery-step/delivered row))
+    ((err failure) (failed-step row failure))))
+
+(defn failed-step (row failure)
+  (if (worth-keeping? (ref failure))
+    (delivery-step/kept row)
+    (delivery-step/refused (->refusal :queued row :failure failure))))
+
+(type batch-failure->fallback
+  (fn ((ref mail-error)) batch-fallback))
+
+(defn batch-failure->fallback (failure)
+  (if (worth-keeping? failure)
+    batch-fallback/keep-queued
+    batch-fallback/one-at-a-time))
+
+(defn worth-keeping? (failure)
+  (match failure
+    ((network _) true)
+    ((throttled _) true)
+    ((auth-required _) true)
+    (_ false)))
+
+(type batch->message-batch
+  (fn ((ref delivery-batch)) message-batch))
+
+(defn batch->message-batch (batch)
+  (let (head (at (:rows batch) 0))
+    (->message-batch :message-ids (clone (:message-ids batch))
+                     :thread-ids (thread-ids-in (as-str (:account head))
+                                                (ref (:rows batch)))
+                     :change (clone (:change head)))))
+
+(type thread-ids-in
+  (fn ((ref str) (ref (vec queued-relabel)))
+    (vec string)))
+
+(defn thread-ids-in (account queued)
+  (-> (iter queued)
+      (filter (fn (row) (= (:account row) account)))
+      (map (fn (row) (clone (:thread-id row))))
+      collect))

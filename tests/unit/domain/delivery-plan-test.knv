@@ -1,0 +1,54 @@
+(use domain/delivery-batch ->delivery-batch)
+
+(use domain/delivery-plan batch->message-batch
+                          batch-failure->fallback
+                          batch-fallback delivery-route
+                          delivery-route-for
+                          single-result->step)
+
+(use domain/labels archive-change)
+(use domain/mail-error mail-error)
+
+(use domain/queued-relabel ->queued-relabel ->refusal
+                           delivery-step)
+
+(defn row (id thread-id)
+  (->queued-relabel :id id
+                    :account (str "ada@example.com")
+                    :thread-id (str thread-id)
+                    :change (archive-change)))
+
+(defn batch-of (rows)
+  (->delivery-batch :rows rows
+                    :message-ids (vec (str "m-1") (str "m-2"))))
+
+(deftest one-gathered-row-is-delivered-alone
+  (assert (= (delivery-route-for (batch-of (vec (row 1 "t-1")))
+                                 (ref (vec (row 1 "t-1") (row 2 "t-2"))))
+             (delivery-route/single (row 1 "t-1")))))
+
+(deftest two-gathered-rows-are-delivered-as-a-batch
+  (let (rows (vec (row 1 "t-1") (row 2 "t-2")))
+    (assert (= (delivery-route-for (batch-of (clone rows))
+                                   (ref rows))
+               (delivery-route/as-batch (batch-of (clone rows)))))))
+
+(deftest a-network-failure-keeps-the-row-queued
+  (assert (= (single-result->step (row 1 "t-1")
+                                  (err (mail-error/network (str "offline"))))
+             (delivery-step/kept (row 1 "t-1")))))
+
+(deftest a-refused-row-carries-its-failure
+  (assert (= (single-result->step (row 1 "t-1")
+                                  (err (mail-error/usage (str "bad"))))
+             (delivery-step/refused (->refusal :queued (row 1 "t-1")
+                                               :failure (mail-error/usage (str "bad")))))))
+
+(deftest a-refused-batch-is-retried-one-row-at-a-time
+  (assert (= (batch-failure->fallback (ref (mail-error/usage (str "bad"))))
+             batch-fallback/one-at-a-time)))
+
+(deftest a-batch-names-the-threads-of-its-rows
+  (assert (= (:thread-ids (batch->message-batch
+                            (ref (batch-of (vec (row 1 "t-1") (row 2 "t-2"))))))
+             (vec (str "t-1") (str "t-2")))))
