@@ -1,20 +1,16 @@
-(use adapters/driving/webview/theme/theme-entries read-theme-entries
-                                                  theme-entry)
+(use adapters/driving/webview/theme/theme-declaration theme-declaration
+                                                      theme-entry->declaration)
 
-(use adapters/driving/webview/theme/theme-values color?
-                                                 dark-mail-setting?
-                                                 font-family?
-                                                 font-size?
-                                                 mode?)
+(use adapters/driving/webview/theme/theme-entries read-theme-entries)
 
-(use domain/collections appended one-of? present)
+(use adapters/driving/webview/theme/theme-values color-names
+                                                 color-scheme
+                                                 dark-mail
+                                                 theme-mode)
+
+(use domain/collections present)
 
 (export ->themed theme-css themed)
-
-(def color-names
-  (vec "background" "foreground" "muted" "border"
-       "selection" "cursor" "accent" "error" "star"
-       "status-bar" "html-mail"))
 
 (defstruct themed
   :css string
@@ -28,14 +24,14 @@
                (vec (str "theme.knv: " problem))))))
 
 (defn declared-css (entries)
-  (let (declared (-> (iter entries) (map declaration) collect)
+  (let (declared (-> (iter entries) (map theme-entry->declaration) collect)
         declarations (-> (iter declared) (map written-css) present collect)
         warnings (-> (iter declared) (map theme-warning) present collect))
     (->themed (root-rule (ref declarations)) warnings)))
 
 (defn written-css (declared)
   (match declared
-    ((ok written) (some (clone written)))
+    ((ok declaration) (some (declaration->css declaration)))
     ((err _) none)))
 
 (defn theme-warning (declared)
@@ -43,71 +39,43 @@
     ((ok _) none)
     ((err problem) (some (str "theme.knv: " problem)))))
 
-(defn declaration (entry)
-  (let (section (as-str (:section entry))
-        key (as-str (:key entry))
-        value (as-str (:value entry)))
-    (match section
-      ("theme" (theme-declaration key value))
-      ("light" (color-declaration "light" key value))
-      ("dark" (color-declaration "dark" key value))
-      (_ (err (str "unknown section (" section
-                   " ...); use (light ...) or (dark ...)"))))))
+(type declaration->css
+  (fn ((ref theme-declaration)) string))
 
-(defn theme-declaration (key value)
-  (match key
-    ("font"
-     (checked (font-family? value)
-              (str "--theme-font: \"" value "\"")
-              key value))
-    ("message-font"
-     (checked (font-family? value)
-              (str "--theme-message-font: \"" value "\"")
-              key value))
-    ("font-size"
-     (checked (font-size? value)
-              (str "--font-size: " value "px")
-              key value))
-    ("dark-mail"
-     (checked (dark-mail-setting? value)
-              (str "--dark-mail: " value)
-              key value))
-    ("mode"
-     (checked (mode? value) (mode-declarations value) key value))
-    (_ (err (str
-              "unknown key :" key
-              "; use :font, :message-font, :font-size, :mode or :dark-mail")))))
+(defn declaration->css (declaration)
+  (match declaration
+    ((font family) (str "--theme-font: \"" family "\""))
+    ((message-font family)
+     (str "--theme-message-font: \"" family "\""))
+    ((font-size size) (str "--font-size: " size "px"))
+    ((dark-mail setting)
+     (str "--dark-mail: " (dark-mail-name setting)))
+    ((mode chosen) (mode-declarations chosen))
+    ((color scheme name value)
+     (str "--" (scheme-name scheme) "-" name ": " value))))
 
-(defn color-declaration (mode key value)
-  (cond
-    ((not (one-of? key (ref color-names)))
-     (err (str "unknown color :" key " in (" mode
-               " ...); use "
-               (color-keys))))
-    (else (checked (color? value)
-                   (str "--" mode "-" key ": " value)
-                   key value))))
+(defn dark-mail-name (setting)
+  (match setting (auto "auto") (off "off")))
 
-(defn color-keys ()
-  (join (ref (-> (iter color-names)
-                 (map (fn (name) (str ":" name)))
-                 collect))
-        ", "))
+(defn scheme-name (scheme)
+  (match scheme (light "light") (dark "dark")))
 
-(defn checked (valid written key value)
-  (if valid
-    (ok written)
-    (err (str "`" value "` is not a valid :" key))))
+(type mode-declarations
+  (fn ((ref theme-mode)) string))
 
 (defn mode-declarations (mode)
-  (if (= mode "system")
-    (str "color-scheme: light dark")
-    (str "color-scheme: " mode ";\n  "
-         (join (ref (-> (iter color-names)
-                        (map (fn (name)
-                               (str "--" name ": var(--" mode "-" name ")")))
-                        collect))
-               ";\n  "))))
+  (match mode
+    (system (str "color-scheme: light dark"))
+    ((fixed scheme)
+     (fixed-scheme-declarations (scheme-name scheme)))))
+
+(defn fixed-scheme-declarations (scheme)
+  (str "color-scheme: " scheme ";\n  "
+       (join (ref (-> (iter color-names)
+                      (map (fn (name)
+                             (str "--" name ": var(--" scheme "-" name ")")))
+                      collect))
+             ";\n  ")))
 
 (def root-rule
   (rust "if {0}.is_empty() {{ String::new() }} else {{ format!(\":root {{{{\\n  {{}};\\n}}}}\\n\", {0}.join(\";\\n  \")) }}"

@@ -1,0 +1,86 @@
+(use adapters/driving/webview/theme/theme-entries theme-entry)
+
+(use adapters/driving/webview/theme/theme-values color-names
+                                                 color-scheme
+                                                 dark-mail
+                                                 text->color
+                                                 text->dark-mail
+                                                 text->font-family
+                                                 text->font-size
+                                                 text->theme-mode
+                                                 theme-mode)
+
+(export theme-declaration theme-entry->declaration)
+
+(defenum theme-declaration
+  (font string)
+  (message-font string)
+  (font-size u32)
+  (dark-mail dark-mail)
+  (mode theme-mode)
+  (color :scheme color-scheme :name string :value string))
+
+(type theme-entry->declaration
+  (fn ((ref theme-entry))
+    (result theme-declaration string)))
+
+(defn theme-entry->declaration (entry)
+  (let (section (as-str (:section entry))
+        key (as-str (:key entry))
+        value (as-str (:value entry)))
+    (match section
+      ("theme" (setting-declaration key value))
+      ("light" (color-declaration color-scheme/light key value))
+      ("dark" (color-declaration color-scheme/dark key value))
+      (_ (err (str "unknown section (" section
+                   " ...); use (light ...) or (dark ...)"))))))
+
+(type setting-declaration
+  (fn ((ref str) (ref str))
+    (result theme-declaration string)))
+
+(defn setting-declaration (key value)
+  (match key
+    ("font"
+     (map-ok (text->font-family key value)
+       (fn (family) (theme-declaration/font family))))
+    ("message-font"
+     (map-ok (text->font-family key value)
+       (fn (family) (theme-declaration/message-font family))))
+    ("font-size"
+     (map-ok (text->font-size value)
+       (fn (size) (theme-declaration/font-size size))))
+    ("dark-mail"
+     (map-ok (text->dark-mail value)
+       (fn (setting) (theme-declaration/dark-mail setting))))
+    ("mode"
+     (map-ok (text->theme-mode value)
+       (fn (mode) (theme-declaration/mode mode))))
+    (_ (err (str
+              "unknown key :" key
+              "; use :font, :message-font, :font-size, :mode or :dark-mail")))))
+
+(type color-declaration
+  (fn (color-scheme (ref str) (ref str))
+    (result theme-declaration string)))
+
+(defn color-declaration (scheme key value)
+  (if (contains? color-names key)
+    (map-ok (text->color key value)
+      (fn (color)
+        (theme-declaration/color :scheme scheme
+                                 :name (str key)
+                                 :value color)))
+    (err (str "unknown color :" key " in ("
+              (scheme-name scheme)
+              " ...); use "
+              (color-keys)))))
+
+(defn scheme-name (scheme)
+  (match scheme (light "light") (dark "dark")))
+
+(defn color-keys ()
+  (join (ref (-> (iter color-names)
+                 (map (fn (name) (str ":" name)))
+                 collect))
+        ", "))

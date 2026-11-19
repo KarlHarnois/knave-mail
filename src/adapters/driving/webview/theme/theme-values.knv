@@ -1,9 +1,23 @@
-(export color? dark-mail-setting? font-family? font-size?
-        mode?)
+(export color-names color-scheme dark-mail text->color
+        text->dark-mail text->font-family text->font-size
+        text->theme-mode theme-mode)
 
-(def color?
-  (rust "{{ let {!value} = {0}; {!value}.starts_with('#') && matches!({!value}.len(), 4 | 7 | 9) && {!value}[1..].chars().all(|{!c}| {!c}.is_ascii_hexdigit()) }}"
-    (fn ((ref str)) bool)))
+(defenum color-scheme
+  light
+  dark)
+
+(defenum theme-mode
+  (fixed color-scheme)
+  system)
+
+(defenum dark-mail
+  auto
+  off)
+
+(def color-names
+  (vec "background" "foreground" "muted" "border"
+       "selection" "cursor" "accent" "error" "star"
+       "status-bar" "html-mail"))
 
 (def font-punctuation " -_.")
 
@@ -11,31 +25,68 @@
 
 (def largest-font-size 40)
 
-(defn font-family? (value)
-  (and (not (empty? value))
-       (every? (chars value) font-character?)))
+(defn invalid (value key)
+  (str "`" value "` is not a valid :" key))
+
+(type text->color
+  (fn ((ref str) (ref str))
+    (result string string)))
+
+(defn text->color (key value)
+  (if (color? value)
+    (ok (str value))
+    (err (invalid value key))))
+
+(def color?
+  (rust "{{ let {!value} = {0}; {!value}.starts_with('#') && matches!({!value}.len(), 4 | 7 | 9) && {!value}[1..].chars().all(|{!c}| {!c}.is_ascii_hexdigit()) }}"
+    (fn ((ref str)) bool)))
+
+(type text->font-family
+  (fn ((ref str) (ref str))
+    (result string string)))
+
+(defn text->font-family (key value)
+  (if (and (not (empty? value))
+           (every? (chars value) font-character?))
+    (ok (str value))
+    (err (invalid value key))))
 
 (defn font-character? (character)
   (or (alphanumeric? character)
       (any? (chars font-punctuation)
         (fn (allowed) (= allowed character)))))
 
-(defn font-size? (value)
+(type text->font-size
+  (fn ((ref str)) (result u32 string)))
+
+(defn text->font-size (value)
   (match (the (result u32 _) (parse value))
-    ((ok size)
-     (and (>= size smallest-font-size)
-          (<= size largest-font-size)))
-    ((err _) false)))
+    ((ok size) (size-in-range size value))
+    ((err _) (err (invalid value "font-size")))))
 
-(defn mode? (value)
-  (match value
-    ("light" true)
-    ("dark" true)
-    ("system" true)
-    (_ false)))
+(defn size-in-range (size value)
+  (if (and (>= size smallest-font-size)
+           (<= size largest-font-size))
+    (ok size)
+    (err (invalid value "font-size"))))
 
-(defn dark-mail-setting? (value)
+(type text->theme-mode
+  (fn ((ref str))
+    (result theme-mode string)))
+
+(defn text->theme-mode (value)
   (match value
-    ("auto" true)
-    ("off" true)
-    (_ false)))
+    ("light" (ok (theme-mode/fixed color-scheme/light)))
+    ("dark" (ok (theme-mode/fixed color-scheme/dark)))
+    ("system" (ok theme-mode/system))
+    (_ (err (invalid value "mode")))))
+
+(type text->dark-mail
+  (fn ((ref str))
+    (result dark-mail string)))
+
+(defn text->dark-mail (value)
+  (match value
+    ("auto" (ok dark-mail/auto))
+    ("off" (ok dark-mail/off))
+    (_ (err (invalid value "dark-mail")))))
