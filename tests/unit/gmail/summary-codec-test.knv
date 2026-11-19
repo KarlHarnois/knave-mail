@@ -17,3 +17,7 @@
 (deftest a-message-without-a-date-is-an-unexpected-answer
   (assert (err? (summary-of
                   "{\"id\":\"t-1\",\"messages\":[{\"id\":\"m-1\"}]}"))))
+
+(deftest the-snippet-is-unescaped
+  (let (summary (unwrap-ok (summary-of "{\"id\":\"t-1\",\"messages\":[{\"id\":\"m-1\",\"internalDate\":\"1\",\"snippet\":\"It&#39;s &quot;ok&quot; &amp; fine\"}]}")))
+    (assert (= (:snippet summary) (str "It's \"ok\" & fine")))))

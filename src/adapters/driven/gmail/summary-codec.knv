@@ -74,12 +74,23 @@
   (unwrap-ok-or (object-field message "payload")
                 (empty-object)))
 
+(defstruct html-entity
+  :escaped (ref str)
+  :character (ref str))
+
+(def snippet-entities
+  (vec (->html-entity :escaped "&#39;" :character "'")
+       (->html-entity :escaped "&quot;" :character "\"")
+       (->html-entity :escaped "&amp;" :character "&")
+       (->html-entity :escaped "&lt;" :character "<")
+       (->html-entity :escaped "&gt;" :character ">")))
+
+(type unescaped (fn (string) string))
+
 (defn unescaped (snippet)
-  (replaced (replaced (replaced (replaced (replaced snippet "&#39;" "'")
-                                          "&quot;" "\"")
-                                "&amp;" "&")
-                      "&lt;" "<")
-            "&gt;" ">"))
+  (reduce (iter snippet-entities) snippet
+    (fn (text entity)
+      (replaced text (:escaped entity) (:character entity)))))
 
 (type internal-date
   (fn ((ref json-value))
