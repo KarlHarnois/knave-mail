@@ -25,6 +25,7 @@
 
 (use composition/settings settings)
 (use app/client/mail-syncer preview-account! sync-account!)
+(use app/sync/syncing preview-outcome)
 (use adapters/clock clock-milliseconds)
 
 (export ->background-sync background-sync
@@ -108,5 +109,5 @@
 
 (defn previewed? (outcome)
   (match outcome
-    ((ok true) true)
+    ((ok previewed) true)
     (_ false)))

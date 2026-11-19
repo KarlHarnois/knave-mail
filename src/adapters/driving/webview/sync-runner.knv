@@ -3,7 +3,11 @@
 (use composition/background-sync background-sync
                                  start-background-sync!)
 
-(export start-sync! sync-runner)
+(export start-sync! sync-runner sync-start)
+
+(defenum sync-start
+  started-in-background
+  run-here)
 
 (defenum sync-runner
   inline
@@ -13,10 +17,11 @@
   (fn ((ref sync-runner)
        (ref str)
        (ref reply-outbox))
-    bool))
+    sync-start))
 
 (defn start-sync! (runner account outbox)
   (match runner
-    (inline false)
+    (inline sync-start/run-here)
     ((background held)
-     (do (start-background-sync! held account outbox) true))))
+     (start-background-sync! held account outbox)
+     sync-start/started-in-background)))

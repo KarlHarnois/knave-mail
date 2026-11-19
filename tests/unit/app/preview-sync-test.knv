@@ -1,3 +1,4 @@
+(use app/sync/syncing preview-outcome)
 (use adapters/driven/memory/remote-operation remote-operation)
 (use app/client/mail-syncer preview-account!)
 
@@ -25,4 +26,4 @@
     (synced! (mut app))
     (fail-remote! (ref world) remote-operation/fetch-threads)
     (assert (= (unwrap-ok (preview-account! (mut app) world-account))
-               false))))
+               preview-outcome/nothing-to-preview))))

@@ -1,5 +1,5 @@
 (use app/mail-app mail-app)
-(use app/sync/syncing preview-sync! sync!)
+(use app/sync/syncing preview-outcome preview-sync! sync!)
 (use domain/mail-error mail-error)
 
 (export preview-account! sync-account!)
@@ -12,7 +12,7 @@
 
 (type preview-account!
   (fn ((mut mail-app) (ref str))
-    (result bool mail-error)))
+    (result preview-outcome mail-error)))
 
 (defn preview-account! (app account)
   (preview-sync! app account))

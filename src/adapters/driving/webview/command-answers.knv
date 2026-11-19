@@ -11,7 +11,8 @@
 (use adapters/driving/webview/sync-requests sync-event)
 
 (use adapters/driving/webview/sync-runner start-sync!
-                                          sync-runner)
+                                          sync-runner
+                                          sync-start)
 
 (use adapters/driving/webview/window reply-outbox
                                      send-reply)
@@ -54,6 +55,7 @@
 (defn start-requested-sync! (app runner id account outbox)
   (send-reply outbox
               (success-reply id (ref (empty-object))))
-  (when (not (start-sync! runner account outbox))
-    (send-reply outbox
-                (sync-event (sync-mail! app account) account))))
+  (match (start-sync! runner account outbox)
+    (started-in-background (do))
+    (run-here (send-reply outbox
+                          (sync-event (sync-mail! app account) account)))))

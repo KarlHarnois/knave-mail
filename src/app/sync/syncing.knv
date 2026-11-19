@@ -11,7 +11,7 @@
 (use app/operations/calls fetched-labels!)
 (use ports/driven/store load-checkpoint save-labels!)
 
-(export preview-sync! sync!)
+(export preview-outcome preview-sync! sync!)
 
 (type sync!
   (fn ((mut mail-app) (ref str))
@@ -77,11 +77,16 @@
 
 (defn history-expired? (failure) (not-found? failure))
 
+(defenum preview-outcome
+  previewed
+  nothing-to-preview)
+
 (type preview-sync!
   (fn ((mut mail-app) (ref str))
-    (result bool mail-error)))
+    (result preview-outcome mail-error)))
 
 (defn preview-sync! (app account)
   (match (try (load-checkpoint (ref (:store app)) account))
-    ((some _) (ok false))
-    (none (try (list-newest-inbox! app account)) (ok true))))
+    ((some _) (ok preview-outcome/nothing-to-preview))
+    (none (try (list-newest-inbox! app account))
+          (ok preview-outcome/previewed))))
