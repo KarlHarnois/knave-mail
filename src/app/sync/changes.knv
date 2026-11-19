@@ -1,4 +1,4 @@
-(use domain/mail ->thread-ref thread-summary)
+(use domain/mail ->thread-ref)
 
 (use app/activity-log log-changes! log-gmail-relabel!
                       log-vanished-thread!)
@@ -7,14 +7,13 @@
 (use app/caching cache-thread!)
 (use app/mail-app mail-app)
 (use domain/history relabeled-only-ids)
-
-(use app/sync/history-selection not-yet-applied
-                                settled-by-history
-                                with-unsettled)
-
 (use domain/labels label-change)
-(use domain/mail-error mail-error not-found?)
+(use domain/mail-error mail-error)
 (use app/operations/calls fetched-changes!)
+
+(use domain/sync-plan changes->sync-plan
+                      download-result->step download-step
+                      sync-plan)
 
 (use ports/driven/store forget-pending-download!
                         forget-thread!
@@ -30,40 +29,44 @@
     (result unit mail-error)))
 
 (defn sync-changes! (app account since)
-  (try (recorded-changes! app account since))
-  (download-pending! app account))
+  (let (plan (try (planned-changes! app account since)))
+    (try (apply-sync-plan! app account (ref plan)))
+    (download-pending! app account)))
 
-(type recorded-changes!
+(type planned-changes!
   (fn ((mut mail-app) (ref str) (ref str))
-    (result unit mail-error)))
+    (result sync-plan mail-error)))
 
-(defn recorded-changes! (app account since)
+(defn planned-changes! (app account since)
   (let (changes (try (fetched-changes! app account since))
         cached (try (load-summaries-of (ref (:store app))
                                        account
                                        (ref (relabeled-only-ids (ref
-                                                                  changes)))))
-        unapplied (not-yet-applied (ref changes) (ref cached))
-        settled (settled-by-history (ref changes) (ref unapplied))
-        downloads (with-unsettled (clone (:refetch changes))
-                                  (ref unapplied)
-                                  (ref settled)))
-    (try (try-for-each (iter settled)
-           (fn (relabel) (relabel-from-history! app account relabel))))
-    (try (save-pending-downloads! (mut (:store app))
-                                  account
-                                  (ref downloads)))
-    (try (save-checkpoint! (mut (:store app))
-                           account
-                           (ref (:history-id changes))))
-    (log-changes! (ref (:log app))
-                  account
-                  (as-str (:history-id changes))
-                  (len settled)
-                  (- (len cached) (len unapplied))
-                  (ref (try (load-pending-downloads (ref (:store app))
-                                                    account))))
-    (ok (do))))
+                                                                  changes))))))
+    (ok (changes->sync-plan changes (ref cached)))))
+
+(type apply-sync-plan!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref sync-plan))
+    (result unit mail-error)))
+
+(defn apply-sync-plan! (app account plan)
+  (try (try-for-each (iter (:relabels plan))
+         (fn (relabel) (relabel-from-history! app account relabel))))
+  (try (save-pending-downloads! (mut (:store app))
+                                account
+                                (ref (:downloads plan))))
+  (try (save-checkpoint! (mut (:store app))
+                         account
+                         (ref (:history-id plan))))
+  (log-changes! (ref (:log app))
+                account
+                (as-str (:history-id plan))
+                (len (:relabels plan))
+                (:matched plan)
+                (ref (try (load-pending-downloads (ref (:store app)) account))))
+  (ok (do)))
 
 (type download-pending!
   (fn ((mut mail-app) (ref str))
@@ -72,10 +75,17 @@
 (defn download-pending! (app account)
   (let (pending (try (load-pending-downloads (ref (:store app)) account)))
     (try-for-each (iter pending)
-      (fn (thread-id)
-        (try (refresh-thread! app account thread-id))
-        (forget-pending-download! (mut (:store app))
-                                  account thread-id)))))
+      (fn (thread-id) (download-thread! app account thread-id)))))
+
+(type download-thread!
+  (fn ((mut mail-app) (ref str) (ref str))
+    (result unit mail-error)))
+
+(defn download-thread! (app account thread-id)
+  (let (step (download-result->step (cache-thread! app account thread-id)))
+    (try (apply-download-step! app account thread-id step))
+    (forget-pending-download! (mut (:store app))
+                              account thread-id)))
 
 (type relabel-from-history!
   (fn ((mut mail-app)
@@ -92,28 +102,25 @@
                                         :thread-id (clone thread-id)))
                      change)))
 
-(type refresh-thread!
-  (fn ((mut mail-app) (ref str) (ref str))
-    (result unit mail-error)))
-
-(defn refresh-thread! (app account thread-id)
-  (match (cache-thread! app account thread-id)
-    ((err failure)
-     (forgotten-if-gone! app account thread-id failure))
-    (done done)))
-
-(type forgotten-if-gone!
+(type apply-download-step!
   (fn ((mut mail-app)
        (ref str)
        (ref str)
-       mail-error)
+       download-step)
     (result unit mail-error)))
 
-(defn forgotten-if-gone! (app account thread-id failure)
-  (if (not-found? (ref failure))
-    (do
-      (log-vanished-thread! (ref (:log app)) account thread-id)
-      (forget-thread! (mut (:store app))
-                      (ref (->thread-ref :account (str account)
-                                         :thread-id (str thread-id)))))
-    (err failure)))
+(defn apply-download-step! (app account thread-id step)
+  (match step
+    (stored (ok (do)))
+    (vanished (forget-vanished-thread! app account thread-id))
+    ((failed failure) (err failure))))
+
+(type forget-vanished-thread!
+  (fn ((mut mail-app) (ref str) (ref str))
+    (result unit mail-error)))
+
+(defn forget-vanished-thread! (app account thread-id)
+  (log-vanished-thread! (ref (:log app)) account thread-id)
+  (forget-thread! (mut (:store app))
+                  (ref (->thread-ref :account (str account)
+                                     :thread-id (str thread-id)))))

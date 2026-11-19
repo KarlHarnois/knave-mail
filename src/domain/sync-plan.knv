@@ -5,8 +5,48 @@
 
 (use domain/labels label-change)
 (use domain/mail thread-summary)
+(use domain/mail-error mail-error not-found?)
 
-(export not-yet-applied settled-by-history with-unsettled)
+(export ->sync-plan changes->sync-plan download-result->step
+        download-step sync-plan)
+
+(defstruct sync-plan
+  :relabels (vec (pair string label-change))
+  :downloads (vec string)
+  :history-id string
+  :matched usize)
+
+(defenum download-step
+  stored
+  vanished
+  (failed mail-error))
+
+(type changes->sync-plan
+  (fn (mail-changes (ref (vec thread-summary)))
+    sync-plan))
+
+(defn changes->sync-plan (changes cached)
+  (let (unapplied (not-yet-applied (ref changes) cached)
+        relabels (settled-by-history (ref changes) (ref unapplied)))
+    (->sync-plan :downloads (with-unsettled (clone (:refetch changes))
+                                            (ref unapplied)
+                                            (ref relabels))
+                 :relabels relabels
+                 :history-id (clone (:history-id changes))
+                 :matched (- (len cached) (len unapplied)))))
+
+(type download-result->step
+  (fn ((result unit mail-error)) download-step))
+
+(defn download-result->step (outcome)
+  (match outcome
+    ((ok _) download-step/stored)
+    ((err failure) (failure->download-step failure))))
+
+(defn failure->download-step (failure)
+  (if (not-found? (ref failure))
+    download-step/vanished
+    (download-step/failed failure)))
 
 (type settled-by-history
   (fn ((ref mail-changes)

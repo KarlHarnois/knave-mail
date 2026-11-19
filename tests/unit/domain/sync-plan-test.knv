@@ -1,0 +1,56 @@
+(use domain/history ->mail-changes ->message-relabel)
+(use domain/labels archive-change star-change)
+(use domain/mail ->thread-summary)
+(use domain/mail-error mail-error)
+
+(use domain/sync-plan changes->sync-plan
+                      download-result->step download-step)
+
+(defn relabel (thread-id change)
+  (->message-relabel :thread-id (str thread-id)
+                     :message-id (str thread-id "-m")
+                     :change change))
+
+(defn cached (thread-id labels)
+  (->thread-summary :id (str thread-id)
+                    :subject (str "")
+                    :participants (str "")
+                    :snippet (str "")
+                    :date 0
+                    :labels labels
+                    :message-count 1
+                    :message-ids (vec (str thread-id "-m"))))
+
+(defn changes-of (refetch relabels)
+  (->mail-changes :refetch refetch
+                  :relabels relabels
+                  :history-id (str "9")))
+
+(deftest a-settled-thread-is-relabeled-from-history
+  (let (plan (changes->sync-plan (changes-of (vec)
+                                             (vec (relabel "t" (star-change))))
+                                 (ref (vec (cached "t" (vec))))))
+    (assert (= (len (:relabels plan)) 1))
+    (assert (empty? (:downloads plan)))))
+
+(deftest a-thread-that-already-matches-is-counted-and-left-alone
+  (let (plan (changes->sync-plan (changes-of (vec)
+                                             (vec (relabel "t"
+                                                           (archive-change))))
+                                 (ref (vec (cached "t" (vec))))))
+    (assert (= (:matched plan) 1))
+    (assert (empty? (:relabels plan)))))
+
+(deftest a-refetched-thread-is-downloaded
+  (let (plan (changes->sync-plan (changes-of (vec (str "n")) (vec))
+                                 (ref (vec))))
+    (assert (= (:downloads plan) (vec (str "n"))))
+    (assert (= (:history-id plan) (str "9")))))
+
+(deftest a-missing-thread-is-forgotten
+  (assert (= (download-result->step (err (mail-error/not-found (str "gone"))))
+             download-step/vanished)))
+
+(deftest another-failure-stops-the-download
+  (assert (= (download-result->step (err (mail-error/internal (str "boom"))))
+             (download-step/failed (mail-error/internal (str "boom"))))))
