@@ -1,3 +1,4 @@
+(use ports/driven/clock clock)
 (use adapters/driven/gmail/http new-agent)
 (use adapters/driven/gmail/quota full-bucket)
 
@@ -83,5 +84,6 @@
                                     :quota-units-per-second units-per-second)
                        :refresh-token (str "fake-refresh")
                        :access-token none
-                       :quota (full-bucket units-per-second)
+                       :quota (full-bucket units-per-second 0)
+                       :clock clock/system
                        :log (event-log/memory log)))))

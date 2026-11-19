@@ -1,8 +1,8 @@
 (use adapters/driven/gmail/http-method http-method)
+(use ports/driven/clock clock now-milliseconds pause!)
 
-(export ->quota-bucket current-pace full-bucket pace-at
-        quota-bucket slowed! slowed-at! take-units!
-        units-for)
+(export ->quota-bucket full-bucket pace-at quota-bucket
+        slowed-at! take-units! units-for)
 
 (def slowest-pace 10)
 
@@ -20,8 +20,10 @@
   :available int
   :refilled-at int)
 
-(defn full-bucket (units-per-second)
-  (let (now (wall-milliseconds))
+(type full-bucket (fn (int int) quota-bucket))
+
+(defn full-bucket (units-per-second now)
+  (do
     (->quota-bucket :ceiling units-per-second
                     :slowed-to units-per-second
                     :slowed-at now
@@ -38,15 +40,6 @@
           (/ (* (- now (:slowed-at bucket))
                 (/ (:ceiling bucket) recovered-share-per-minute))
              milliseconds-per-minute))))
-
-(type current-pace
-  (fn ((ref quota-bucket)) int))
-
-(defn current-pace (bucket)
-  (pace-at bucket (wall-milliseconds)))
-
-(defn slowed! (bucket)
-  (slowed-at! bucket (wall-milliseconds)))
 
 (type slowed-at!
   (fn ((mut quota-bucket) int) unit))
@@ -69,20 +62,24 @@
      (< (- now throttled) throttle-window-milliseconds))
     (none false)))
 
-(defn take-units! (bucket units)
-  (refill! bucket)
+(type take-units!
+  (fn ((mut quota-bucket) int (ref clock))
+    unit))
+
+(defn take-units! (bucket units chosen)
+  (refill! bucket (now-milliseconds chosen))
   (when (< (:available bucket) units)
-    (sleep-for (milliseconds-until bucket units))
-    (refill! bucket))
+    (pause! chosen
+            (milliseconds-until bucket units (now-milliseconds chosen)))
+    (refill! bucket (now-milliseconds chosen)))
   (set! (:available bucket)
         (- (:available bucket) units)))
 
 (type refill!
-  (fn ((mut quota-bucket)) unit))
+  (fn ((mut quota-bucket) int) unit))
 
-(defn refill! (bucket)
-  (let (now (wall-milliseconds)
-        pace (pace-at bucket now)
+(defn refill! (bucket now)
+  (let (pace (pace-at bucket now)
         earned (/ (* (- now (:refilled-at bucket)) pace)
                   1000))
     (when (pos? earned)
@@ -91,11 +88,11 @@
       (set! (:refilled-at bucket) now))))
 
 (type milliseconds-until
-  (fn ((ref quota-bucket) int) int))
+  (fn ((ref quota-bucket) int int) int))
 
-(defn milliseconds-until (bucket units)
+(defn milliseconds-until (bucket units now)
   (inc (/ (* (- units (:available bucket)) 1000)
-          (current-pace bucket))))
+          (pace-at bucket now))))
 
 (type units-for
   (fn (http-method (ref str)) int))
@@ -114,11 +111,3 @@
 (def ends-with?
   (rust "{0}.ends_with({1})"
     (fn ((ref str) (ref str)) bool)))
-
-(def wall-milliseconds
-  (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as i64).unwrap_or(0)"
-    (fn () int)))
-
-(def sleep-for
-  (rust "std::thread::sleep(std::time::Duration::from_millis({0}.max(0) as u64))"
-    (fn (int) unit)))

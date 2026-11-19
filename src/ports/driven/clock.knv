@@ -1,11 +1,12 @@
 (use adapters/driven/memory/memory-clock memory-clock
                                          memory-now
-                                         memory-pause!)
+                                         memory-pause!
+                                         same-clock)
 
 (use adapters/driven/system-clock sleep-for
                                   wall-milliseconds)
 
-(export clock now-milliseconds pause!)
+(export clock now-milliseconds pause! share-clock)
 
 (defenum clock
   system
@@ -15,6 +16,14 @@
   (match chosen
     (system (wall-milliseconds))
     ((memory fake) (memory-now fake))))
+
+(type share-clock
+  (fn ((ref clock)) clock))
+
+(defn share-clock (chosen)
+  (match chosen
+    (system clock/system)
+    ((memory fake) (clock/memory (same-clock fake)))))
 
 (defn pause! (chosen milliseconds)
   (match chosen

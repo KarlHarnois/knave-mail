@@ -1,5 +1,6 @@
 (use domain/log-entry log-area)
-(use adapters/driven/gmail/quota current-pace slowed!)
+(use adapters/driven/gmail/quota pace-at slowed-at!)
+(use ports/driven/clock now-milliseconds)
 (use adapters/driven/gmail/session-state gmail-session)
 (use ports/driven/event-log log-info)
 
@@ -9,9 +10,10 @@
   (fn ((mut gmail-session)) unit))
 
 (defn slowed-down! (session)
-  (slowed! (mut (:quota session)))
-  (log-info (ref (:log session))
-            log-area/gmail
-            (str "Gmail is rate limiting this account; pacing at "
-                 (current-pace (ref (:quota session)))
-                 " units per second")))
+  (let (now (now-milliseconds (ref (:clock session))))
+    (slowed-at! (mut (:quota session)) now)
+    (log-info (ref (:log session))
+              log-area/gmail
+              (str "Gmail is rate limiting this account; pacing at "
+                   (pace-at (ref (:quota session)) now)
+                   " units per second"))))

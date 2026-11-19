@@ -12,9 +12,8 @@
                                    sent)
 
 (use domain/collections owned-items)
-
-(use adapters/driven/gmail/request-log clock-milliseconds
-                                       log-outcome!)
+(use adapters/driven/gmail/request-log log-outcome!)
+(use ports/driven/clock now-milliseconds)
 
 (use adapters/driven/gmail/session-state api-url
                                          gmail-session)
@@ -36,8 +35,9 @@
     (if (= (:status first-reply) unauthorized)
       (do
         (try (refresh! session))
-        (checked (try (get-one! session path))))
-      (checked first-reply))))
+        (checked (try (get-one! session path))
+                 (now-of session)))
+      (checked first-reply (now-of session)))))
 
 (type get-one!
   (fn ((mut gmail-session) (ref str))
@@ -45,14 +45,14 @@
 
 (defn get-one! (session path)
   (let (token (try (access-token! session))
-        started (clock-milliseconds)
+        started (now-of session)
         outcome (only-outcome (fetched-all! session
                                             (ref (vec (str path)))
                                             (ref token))))
     (log-outcome! (ref (:log session))
                   http-method/get path
                   (ref outcome)
-                  started)
+                  (- (now-of session) started))
     (sent outcome)))
 
 (type api-get-all!
@@ -61,8 +61,10 @@
 
 (defn api-get-all! (session paths)
   (let (token (try (access-token! session))
-        started (clock-milliseconds)
-        replies (fetched-all! session paths (ref token)))
+        started (now-of session)
+        replies (fetched-all! session paths (ref token))
+        elapsed (- (now-of session) started)
+        now (now-of session))
     (-> (iter replies)
         enumerate
         (for-each (fn (numbered)
@@ -70,10 +72,10 @@
                       (log-outcome! (ref (:log session))
                                     http-method/get
                                     (at paths index)
-                                    outcome started)))))
+                                    outcome elapsed)))))
     (collect-results (-> (owned-items replies)
                          (map (fn (outcome)
-                                (checked (try (sent outcome)))))
+                                (checked (try (sent outcome)) now)))
                          collect))))
 
 (defn api-post! (session path body)
@@ -81,14 +83,16 @@
     (if (= (:status first-reply) unauthorized)
       (do
         (try (refresh! session))
-        (checked (try (post-one! session path body))))
-      (checked first-reply))))
+        (checked (try (post-one! session path body))
+                 (now-of session)))
+      (checked first-reply (now-of session)))))
 
 (defn post-one! (session path body)
   (take-units! (mut (:quota session))
-               (units-for http-method/post path))
+               (units-for http-method/post path)
+               (ref (:clock session)))
   (let (token (try (access-token! session))
-        started (clock-milliseconds)
+        started (now-of session)
         outcome (http-post-json (ref (:agent session))
                                 (ref (api-url session path))
                                 (ref token)
@@ -98,8 +102,14 @@
     (log-outcome! (ref (:log session))
                   http-method/post path
                   (ref outcome)
-                  started)
+                  (- (now-of session) started))
     (sent outcome)))
+
+(type now-of
+  (fn ((ref gmail-session)) int))
+
+(defn now-of (session)
+  (now-milliseconds (ref (:clock session))))
 
 (defn posted-rate-limited? (outcome)
   (match outcome

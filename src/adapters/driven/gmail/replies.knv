@@ -9,14 +9,14 @@
 
 (export checked collect-results sent)
 
-(defn checked (reply)
+(defn checked (reply now)
   (let (status (:status reply)
         body (clone (:body reply)))
     (cond
       ((and (>= status 200) (< status 300))
        (text-error->internal-error (parse-json (ref (non-empty-json body)))))
       ((rate-limited? (ref reply))
-       (err (mail-error/throttled (throttling-of (ref reply)))))
+       (err (mail-error/throttled (throttling-of (ref reply) now))))
       ((quota-exhausted? (ref reply))
        (err (mail-error/network (str "Gmail's usage quota is used up; try again later"))))
       ((= status 404)

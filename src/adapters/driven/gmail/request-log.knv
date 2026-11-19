@@ -5,20 +5,15 @@
 
 (use adapters/driven/gmail/http-reply http-reply)
 (use ports/driven/event-log event-log log-debug log-warn)
-(use adapters/clock clock-milliseconds)
 
-(export clock-milliseconds log-outcome!)
+(export log-outcome!)
 
-(defn log-outcome! (log method path outcome started)
+(defn log-outcome! (log method path outcome elapsed)
   (let (shown (str (http-method->name method) " " (without-query path)))
     (match outcome
       ((ok reply)
        (log-debug log log-area/gmail
-                  (str shown " "
-                       (:status reply)
-                       " "
-                       (- (clock-milliseconds) started)
-                       "ms")))
+                  (str shown " " (:status reply) " " elapsed "ms")))
       ((err problem)
        (log-warn log log-area/gmail
                  (str shown " failed: " problem))))))

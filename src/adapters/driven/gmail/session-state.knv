@@ -1,5 +1,6 @@
 (use adapters/driven/gmail/http http-agent)
 (use adapters/driven/gmail/quota quota-bucket)
+(use ports/driven/clock clock)
 (use ports/driven/event-log event-log)
 
 (export ->gmail-endpoints ->gmail-session api-url
@@ -18,6 +19,7 @@
   :refresh-token string
   :access-token (option string)
   :quota quota-bucket
+  :clock clock
   :log event-log)
 
 (type api-url

@@ -71,6 +71,7 @@
   (the (box mailbox-provider)
        (box (->gmail-provider (endpoints chosen client)
                               (chosen-credentials chosen)
+                              clock/system
                               (share-log log)))))
 
 (type gmail-operations

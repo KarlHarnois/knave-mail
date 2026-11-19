@@ -7,6 +7,7 @@
                                          gmail-session)
 
 (use domain/mail-error mail-error)
+(use ports/driven/clock clock now-milliseconds share-clock)
 (use ports/driven/credentials credentials load-token)
 (use ports/driven/event-log event-log share-log)
 (use ports/driven/mailbox mailbox)
@@ -17,6 +18,7 @@
 (defstruct gmail-provider
   :endpoints gmail-endpoints
   :credentials (box credentials)
+  :clock clock
   :log event-log)
 
 (impl mailbox-provider gmail-provider
@@ -37,6 +39,8 @@
                    :endpoints (clone (:endpoints provider))
                    :refresh-token refresh-token
                    :access-token none
-                   :quota (full-bucket (:quota-units-per-second (:endpoints
-                                                                  provider)))
+                   :quota (full-bucket
+                            (:quota-units-per-second (:endpoints provider))
+                            (now-milliseconds (ref (:clock provider))))
+                   :clock (share-clock (ref (:clock provider)))
                    :log (share-log (ref (:log provider)))))

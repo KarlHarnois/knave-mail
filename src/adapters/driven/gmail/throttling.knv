@@ -15,12 +15,13 @@
   "Gmail is rate limiting this account")
 
 (type throttling-of
-  (fn ((ref http-reply)) throttling))
+  (fn ((ref http-reply) int) throttling))
 
-(defn throttling-of (reply)
+(defn throttling-of (reply now)
   (let (gmail-message (clone (:message (:refusal reply))))
     (->throttling :message (notice-with (ref gmail-message))
                   :retry-after-milliseconds (asked-wait (:retry-after reply)
+                                                        now
                                                         (as-str
                                                           gmail-message)))))
 
@@ -29,11 +30,10 @@
     (str rate-limit-notice)
     (str rate-limit-notice ": " gmail-message)))
 
-(defn asked-wait (header-wait gmail-message)
+(defn asked-wait (header-wait now gmail-message)
   (match header-wait
     ((some milliseconds) milliseconds)
-    (none (unwrap-or (retry-wait-in gmail-message (now-milliseconds))
-                     0))))
+    (none (unwrap-or (retry-wait-in gmail-message now) 0))))
 
 (defn retry-wait-in (gmail-message now)
   (match (utc-milliseconds-after gmail-message retry-marker)
@@ -53,7 +53,3 @@
 (def utc-milliseconds-after
   (rust "native::dates::utc_milliseconds_after({0}, {1})"
     (fn ((ref str) (ref str)) (option int))))
-
-(def now-milliseconds
-  (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as i64).unwrap_or(0)"
-    (fn () int)))
