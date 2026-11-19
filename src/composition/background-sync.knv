@@ -1,5 +1,8 @@
 (use domain/log-entry log-area)
-(use adapters/driving/json/envelope sync-progress-event)
+
+(use adapters/driving/json/core-event core-event
+                                      core-event->json-text)
+
 (use adapters/driving/webview/sync-requests sync-event)
 
 (use adapters/driving/webview/window reply-outbox
@@ -81,7 +84,8 @@
   (log-info log log-area/sync
             (str account ": background sync started"))
   (when (previewed? (preview-account! app account))
-    (send-reply progress (sync-progress-event account))
+    (send-reply progress
+                (core-event->json-text (ref (core-event/sync-progress (str account)))))
     (log-info log log-area/sync
               (str account ": preview shown after "
                    (- (clock-milliseconds) started)

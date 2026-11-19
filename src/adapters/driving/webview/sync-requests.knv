@@ -1,5 +1,5 @@
-(use adapters/driving/json/envelope failure-event
-                                    synced-event)
+(use adapters/driving/json/core-event core-event
+                                      core-event->json-text)
 
 (use domain/mail-error mail-error)
 
@@ -11,5 +11,8 @@
 
 (defn sync-event (outcome account)
   (match outcome
-    ((ok _) (synced-event account))
-    ((err failure) (failure-event account (ref failure)))))
+    ((ok _)
+     (core-event->json-text (ref (core-event/synced (str account)))))
+    ((err failure)
+     (core-event->json-text (ref (core-event/sync-failed :account (str account)
+                                                         :failure failure))))))

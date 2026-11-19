@@ -1,0 +1,54 @@
+(use domain/mail-error error-kind error-message mail-error)
+
+(export core-event core-event->json-text)
+
+(defenum core-event
+  (synced string)
+  (sync-progress string)
+  (sync-failed :account string :failure mail-error)
+  (queue :account string :waiting int)
+  (relabel-refused :account string
+                   :thread-id string
+                   :failure mail-error))
+
+(type core-event->json-text
+  (fn ((ref core-event)) string))
+
+(defn core-event->json-text (event)
+  (match event
+    ((synced account) (account-event "synced" account))
+    ((sync-progress account)
+     (account-event "sync-progress" account))
+    ((sync-failed account failure)
+     (sync-failed-json account
+                       (error-kind failure)
+                       (error-message failure)))
+    ((queue account waiting)
+     (queue-json account (deref waiting)))
+    ((relabel-refused account thread-id failure)
+     (operation-failed-json account "relabel"
+                            (ref (vec (clone thread-id)))
+                            (error-kind failure)
+                            (error-message failure)))))
+
+(def account-event
+  (rust "serde_json::json!({{\"event\": {0}, \"account\": {1}}}).to_string()"
+    (fn ((ref str) (ref str)) string)))
+
+(def sync-failed-json
+  (rust "serde_json::json!({{\"event\": \"sync-failed\", \"account\": {0}, \"error\": {{\"kind\": {1}, \"message\": {2}}}}}).to_string()"
+    (fn ((ref str) (ref str) (ref str))
+      string)))
+
+(def queue-json
+  (rust "serde_json::json!({{\"event\": \"queue\", \"account\": {0}, \"waiting\": {1}}}).to_string()"
+    (fn ((ref str) int) string)))
+
+(def operation-failed-json
+  (rust "serde_json::json!({{\"event\": \"operation-failed\", \"account\": {0}, \"name\": {1}, \"threadIds\": {2}, \"error\": {{\"kind\": {3}, \"message\": {4}}}}}).to_string()"
+    (fn ((ref str)
+         (ref str)
+         (ref (vec string))
+         (ref str)
+         (ref str))
+      string)))

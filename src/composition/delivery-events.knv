@@ -1,5 +1,5 @@
-(use adapters/driving/json/envelope operation-failed-event
-                                    queue-event)
+(use adapters/driving/json/core-event core-event
+                                      core-event->json-text)
 
 (use adapters/driving/webview/window reply-outbox
                                      send-reply)
@@ -19,8 +19,11 @@
 
 (defn count-waiting! (app outbox account)
   (send-reply outbox
-              (queue-event account
-                           (unwrap-ok-or-zero (waiting-changes app account)))))
+              (core-event->json-text (ref (core-event/queue
+                                            :account (str account)
+                                            :waiting (unwrap-ok-or-zero (waiting-changes
+                                                                          app
+                                                                          account)))))))
 
 (type report-refusal!
   (fn ((ref reply-outbox) (ref refusal))
@@ -28,12 +31,11 @@
 
 (defn report-refusal! (outbox refused)
   (send-reply outbox
-              (operation-failed-event (as-str (:account (:queued refused)))
-                                      "relabel"
-                                      (ref (vec (clone (:thread-id (:queued refused)))))
-                                      (error-kind (ref (:failure refused)))
-                                      (error-message (ref (:failure
-                                                            refused))))))
+              (core-event->json-text
+                (ref (core-event/relabel-refused
+                       :account (clone (:account (:queued refused)))
+                       :thread-id (clone (:thread-id (:queued refused)))
+                       :failure (clone (:failure refused)))))))
 
 (defn unwrap-ok-or-zero (counted)
   (match counted

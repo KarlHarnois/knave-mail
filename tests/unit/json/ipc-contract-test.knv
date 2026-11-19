@@ -1,10 +1,7 @@
 (use adapters/driving/json/commands answer!)
 
-(use adapters/driving/json/envelope failure-event
-                                    operation-failed-event
-                                    queue-event
-                                    sync-progress-event
-                                    synced-event)
+(use adapters/driving/json/core-event core-event
+                                      core-event->json-text)
 
 (use adapters/driven/memory/memory-log logged-lines
                                        new-memory-log
@@ -81,27 +78,33 @@
   (assert (answers-as-recorded? "archive")))
 
 (deftest describes-a-finished-sync-as-recorded
-  (assert (recorded-as? (synced-event account) "synced")))
+  (assert (recorded-as? (event-text (core-event/synced (str account)))
+                        "synced")))
 
 (deftest describes-sync-progress-as-recorded
-  (assert (recorded-as? (sync-progress-event account) "sync-progress")))
+  (assert (recorded-as? (event-text (core-event/sync-progress (str account)))
+                        "sync-progress")))
 
 (deftest describes-a-failed-sync-as-recorded
-  (assert (recorded-as? (failure-event account
-                                       (ref (mail-error/network (str
-                                                                  "offline"))))
+  (assert (recorded-as? (event-text (core-event/sync-failed
+                                      :account (str account)
+                                      :failure (mail-error/network (str "offline"))))
                         "sync-failed")))
 
 (deftest describes-waiting-changes-as-recorded
-  (assert (recorded-as? (queue-event account 3) "queue")))
+  (assert (recorded-as? (event-text (core-event/queue :account (str account)
+                                                      :waiting 3))
+                        "queue")))
 
 (deftest describes-a-refused-change-as-recorded
-  (assert (recorded-as? (operation-failed-event account
-                                                "relabel"
-                                                (ref (vec (str "t-1")))
-                                                "not-found"
-                                                "Gmail has no such item")
+  (assert (recorded-as? (event-text (core-event/relabel-refused :account (str account)
+                                                                :thread-id (str "t-1")
+                                                                :failure (mail-error/not-found
+                                                                           (str "Gmail has no such item"))))
                         "operation-failed")))
+
+(defn event-text (event)
+  (core-event->json-text (ref event)))
 
 (deftest records-a-frontend-log-entry-as-recorded
   (let (log (new-memory-log))

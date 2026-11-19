@@ -1,6 +1,7 @@
-(use adapters/driving/json/envelope queue-event
-                                    success-reply)
+(use adapters/driving/json/core-event core-event
+                                      core-event->json-text)
 
+(use adapters/driving/json/envelope success-reply)
 (use adapters/driving/json/mail-command mail-call)
 
 (use adapters/driving/webview/change-delivery change-delivery
@@ -37,7 +38,10 @@
   (send-reply outbox (answered-and-logged! app log call))
   (changes-queued! delivery)
   (send-reply outbox
-              (queue-event account (waiting-changes-of app account))))
+              (core-event->json-text
+                (ref (core-event/queue
+                       :account (str account)
+                       :waiting (waiting-changes-of app account))))))
 
 (type start-requested-sync!
   (fn ((mut mail-app)
