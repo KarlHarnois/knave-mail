@@ -7,7 +7,7 @@
 (export ->mailboxes mailboxes open-mailbox!)
 
 (defstruct mailboxes
-  :provider mailbox-provider
+  :provider (box mailbox-provider)
   :emails (vec string)
   :opened (vec (box mailbox)))
 

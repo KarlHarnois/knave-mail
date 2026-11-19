@@ -10,26 +10,24 @@
 (use ports/driven/credentials credentials load-token)
 (use ports/driven/event-log event-log share-log)
 (use ports/driven/mailbox mailbox)
+(use ports/driven/mailbox-provider mailbox-provider)
 
-(export ->gmail-provider gmail-mailbox-for gmail-provider)
+(export ->gmail-provider gmail-provider)
 
 (defstruct gmail-provider
   :endpoints gmail-endpoints
   :credentials credentials
   :log event-log)
 
-(type gmail-mailbox-for
-  (fn ((ref gmail-provider) (ref str))
-    (result (box mailbox) mail-error)))
-
-(defn gmail-mailbox-for (provider email)
-  (match (try (load-token (ref (:credentials provider)) email))
-    ((some refresh-token)
-     (ok (the (box mailbox)
-              (box (->gmail-mailbox (session-for provider refresh-token))))))
-    (none (err (mail-error/auth-required (str "no saved sign-in for "
-                                              email
-                                              "; run `knave-mail accounts add`"))))))
+(impl mailbox-provider gmail-provider
+  (connect-mailbox! (provider email)
+    (match (try (load-token (ref (:credentials provider)) email))
+      ((some refresh-token)
+       (ok (the (box mailbox)
+                (box (->gmail-mailbox (session-for provider refresh-token))))))
+      (none (err (mail-error/auth-required (str "no saved sign-in for "
+                                                email
+                                                "; run `knave-mail accounts add`")))))))
 
 (type session-for
   (fn ((ref gmail-provider) string) gmail-session))
