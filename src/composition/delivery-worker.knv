@@ -54,8 +54,7 @@
                            (ref (->retry-schedule :wakeups wakeups
                                                   :every (:delivery-retry-milliseconds
                                                            (:tuning chosen))))
-                           (ref outbox)
-                           (ref log))))
+                           (ref outbox))))
       ((err failure)
        (log-warn (ref log)
                  log-area/delivery
@@ -66,9 +65,16 @@
   :wakeups wake-inbox
   :every u64)
 
-(defn kept-delivering! (app schedule outbox log)
-  (log-batch-delivered! log
-                        (ref (delivered-all! app outbox log (vec))))
+(type kept-delivering!
+  (fn ((mut mail-app)
+       (ref retry-schedule)
+       (ref reply-outbox))
+    unit))
+
+(defn kept-delivering! (app schedule outbox)
+  (let (delivered (delivered-all! app outbox (vec)))
+    (log-batch-delivered! (ref (:log app))
+                          (ref delivered)))
   (when (woken? (ref (:wakeups schedule))
                 (:every schedule))
-    (recur app schedule outbox log)))
+    (recur app schedule outbox)))

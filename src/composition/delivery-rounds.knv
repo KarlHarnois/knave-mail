@@ -4,7 +4,10 @@
 (use adapters/driving/webview/window-client send-waiting-changes!)
 (use composition/delivery-events report-refusal!)
 (use domain/collections appended-once)
-(use domain/delivery-tally counted-delivery delivery-count)
+
+(use domain/delivery-tally delivery-count
+                           tallied-deliveries)
+
 (use domain/mail-error error-message)
 
 (use domain/queued-relabel delivery-finished? delivery-step
@@ -15,23 +18,37 @@
 
 (export delivered-all!)
 
-(defn delivered-all! (app outbox log counts)
-  (match (delivery-round! app outbox log counts)
-    ((more tallied) (recur app outbox log tallied))
+(type delivered-all!
+  (fn ((mut mail-app)
+       (ref reply-outbox)
+       (vec delivery-count))
+    (vec delivery-count)))
+
+(defn delivered-all! (app outbox counts)
+  (match (delivery-round! app outbox counts)
+    ((more tallied) (recur app outbox tallied))
     ((finished tallied) tallied)))
 
 (defenum delivery-round
   (more (vec delivery-count))
   (finished (vec delivery-count)))
 
-(defn delivery-round! (app outbox log counts)
+(type delivery-round!
+  (fn ((mut mail-app)
+       (ref reply-outbox)
+       (vec delivery-count))
+    delivery-round))
+
+(defn delivery-round! (app outbox counts)
   (match (deliver-next-change! app)
     ((ok steps)
+     (report-steps! app outbox (ref steps))
      (round-after (ref steps)
-                  (reported-steps! app outbox (ref steps) counts)))
+                  (tallied-deliveries (ref steps) counts)))
     ((err failure)
      (do
-       (log-warn log log-area/delivery
+       (log-warn (ref (:log app))
+                 log-area/delivery
                  (str "could not read queued changes: "
                       (error-message (ref failure))))
        (delivery-round/finished counts)))))
@@ -41,7 +58,13 @@
     (delivery-round/finished tallied)
     (delivery-round/more tallied)))
 
-(defn reported-steps! (app outbox steps counts)
+(type report-steps!
+  (fn ((ref mail-app)
+       (ref reply-outbox)
+       (ref (vec delivery-step)))
+    unit))
+
+(defn report-steps! (app outbox steps)
   (for-each (iter steps)
     (fn (step)
       (match step
@@ -49,13 +72,7 @@
         (_ (do)))))
   (for-each (iter (accounts-of steps))
     (fn (account)
-      (send-waiting-changes! app outbox (as-str account))))
-  (reduce (iter steps) counts
-    (fn (tally step)
-      (match step
-        ((delivered row)
-         (counted-delivery tally (as-str (:account row))))
-        (_ tally)))))
+      (send-waiting-changes! app outbox (as-str account)))))
 
 (defn accounts-of (steps)
   (reduce (iter steps) (vec)

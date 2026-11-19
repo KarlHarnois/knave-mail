@@ -1,6 +1,9 @@
 (use app/mail-app mail-app)
 (use app/operations/batch-log log-batch-delivered!)
-(use domain/delivery-tally counted-delivery delivery-count)
+
+(use domain/delivery-tally delivery-count
+                           tallied-deliveries)
+
 (use app/batch-delivering batch-for delivered-as-batch!)
 (use app/single-delivering delivered-or-kept!)
 (use domain/delivery-plan delivery-route delivery-route-for)
@@ -74,11 +77,3 @@
   (if (none? found)
     (some (clone failure))
     found))
-
-(defn tallied-deliveries (steps counts)
-  (reduce (iter steps) counts
-    (fn (tally step)
-      (match step
-        ((delivered row)
-         (counted-delivery tally (as-str (:account row))))
-        (_ tally)))))
