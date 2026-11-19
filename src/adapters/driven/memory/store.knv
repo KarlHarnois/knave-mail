@@ -25,13 +25,15 @@
 (use adapters/driven/memory/stored-queue count-queued
                                          without-queued)
 
-(use adapters/driven/memory/queueing queued-each!)
+(use adapters/driven/memory/queueing queued-each!
+                                     reverted-queued!)
+
+(use adapters/driven/memory/stored-counts message-counts-of)
 
 (use adapters/driven/memory/stored-downloads downloads-of
                                              with-downloads
                                              without-download)
 
-(use domain/labels reversed-change)
 (use adapters/driven/memory/memory-store memory-store)
 (use domain/summary newest-first)
 (use ports/driven/store store)
@@ -72,6 +74,9 @@
 
   (load-summaries-of (cache email ids)
     (ok (summaries-with-ids (ref (:summaries cache)) email ids)))
+
+  (load-message-counts (cache email ids)
+    (ok (message-counts-of (ref (:threads cache)) email ids)))
 
   (load-thread (cache wanted)
     (ok (thread-in (ref (:threads cache))
@@ -136,14 +141,7 @@
               (without-queued (ref (:queued cache)) id))))
 
   (revert-queued! (cache queued)
-    (relabel-everywhere! (mut (:summaries cache))
-                         (mut (:threads cache))
-                         (as-str (:account queued))
-                         (as-str (:thread-id queued))
-                         (ref (reversed-change (ref (:change queued)))))
-    (ok (set! (:queued cache)
-              (without-queued (ref (:queued cache))
-                              (:id queued)))))
+    (ok (reverted-queued! cache queued)))
 
   (queued-count (cache email)
     (ok (count-queued (ref (:queued cache)) email))))

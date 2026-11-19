@@ -1,0 +1,29 @@
+(use domain/mail ->thread-summary)
+(use domain/prefetch threads-to-prefetch)
+
+(defn listed (thread-id message-count)
+  (->thread-summary :id (str thread-id)
+                    :subject (str "")
+                    :participants (str "")
+                    :snippet (str "")
+                    :date 0
+                    :labels (vec)
+                    :message-count message-count
+                    :message-ids (vec)))
+
+(deftest a-thread-stored-in-full-is-skipped
+  (assert (empty? (threads-to-prefetch (ref (vec (listed "t" 2)))
+                                       (ref (vec (pair (str "t") 2)))
+                                       5))))
+
+(deftest a-thread-with-new-messages-is-prefetched
+  (assert (= (threads-to-prefetch (ref (vec (listed "t" 3)))
+                                  (ref (vec (pair (str "t") 2)))
+                                  5)
+             (vec (str "t")))))
+
+(deftest only-the-first-threads-up-to-the-limit-are-prefetched
+  (assert (= (threads-to-prefetch (ref (vec (listed "a" 1) (listed "b" 1)))
+                                  (ref (vec))
+                                  1)
+             (vec (str "a")))))

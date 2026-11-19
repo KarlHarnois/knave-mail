@@ -1,0 +1,21 @@
+(use adapters/driven/memory/stored stored-thread thread-in)
+(use domain/collections appended)
+(use domain/summary message-count)
+
+(export message-counts-of)
+
+(type message-counts-of
+  (fn ((ref (vec stored-thread))
+       (ref str)
+       (ref (vec string)))
+    (vec (pair string int))))
+
+(defn message-counts-of (stored email ids)
+  (reduce (iter ids) (vec)
+    (fn (counts id)
+      (match (thread-in stored email (as-str id))
+        ((some found)
+         (appended counts
+                   (pair (clone id)
+                         (message-count (ref found)))))
+        (none counts)))))

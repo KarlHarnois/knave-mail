@@ -1,0 +1,27 @@
+(use adapters/driven/sqlite/connection sqlite-connection)
+(use adapters/driven/sqlite/rows text-error->internal-error)
+(use domain/mail-error mail-error)
+
+(export read-message-counts)
+
+(def select-message-counts
+  "SELECT thread_id, COUNT(*) FROM messages WHERE account = ?1 AND thread_id IN (SELECT value FROM json_each(?2)) GROUP BY thread_id")
+
+(type read-message-counts
+  (fn ((ref sqlite-connection)
+       (ref str)
+       (ref (vec string)))
+    (result (vec (pair string int)) mail-error)))
+
+(defn read-message-counts (connection account ids)
+  (text-error->internal-error (message-count-rows
+                                connection account ids
+                                select-message-counts)))
+
+(def message-count-rows
+  (rust "serde_json::to_string({2}).map_err(|{!error}| {!error}.to_string()).and_then(|{!ids}| {0}.prepare_cached({3}).and_then(|mut {!statement}| {!statement}.query_map(rusqlite::params![{1}, {!ids}], |{!row}| Ok(({!row}.get::<_, String>(0)?, {!row}.get::<_, i64>(1)?))).and_then(|{!rows}| {!rows}.collect::<rusqlite::Result<Vec<_>>>())).map_err(|{!error}| {!error}.to_string()))"
+    (fn ((ref sqlite-connection)
+         (ref str)
+         (ref (vec string))
+         (ref str))
+      (result (vec (pair string int)) string))))

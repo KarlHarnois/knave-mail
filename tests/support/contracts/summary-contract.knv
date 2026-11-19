@@ -3,14 +3,15 @@
 (use domain/mail ->thread-query ->thread-ref)
 (use domain/summary summarize)
 
-(use ports/driven/store load-summaries-of load-thread
+(use ports/driven/store load-message-counts
+                        load-summaries-of load-thread
                         load-threads relabel-stored!
                         save-thread! save-threads! store)
 
 (use support/memory-world sample-thread)
 
-(export aligns-cached-thread-labels! finds-summaries-by-id!
-        keeps-message-ids!
+(export aligns-cached-thread-labels! counts-stored-messages!
+        finds-summaries-by-id! keeps-message-ids!
         leaves-spam-and-trash-out-of-all-mail!
         relabels-a-summary-without-its-thread!)
 
@@ -94,3 +95,10 @@
                                   (sample-thread "t-3" (vec "TRASH") 300))))))))
   (= (ids cache label-scope/all-mail)
      (vec (str "t-1"))))
+
+(defn counts-stored-messages! (cache)
+  (unwrap-ok (save-thread! cache account
+                           (ref (sample-thread "t-1" (vec "INBOX") 100))))
+  (= (unwrap-ok (load-message-counts cache account
+                                     (ref (vec (str "t-1") (str "t-9")))))
+     (vec (pair (str "t-1") 1))))

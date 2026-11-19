@@ -1,9 +1,10 @@
 (use adapters/driven/memory/memory-store memory-store)
 (use adapters/driven/memory/stored-labels relabel-everywhere!)
-(use domain/labels label-change)
+(use adapters/driven/memory/stored-queue without-queued)
+(use domain/labels label-change reversed-change)
 (use domain/queued-relabel ->queued-relabel queued-relabel)
 
-(export queued-each!)
+(export queued-each! reverted-queued!)
 
 (type queued-each!
   (fn ((mut memory-store)
@@ -33,3 +34,17 @@
       (push! (mut (:queued cache))
              (clone row))))
   added)
+
+(type reverted-queued!
+  (fn ((mut memory-store) (ref queued-relabel))
+    unit))
+
+(defn reverted-queued! (cache queued)
+  (relabel-everywhere! (mut (:summaries cache))
+                       (mut (:threads cache))
+                       (as-str (:account queued))
+                       (as-str (:thread-id queued))
+                       (ref (reversed-change (ref (:change queued)))))
+  (set! (:queued cache)
+        (without-queued (ref (:queued cache))
+                        (:id queued))))

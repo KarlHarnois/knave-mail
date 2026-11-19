@@ -1,10 +1,10 @@
 (use app/activity-log log-skipped-prefetch!)
 (use app/mail-app mail-app)
-(use domain/mail ->thread-ref thread-summary)
+(use domain/mail thread-summary)
 (use domain/mail-error mail-error)
-(use domain/summary message-count)
+(use domain/prefetch threads-to-prefetch)
 (use app/operations/calls fetched-thread!)
-(use ports/driven/store load-thread save-thread!)
+(use ports/driven/store load-message-counts save-thread!)
 
 (export prefetch-limit prefetch-threads!)
 
@@ -14,54 +14,38 @@
   (fn ((mut mail-app)
        (ref str)
        (ref (vec thread-summary)))
-    unit))
+    (result unit mail-error)))
 
 (defn prefetch-threads! (app account summaries)
-  (-> (iter summaries)
-      (take prefetch-limit)
-      (for-each (fn (summary) (prefetch-or-warn! app account summary)))))
+  (let (ids (-> (iter summaries)
+                (map (fn (summary) (clone (:id summary))))
+                collect)
+        stored (try (load-message-counts (ref (:store app))
+                                         account
+                                         (ref ids)))
+        wanted (threads-to-prefetch summaries (ref stored) prefetch-limit))
+    (for-each (iter wanted)
+      (fn (thread-id) (prefetch-or-warn! app account thread-id)))
+    (ok (do))))
 
 (type prefetch-or-warn!
-  (fn ((mut mail-app)
-       (ref str)
-       (ref thread-summary))
+  (fn ((mut mail-app) (ref str) (ref string))
     unit))
 
-(defn prefetch-or-warn! (app account summary)
-  (match (prefetch-thread! app account summary)
+(defn prefetch-or-warn! (app account thread-id)
+  (match (prefetch-thread! app account thread-id)
     ((err failure)
      (log-skipped-prefetch! (ref (:log app))
-                            account
-                            (ref (:id summary))
+                            account thread-id
                             (ref failure)))
     ((ok _) (do))))
 
 (type prefetch-thread!
-  (fn ((mut mail-app)
-       (ref str)
-       (ref thread-summary))
+  (fn ((mut mail-app) (ref str) (ref string))
     (result unit mail-error)))
 
-(defn prefetch-thread! (app account summary)
-  (if (try (stored-in-full? app account summary))
-    (ok (do))
-    (let (fetched (try (fetched-thread! app account (as-str (:id summary)))))
-      (save-thread! (mut (:store app))
-                    account
-                    (ref fetched)))))
-
-(type stored-in-full?
-  (fn ((ref mail-app)
-       (ref str)
-       (ref thread-summary))
-    (result bool mail-error)))
-
-(defn stored-in-full? (app account summary)
-  (match (try (load-thread (ref (:store app))
-                           (ref (->thread-ref :account (str account)
-                                              :thread-id (clone (:id
-                                                                  summary))))))
-    ((some stored)
-     (ok (= (message-count (ref stored))
-            (:message-count summary))))
-    (none (ok false))))
+(defn prefetch-thread! (app account thread-id)
+  (let (fetched (try (fetched-thread! app account (as-str thread-id))))
+    (save-thread! (mut (:store app))
+                  account
+                  (ref fetched))))

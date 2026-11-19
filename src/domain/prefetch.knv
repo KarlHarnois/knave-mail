@@ -1,0 +1,29 @@
+(use domain/mail thread-summary)
+
+(export threads-to-prefetch)
+
+(type threads-to-prefetch
+  (fn ((ref (vec thread-summary))
+       (ref (vec (pair string int)))
+       usize)
+    (vec string)))
+
+(defn threads-to-prefetch (summaries stored-counts limit)
+  (-> (iter summaries)
+      (take limit)
+      (filter (fn (summary)
+                (not (stored-in-full? summary stored-counts))))
+      (map (fn (summary) (clone (:id summary))))
+      collect))
+
+(type stored-in-full?
+  (fn ((ref thread-summary)
+       (ref (vec (pair string int))))
+    bool))
+
+(defn stored-in-full? (summary stored-counts)
+  (any? (iter stored-counts)
+    (fn (stored)
+      (let-match ((pair id count) stored)
+        (and (= id (:id summary))
+             (= count (:message-count summary)))))))

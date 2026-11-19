@@ -47,6 +47,12 @@
          (ref (vec string)))
       (result (vec thread-summary) mail-error)))
 
+  (load-message-counts
+    (fn ((ref self)
+         (ref str)
+         (ref (vec string)))
+      (result (vec (pair string int)) mail-error)))
+
   (load-thread
     (fn ((ref self) (ref thread-ref))
       (result (option thread) mail-error)))

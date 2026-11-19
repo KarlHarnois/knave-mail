@@ -14,6 +14,8 @@
 (use adapters/driven/sqlite/connection open-database
                                        sqlite-connection)
 
+(use adapters/driven/sqlite/message-counts read-message-counts)
+
 (use adapters/driven/sqlite/queued count-queued erase-queued
                                    read-all-queued)
 
@@ -68,6 +70,9 @@
   (load-summaries-of (cache email ids)
     (read-summaries-with-ids (ref (:connection cache))
                              email ids))
+
+  (load-message-counts (cache email ids)
+    (read-message-counts (ref (:connection cache)) email ids))
 
   (load-thread (cache wanted)
     (read-thread (ref (:connection cache))
