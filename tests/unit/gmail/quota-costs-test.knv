@@ -1,0 +1,19 @@
+(use adapters/driven/gmail/http-method http-method)
+(use adapters/driven/gmail/quota-costs units-for)
+
+(deftest sending-costs-a-hundred-units
+  (assert (= (units-for http-method/post
+                        "/gmail/v1/users/me/messages/send")
+             100)))
+
+(deftest any-other-post-costs-ten-units
+  (assert (= (units-for http-method/post "/gmail/v1/users/me/labels")
+             10)))
+
+(deftest reading-a-message-costs-five-units
+  (assert (= (units-for http-method/get "/gmail/v1/users/me/messages/m1")
+             5)))
+
+(deftest an-unlisted-read-costs-one-unit
+  (assert (= (units-for http-method/get "/gmail/v1/users/me/profile")
+             1)))

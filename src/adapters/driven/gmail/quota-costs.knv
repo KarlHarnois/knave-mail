@@ -1,0 +1,53 @@
+(use adapters/driven/gmail/http-method http-method)
+
+(export units-for)
+
+(defenum request-shape
+  (path-ending (ref str))
+  any-post
+  (path-naming (ref str)))
+
+(defstruct quota-cost
+  :shape request-shape
+  :units int)
+
+(def quota-costs
+  (vec (->quota-cost :shape (request-shape/path-ending "/messages/send")
+                     :units 100)
+       (->quota-cost :shape (request-shape/path-ending "/batchModify")
+                     :units 50)
+       (->quota-cost :shape (request-shape/path-ending "/modify")
+                     :units 10)
+       (->quota-cost :shape request-shape/any-post :units 10)
+       (->quota-cost :shape (request-shape/path-naming "/threads")
+                     :units 10)
+       (->quota-cost :shape (request-shape/path-naming "/messages")
+                     :units 5)
+       (->quota-cost :shape (request-shape/path-naming "/history")
+                     :units 2)))
+
+(def other-request-units 1)
+
+(type units-for
+  (fn (http-method (ref str)) int))
+
+(defn units-for (method path)
+  (-> (iter quota-costs)
+      (find (fn (cost)
+              (shaped-like? (ref (:shape cost)) method path)))
+      (map-some (fn (cost) (:units cost)))
+      (unwrap-or other-request-units)))
+
+(type shaped-like?
+  (fn ((ref request-shape) http-method (ref str))
+    bool))
+
+(defn shaped-like? (shape method path)
+  (match shape
+    ((path-ending ending) (ends-with? path ending))
+    (any-post (= method http-method/post))
+    ((path-naming part) (contains? path part))))
+
+(def ends-with?
+  (rust "{0}.ends_with({1})"
+    (fn ((ref str) (ref str)) bool)))

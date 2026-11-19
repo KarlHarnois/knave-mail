@@ -1,8 +1,7 @@
-(use adapters/driven/gmail/http-method http-method)
 (use ports/driven/clock clock now-milliseconds pause!)
 
 (export ->quota-bucket full-bucket pace-at quota-bucket
-        slowed-at! take-units! units-for)
+        slowed-at! take-units!)
 
 (def slowest-pace 10)
 
@@ -93,21 +92,3 @@
 (defn milliseconds-until (bucket units now)
   (inc (/ (* (- units (:available bucket)) 1000)
           (pace-at bucket now))))
-
-(type units-for
-  (fn (http-method (ref str)) int))
-
-(defn units-for (method path)
-  (cond
-    ((ends-with? path "/messages/send") 100)
-    ((ends-with? path "/batchModify") 50)
-    ((ends-with? path "/modify") 10)
-    ((= method http-method/post) 10)
-    ((contains? path "/threads") 10)
-    ((contains? path "/messages") 5)
-    ((contains? path "/history") 2)
-    (else 1)))
-
-(def ends-with?
-  (rust "{0}.ends_with({1})"
-    (fn ((ref str) (ref str)) bool)))

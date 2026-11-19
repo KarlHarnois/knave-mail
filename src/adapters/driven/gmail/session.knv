@@ -6,7 +6,8 @@
                                       rate-limited?)
 
 (use adapters/driven/gmail/pacing slowed-down!)
-(use adapters/driven/gmail/quota take-units! units-for)
+(use adapters/driven/gmail/quota take-units!)
+(use adapters/driven/gmail/quota-costs units-for)
 
 (use adapters/driven/gmail/replies checked collect-results
                                    sent)
