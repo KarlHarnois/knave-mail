@@ -13,7 +13,7 @@
                                 with-unsettled)
 
 (use domain/labels label-change)
-(use domain/mail-error error-kind mail-error)
+(use domain/mail-error mail-error not-found?)
 (use app/operations/calls fetched-changes!)
 
 (use ports/driven/store forget-pending-download!
@@ -110,7 +110,7 @@
     (result unit mail-error)))
 
 (defn forgotten-if-gone! (app account thread-id failure)
-  (if (= (error-kind (ref failure)) "not-found")
+  (if (not-found? (ref failure))
     (do
       (log-vanished-thread! (ref (:log app)) account thread-id)
       (forget-thread! (mut (:store app))

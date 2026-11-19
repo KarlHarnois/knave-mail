@@ -1,5 +1,5 @@
 (export ->throttling error-kind error-message mail-error
-        throttling)
+        not-found? throttling)
 
 (defstruct throttling
   :message string
@@ -33,3 +33,11 @@
     ((network message) message)
     ((throttled throttle) (:message throttle))
     ((internal message) message)))
+
+(type not-found?
+  (fn ((ref mail-error)) bool))
+
+(defn not-found? (error)
+  (match error
+    ((not-found _) true)
+    (_ false)))

@@ -7,7 +7,7 @@
 (use app/sync/full-sync full-sync! synced-labels)
 (use app/sync/preview list-newest-inbox!)
 (use app/sync/relisting relist-labels!)
-(use domain/mail-error error-kind mail-error)
+(use domain/mail-error mail-error not-found?)
 (use app/operations/calls fetched-labels!)
 (use ports/driven/store load-checkpoint save-labels!)
 
@@ -75,8 +75,7 @@
       (full-sync! app account))
     (err failure)))
 
-(defn history-expired? (failure)
-  (= (error-kind failure) "not-found"))
+(defn history-expired? (failure) (not-found? failure))
 
 (type preview-sync!
   (fn ((mut mail-app) (ref str))
