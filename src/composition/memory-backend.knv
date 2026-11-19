@@ -2,6 +2,7 @@
 (use adapters/driven/memory/provider ->memory-provider)
 
 (use adapters/driven/memory/remote-mail ->remote-mail
+                                        always-failing
                                         remote-mail)
 
 (use adapters/driven/memory/seed seed-accounts
@@ -80,9 +81,8 @@
   (share (->remote-mail :threads (seeded-threads email (thread-count position))
                         :sent (vec)
                         :latency-milliseconds (:latency-milliseconds chosen)
-                        :failing (clone (:failing chosen))
-                        :failures-left none
-                        :throttle-delay none
+                        :failures (map-some (clone (:failing chosen))
+                                            always-failing)
                         :next-id 1
                         :history-id 1
                         :history-floor 0
