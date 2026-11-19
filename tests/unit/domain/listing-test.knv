@@ -1,5 +1,5 @@
-(use domain/listing ids-without-summary in-listed-order
-                    missing-from-listing)
+(use domain/listing first-seen ids-without-summary
+                    in-listed-order missing-from-listing)
 
 (use domain/mail thread-summary)
 (use domain/summary summarize)
@@ -48,3 +48,8 @@
                                    (ref (vec (dated-summary "c" 200)))
                                    1)
              (vec (str "a")))))
+
+(deftest a-refreshed-thread-missing-from-the-cache-is-first-seen
+  (assert (= (ids-of (first-seen (ref (vec (summary-of "a")))
+                                 (ref (vec (summary-of "a") (summary-of "b")))))
+             (vec (str "b")))))

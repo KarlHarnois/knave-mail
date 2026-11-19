@@ -3,8 +3,9 @@
 (use domain/collections concatenated)
 (use domain/label-scope label-scope scope-name)
 
-(use domain/listing current-for-listing ids-without-summary
-                    in-listed-order outside-scope)
+(use domain/listing current-for-listing first-seen
+                    ids-without-summary in-listed-order
+                    outside-scope)
 
 (use domain/mail ->summary-page summary-page thread-query
                  thread-summary)
@@ -59,7 +60,8 @@
         refreshed (try (refreshed-summaries! app account
                                              (ref (ids-without-summary ids
                                                                        (ref current))))))
-    (log-first-seen! app account (ref stored) (ref refreshed))
+    (log-first-seen! app account
+                     (ref (first-seen (ref stored) (ref refreshed))))
     (log-back-under-label! app account (ref stored) scope)
     (ok (in-listed-order ids (ref (concatenated current refreshed))))))
 
@@ -81,22 +83,12 @@
 (type log-first-seen!
   (fn ((ref mail-app)
        (ref str)
-       (ref (vec thread-summary))
        (ref (vec thread-summary)))
     unit))
 
-(defn log-first-seen! (app account stored refreshed)
-  (let (first-seen (-> (iter refreshed)
-                       (filter (fn (summary)
-                                 (not (any? (iter stored)
-                                        (fn (held)
-                                          (= (:id held) (:id summary)))))))
-                       (map (fn (summary) (clone summary)))
-                       collect))
-    (when (not (empty? first-seen))
-      (log-first-listed! (ref (:log app))
-                         account
-                         (ref first-seen)))))
+(defn log-first-seen! (app account first-listed)
+  (when (not (empty? first-listed))
+    (log-first-listed! (ref (:log app)) account first-listed)))
 
 (type log-back-under-label!
   (fn ((ref mail-app)

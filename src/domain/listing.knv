@@ -4,7 +4,7 @@
 (use domain/mail thread-summary)
 (use domain/summary in-scope?)
 
-(export current-for-listing ids-without-summary
+(export current-for-listing first-seen ids-without-summary
         in-listed-order missing-from-listing outside-scope)
 
 (type current-for-listing
@@ -98,3 +98,15 @@
                 (fn (listed-summary) (:date listed-summary))))
     ((some oldest) (> (:date summary) oldest))
     (none true)))
+
+(type first-seen
+  (fn ((ref (vec thread-summary))
+       (ref (vec thread-summary)))
+    (vec thread-summary)))
+
+(defn first-seen (stored refreshed)
+  (-> (iter refreshed)
+      (filter (fn (summary)
+                (none? (summary-with (ref (:id summary)) stored))))
+      (map (fn (summary) (clone summary)))
+      collect))
