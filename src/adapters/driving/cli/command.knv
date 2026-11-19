@@ -6,20 +6,23 @@
                                     rest-positionals switch?
                                     value-of values-of)
 
+(use adapters/driving/cli/command-options body-format
+                                          format-of
+                                          limit-of)
+
+(use adapters/driving/cli/label-words change-named)
 (use domain/collections one-of?)
 (use domain/freshness freshness)
 (use domain/mail-error mail-error)
-(use domain/results unwrap-ok-or)
+(use domain/labels label-change)
 
-(export cli-command cli-command-word? command-from
-        reply-scope)
+(export body-format cli-command cli-command-word?
+        command-from reply-scope)
 
 (def command-words
   (vec "accounts" "labels" "threads" "search" "send" "reply"
        "forward" "archive" "inbox" "trash" "untrash" "star"
        "unstar" "read" "unread" "sync" "help"))
-
-(def default-limit 50)
 
 (defenum reply-scope
   sender
@@ -34,11 +37,11 @@
                 :query string
                 :limit int
                 :freshness freshness)
-  (show-thread :thread-id string :format string)
+  (show-thread :thread-id string :format body-format)
   (send :to (vec string) :cc (vec string) :subject string)
   (reply :message-id string :scope reply-scope)
   (forward :message-id string :to (vec string))
-  (relabel :change string :thread-ids (vec string))
+  (relabel :change label-change :thread-ids (vec string))
   sync
   help)
 
@@ -55,7 +58,7 @@
       ("labels" (ok cli-command/list-labels))
       ("threads" (threads-command parsed (ref topic)))
       ("search"
-       (ok (thread-listing parsed label-scope/all-mail topic)))
+       (thread-listing parsed label-scope/all-mail topic))
       ("send"
        (ok (cli-command/send :to (values-of parsed "--to")
                              :cc (values-of parsed "--cc")
@@ -86,24 +89,24 @@
 (defn threads-command (parsed action)
   (match action
     ("list"
-     (ok (thread-listing parsed
-                         (label-scope/only (unwrap-or
-                                             (value-of parsed "--label")
-                                             (label-id system-label/inbox)))
-                         (unwrap-or (value-of parsed "--query") (str "")))))
+     (thread-listing parsed
+                     (label-scope/only (unwrap-or (value-of parsed "--label")
+                                                  (label-id
+                                                    system-label/inbox)))
+                     (unwrap-or (value-of parsed "--query") (str ""))))
     ("show"
      (ok (cli-command/show-thread
            :thread-id (try (required (unwrap-or (positional parsed 2) (str ""))
                                      "a thread id"))
-           :format (unwrap-or (value-of parsed "--format") (str "text")))))
+           :format (try (format-of (value-of parsed "--format"))))))
     (_ (err (unknown-action "threads" action)))))
 
 (defn thread-listing (parsed scope query)
-  (cli-command/list-threads :scope scope
-                            :query query
-                            :limit (parsed-limit (value-of parsed "--limit")
-                                                 default-limit)
-                            :freshness (freshness-of parsed)))
+  (ok (cli-command/list-threads :scope scope
+                                :query query
+                                :limit (try (limit-of (value-of parsed
+                                                                "--limit")))
+                                :freshness (freshness-of parsed))))
 
 (defn reply-scope-of (parsed)
   (if (switch? parsed "--all")
@@ -114,7 +117,7 @@
     freshness/fresh freshness/cached))
 
 (defn relabel-command (parsed word)
-  (ok (cli-command/relabel :change word
+  (ok (cli-command/relabel :change (try (change-named (as-str word)))
                            :thread-ids (rest-positionals parsed))))
 
 (defn required (value description)
@@ -124,9 +127,3 @@
 
 (defn unknown-action (command action)
   (mail-error/usage (str "unknown action `" action "` for `" command "`")))
-
-(defn parsed-limit (text fallback)
-  (match text
-    ((some digits)
-     (unwrap-ok-or (parse (as-str digits)) fallback))
-    (none fallback)))

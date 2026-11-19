@@ -1,5 +1,6 @@
 (use adapters/driving/cli/command cli-command)
 (use adapters/driving/cli/exit-codes exit-code)
+(use domain/labels archive-change)
 
 (use adapters/driving/cli/runner ->cli-request
                                  run-cli-command! sending)
@@ -20,7 +21,7 @@
     (fail-remote! (ref world) "relabel")
     (let (outcome (run-cli-command! (mut app)
                                     (ref (->cli-request (cli-command/relabel
-                                                          (str "archive")
+                                                          (archive-change)
                                                           (vec (str "t-1")))
                                                         (str world-account)
                                                         (str "")

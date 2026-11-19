@@ -1,4 +1,5 @@
 (use adapters/driving/cli/cli-result cli-result)
+(use adapters/driving/cli/command-options body-format)
 (use domain/labels starred? unread?)
 (use domain/mail draft label message thread thread-summary)
 
@@ -51,7 +52,8 @@
        (:subject summary)))
 
 (type thread-text
-  (fn ((ref thread) (ref str)) string))
+  (fn ((ref thread) (ref body-format))
+    string))
 
 (defn thread-text (shown format)
   (lines-of (-> (iter (:messages shown))
@@ -59,7 +61,8 @@
                 collect)))
 
 (type message-text
-  (fn ((ref message) (ref str)) string))
+  (fn ((ref message) (ref body-format))
+    string))
 
 (defn message-text (shown format)
   (str "Message: "
@@ -77,12 +80,14 @@
        "\n"))
 
 (type body-in-format
-  (fn ((ref message) (ref str)) string))
+  (fn ((ref message) (ref body-format))
+    string))
 
 (defn body-in-format (shown format)
-  (match (pair format (ref (:html shown)))
-    ((pair "html" (some html)) (clone html))
-    (_ (clone (:text shown)))))
+  (match format
+    (html (unwrap-or (clone (:html shown))
+                     (clone (:text shown))))
+    (plain (clone (:text shown)))))
 
 (type draft-text
   (fn ((ref draft)) string))

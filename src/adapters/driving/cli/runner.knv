@@ -3,7 +3,6 @@
 (use adapters/driving/cli/cli-result cli-result)
 (use adapters/driving/cli/command cli-command reply-scope)
 (use adapters/driving/cli/help usage-text)
-(use adapters/driving/cli/label-words change-named)
 
 (use domain/mail ->draft ->message-ref ->thread-query
                  ->thread-ref draft thread-query
@@ -84,8 +83,7 @@
                                   :to (clone to)))))
       ((relabel change thread-ids)
        (do
-         (try (relabel-threads! client account thread-ids
-                                (ref (try (change-named change)))))
+         (try (relabel-threads! client account thread-ids change))
          (all-delivered client account)))
       (sync (do
               (try (sync-account! client account))

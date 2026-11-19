@@ -1,0 +1,38 @@
+(use domain/mail-error mail-error)
+
+(export body-format format-of limit-of)
+
+(def default-limit 50)
+
+(defenum body-format
+  plain
+  html)
+
+(type limit-of
+  (fn ((option string))
+    (result int mail-error)))
+
+(defn limit-of (text)
+  (match text
+    ((some digits)
+     (map-err (parse (as-str digits))
+       (fn (_)
+         (mail-error/usage (str "--limit expects a number, not `"
+                                digits "`")))))
+    (none (ok default-limit))))
+
+(type format-of
+  (fn ((option string))
+    (result body-format mail-error)))
+
+(defn format-of (text)
+  (match text
+    ((some word) (text->body-format (as-str word)))
+    (none (ok body-format/plain))))
+
+(defn text->body-format (word)
+  (match word
+    ("html" (ok body-format/html))
+    ("text" (ok body-format/plain))
+    (_ (err (mail-error/usage (str "--format expects text or html, not `"
+                                   word "`"))))))

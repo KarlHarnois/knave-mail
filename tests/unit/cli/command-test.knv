@@ -8,6 +8,8 @@
                                   cli-command-word?
                                   command-from reply-scope)
 
+(use adapters/driving/cli/command-options body-format)
+(use domain/labels archive-change inbox-change)
 (use domain/mail-error error-message)
 (use support/sample-mail addresses)
 
@@ -78,7 +80,7 @@
 
 (deftest threads-show-defaults-to-text
   (assert (= (command (vec "threads" "show" "t-1"))
-             (cli-command/show-thread (str "t-1") (str "text")))))
+             (cli-command/show-thread (str "t-1") body-format/plain))))
 
 (deftest threads-show-needs-a-thread-id
   (assert (= (failure (vec "threads" "show")) "expected a thread id")))
@@ -102,7 +104,7 @@
 
 (deftest archive-takes-several-threads
   (assert (= (command (vec "archive" "t-1" "t-2"))
-             (cli-command/relabel (str "archive")
+             (cli-command/relabel (archive-change)
                                   (addresses (vec "t-1" "t-2"))))))
 
 (deftest accounts-remove-needs-an-email
@@ -119,7 +121,7 @@
 
 (deftest inbox-takes-several-threads
   (assert (= (command (vec "inbox" "t-1" "t-2"))
-             (cli-command/relabel (str "inbox")
+             (cli-command/relabel (inbox-change)
                                   (addresses (vec "t-1" "t-2"))))))
 
 (deftest fresh-lists-threads-from-gmail
@@ -128,3 +130,19 @@
                                        (str "")
                                        50
                                        freshness/fresh))))
+
+(deftest threads-show-reads-the-html-format
+  (assert (= (command (vec "threads" "show" "t-1" "--format" "html"))
+             (cli-command/show-thread (str "t-1") body-format/html))))
+
+(deftest an-unknown-format-is-a-usage-error
+  (assert (= (failure (vec "threads" "show" "t-1" "--format" "pdf"))
+             "--format expects text or html, not `pdf`")))
+
+(deftest a-limit-that-is-not-a-number-is-a-usage-error
+  (assert (= (failure (vec "threads" "list" "--limit" "lots"))
+             "--limit expects a number, not `lots`")))
+
+(deftest an-unknown-command-word-is-a-usage-error
+  (assert (= (failure (vec "explode" "t-1"))
+             "unknown command `explode`; try `knave-mail help`")))

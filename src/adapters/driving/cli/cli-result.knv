@@ -1,3 +1,4 @@
+(use adapters/driving/cli/command-options body-format)
 (use domain/mail account draft label thread thread-summary)
 
 (export cli-result)
@@ -6,7 +7,7 @@
   (accounts-listed (vec account))
   (labels-listed (vec label))
   (threads-listed (vec thread-summary))
-  (thread-shown :shown thread :format string)
+  (thread-shown :shown thread :format body-format)
   (draft-shown draft)
   (account-added account)
   done
