@@ -24,6 +24,7 @@
                                             window-socket)
 
 (use composition/background-listing start-background-listing)
+(use composition/background-sync ->background-sync)
 (use composition/delivery-worker start-delivery-worker)
 (use composition/gmail-backend gmail-app)
 (use composition/keymap-loader keymap-startup-script)
@@ -109,11 +110,14 @@
          (local running app)
          (serve-requests!
            (mut running)
-           (ref (->window-workers
-                  :sync (sync-runner/background (share-sender (ref executor)))
-                  :listing (start-background-listing outbox (ref executor))
-                  :delivery (start-delivery-worker outbox (ref executor))
-                  :opener (browser-of chosen)))
+           (ref
+             (->window-workers
+               :sync (sync-runner/background (->background-sync
+                                               :executor (share-sender (ref executor))
+                                               :settings (clone chosen)))
+               :listing (start-background-listing outbox (ref executor) chosen)
+               :delivery (start-delivery-worker outbox (ref executor) chosen)
+               :opener (browser-of chosen)))
            log inbox outbox)))
       ((err failure) (fail-with (ref failure))))))
 

@@ -1,12 +1,13 @@
-(use adapters/driven/threaded-queue submission-sender)
 (use adapters/driving/webview/window reply-outbox)
-(use composition/background-sync start-background-sync!)
+
+(use composition/background-sync background-sync
+                                 start-background-sync!)
 
 (export start-sync! sync-runner)
 
 (defenum sync-runner
   inline
-  (background submission-sender))
+  (background background-sync))
 
 (type start-sync!
   (fn ((ref sync-runner)
@@ -17,5 +18,5 @@
 (defn start-sync! (runner account outbox)
   (match runner
     (inline false)
-    ((background executor)
-     (do (start-background-sync! executor account outbox) true))))
+    ((background held)
+     (do (start-background-sync! held account outbox) true))))

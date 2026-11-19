@@ -13,7 +13,7 @@
 (use composition/gmail-backend gmail-app)
 (use composition/delivery-rounds delivered-all!)
 (use composition/logging chosen-log)
-(use composition/settings settings-from)
+(use composition/settings settings)
 (use domain/mail-error error-message)
 (use app/operations/batch-log log-batch-delivered!)
 (use domain/operation priority)
@@ -25,18 +25,21 @@
 
 (def retry-milliseconds 60000)
 
-(defn start-delivery-worker (outbox executor)
-  (let (shared (share-sender executor))
-    (change-delivery/background
-      (spawn-delivery outbox
-        (fn (wakeups replies)
-          (let (moved-executor shared)
-            (delivered-in-own-app wakeups replies (ref moved-executor))))))))
+(defn start-delivery-worker (outbox executor chosen)
+  (let (shared (share-sender executor)
+        owned-settings (clone chosen))
+    (change-delivery/background (spawn-delivery outbox
+                                  (fn (wakeups replies)
+                                    (let (moved-executor shared
+                                          moved-settings owned-settings)
+                                      (delivered-in-own-app (ref moved-settings)
+                                                            wakeups
+                                                            replies
+                                                            (ref moved-executor))))))))
 
-(defn delivered-in-own-app (wakeups outbox executor)
-  (let (chosen (settings-from (ref (command-line-args)))
-        log (chosen-log (ref chosen)))
-    (match (gmail-app (ref chosen)
+(defn delivered-in-own-app (chosen wakeups outbox executor)
+  (let (log (chosen-log (ref chosen)))
+    (match (gmail-app chosen
                       (share-log (ref log))
                       (threaded-operations executor)
                       priority/interactive

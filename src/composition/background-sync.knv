@@ -19,20 +19,34 @@
 (use ports/driven/event-log event-log log-info log-warn
                             share-log)
 
-(use composition/settings settings-from)
+(use composition/settings settings)
 (use app/client/mail-syncer preview-account! sync-account!)
 (use adapters/clock clock-milliseconds)
 
-(export start-background-sync!)
+(export ->background-sync background-sync
+        start-background-sync!)
 
-(defn start-background-sync! (executor account outbox)
+(defstruct background-sync
+  :executor submission-sender
+  :settings settings)
+
+(type start-background-sync!
+  (fn ((ref background-sync)
+       (ref str)
+       (ref reply-outbox))
+    unit))
+
+(defn start-background-sync! (runner account outbox)
   (let (owned-account (str account)
-        shared (share-sender executor))
+        shared (share-sender (ref (:executor runner)))
+        chosen (clone (:settings runner)))
     (run-in-background outbox
       (fn (progress)
         (let (moved-account owned-account
-              moved-executor shared)
-          (synced-in-own-app (ref moved-account)
+              moved-executor shared
+              moved-settings chosen)
+          (synced-in-own-app (ref moved-settings)
+                             (ref moved-account)
                              progress
                              (ref moved-executor)))))))
 
@@ -42,11 +56,10 @@
          (fn-once ((ref reply-outbox)) string))
       unit)))
 
-(defn synced-in-own-app (account progress executor)
-  (let (chosen (settings-from (ref (command-line-args)))
-        log (chosen-log (ref chosen))
+(defn synced-in-own-app (chosen account progress executor)
+  (let (log (chosen-log (ref chosen))
         started (clock-milliseconds)
-        outcome (match (gmail-app (ref chosen)
+        outcome (match (gmail-app chosen
                                   (share-log (ref log))
                                   (threaded-operations executor)
                                   priority/background
