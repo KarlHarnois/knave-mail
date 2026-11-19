@@ -29,24 +29,42 @@
   (json->history-id (ref (try (api-get! session
                                         (ref (str users-me "/profile")))))))
 
-(defn fetched-changes! (session since)
-  (collected-pages! session since none (vec)))
+(defstruct history-paging
+  :since string
+  :page-token (option string)
+  :found (vec history-entry))
 
-(defn collected-pages! (session since page-token found)
-  (let (page (try (map-err (api-get! session
+(defn fetched-changes! (session since)
+  (collected-pages! session
+                    (->history-paging :since (str since)
+                                      :page-token none
+                                      :found (vec))))
+
+(type collected-pages!
+  (fn ((mut gmail-session) history-paging)
+    (result mail-changes mail-error)))
+
+(defn collected-pages! (session paging)
+  (let (since (as-str (:since paging))
+        page (try (map-err (api-get! session
                                      (ref (history-path since
-                                                        (ref page-token))))
+                                                        (ref (:page-token
+                                                               paging)))))
                            not-found->history-expired))
         entries (try (-> (array-field (ref page) "history")
                          iter
                          (map (fn (entry) (json->history-entry entry)))
                          collect-ok))
-        so-far (concatenated found entries))
+        so-far (concatenated (clone (:found paging)) entries))
     (log-info (ref (:log session))
               log-area/gmail
               (str "history since " since ": " (history-shape (ref page))))
     (match (optional-string-field (ref page) "nextPageToken")
-      ((some token) (recur session since (some token) so-far))
+      ((some token)
+       (recur session
+              (->history-paging :since (str since)
+                                :page-token (some token)
+                                :found so-far)))
       (none (ok (entries->mail-changes (ref so-far)
                                        (try (json->history-id (ref page)))))))))
 

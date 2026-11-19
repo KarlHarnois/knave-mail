@@ -1,9 +1,9 @@
 (use adapters/driven/gmail/http-reply body->refusal
                                       http-reply)
 
-(export agent-with-timeouts batch-size http-agent http-get
-        http-get-all http-post-form http-post-json
-        new-agent)
+(export ->json-post agent-with-timeouts batch-size
+        http-agent http-get http-get-all http-post-form
+        http-post-json json-post new-agent)
 
 (deftype http-agent (rust "ureq::Agent"))
 
@@ -62,22 +62,21 @@
            (result http-reply string)))
       (vec (result http-reply string)))))
 
+(defstruct json-post
+  :url string
+  :token string
+  :body string)
+
 (type http-post-json
-  (fn ((ref http-agent)
-       (ref str)
-       (ref str)
-       (ref str))
+  (fn ((ref http-agent) (ref json-post))
     (result http-reply string)))
 
-(defn http-post-json (agent url token body)
-  (first-reply (post-json-response agent url token body)))
+(defn http-post-json (agent post)
+  (first-reply (post-json-response agent post)))
 
 (def post-json-response
-  (rust "{0}.post({1}).header(\"Authorization\", &format!(\"Bearer {{}}\", {2})).header(\"Content-Type\", \"application/json\").send({3}).map_err(|{!error}| {!error}.to_string())"
-    (fn ((ref http-agent)
-         (ref str)
-         (ref str)
-         (ref str))
+  (rust "{0}.post(&{1}.url).header(\"Authorization\", &format!(\"Bearer {{}}\", {1}.token)).header(\"Content-Type\", \"application/json\").send(&{1}.body).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref http-agent) (ref json-post))
       (result http-response string))))
 
 (type http-post-form

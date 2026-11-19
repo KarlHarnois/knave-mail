@@ -1,5 +1,5 @@
 (use adapters/driven/gmail/http-method http-method)
-(use adapters/driven/gmail/http http-post-json)
+(use adapters/driven/gmail/http ->json-post http-post-json)
 (use adapters/driven/gmail/paced-gets fetched-all!)
 
 (use adapters/driven/gmail/http-reply http-reply
@@ -10,7 +10,10 @@
 (use adapters/driven/gmail/quota-costs units-for)
 (use adapters/driven/gmail/replies checked sent)
 (use domain/collections collect-ok owned-items)
-(use adapters/driven/gmail/request-log log-outcome!)
+
+(use adapters/driven/gmail/request-log ->request-timing
+                                       log-outcome!)
+
 (use ports/driven/clock now-milliseconds)
 
 (use adapters/driven/gmail/session-state api-url
@@ -48,9 +51,10 @@
                                             (ref (vec (str path)))
                                             (ref token))))
     (log-outcome! (ref (:log session))
-                  http-method/get path
-                  (ref outcome)
-                  (- (now-of session) started))
+                  (ref (->request-timing :method http-method/get
+                                         :path (str path)
+                                         :elapsed (- (now-of session) started)))
+                  (ref outcome))
     (sent outcome)))
 
 (type api-get-all!
@@ -68,9 +72,11 @@
         (for-each (fn (numbered)
                     (let-match ((pair index outcome) numbered)
                       (log-outcome! (ref (:log session))
-                                    http-method/get
-                                    (at paths index)
-                                    outcome elapsed)))))
+                                    (ref (->request-timing
+                                           :method http-method/get
+                                           :path (clone (at paths index))
+                                           :elapsed elapsed))
+                                    outcome)))))
     (-> (owned-items replies)
         (map (fn (outcome)
                (checked (try (sent outcome)) now)))
@@ -92,15 +98,16 @@
   (let (token (try (access-token! session))
         started (now-of session)
         outcome (http-post-json (ref (:agent session))
-                                (ref (api-url session path))
-                                (ref token)
-                                body))
+                                (ref (->json-post :url (api-url session path)
+                                                  :token token
+                                                  :body (str body)))))
     (when (posted-rate-limited? (ref outcome))
       (slowed-down! session))
     (log-outcome! (ref (:log session))
-                  http-method/post path
-                  (ref outcome)
-                  (- (now-of session) started))
+                  (ref (->request-timing :method http-method/post
+                                         :path (str path)
+                                         :elapsed (- (now-of session) started)))
+                  (ref outcome))
     (sent outcome)))
 
 (type now-of

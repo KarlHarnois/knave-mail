@@ -6,14 +6,27 @@
 (use adapters/driven/gmail/http-reply http-reply)
 (use ports/driven/event-log event-log log-debug log-warn)
 
-(export log-outcome!)
+(export ->request-timing log-outcome! request-timing)
 
-(defn log-outcome! (log method path outcome elapsed)
-  (let (shown (str (http-method->name method) " " (without-query path)))
+(defstruct request-timing
+  :method http-method
+  :path string
+  :elapsed int)
+
+(type log-outcome!
+  (fn ((ref event-log)
+       (ref request-timing)
+       (ref (result http-reply string)))
+    unit))
+
+(defn log-outcome! (log timing outcome)
+  (let (shown (str (http-method->name (:method timing))
+                   " "
+                   (without-query (as-str (:path timing)))))
     (match outcome
       ((ok reply)
        (log-debug log log-area/gmail
-                  (str shown " " (:status reply) " " elapsed "ms")))
+                  (str shown " " (:status reply) " " (:elapsed timing) "ms")))
       ((err problem)
        (log-warn log log-area/gmail
                  (str shown " failed: " problem))))))
