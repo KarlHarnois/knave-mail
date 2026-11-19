@@ -1,3 +1,4 @@
+(use domain/log-entry log-area)
 (use adapters/driven/memory/authorizer ->memory-authorizer)
 (use adapters/driven/memory/provider ->memory-provider)
 
@@ -19,7 +20,7 @@
 (use app/operations/inline-queue new-inline-queue)
 (use app/mail-app delivery)
 (use domain/operation priority)
-(use ports/driven/event-log event-log share-log)
+(use ports/driven/event-log event-log log-warn share-log)
 (use ports/driven/operation-queue operation-queue)
 (use composition/settings settings)
 (use domain/mail ->account)
@@ -51,7 +52,9 @@
   (for-each (iter seed-accounts)
     (fn (account)
       (when (err? (sync-account! app account))
-        (eprintln (str "could not sync " account))))))
+        (log-warn (ref (:log app))
+                  log-area/sync
+                  (str "could not sync " account))))))
 
 (defn store-with-accounts ()
   (assoc (empty-memory-store)

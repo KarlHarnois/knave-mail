@@ -1,6 +1,10 @@
 (use domain/results ok->option)
 
-(export file-text)
+(export ->loaded-file file-text loaded-file)
+
+(defstruct loaded-file
+  :text string
+  :warnings (vec string))
 
 (defn file-text (path)
   (ok->option (slurp path)))

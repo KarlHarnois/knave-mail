@@ -1,0 +1,91 @@
+(use domain/log-entry log-area)
+(use adapters/driven/browser/system-browser ->system-browser)
+
+(use adapters/driven/threaded-queue share-sender
+                                    threaded-operations)
+
+(use adapters/driving/webview/listing-runner listing-runner)
+
+(use adapters/driving/webview/session ->window-workers
+                                      serve-requests!)
+
+(use adapters/driving/webview/sync-runner sync-runner)
+
+(use adapters/driving/webview/window reply-outbox
+                                     request-inbox
+                                     send-window-command
+                                     window-command)
+
+(use domain/mail-error error-message mail-error)
+(use adapters/driving/webview/change-delivery change-delivery)
+(use composition/background-listing start-background-listing)
+(use composition/background-sync ->background-sync)
+(use composition/delivery-worker start-delivery-worker)
+(use composition/gmail-backend chosen-client gmail-app)
+(use composition/memory-backend memory-app)
+(use composition/operation-executor start-gmail-executor)
+(use composition/backend backend)
+(use composition/settings settings)
+(use app/mail-app delivery)
+(use domain/operation priority)
+(use ports/driven/event-log event-log share-log)
+(use ports/driven/link-opener link-opener)
+
+(export serve-window!)
+
+(defn serve-window! (chosen log inbox outbox)
+  (match (:backend chosen)
+    (memory (serve-memory-window! chosen log inbox outbox))
+    (gmail (serve-gmail-window! chosen log inbox outbox))))
+
+(defn serve-memory-window! (chosen log inbox outbox)
+  (local running (memory-app chosen (share-log log)))
+  (serve-requests! (mut running)
+                   (ref (->window-workers :sync sync-runner/inline
+                                          :listing listing-runner/inline
+                                          :delivery change-delivery/inline
+                                          :opener (browser-of chosen)))
+                   log inbox outbox))
+
+(defn serve-gmail-window! (chosen log inbox outbox)
+  (match (chosen-client chosen)
+    ((ok client)
+     (serve-gmail-client! chosen (ref client) log inbox outbox))
+    ((err failure) (closed-with-failure outbox (ref failure)))))
+
+(defn serve-gmail-client! (chosen client log inbox outbox)
+  (let (executor (start-gmail-executor (clone chosen) (clone client)))
+    (match (gmail-app chosen
+                      (share-log log)
+                      (threaded-operations (ref executor))
+                      priority/interactive
+                      delivery/deliver-later)
+      ((ok app)
+       (do
+         (local running app)
+         (serve-requests!
+           (mut running)
+           (ref
+             (->window-workers
+               :sync (sync-runner/background (->background-sync
+                                               :executor (share-sender (ref executor))
+                                               :settings (clone chosen)))
+               :listing (start-background-listing outbox (ref executor) chosen)
+               :delivery (start-delivery-worker outbox (ref executor) chosen)
+               :opener (browser-of chosen)))
+           log inbox outbox)))
+      ((err failure) (closed-with-failure outbox (ref failure))))))
+
+(type closed-with-failure
+  (fn ((ref reply-outbox) (ref mail-error))
+    unit))
+
+(defn closed-with-failure (outbox failure)
+  (eprintln (str "knave-mail: " (error-message failure)))
+  (send-window-command outbox (window-command/exit 1)))
+
+(type browser-of
+  (fn ((ref settings)) link-opener))
+
+(defn browser-of (chosen)
+  (link-opener/system (->system-browser (clone (:browser chosen)))))

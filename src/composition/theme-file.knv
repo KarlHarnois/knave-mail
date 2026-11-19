@@ -1,14 +1,21 @@
 (use adapters/driving/webview/theme/theme-css theme-css)
-(use composition/file-text file-text)
+
+(use composition/file-text ->loaded-file file-text
+                           loaded-file)
+
 (use composition/settings settings)
 
-(export theme-stylesheet)
+(export theme-startup)
 
-(defn theme-stylesheet (chosen)
+(type theme-startup
+  (fn ((ref settings)) loaded-file))
+
+(defn theme-startup (chosen)
   (match (file-text (ref (:theme-path chosen)))
-    ((some text)
-     (let (themed (theme-css (ref text)))
-       (for-each (iter (:warnings themed))
-         (fn (warning) (eprintln warning)))
-       (clone (:css themed))))
-    (none (str ""))))
+    ((some text) (theme->loaded-file (as-str text)))
+    (none (->loaded-file :text (str "") :warnings (vec)))))
+
+(defn theme->loaded-file (text)
+  (let (themed (theme-css text))
+    (->loaded-file :text (clone (:css themed))
+                   :warnings (clone (:warnings themed)))))

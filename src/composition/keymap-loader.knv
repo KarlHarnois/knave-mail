@@ -1,15 +1,22 @@
 (use adapters/driving/webview/keymap/keymap-file keymap-file)
 (use adapters/driving/webview/keymap/keymap-script keymap-script)
-(use composition/file-text file-text)
+
+(use composition/file-text ->loaded-file file-text
+                           loaded-file)
+
 (use composition/settings settings)
 
-(export keymap-startup-script)
+(export keymap-startup)
 
-(defn keymap-startup-script (chosen)
+(type keymap-startup
+  (fn ((ref settings)) loaded-file))
+
+(defn keymap-startup (chosen)
   (match (file-text (ref (:keymap-path chosen)))
-    ((some text)
-     (let (mapped (keymap-file (ref text)))
-       (for-each (iter (:warnings mapped))
-         (fn (warning) (eprintln warning)))
-       (keymap-script (ref (:entries mapped)))))
-    (none (str ""))))
+    ((some text) (keymap->loaded-file (as-str text)))
+    (none (->loaded-file :text (str "") :warnings (vec)))))
+
+(defn keymap->loaded-file (text)
+  (let (mapped (keymap-file text))
+    (->loaded-file :text (keymap-script (ref (:entries mapped)))
+                   :warnings (clone (:warnings mapped)))))
