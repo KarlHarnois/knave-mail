@@ -1,7 +1,6 @@
 (use adapters/driving/webview/window reply-outbox)
-
-(use composition/background-sync background-sync
-                                 start-background-sync!)
+(use composition/background-sync start-background-sync!)
+(use composition/worker-wiring worker-wiring)
 
 (export start-sync! sync-runner sync-start)
 
@@ -11,7 +10,7 @@
 
 (defenum sync-runner
   inline
-  (background background-sync))
+  (background worker-wiring))
 
 (defn start-sync! (runner account outbox)
   (match runner

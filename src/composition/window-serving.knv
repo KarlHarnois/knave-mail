@@ -2,6 +2,7 @@
 (use adapters/driven/browser/system-browser ->system-browser)
 
 (use adapters/driven/threaded-queue share-sender
+                                    submission-sender
                                     threaded-operations)
 
 (use adapters/driving/webview/listing-runner listing-runner)
@@ -23,7 +24,10 @@
 (use domain/mail-error error-message mail-error)
 (use adapters/driving/webview/change-delivery change-delivery)
 (use composition/background-listing start-background-listing)
-(use composition/background-sync ->background-sync)
+
+(use composition/worker-wiring ->worker-wiring
+                               worker-wiring)
+
 (use composition/delivery-worker start-delivery-worker)
 (use composition/gmail-backend chosen-client gmail-app)
 (use composition/memory-backend memory-app)
@@ -98,20 +102,27 @@
          (local running app)
          (serve-requests!
            (mut running)
-           (ref
-             (session-over
-               io
-               (->window-workers
-                 :sync (sync-runner/background (->background-sync
-                                                 :executor (share-sender (ref executor))
-                                                 :settings (clone chosen)))
-                 :listing (start-background-listing outbox
-                                                    (ref executor)
-                                                    chosen)
-                 :delivery (start-delivery-worker outbox (ref executor) chosen)
-                 :opener (browser-of chosen))))
+           (ref (session-over io
+                              (->window-workers
+                                :sync (sync-runner/background
+                                        (wiring-of (ref executor) chosen))
+                                :listing (start-background-listing
+                                           outbox
+                                           (wiring-of (ref executor) chosen))
+                                :delivery (start-delivery-worker
+                                            outbox
+                                            (wiring-of (ref executor) chosen))
+                                :opener (browser-of chosen))))
            (ref (:inbox io)))))
       ((err failure) (closed-with-failure outbox (ref failure))))))
+
+(type wiring-of
+  (fn ((ref submission-sender) (ref settings))
+    worker-wiring))
+
+(defn wiring-of (executor chosen)
+  (->worker-wiring :executor (share-sender executor)
+                   :settings (clone chosen)))
 
 (type session-over
   (fn ((ref window-io) window-workers) window-session))

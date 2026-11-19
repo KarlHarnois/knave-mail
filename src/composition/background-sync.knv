@@ -9,11 +9,7 @@
                                      send-reply)
 
 (use app/mail-app mail-app)
-
-(use adapters/driven/threaded-queue share-sender
-                                    submission-sender
-                                    threaded-operations)
-
+(use adapters/driven/threaded-queue threaded-operations)
 (use composition/gmail-backend gmail-app)
 (use app/mail-app delivery)
 (use domain/operation priority)
@@ -23,31 +19,33 @@
 (use ports/driven/event-log event-log log-info log-warn
                             share-log)
 
-(use composition/settings settings)
+(use composition/worker-wiring share-wiring worker-wiring)
 (use app/client/mail-syncer preview-account! sync-account!)
 (use app/sync/syncing preview-outcome)
 (use ports/driven/clock clock now-milliseconds)
 
-(export ->background-sync background-sync
-        start-background-sync!)
+(export start-background-sync!)
 
-(defstruct background-sync
-  :executor submission-sender
-  :settings settings)
+(defstruct sync-run
+  :account string
+  :started int)
 
-(defn start-background-sync! (runner account outbox)
+(type start-background-sync!
+  (fn ((ref worker-wiring)
+       (ref str)
+       (ref reply-outbox))
+    unit))
+
+(defn start-background-sync! (wiring account outbox)
   (let (owned-account (str account)
-        shared (share-sender (ref (:executor runner)))
-        chosen (clone (:settings runner)))
+        owned-wiring (share-wiring wiring))
     (run-in-background outbox
       (fn (progress)
         (let (moved-account owned-account
-              moved-executor shared
-              moved-settings chosen)
-          (synced-in-own-app (ref moved-settings)
+              moved-wiring owned-wiring)
+          (synced-in-own-app (ref moved-wiring)
                              (ref moved-account)
-                             progress
-                             (ref moved-executor)))))))
+                             progress))))))
 
 (def run-in-background
   (rust "{{ let {!outbox} = {0}.clone(); let {!job} = {1}; std::thread::spawn(move || {{ let {!last} = {!job}(&{!outbox}); drop({!outbox}.send_event({!last})); }}); }}"
@@ -55,40 +53,64 @@
          (fn-once ((ref reply-outbox)) string))
       unit)))
 
-(defn synced-in-own-app (chosen account progress executor)
-  (let (log (chosen-log (ref chosen))
-        started (now-milliseconds (ref clock/system))
+(type synced-in-own-app
+  (fn ((ref worker-wiring)
+       (ref string)
+       (ref reply-outbox))
+    string))
+
+(defn synced-in-own-app (wiring account progress)
+  (let (chosen (ref (:settings wiring))
+        log (chosen-log chosen)
+        run (->sync-run :account (clone account)
+                        :started (now-milliseconds (ref clock/system)))
         outcome (match (gmail-app chosen
                                   (share-log (ref log))
-                                  (threaded-operations executor)
+                                  (threaded-operations (ref (:executor wiring)))
                                   priority/background
                                   delivery/deliver-later)
                   ((ok app)
                    (do
                      (local syncing app)
-                     (previewed-then-synced! (mut syncing)
-                                             account
-                                             progress
-                                             (ref log)
-                                             started)))
+                     (previewed-then-synced! (mut syncing) (ref run) progress)))
                   ((err failure) (err failure))))
-    (log-outcome (ref log) account (ref outcome) started)
-    (sync-event outcome account)))
+    (log-outcome (ref log)
+                 (ref run)
+                 (ref outcome))
+    (sync-event outcome (as-str account))))
 
-(defn previewed-then-synced! (app account progress log started)
-  (log-info log log-area/sync
-            (str account ": background sync started"))
-  (when (previewed? (preview-account! app account))
-    (send-reply progress
-                (core-event->json-text (ref (core-event/sync-progress (str account)))))
-    (log-info log log-area/sync
-              (str account ": preview shown after "
-                   (- (now-milliseconds (ref clock/system)) started)
-                   "ms")))
-  (sync-account! app account))
+(type previewed-then-synced!
+  (fn ((mut mail-app)
+       (ref sync-run)
+       (ref reply-outbox))
+    (result unit mail-error)))
 
-(defn log-outcome (log account outcome started)
-  (let (elapsed (- (now-milliseconds (ref clock/system)) started))
+(defn previewed-then-synced! (app run progress)
+  (let (account (as-str (:account run)))
+    (log-info (ref (:log app))
+              log-area/sync
+              (str account ": background sync started"))
+    (when (previewed? (preview-account! app account))
+      (send-reply progress
+                  (core-event->json-text (ref (core-event/sync-progress (str account)))))
+      (log-info (ref (:log app))
+                log-area/sync
+                (str account ": preview shown after "
+                     (- (now-milliseconds (ref clock/system))
+                        (:started run))
+                     "ms")))
+    (sync-account! app account)))
+
+(type log-outcome
+  (fn ((ref event-log)
+       (ref sync-run)
+       (ref (result unit mail-error)))
+    unit))
+
+(defn log-outcome (log run outcome)
+  (let (account (as-str (:account run))
+        elapsed (- (now-milliseconds (ref clock/system))
+                   (:started run)))
     (match outcome
       ((ok _)
        (log-info log log-area/sync

@@ -15,7 +15,7 @@
 (use composition/gmail-backend gmail-app)
 (use composition/delivery-rounds delivered-all!)
 (use composition/logging chosen-log)
-(use composition/settings settings)
+(use composition/worker-wiring worker-wiring)
 (use domain/mail-error error-message)
 (use app/operations/batch-log log-batch-delivered!)
 (use domain/operation priority)
@@ -25,23 +25,25 @@
 
 (export start-delivery-worker)
 
-(defn start-delivery-worker (outbox executor chosen)
-  (let (shared (share-sender executor)
-        owned-settings (clone chosen))
-    (change-delivery/background (spawn-delivery outbox
-                                  (fn (wakeups replies)
-                                    (let (moved-executor shared
-                                          moved-settings owned-settings)
-                                      (delivered-in-own-app (ref moved-settings)
-                                                            wakeups
-                                                            replies
-                                                            (ref moved-executor))))))))
+(type start-delivery-worker
+  (fn ((ref reply-outbox) worker-wiring) change-delivery))
 
-(defn delivered-in-own-app (chosen wakeups outbox executor)
-  (let (log (chosen-log (ref chosen)))
+(defn start-delivery-worker (outbox wiring)
+  (change-delivery/background
+    (spawn-delivery outbox
+      (fn (wakeups replies)
+        (let (moved-wiring wiring)
+          (delivered-in-own-app (ref moved-wiring) wakeups replies))))))
+
+(type delivered-in-own-app
+  (fn ((ref worker-wiring) wake-inbox reply-outbox) unit))
+
+(defn delivered-in-own-app (wiring wakeups outbox)
+  (let (chosen (ref (:settings wiring))
+        log (chosen-log chosen))
     (match (gmail-app chosen
                       (share-log (ref log))
-                      (threaded-operations executor)
+                      (threaded-operations (ref (:executor wiring)))
                       priority/interactive
                       delivery/deliver-later)
       ((ok app)

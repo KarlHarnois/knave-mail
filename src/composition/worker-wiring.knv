@@ -1,0 +1,17 @@
+(use adapters/driven/threaded-queue share-sender
+                                    submission-sender)
+
+(use composition/settings settings)
+
+(export ->worker-wiring share-wiring worker-wiring)
+
+(defstruct worker-wiring
+  :executor submission-sender
+  :settings settings)
+
+(type share-wiring
+  (fn ((ref worker-wiring)) worker-wiring))
+
+(defn share-wiring (wiring)
+  (->worker-wiring :executor (share-sender (ref (:executor wiring)))
+                   :settings (clone (:settings wiring))))

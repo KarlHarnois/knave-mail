@@ -18,29 +18,31 @@
 (use app/mail-app delivery)
 (use domain/operation priority)
 (use composition/logging chosen-log)
-(use composition/settings settings)
+(use composition/worker-wiring worker-wiring)
 (use domain/mail-error error-message)
 (use ports/driven/event-log log-warn share-log)
 
 (export start-background-listing)
 
-(defn start-background-listing (outbox executor chosen)
-  (let (shared (share-sender executor)
-        owned-settings (clone chosen))
-    (listing-runner/background (spawn-worker outbox
-                                 (fn (inbox replies)
-                                   (let (moved-executor shared
-                                         moved-settings owned-settings)
-                                     (list-in-own-app
-                                       (ref moved-settings)
-                                       inbox replies
-                                       (ref moved-executor))))))))
+(type start-background-listing
+  (fn ((ref reply-outbox) worker-wiring) listing-runner))
 
-(defn list-in-own-app (chosen inbox outbox executor)
-  (let (log (chosen-log (ref chosen)))
+(defn start-background-listing (outbox wiring)
+  (listing-runner/background
+    (spawn-worker outbox
+      (fn (inbox replies)
+        (let (moved-wiring wiring)
+          (list-in-own-app (ref moved-wiring) inbox replies))))))
+
+(type list-in-own-app
+  (fn ((ref worker-wiring) call-inbox reply-outbox) unit))
+
+(defn list-in-own-app (wiring inbox outbox)
+  (let (chosen (ref (:settings wiring))
+        log (chosen-log chosen))
     (match (gmail-app chosen
                       (share-log (ref log))
-                      (threaded-operations executor)
+                      (threaded-operations (ref (:executor wiring)))
                       priority/interactive
                       delivery/deliver-later)
       ((ok app)

@@ -24,7 +24,6 @@
                                             window-socket)
 
 (use composition/background-listing start-background-listing)
-(use composition/background-sync ->background-sync)
 (use composition/delivery-worker start-delivery-worker)
 (use composition/gmail-backend chosen-client gmail-app)
 (use composition/file-text loaded-file)
