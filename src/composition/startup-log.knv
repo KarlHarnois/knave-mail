@@ -1,9 +1,9 @@
 (use domain/log-entry log-area)
 (use composition/settings backend settings)
 (use ports/driven/event-log event-log log-info)
-(use adapters/clock clock-milliseconds)
+(use ports/driven/clock clock now-milliseconds)
 
-(export clock-milliseconds log-started trimmed)
+(export log-started trimmed)
 
 (defn log-started (log chosen mode)
   (log-info log log-area/app

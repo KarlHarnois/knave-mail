@@ -1,3 +1,4 @@
+(use ports/driven/clock now-milliseconds)
 (use adapters/driven/memory/remote-history record-change!)
 
 (use adapters/driven/memory/remote-mail remote-mail
@@ -26,7 +27,7 @@
         message (sent-from sent
                            (ref message-id)
                            (ref thread-id)
-                           (now-milliseconds)))
+                           (now-milliseconds (ref (:clock remote)))))
     (set! (:next-id remote) (inc number))
     (push! (mut (:sent remote))
            (clone sent))
@@ -54,7 +55,3 @@
     (push! (mut (:labels updated))
            (label-id system-label/sent)))
   updated)
-
-(def now-milliseconds
-  (rust "std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|{!elapsed}| {!elapsed}.as_millis() as i64).unwrap_or(0)"
-    (fn () int)))

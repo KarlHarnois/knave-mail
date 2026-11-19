@@ -16,7 +16,7 @@
 (use support/gmail-world fixture-routes gmail-over
                          gmail-paced route)
 
-(use adapters/clock clock-milliseconds)
+(use ports/driven/clock clock now-milliseconds)
 
 (def labels-request "GET /gmail/v1/users/me/labels")
 
@@ -81,9 +81,10 @@
         query (->thread-query (label-scope/only (str "INBOX"))
                               (str "")
                               20)
-        started (clock-milliseconds))
+        started (now-milliseconds (ref clock/system)))
     (unwrap-ok (fetch-threads! (mut gmail) (ref query)))
-    (assert (>= (- (clock-milliseconds) started) 400))))
+    (assert (>= (- (now-milliseconds (ref clock/system)) started)
+                400))))
 
 (deftest a-truncated-answer-is-a-network-error
   (let (server (start-truncating-gmail)

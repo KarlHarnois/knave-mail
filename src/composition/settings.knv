@@ -23,7 +23,7 @@
 
 (defstruct settings
   :backend backend
-  :latency-milliseconds u64
+  :latency-milliseconds int
   :failing (option remote-operation)
   :e2e-script-path (option string)
   :cache-path string
@@ -133,7 +133,7 @@
     (_ (err (str "--backend expects gmail or memory, not `" text "`")))))
 
 (type text->latency
-  (fn ((ref str)) (result u64 string)))
+  (fn ((ref str)) (result int string)))
 
 (defn text->latency (text)
   (map-err (parse text)

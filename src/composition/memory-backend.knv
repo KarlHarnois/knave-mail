@@ -81,6 +81,7 @@
   (share (->remote-mail :threads (seeded-threads email (thread-count position))
                         :sent (vec)
                         :latency-milliseconds (:latency-milliseconds chosen)
+                        :clock clock/system
                         :failures (map-some (clone (:failing chosen))
                                             always-failing)
                         :next-id 1

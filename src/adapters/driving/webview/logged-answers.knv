@@ -9,7 +9,7 @@
                                              next-call
                                              reply-sink)
 
-(use adapters/clock clock-milliseconds)
+(use ports/driven/clock clock now-milliseconds)
 (use app/client/account-book list-accounts!)
 (use app/mail-app mail-app)
 (use domain/mail-error error-kind error-message mail-error)
@@ -49,9 +49,9 @@
     string))
 
 (defn answered-and-logged! (app log call)
-  (let (started (clock-milliseconds)
+  (let (started (now-milliseconds (ref clock/system))
         outcome (run-command! app (ref (:command call)))
-        elapsed (- (clock-milliseconds) started))
+        elapsed (- (now-milliseconds (ref clock/system)) started))
     (log-answer log call (ref outcome) elapsed)
     (reply-for call outcome)))
 
@@ -59,7 +59,7 @@
   (fn ((ref event-log)
        (ref mail-call)
        (ref (result json-value mail-error))
-       u64)
+       int)
     unit))
 
 (defn log-answer (log call outcome elapsed)

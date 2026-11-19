@@ -26,7 +26,7 @@
 (use composition/settings settings)
 (use app/client/mail-syncer preview-account! sync-account!)
 (use app/sync/syncing preview-outcome)
-(use adapters/clock clock-milliseconds)
+(use ports/driven/clock clock now-milliseconds)
 
 (export ->background-sync background-sync
         start-background-sync!)
@@ -63,7 +63,7 @@
 
 (defn synced-in-own-app (chosen account progress executor)
   (let (log (chosen-log (ref chosen))
-        started (clock-milliseconds)
+        started (now-milliseconds (ref clock/system))
         outcome (match (gmail-app chosen
                                   (share-log (ref log))
                                   (threaded-operations executor)
@@ -89,12 +89,12 @@
                 (core-event->json-text (ref (core-event/sync-progress (str account)))))
     (log-info log log-area/sync
               (str account ": preview shown after "
-                   (- (clock-milliseconds) started)
+                   (- (now-milliseconds (ref clock/system)) started)
                    "ms")))
   (sync-account! app account))
 
 (defn log-outcome (log account outcome started)
-  (let (elapsed (- (clock-milliseconds) started))
+  (let (elapsed (- (now-milliseconds (ref clock/system)) started))
     (match outcome
       ((ok _)
        (log-info log log-area/sync

@@ -1,3 +1,5 @@
+(use ports/driven/clock clock pause!)
+
 (use adapters/driven/memory/remote-operation remote-operation
                                              remote-operation->name)
 
@@ -25,7 +27,8 @@
 (defstruct remote-mail
   :threads (vec thread)
   :sent (vec outgoing)
-  :latency-milliseconds u64
+  :latency-milliseconds int
+  :clock clock
   :failures (option failure-plan)
   :next-id int
   :history-id int
@@ -37,7 +40,9 @@
     (result unit mail-error)))
 
 (defn guard! (remote operation)
-  (sleep-milliseconds (:latency-milliseconds remote))
+  (when (pos? (:latency-milliseconds remote))
+    (pause! (ref (:clock remote))
+            (:latency-milliseconds remote)))
   (match (planned-failure (ref (:failures remote)) operation)
     ((some plan)
      (set! (:failures remote)
@@ -138,7 +143,3 @@
              :references (match (reply-link-of sent)
                            ((some link) (clone (:references link)))
                            (none (str "")))))
-
-(def sleep-milliseconds
-  (rust "std::thread::sleep(std::time::Duration::from_millis({0}))"
-    (fn (u64) unit)))
