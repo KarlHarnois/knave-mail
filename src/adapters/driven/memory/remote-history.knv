@@ -1,4 +1,5 @@
 (use adapters/driven/memory/remote-change ->remote-change
+                                          change-kind
                                           remote-change)
 
 (use adapters/driven/memory/remote-mail remote-mail)
@@ -24,7 +25,7 @@
   (fn ((mut remote-mail) (ref str)) unit))
 
 (defn record-change! (remote thread-id)
-  (recorded! remote thread-id none))
+  (recorded! remote thread-id change-kind/refetch))
 
 (type record-relabel!
   (fn ((mut remote-mail)
@@ -33,21 +34,20 @@
     unit))
 
 (defn record-relabel! (remote thread-id change)
-  (recorded! remote thread-id (some (clone change))))
+  (recorded! remote thread-id
+             (change-kind/relabel (clone change))))
 
 (type recorded!
-  (fn ((mut remote-mail)
-       (ref str)
-       (option label-change))
+  (fn ((mut remote-mail) (ref str) change-kind)
     unit))
 
-(defn recorded! (remote thread-id relabel)
+(defn recorded! (remote thread-id kind)
   (set! (:history-id remote)
         (inc (:history-id remote)))
   (push! (mut (:changes remote))
          (->remote-change :at (:history-id remote)
                           :thread-id (str thread-id)
-                          :relabel relabel)))
+                          :kind kind)))
 
 (type changes-since
   (fn ((ref remote-mail) (ref str))
@@ -78,7 +78,8 @@
 
 (defn refetched-after (remote start)
   (-> (iter (changes-after remote start))
-      (filter (fn (change) (none? (:relabel change))))
+      (filter (fn (change)
+                (refetch? (ref (:kind change)))))
       (reduce (vec)
         (fn (found change)
           (appended-once found (clone (:thread-id change)))))))
@@ -86,12 +87,17 @@
 (defn relabels-after (remote start)
   (reduce (iter (changes-after remote start)) (vec)
     (fn (found change)
-      (match (ref (:relabel change))
-        ((some relabel)
+      (match (ref (:kind change))
+        ((relabel relabel)
          (with-message-relabels found remote
                                 (as-str (:thread-id change))
                                 relabel))
-        (none found)))))
+        (refetch found)))))
+
+(defn refetch? (kind)
+  (match kind
+    (refetch true)
+    ((relabel _) false)))
 
 (defn with-message-relabels (found remote thread-id relabel)
   (reduce (message-ids-of remote thread-id) found

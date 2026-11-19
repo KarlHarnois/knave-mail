@@ -1,33 +1,42 @@
-(export checkpoint-of replace-checkpoint!)
+(export ->stored-checkpoint checkpoint-of
+        replace-checkpoint! stored-checkpoint)
+
+(defstruct stored-checkpoint
+  :owner string
+  :history-id string)
+
+(type checkpoint-of
+  (fn ((ref (vec stored-checkpoint))
+       (ref str))
+    (option string)))
 
 (defn checkpoint-of (checkpoints email)
   (-> (iter checkpoints)
-      (find (fn (checkpoint) (checkpoint-of? checkpoint email)))
+      (find (fn (checkpoint)
+              (= (:owner checkpoint) email)))
       (map-some (fn (checkpoint)
-                  (let-match ((pair _ history-id) checkpoint)
-                    (clone history-id))))))
+                  (clone (:history-id checkpoint))))))
+
+(type replace-checkpoint!
+  (fn ((mut (vec stored-checkpoint))
+       (ref str)
+       (ref str))
+    unit))
 
 (defn replace-checkpoint! (checkpoints email history-id)
   (set! checkpoints (checkpoints-without checkpoints email))
   (push! checkpoints
-         (pair (str email) (str history-id))))
+         (->stored-checkpoint :owner (str email)
+                              :history-id (str history-id))))
 
 (type checkpoints-without
-  (fn ((ref (vec (pair string string)))
+  (fn ((ref (vec stored-checkpoint))
        (ref str))
-    (vec (pair string string))))
+    (vec stored-checkpoint)))
 
 (defn checkpoints-without (checkpoints email)
   (-> (iter checkpoints)
       (filter (fn (checkpoint)
-                (not (checkpoint-of? checkpoint email))))
+                (not= (:owner checkpoint) email)))
       (map (fn (checkpoint) (clone checkpoint)))
       collect))
-
-(type checkpoint-of?
-  (fn ((ref (pair string string)) (ref str))
-    bool))
-
-(defn checkpoint-of? (checkpoint email)
-  (let-match ((pair account _) checkpoint)
-    (= account email)))

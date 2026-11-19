@@ -1,6 +1,17 @@
 (use domain/collections appended)
 
-(export downloads-of with-downloads without-download)
+(export ->pending-download downloads-of pending-download
+        with-downloads without-download)
+
+(defstruct pending-download
+  :owner string
+  :thread-id string)
+
+(type with-downloads
+  (fn ((vec pending-download)
+       (ref str)
+       (ref (vec string)))
+    (vec pending-download)))
 
 (defn with-downloads (pending email thread-ids)
   (reduce (iter thread-ids) pending
@@ -10,18 +21,27 @@
               (download-of? row email (as-str thread-id))))
         found
         (appended found
-                  (pair (str email) (clone thread-id)))))))
+                  (->pending-download :owner (str email)
+                                      :thread-id (clone thread-id)))))))
+
+(type downloads-of
+  (fn ((ref (vec pending-download)) (ref str))
+    (vec string)))
 
 (defn downloads-of (pending email)
   (let (oldest-first (-> (iter pending)
-                         (filter (fn (row) (account-of? row email)))
-                         (map (fn (row)
-                                (let-match ((pair _ thread-id) row)
-                                  (clone thread-id))))
+                         (filter (fn (row) (= (:owner row) email)))
+                         (map (fn (row) (clone (:thread-id row))))
                          collect))
     (-> (reverse oldest-first)
         (map (fn (thread-id) (clone thread-id)))
         collect)))
+
+(type without-download
+  (fn ((ref (vec pending-download))
+       (ref str)
+       (ref str))
+    (vec pending-download)))
 
 (defn without-download (pending email thread-id)
   (-> (iter pending)
@@ -31,19 +51,11 @@
       collect))
 
 (type download-of?
-  (fn ((ref (pair string string))
+  (fn ((ref pending-download)
        (ref str)
        (ref str))
     bool))
 
 (defn download-of? (row email thread-id)
-  (let-match ((pair account pending-id) row)
-    (and (= account email) (= pending-id thread-id))))
-
-(type account-of?
-  (fn ((ref (pair string string)) (ref str))
-    bool))
-
-(defn account-of? (row email)
-  (let-match ((pair account _) row)
-    (= account email)))
+  (and (= (:owner row) email)
+       (= (:thread-id row) thread-id)))

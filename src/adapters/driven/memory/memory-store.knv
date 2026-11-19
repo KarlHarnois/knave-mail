@@ -1,6 +1,8 @@
 (use adapters/driven/memory/stored stored-summary
                                    stored-thread)
 
+(use adapters/driven/memory/stored-checkpoints stored-checkpoint)
+(use adapters/driven/memory/stored-downloads pending-download)
 (use adapters/driven/memory/stored-labels stored-labels)
 (use domain/mail account)
 (use domain/queued-relabel queued-relabel)
@@ -12,8 +14,8 @@
   :labels (vec stored-labels)
   :summaries (vec stored-summary)
   :threads (vec stored-thread)
-  :checkpoints (vec (pair string string))
-  :pending-downloads (vec (pair string string))
+  :checkpoints (vec stored-checkpoint)
+  :pending-downloads (vec pending-download)
   :queued (vec queued-relabel)
   :next-queued-id int)
 

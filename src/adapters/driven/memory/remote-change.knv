@@ -1,8 +1,12 @@
 (use domain/labels label-change)
 
-(export ->remote-change remote-change)
+(export ->remote-change change-kind remote-change)
+
+(defenum change-kind
+  refetch
+  (relabel label-change))
 
 (defstruct remote-change
   :at int
   :thread-id string
-  :relabel (option label-change))
+  :kind change-kind)
