@@ -53,21 +53,17 @@
       ((err failure)
        (after-batch-failure! app
                              (ref batch)
-                             head
                              (batch-failure->fallback (ref failure)))))))
 
 (type after-batch-failure!
-  (fn ((mut mail-app)
-       (ref delivery-batch)
-       queued-relabel batch-fallback)
+  (fn ((mut mail-app) (ref delivery-batch) batch-fallback)
     (result (vec delivery-step) mail-error)))
 
-(defn after-batch-failure! (app batch head fallback)
+(defn after-batch-failure! (app batch fallback)
   (match fallback
-    (keep-queued (ok (vec (delivery-step/kept head))))
+    (keep-queued (ok (vec (delivery-step/kept (clone (at (:rows batch) 0))))))
     (one-at-a-time (one-at-a-time! app
-                                   (ref (:rows batch))
-                                   0
+                                   (clone (:rows batch))
                                    (vec)))))
 
 (type forgotten!

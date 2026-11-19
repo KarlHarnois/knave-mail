@@ -6,7 +6,7 @@
 (use domain/labels label-change)
 
 (use domain/mail ->message-ref ->thread-ref draft message
-                 thread-ref)
+                 message-ref thread-ref)
 
 (use domain/outgoing draft->outgoing)
 (use domain/reply draft-for draft-kind)
@@ -18,16 +18,13 @@
 (export compose-draft relabel-each! send!)
 
 (type compose-draft
-  (fn ((ref mail-app)
-       (ref str)
-       (ref str)
-       draft-kind)
+  (fn ((ref mail-app) (ref message-ref) draft-kind)
     (result draft mail-error)))
 
-(defn compose-draft (app account message-id kind)
+(defn compose-draft (app message kind)
   (ok (draft-for kind
-                 (ref (try (stored-message app account message-id)))
-                 account)))
+                 (ref (try (stored-message app message)))
+                 (as-str (:account message)))))
 
 (type send!
   (fn ((mut mail-app) (ref str) (ref draft))
@@ -51,7 +48,11 @@
 (defn replied-message (app account reply-to)
   (match reply-to
     ((some message-id)
-     (map-ok (stored-message app account message-id) some))
+     (map-ok (stored-message app
+                             (ref (->message-ref :account (str account)
+                                                 :message-id (clone
+                                                               message-id))))
+             some))
     (none (ok none))))
 
 (type remember-sent!
@@ -77,8 +78,9 @@
     (deliver-now (deliver-everything-now! app))
     (deliver-later (ok (do)))))
 
-(defn stored-message (app account message-id)
-  (ok-or (try (load-message (ref (:store app))
-                            (ref (->message-ref :account (str account)
-                                                :message-id (str message-id)))))
-         (mail-error/not-found (str "no message " message-id " in " account))))
+(defn stored-message (app message)
+  (ok-or (try (load-message (ref (:store app)) message))
+         (mail-error/not-found (str "no message "
+                                    (:message-id message)
+                                    " in "
+                                    (:account message)))))

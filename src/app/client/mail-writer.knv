@@ -11,10 +11,7 @@
     (result draft mail-error)))
 
 (defn draft! (app message kind)
-  (compose-draft app
-                 (ref (:account message))
-                 (ref (:message-id message))
-                 kind))
+  (compose-draft app message kind))
 
 (type send-draft!
   (fn ((mut mail-app) (ref str) (ref draft))

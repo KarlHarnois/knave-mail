@@ -34,15 +34,29 @@
 
 (type one-at-a-time!
   (fn ((mut mail-app)
-       (ref (vec queued-relabel))
-       usize
+       (vec queued-relabel)
        (vec delivery-step))
     (result (vec delivery-step) mail-error)))
 
-(defn one-at-a-time! (app rows index steps)
-  (match (try (row-round! app (get rows index) steps))
-    ((more taken) (recur app rows (inc index) taken))
+(defn one-at-a-time! (app rows steps)
+  (match (try (row-round! app (first rows) steps))
+    ((more taken) (recur app (without-first (ref rows)) taken))
     ((finished taken) (ok taken))))
+
+(type without-first
+  (fn ((ref (vec queued-relabel)))
+    (vec queued-relabel)))
+
+(defn without-first (rows)
+  (-> (iter rows)
+      enumerate
+      (filter (fn (numbered)
+                (let-match ((pair index _) numbered)
+                  (pos? index))))
+      (map (fn (numbered)
+             (let-match ((pair _ row) numbered)
+               (clone row))))
+      collect))
 
 (defenum row-round
   (more (vec delivery-step))
