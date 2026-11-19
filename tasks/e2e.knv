@@ -21,7 +21,7 @@
 (deftask e2e ()
   "Builds knave-mail and runs each GUI scenario under xvfb-run against the memory backend."
   (try (succeeded "knave build"
-                  (run-command! "knave" (vec (str "build")))))
+                  (try (run-command! "knave" (vec (str "build"))))))
   (let (scenarios (try (scenario-files scenario-directory runner-script))
         outcomes (-> (iter scenarios) (map run-scenario) collect)
         failures (failure-count (ref outcomes)))
@@ -52,9 +52,11 @@
      (status->outcome (run-command! "timeout" (scenario-arguments script))))
     ((err problem) (eprintln problem) scenario-outcome/failed)))
 
-(defn status->outcome (succeeded)
-  (if succeeded
-    scenario-outcome/passed scenario-outcome/failed))
+(defn status->outcome (status)
+  (match status
+    ((ok true) scenario-outcome/passed)
+    ((ok false) scenario-outcome/failed)
+    ((err problem) (eprintln problem) scenario-outcome/failed)))
 
 (type scenario-arguments
   (fn (string) (vec string)))
@@ -83,8 +85,9 @@
     (err (str description " failed"))))
 
 (def run-command!
-  (rust "std::process::Command::new({0}).args({1}).status().map(|{!status}| {!status}.success()).unwrap_or(false)"
-    (fn ((ref str) (vec string)) bool)))
+  (rust "std::process::Command::new({0}).args({1}).status().map(|{!status}| {!status}.success()).map_err(|{!error}| format!(\"cannot start {{}}: {{}}\", {0}, {!error}))"
+    (fn ((ref str) (vec string))
+      (result bool string))))
 
 (def scenario-files
   (rust "std::fs::read_dir({0}).map(|{!entries}| {{ let mut {!paths} = {!entries}.filter_map(|{!entry}| {!entry}.ok().map(|{!entry}| {!entry}.path().to_string_lossy().into_owned())).filter(|{!path}| {!path}.ends_with(\".js\") && {!path} != {1}).collect::<Vec<String>>(); {!paths}.sort(); {!paths} }}).map_err(|{!error}| {!error}.to_string())"

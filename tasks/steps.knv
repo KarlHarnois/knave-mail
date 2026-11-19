@@ -21,13 +21,14 @@
 
 (defn run! (cmd)
   (println "== " (:desc cmd))
-  (if (run-command! (:dir cmd)
-                    (:cmd cmd)
-                    (clone (:args cmd)))
-    (ok (do))
-    (err (str (:desc cmd) " failed"))))
+  (let-try (succeeded (run-command! (:dir cmd)
+                                    (:cmd cmd)
+                                    (clone (:args cmd))))
+    (if succeeded
+      (ok (do))
+      (err (str (:desc cmd) " failed")))))
 
 (def run-command!
-  (rust "std::process::Command::new({1}).args({2}).current_dir({0}).status().map(|{!status}| {!status}.success()).unwrap_or(false)"
+  (rust "std::process::Command::new({1}).args({2}).current_dir({0}).status().map(|{!status}| {!status}.success()).map_err(|{!error}| format!(\"cannot start {{}}: {{}}\", {1}, {!error}))"
     (fn ((ref str) (ref str) (vec (ref str)))
-      bool)))
+      (result bool string))))
