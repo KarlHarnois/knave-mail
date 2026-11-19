@@ -28,7 +28,7 @@
     (result unit mail-error)))
 
 (defn drop-stale-label! (app account label listed)
-  (let (query (label-query label (:sync-limit app))
+  (let (query (label-query label (:sync (:limits app)))
         removal (label-removal (as-str (label-id label))))
     (drop-stale-threads! app account
                          (ref query)

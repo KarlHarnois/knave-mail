@@ -32,8 +32,6 @@
 
 (def other-account-thread-count 40)
 
-(def sync-limit 500)
-
 (defn memory-app (chosen log)
   (let (provider (->memory-provider (account-emails) (seeded-remotes chosen))
         operations (new-inline-queue (box provider)
@@ -44,7 +42,8 @@
                           (the (box operation-queue) (box operations))
                           (box (->memory-authorizer (vec)))
                           log priority/interactive
-                          delivery/deliver-now sync-limit))
+                          delivery/deliver-now
+                          (clone (:limits (:tuning chosen)))))
     (sync-every-account! (mut app))
     app))
 

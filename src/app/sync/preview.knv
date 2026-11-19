@@ -7,9 +7,7 @@
 (use app/operations/calls fetched-threads!)
 (use ports/driven/store save-threads!)
 
-(export list-newest-inbox! preview-limit)
-
-(def preview-limit 25)
+(export list-newest-inbox!)
 
 (type list-newest-inbox!
   (fn ((mut mail-app) (ref str))
@@ -18,7 +16,7 @@
 (defn list-newest-inbox! (app account)
   (let (query (->thread-query (label-scope/only (label-id system-label/inbox))
                               (str "")
-                              preview-limit)
+                              (:preview (:limits app)))
         summaries (try (fetched-threads! app account (ref query))))
     (log-preview! (ref (:log app))
                   account

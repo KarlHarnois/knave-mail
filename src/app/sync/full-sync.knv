@@ -37,7 +37,7 @@
     (result unit mail-error)))
 
 (defn sync-label! (app account label)
-  (let (query (label-query label (:sync-limit app))
+  (let (query (label-query label (:sync (:limits app)))
         summaries (try (fetched-threads! app account (ref query))))
     (try (save-threads! (mut (:store app))
                         account

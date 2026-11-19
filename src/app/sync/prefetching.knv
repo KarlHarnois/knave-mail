@@ -6,9 +6,7 @@
 (use app/operations/calls fetched-thread!)
 (use ports/driven/store load-message-counts save-thread!)
 
-(export prefetch-limit prefetch-threads!)
-
-(def prefetch-limit 20)
+(export prefetch-threads!)
 
 (type prefetch-threads!
   (fn ((mut mail-app)
@@ -23,7 +21,9 @@
         stored (try (load-message-counts (ref (:store app))
                                          account
                                          (ref ids)))
-        wanted (threads-to-prefetch summaries (ref stored) prefetch-limit))
+        wanted (threads-to-prefetch summaries
+                                    (ref stored)
+                                    (:prefetch (:limits app))))
     (for-each (iter wanted)
       (fn (thread-id) (prefetch-or-warn! app account thread-id)))
     (ok (do))))

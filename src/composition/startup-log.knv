@@ -1,5 +1,6 @@
 (use domain/log-entry log-area)
-(use composition/settings backend settings)
+(use composition/backend backend)
+(use composition/settings settings)
 (use ports/driven/event-log event-log log-info)
 (use ports/driven/clock clock now-milliseconds)
 

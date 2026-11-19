@@ -19,7 +19,10 @@
 (use domain/operation priority)
 (use ports/driven/clock clock)
 (use ports/driven/operation-queue operation-queue)
-(use app/mail-app delivery mail-app new-mail-app)
+
+(use app/mail-app ->sync-limits delivery mail-app
+                  new-mail-app)
+
 (use ports/driven/event-log event-log)
 
 (use domain/mail ->account ->message ->thread account
@@ -28,7 +31,8 @@
 (use support/sample-mail addresses)
 
 (export app-logging-to app-over app-timed-by remote-with
-        sample-conversation sample-thread world-account)
+        sample-conversation sample-thread
+        test-prefetch-limit world-account)
 
 (def fake-patience-milliseconds 600000)
 
@@ -103,4 +107,8 @@
                 (box (->memory-authorizer (vec (->account (str "new@example.com")))))
                 (event-log/memory log)
                 priority/interactive delivery/deliver-now
-                50))
+                (->sync-limits :sync 50
+                               :preview 25
+                               :prefetch test-prefetch-limit)))
+
+(def test-prefetch-limit 20)

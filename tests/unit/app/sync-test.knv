@@ -3,7 +3,6 @@
 (use domain/label-scope label-scope)
 (use domain/freshness freshness)
 (use domain/mail ->thread-query)
-(use app/sync/prefetching prefetch-limit)
 (use domain/mail-error error-kind)
 
 (use app/client/mail-reader list-labels! list-threads!
@@ -13,7 +12,7 @@
 (use support/app-steps ada-thread fail-remote!)
 
 (use support/memory-world app-over remote-with sample-thread
-                          world-account)
+                          test-prefetch-limit world-account)
 
 (defn inbox-query ()
   (->thread-query (label-scope/only (str "INBOX"))
@@ -44,7 +43,7 @@
                (vec (str "t-2") (str "t-1"))))))
 
 (defn busy-remote ()
-  (remote-with (-> (range 0 (+ prefetch-limit 5))
+  (remote-with (-> (range 0 (+ test-prefetch-limit 5))
                    (map (fn (number)
                           (sample-thread (ref (str "t-" number))
                                          (vec "INBOX")
@@ -58,9 +57,9 @@
     (fail-remote! (ref world) remote-operation/fetch-thread)
     (assert (= (:subject (unwrap-ok (open-thread! (mut app)
                                                   (ref (ada-thread (str "t-"
-                                                                        (+ prefetch-limit
+                                                                        (+ test-prefetch-limit
                                                                            4)))))))
-               (str "Subject of t-" (+ prefetch-limit 4))))))
+               (str "Subject of t-" (+ test-prefetch-limit 4))))))
 
 (deftest a-sync-leaves-older-threads-to-download-when-opened
   (let (world (busy-remote)

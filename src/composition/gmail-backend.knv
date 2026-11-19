@@ -27,14 +27,6 @@
 (export chosen-client gmail-app gmail-operations
         gmail-provider-for)
 
-(def sync-limit 100)
-
-(def quota-units-per-second 200)
-
-(def cli-patience-milliseconds 60000)
-
-(def sign-in-wait-milliseconds 300000)
-
 (type gmail-app
   (fn ((ref settings)
        event-log
@@ -44,22 +36,22 @@
 
 (defn gmail-app (chosen log operations rank delivery)
   (let-try (client (chosen-client chosen))
-    (ok (new-mail-app
-          (box (try (open-sqlite-store (ref (:cache-path chosen)))))
-          operations
-          (box
-            (->google-authorizer
-              :agent (new-agent)
-              :settings (->oauth-settings
-                          :auth-url (clone (:auth-url chosen))
-                          :token-url (clone (:token-url chosen))
-                          :api-base (clone (:api-base chosen))
-                          :client-id (clone (:id client))
-                          :client-secret (clone (:secret client))
-                          :sign-in-wait-milliseconds sign-in-wait-milliseconds)
-              :credentials (chosen-credentials chosen)
-              :browser (box (->system-browser (clone (:browser chosen))))))
-          log rank delivery sync-limit))))
+    (ok (new-mail-app (box (try (open-sqlite-store (ref (:cache-path chosen)))))
+                      operations
+                      (box (->google-authorizer
+                             :agent (new-agent)
+                             :settings (->oauth-settings
+                                         :auth-url (clone (:auth-url chosen))
+                                         :token-url (clone (:token-url chosen))
+                                         :api-base (clone (:api-base chosen))
+                                         :client-id (clone (:id client))
+                                         :client-secret (clone (:secret client))
+                                         :sign-in-wait-milliseconds (:sign-in-wait-milliseconds
+                                                                      (:tuning chosen)))
+                             :credentials (chosen-credentials chosen)
+                             :browser (box (->system-browser (clone (:browser chosen))))))
+                      log rank delivery
+                      (clone (:limits (:tuning chosen)))))))
 
 (type gmail-provider-for
   (fn ((ref settings)
@@ -85,7 +77,8 @@
        (box (new-inline-queue (gmail-provider-for chosen client log)
                               clock/system
                               (share-log log)
-                              (some cli-patience-milliseconds)))))
+                              (some (:cli-patience-milliseconds (:tuning
+                                                                  chosen)))))))
 
 (type chosen-client
   (fn ((ref settings))
@@ -104,7 +97,7 @@
                      :token-url (clone (:token-url chosen))
                      :client-id (clone (:id client))
                      :client-secret (clone (:secret client))
-                     :quota-units-per-second quota-units-per-second))
+                     :quota-units-per-second (:quota-units-per-second (:tuning chosen))))
 
 (type chosen-credentials
   (fn ((ref settings)) (box credentials)))

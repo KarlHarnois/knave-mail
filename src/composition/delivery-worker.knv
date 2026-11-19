@@ -25,8 +25,6 @@
 
 (export start-delivery-worker)
 
-(def retry-milliseconds 60000)
-
 (defn start-delivery-worker (outbox executor chosen)
   (let (shared (share-sender executor)
         owned-settings (clone chosen))
@@ -53,7 +51,9 @@
                    log-area/delivery
                    (str "delivering queued changes"))
          (kept-delivering! (mut delivering)
-                           (ref wakeups)
+                           (ref (->retry-schedule :wakeups wakeups
+                                                  :every (:delivery-retry-milliseconds
+                                                           (:tuning chosen))))
                            (ref outbox)
                            (ref log))))
       ((err failure)
@@ -62,8 +62,13 @@
                  (str "queued changes wait for the next start: "
                       (error-message (ref failure))))))))
 
-(defn kept-delivering! (app wakeups outbox log)
+(defstruct retry-schedule
+  :wakeups wake-inbox
+  :every u64)
+
+(defn kept-delivering! (app schedule outbox log)
   (log-batch-delivered! log
                         (ref (delivered-all! app outbox log (vec))))
-  (when (woken? wakeups retry-milliseconds)
-    (recur app wakeups outbox log)))
+  (when (woken? (ref (:wakeups schedule))
+                (:every schedule))
+    (recur app schedule outbox log)))

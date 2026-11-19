@@ -1,0 +1,32 @@
+(use app/mail-app ->sync-limits sync-limits)
+(use composition/backend backend)
+
+(export ->tuning tuning tuning-for)
+
+(defstruct tuning
+  :limits sync-limits
+  :quota-units-per-second int
+  :cli-patience-milliseconds int
+  :sign-in-wait-milliseconds u64
+  :delivery-retry-milliseconds u64)
+
+(def gmail-sync-limit 100)
+
+(def memory-sync-limit 500)
+
+(type tuning-for
+  (fn ((ref backend)) tuning))
+
+(defn tuning-for (chosen-backend)
+  (->tuning :limits (->sync-limits :sync (sync-limit-for chosen-backend)
+                                   :preview 25
+                                   :prefetch 20)
+            :quota-units-per-second 200
+            :cli-patience-milliseconds 60000
+            :sign-in-wait-milliseconds 300000
+            :delivery-retry-milliseconds 60000))
+
+(defn sync-limit-for (chosen-backend)
+  (match chosen-backend
+    (gmail gmail-sync-limit)
+    (memory memory-sync-limit)))

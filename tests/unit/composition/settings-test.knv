@@ -1,5 +1,6 @@
 (use adapters/driving/cli/arguments parse-arguments)
-(use composition/settings backend settings-from)
+(use composition/backend backend)
+(use composition/settings settings-from)
 (use support/sample-mail addresses)
 
 (defn settings-of (tokens)

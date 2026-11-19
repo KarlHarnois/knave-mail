@@ -19,6 +19,6 @@
     (fn (label)
       (let (query (->thread-query (label-scope/only (label-id label))
                                   (str "")
-                                  (:sync-limit app)))
+                                  (:sync (:limits app))))
         (map-ok (listed-threads! app account (ref query))
           (fn (_) (do)))))))

@@ -8,14 +8,12 @@
 (use adapters/driven/memory/remote-operation remote-operation
                                              text->remote-operation)
 
+(use composition/backend backend text->backend)
+(use composition/tuning tuning tuning-for)
 (use domain/level-spec level-spec text->level-spec)
 
-(export ->google-client ->settings backend google-client
+(export ->google-client ->settings google-client
         missing-client-message settings settings-from)
-
-(defenum backend
-  gmail
-  memory)
 
 (defstruct google-client
   :id string
@@ -23,6 +21,7 @@
 
 (defstruct settings
   :backend backend
+  :tuning tuning
   :latency-milliseconds int
   :failing (option remote-operation)
   :e2e-script-path (option string)
@@ -47,13 +46,22 @@
     (result settings string)))
 
 (defn settings-from (parsed)
+  (let-try (chosen-backend (text->backend (as-str (or-default (setting
+                                                                parsed
+                                                                "--backend"
+                                                                "KNAVE_MAIL_BACKEND")
+                                                              "gmail"))))
+    (settings-with parsed chosen-backend)))
+
+(type settings-with
+  (fn ((ref parsed-arguments) backend)
+    (result settings string)))
+
+(defn settings-with (parsed chosen-backend)
   (ok
     (->settings
-      :backend (try (text->backend (as-str (or-default (setting
-                                                         parsed
-                                                         "--backend"
-                                                         "KNAVE_MAIL_BACKEND")
-                                                       "gmail"))))
+      :tuning (tuning-for (ref chosen-backend))
+      :backend chosen-backend
       :latency-milliseconds (try (text->latency (as-str (or-default (setting
                                                                       parsed
                                                                       "--latency"
@@ -122,15 +130,6 @@
     ((some name)
      (map-ok (text->remote-operation (as-str name)) some))
     (none (ok none))))
-
-(type text->backend
-  (fn ((ref str)) (result backend string)))
-
-(defn text->backend (text)
-  (match text
-    ("gmail" (ok backend/gmail))
-    ("memory" (ok backend/memory))
-    (_ (err (str "--backend expects gmail or memory, not `" text "`")))))
 
 (type text->latency
   (fn ((ref str)) (result int string)))
