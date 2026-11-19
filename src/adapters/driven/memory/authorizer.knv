@@ -1,16 +1,13 @@
 (use domain/mail account)
 (use domain/mail-error mail-error)
+(use ports/driven/authorizer authorizer)
 
-(export ->memory-authorizer granted-account!
-        memory-authorizer)
+(export ->memory-authorizer memory-authorizer)
 
 (defstruct memory-authorizer
   :granted (vec account))
 
-(type granted-account!
-  (fn ((mut memory-authorizer))
-    (result account mail-error)))
-
-(defn granted-account! (granting)
-  (ok-or (pop! (mut (:granted granting)))
-         (mail-error/auth-required (str "consent was not granted"))))
+(impl authorizer memory-authorizer
+  (authorize! (granting)
+    (ok-or (pop! (mut (:granted granting)))
+           (mail-error/auth-required (str "consent was not granted")))))

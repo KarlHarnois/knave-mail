@@ -1,4 +1,3 @@
-(use ports/driven/authorizer authorizer)
 (use adapters/driven/memory/authorizer ->memory-authorizer)
 (use adapters/driven/memory/provider ->memory-provider)
 
@@ -102,7 +101,7 @@
                             (clock/memory clock)
                             (event-log/memory (same-log (ref log)))
                             (some fake-patience-milliseconds))))
-                (authorizer/memory (->memory-authorizer (vec (->account (str "new@example.com")))))
+                (box (->memory-authorizer (vec (->account (str "new@example.com")))))
                 (event-log/memory log)
                 priority/interactive delivery/deliver-now
                 50))

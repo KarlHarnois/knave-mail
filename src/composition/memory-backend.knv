@@ -1,4 +1,3 @@
-(use ports/driven/authorizer authorizer)
 (use adapters/driven/memory/authorizer ->memory-authorizer)
 (use adapters/driven/memory/provider ->memory-provider)
 
@@ -42,7 +41,7 @@
                                      (some 0))
         app (new-mail-app (box (store-with-accounts))
                           (the (box operation-queue) (box operations))
-                          (authorizer/memory (->memory-authorizer (vec)))
+                          (box (->memory-authorizer (vec)))
                           log priority/interactive
                           delivery/deliver-now sync-limit))
     (sync-every-account! (mut app))
