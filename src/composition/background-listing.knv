@@ -48,7 +48,6 @@
        (do
          (local running app)
          (answer-listings! (mut running)
-                           (ref log)
                            (ref inbox)
                            (ref (reply-sink/outbox outbox)))))
       ((err failure)

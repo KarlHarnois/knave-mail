@@ -1,4 +1,6 @@
-(use domain/log-entry log-area)
+(use domain/log-entry ->log-entry log-area log-entry
+                      log-level)
+
 (use adapters/driving/json/commands reply-for run-command!)
 (use adapters/driving/json/envelope failure-reply)
 (use adapters/driving/json/mail-command mail-call)
@@ -14,24 +16,39 @@
 (use app/mail-app mail-app)
 (use domain/mail-error error-kind error-message mail-error)
 (use domain/results unwrap-ok-or)
-(use ports/driven/event-log event-log log-debug log-warn)
+
+(use ports/driven/event-log event-log log-debug record!
+                            share-log)
 
 (export answer-listings! answered-and-logged!
         refuse-listings!)
 
-(defn answer-listings! (app log inbox sink)
-  (log-debug log log-area/window
-             (str "listing worker ready for "
-                  (len (unwrap-ok-or (list-accounts! app) (vec)))
-                  " accounts"))
-  (answer-queued-listings! app log inbox sink))
+(type answer-listings!
+  (fn ((mut mail-app)
+       (ref call-inbox)
+       (ref reply-sink))
+    unit))
 
-(defn answer-queued-listings! (app log inbox sink)
+(defn answer-listings! (app inbox sink)
+  (let (accounts (len (unwrap-ok-or (list-accounts! app) (vec))))
+    (log-debug (ref (:log app))
+               log-area/window
+               (str "listing worker ready for " accounts " accounts")))
+  (answer-queued-listings! app inbox sink))
+
+(type answer-queued-listings!
+  (fn ((mut mail-app)
+       (ref call-inbox)
+       (ref reply-sink))
+    unit))
+
+(defn answer-queued-listings! (app inbox sink)
   (match (next-call inbox)
     ((some call)
-     (deliver-reply! sink
-                     (answered-and-logged! app log (ref call)))
-     (recur app log inbox sink))
+     (let (log (share-log (ref (:log app))))
+       (deliver-reply! sink
+                       (answered-and-logged! app (ref log) (ref call))))
+     (recur app inbox sink))
     (none (do))))
 
 (defn refuse-listings! (failure inbox sink)
@@ -52,25 +69,25 @@
   (let (started (now-milliseconds (ref clock/system))
         outcome (run-command! app (ref (:command call)))
         elapsed (- (now-milliseconds (ref clock/system)) started))
-    (log-answer log call (ref outcome) elapsed)
+    (record! log
+             (ref (answer-entry call (ref outcome) elapsed)))
     (reply-for call outcome)))
 
-(type log-answer
-  (fn ((ref event-log)
-       (ref mail-call)
+(type answer-entry
+  (fn ((ref mail-call)
        (ref (result json-value mail-error))
        int)
-    unit))
+    log-entry))
 
-(defn log-answer (log call outcome elapsed)
+(defn answer-entry (call outcome elapsed)
   (match outcome
     ((ok _)
-     (log-debug log log-area/window
-                (str (:name call) " " elapsed "ms")))
+     (->log-entry log-level/debug log-area/window
+                  (str (:name call) " " elapsed "ms")))
     ((err failure)
-     (log-warn log log-area/window
-               (str (:name call)
-                    " failed after " elapsed "ms: "
-                    (error-kind failure)
-                    ": "
-                    (error-message failure))))))
+     (->log-entry log-level/warn log-area/window
+                  (str (:name call)
+                       " failed after " elapsed "ms: "
+                       (error-kind failure)
+                       ": "
+                       (error-message failure))))))

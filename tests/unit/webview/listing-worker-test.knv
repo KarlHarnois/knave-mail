@@ -24,7 +24,8 @@
 (use support/app-steps synced!)
 (use support/log-lines mentions?)
 
-(use support/memory-world app-over remote-with sample-thread
+(use support/memory-world app-logging-to app-over
+                          remote-with sample-thread
                           world-account)
 
 (defn collected-of (held)
@@ -90,7 +91,6 @@
         sink (collected-of held))
     (synced! (mut app))
     (answer-listings! (mut app)
-                      (ref (event-log/memory (new-memory-log)))
                       (ref (inbox-holding (ref (vec (str inbox-page)))))
                       (ref sink))
     (let (replies (with-shared! (ref held)
@@ -104,7 +104,6 @@
         sink (collected-of held))
     (synced! (mut app))
     (answer-listings! (mut app)
-                      (ref (event-log/memory (new-memory-log)))
                       (ref (inbox-holding (ref (vec (str inbox-page)))))
                       (ref sink))
     (let (replies (with-shared! (ref held)
@@ -114,12 +113,12 @@
 
 (deftest a-failed-listing-is-logged-under-its-command
   (let (world (remote)
-        app (app-over (ref world))
         log (new-memory-log)
+        app (app-logging-to (ref world)
+                            (same-log (ref log)))
         held (share (vec))
         sink (collected-of held))
     (answer-listings! (mut app)
-                      (ref (event-log/memory (same-log (ref log))))
                       (ref (inbox-holding (ref (vec (str "{\"id\":9,\"command\":\"thread-page\",\"args\":{\"account\":\"nobody@example.com\",\"label\":\"INBOX\",\"query\":\"x\",\"limit\":10,\"pageToken\":\"\"}}")))))
                       (ref sink))
     (assert (mentions? (ref (logged-lines (ref log)))
