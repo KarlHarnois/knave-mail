@@ -1,44 +1,68 @@
-(use domain/label-scope label-of label-scope)
+(use domain/label-scope label-scope)
 (use domain/collections try-for-each)
 (use app/mail-app mail-app)
-(use domain/labels label-removal)
+
+(use domain/labels label-change label-id label-removal
+                   system-label)
+
 (use domain/listing missing-from-listing)
-(use domain/mail ->thread-ref thread-query thread-summary)
+
+(use domain/mail ->thread-query ->thread-ref thread-query
+                 thread-summary)
+
 (use domain/mail-error mail-error)
 (use ports/driven/store load-threads relabel-stored!)
 
-(export drop-stale-label!)
+(export drop-stale-label! label-query)
+
+(defn label-query (label limit)
+  (->thread-query (label-scope/only (label-id label))
+                  (str "")
+                  limit))
 
 (type drop-stale-label!
   (fn ((mut mail-app)
        (ref str)
-       (ref thread-query)
+       (ref system-label)
        (ref (vec thread-summary)))
     (result unit mail-error)))
 
-(defn drop-stale-label! (app account query listed)
+(defn drop-stale-label! (app account label listed)
+  (let (query (label-query label (:sync-limit app))
+        removal (label-removal (as-str (label-id label))))
+    (drop-stale-threads! app account
+                         (ref query)
+                         listed
+                         (ref removal))))
+
+(type drop-stale-threads!
+  (fn ((mut mail-app)
+       (ref str)
+       (ref thread-query)
+       (ref (vec thread-summary))
+       (ref label-change))
+    (result unit mail-error)))
+
+(defn drop-stale-threads! (app account query listed removal)
   (let (cached (try (load-threads (ref (:store app)) account query))
         stale (missing-from-listing (ref cached) listed (:limit query)))
     (if (empty? stale)
       (ok (do))
       (do
-        (try (unlabel-threads! app account
-                               (ref stale)
-                               (ref (:scope query))))
-        (recur app account query listed)))))
+        (try (unlabel-threads! app account (ref stale) removal))
+        (recur app account query listed removal)))))
 
 (type unlabel-threads!
   (fn ((mut mail-app)
        (ref str)
        (ref (vec string))
-       (ref label-scope))
+       (ref label-change))
     (result unit mail-error)))
 
-(defn unlabel-threads! (app account thread-ids scope)
-  (let (removal (label-removal (as-str (unwrap-or (label-of scope) (str "")))))
-    (try-for-each (iter thread-ids)
-      (fn (thread-id)
-        (relabel-stored! (mut (:store app))
-                         (ref (->thread-ref :account (str account)
-                                            :thread-id (str thread-id)))
-                         (ref removal))))))
+(defn unlabel-threads! (app account thread-ids removal)
+  (try-for-each (iter thread-ids)
+    (fn (thread-id)
+      (relabel-stored! (mut (:store app))
+                       (ref (->thread-ref :account (str account)
+                                          :thread-id (str thread-id)))
+                       removal))))

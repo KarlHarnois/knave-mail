@@ -1,11 +1,9 @@
-(use domain/label-scope label-scope)
-(use domain/labels label-id system-label)
+(use domain/labels system-label)
 (use app/activity-log log-full-sync-done!)
 (use domain/collections try-for-each)
 (use app/mail-app mail-app)
 (use app/sync/prefetching prefetch-threads!)
-(use app/sync/stale-labels drop-stale-label!)
-(use domain/mail ->thread-query)
+(use app/sync/stale-labels drop-stale-label! label-query)
 (use domain/mail-error mail-error)
 
 (use app/operations/calls fetched-history-id!
@@ -39,13 +37,11 @@
     (result unit mail-error)))
 
 (defn sync-label! (app account label)
-  (let (query (->thread-query (label-scope/only (label-id label))
-                              (str "")
-                              (:sync-limit app))
+  (let (query (label-query label (:sync-limit app))
         summaries (try (fetched-threads! app account (ref query))))
     (try (save-threads! (mut (:store app))
                         account
                         (ref summaries)))
-    (try (drop-stale-label! app account (ref query) (ref summaries)))
+    (try (drop-stale-label! app account label (ref summaries)))
     (prefetch-threads! app account (ref summaries))
     (ok (do))))
