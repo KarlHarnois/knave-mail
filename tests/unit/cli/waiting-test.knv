@@ -1,3 +1,4 @@
+(use adapters/driven/memory/remote-operation remote-operation)
 (use adapters/driving/cli/command cli-command)
 (use adapters/driving/cli/exit-codes exit-code)
 (use domain/labels archive-change)
@@ -18,7 +19,7 @@
   (let (world (remote)
         app (app-over (ref world)))
     (synced! (mut app))
-    (fail-remote! (ref world) "relabel")
+    (fail-remote! (ref world) remote-operation/relabel)
     (let (outcome (run-cli-command! (mut app)
                                     (ref (->cli-request (cli-command/relabel
                                                           (archive-change)

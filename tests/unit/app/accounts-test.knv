@@ -1,3 +1,5 @@
+(use adapters/driven/memory/remote-operation remote-operation)
+
 (use app/client/account-book add-account! list-accounts!
                              remove-account!)
 
@@ -62,6 +64,6 @@
 (deftest a-failed-sync-reports-a-network-error
   (let (world (remote)
         app (app-over (ref world)))
-    (fail-remote! (ref world) "fetch-labels")
+    (fail-remote! (ref world) remote-operation/fetch-labels)
     (assert (= (failing-kind (sync-account! (mut app) world-account))
                "network"))))

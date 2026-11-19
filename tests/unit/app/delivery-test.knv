@@ -1,3 +1,5 @@
+(use adapters/driven/memory/remote-operation remote-operation)
+
 (use adapters/driven/memory/memory-log logged-lines
                                        new-memory-log
                                        same-log)
@@ -36,7 +38,7 @@
                           (same-log (ref log))
                           (new-memory-clock)))
     (synced! (mut app))
-    (fail-remote! (ref world) "relabel")
+    (fail-remote! (ref world) remote-operation/relabel)
     (unwrap-ok (archive-t-1! (mut app)))
     (assert (= (unwrap-ok (waiting-changes (ref app) world-account))
                1))
@@ -52,7 +54,7 @@
                           (new-memory-log)
                           (new-memory-clock)))
     (synced! (mut app))
-    (fail-remote! (ref world) "relabel")
+    (fail-remote! (ref world) remote-operation/relabel)
     (unwrap-ok (archive-t-1! (mut app)))
     (heal-remote! (ref world))
     (assert (match (first (ref (unwrap-ok (deliver-next-change! (mut app)))))

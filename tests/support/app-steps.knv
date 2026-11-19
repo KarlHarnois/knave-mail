@@ -56,7 +56,7 @@
 (defn fail-remote! (remote operation)
   (with-shared! remote
     (fn (state)
-      (fail-when! state (some (str operation))))))
+      (fail-when! state (some operation)))))
 
 (defn remote-sent (remote)
   (with-shared! remote

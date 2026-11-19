@@ -1,3 +1,5 @@
+(use adapters/driven/memory/remote-operation remote-operation)
+
 (use adapters/driven/memory/memory-clock new-memory-clock
                                          pauses-of
                                          same-clock)
@@ -33,7 +35,8 @@
         app (app-timed-by (ref world)
                           (same-log (ref log))
                           (same-clock (ref clock))))
-    (throttle-remote-times! (ref world) "deliver" 1 7000)
+    (throttle-remote-times! (ref world)
+                            remote-operation/deliver 1 7000)
     (unwrap-ok (send-draft! (mut app)
                             world-account
                             (ref (draft-to-alan))))

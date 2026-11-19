@@ -1,3 +1,4 @@
+(use adapters/driven/memory/remote-operation remote-operation)
 (use app/client/mail-syncer preview-account!)
 
 (use support/app-steps fail-remote! inbox-query listed-ids!
@@ -22,6 +23,6 @@
   (let (world (remote)
         app (app-over (ref world)))
     (synced! (mut app))
-    (fail-remote! (ref world) "fetch-threads")
+    (fail-remote! (ref world) remote-operation/fetch-threads)
     (assert (= (unwrap-ok (preview-account! (mut app) world-account))
                false))))

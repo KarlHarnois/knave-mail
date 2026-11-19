@@ -1,3 +1,4 @@
+(use adapters/driven/memory/remote-operation remote-operation)
 (use domain/collections as-count)
 (use domain/label-scope label-scope)
 (use domain/freshness freshness)
@@ -54,7 +55,7 @@
   (let (world (busy-remote)
         app (app-over (ref world)))
     (unwrap-ok (sync-account! (mut app) world-account))
-    (fail-remote! (ref world) "fetch-thread")
+    (fail-remote! (ref world) remote-operation/fetch-thread)
     (assert (= (:subject (unwrap-ok (open-thread! (mut app)
                                                   (ref (ada-thread (str "t-"
                                                                         (+ prefetch-limit
@@ -65,7 +66,7 @@
   (let (world (busy-remote)
         app (app-over (ref world)))
     (unwrap-ok (sync-account! (mut app) world-account))
-    (fail-remote! (ref world) "fetch-thread")
+    (fail-remote! (ref world) remote-operation/fetch-thread)
     (assert (= (str (error-kind (ref (unwrap-err (open-thread! (mut app)
                                                                (ref (ada-thread "t-0")))))))
                "network"))))
@@ -73,7 +74,7 @@
 (deftest a-thread-that-fails-to-download-does-not-abort-the-sync
   (let (world (remote)
         app (app-over (ref world)))
-    (fail-remote! (ref world) "fetch-thread")
+    (fail-remote! (ref world) remote-operation/fetch-thread)
     (unwrap-ok (sync-account! (mut app) world-account))
     (assert (= (len (unwrap-ok (list-threads! (mut app)
                                               world-account

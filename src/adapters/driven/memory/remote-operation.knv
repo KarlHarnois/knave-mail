@@ -1,0 +1,51 @@
+(export remote-operation remote-operation->name
+        text->remote-operation)
+
+(defenum remote-operation
+  deliver
+  fetch-changes
+  fetch-history-id
+  fetch-labels
+  fetch-summaries
+  fetch-thread
+  fetch-threads
+  list-thread-ids
+  relabel)
+
+(def remote-operations
+  (vec remote-operation/deliver
+       remote-operation/fetch-changes
+       remote-operation/fetch-history-id
+       remote-operation/fetch-labels
+       remote-operation/fetch-summaries
+       remote-operation/fetch-thread
+       remote-operation/fetch-threads
+       remote-operation/list-thread-ids
+       remote-operation/relabel))
+
+(type remote-operation->name
+  (fn ((ref remote-operation)) (ref str)))
+
+(defn remote-operation->name (operation)
+  (match operation
+    (deliver "deliver")
+    (fetch-changes "fetch-changes")
+    (fetch-history-id "fetch-history-id")
+    (fetch-labels "fetch-labels")
+    (fetch-summaries "fetch-summaries")
+    (fetch-thread "fetch-thread")
+    (fetch-threads "fetch-threads")
+    (list-thread-ids "list-thread-ids")
+    (relabel "relabel")))
+
+(type text->remote-operation
+  (fn ((ref str))
+    (result remote-operation string)))
+
+(defn text->remote-operation (text)
+  (ok-or (-> (iter remote-operations)
+             (find (fn (operation)
+                     (= (remote-operation->name operation) text)))
+             (map-some (fn (operation) (deref operation))))
+         (str "--fail expects a memory mailbox operation, not `"
+              text "`")))

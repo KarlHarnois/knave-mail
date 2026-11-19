@@ -1,3 +1,4 @@
+(use adapters/driven/memory/remote-operation remote-operation)
 (use domain/label-scope label-scope)
 (use domain/mail ->thread-query summary-page)
 (use app/client/mail-reader list-thread-page!)
@@ -54,7 +55,7 @@
   (let (world (remote)
         app (app-over (ref world)))
     (synced! (mut app))
-    (fail-remote! (ref world) "fetch-summaries")
+    (fail-remote! (ref world) remote-operation/fetch-summaries)
     (assert (= (ids-of (ref (unwrap-ok (list-thread-page! (mut app)
                                                           world-account
                                                           (ref (inbox-page 3))

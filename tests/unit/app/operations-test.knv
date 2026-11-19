@@ -1,3 +1,5 @@
+(use adapters/driven/memory/remote-operation remote-operation)
+
 (use adapters/driven/memory/memory-clock new-memory-clock
                                          pauses-of
                                          same-clock)
@@ -47,7 +49,7 @@
                           (new-memory-log)
                           (same-clock (ref clock))))
     (synced! (mut app))
-    (fail-remote-times! (ref world) "relabel" 2)
+    (fail-remote-times! (ref world) remote-operation/relabel 2)
     (unwrap-ok (archive-t-1! (mut app)))
     (assert (empty? (:labels (remote-thread (ref world) "t-1"))))
     (assert (= (pauses-of (ref clock))
@@ -60,7 +62,7 @@
                           (same-log (ref log))
                           (new-memory-clock)))
     (synced! (mut app))
-    (fail-remote-times! (ref world) "relabel" 1)
+    (fail-remote-times! (ref world) remote-operation/relabel 1)
     (unwrap-ok (archive-t-1! (mut app)))
     (assert (mentions? (ref (logged-lines (ref log)))
                        "relabel ada@example.com: failed, will retry: network: simulated failure of relabel; attempt 2 in 1000ms"))))
@@ -71,7 +73,7 @@
         app (app-timed-by (ref world)
                           (new-memory-log)
                           (same-clock (ref clock))))
-    (fail-remote! (ref world) "deliver")
+    (fail-remote! (ref world) remote-operation/deliver)
     (assert (err? (send-draft! (mut app)
                                world-account
                                (ref (draft-to-alan)))))

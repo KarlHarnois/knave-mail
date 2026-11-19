@@ -5,6 +5,9 @@
                                default-cache-path
                                default-log-path)
 
+(use adapters/driven/memory/remote-operation remote-operation
+                                             text->remote-operation)
+
 (use domain/level-spec level-spec text->level-spec)
 
 (export ->google-client ->settings backend google-client
@@ -21,7 +24,7 @@
 (defstruct settings
   :backend backend
   :latency-milliseconds u64
-  :failing (option string)
+  :failing (option remote-operation)
   :e2e-script-path (option string)
   :cache-path string
   :credentials-file (option string)
@@ -56,7 +59,8 @@
                                                                       "--latency"
                                                                       "KNAVE_MAIL_LATENCY")
                                                                     "0"))))
-      :failing (setting parsed "--fail" "KNAVE_MAIL_FAIL")
+      :failing (try (failing-operation
+                      (setting parsed "--fail" "KNAVE_MAIL_FAIL")))
       :e2e-script-path (setting parsed "--e2e-script" "KNAVE_MAIL_E2E_SCRIPT")
       :cache-path (unwrap-or (setting parsed "--cache" "KNAVE_MAIL_CACHE")
                              (default-cache-path))
@@ -108,6 +112,16 @@
     ((pair (some id) (some secret))
      (some (->google-client :id id :secret secret)))
     (_ none)))
+
+(type failing-operation
+  (fn ((option string))
+    (result (option remote-operation) string)))
+
+(defn failing-operation (text)
+  (match text
+    ((some name)
+     (map-ok (text->remote-operation (as-str name)) some))
+    (none (ok none))))
 
 (type text->backend
   (fn ((ref str)) (result backend string)))

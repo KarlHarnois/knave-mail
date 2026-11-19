@@ -1,3 +1,4 @@
+(use adapters/driven/memory/remote-operation remote-operation)
 (use domain/mail outgoing-thread)
 (use domain/outgoing reply-link-of)
 (use domain/labels archive-change star-change)
@@ -103,7 +104,7 @@
 (deftest a-failed-delivery-reports-a-network-error
   (let (world (remote)
         app (app-over (ref world)))
-    (fail-remote! (ref world) "deliver")
+    (fail-remote! (ref world) remote-operation/deliver)
     (assert (= (failing-kind (send-draft! (mut app)
                                           world-account
                                           (ref (new-draft none))))
@@ -134,7 +135,7 @@
   (let (world (remote)
         app (app-over (ref world)))
     (synced! (mut app))
-    (fail-remote! (ref world) "relabel")
+    (fail-remote! (ref world) remote-operation/relabel)
     (relabel-threads! (mut app)
                       world-account
                       (ref (addresses (vec "t-1")))

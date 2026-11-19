@@ -1,3 +1,5 @@
+(use adapters/driven/memory/remote-operation remote-operation)
+
 (use adapters/driven/memory/memory-log logged-lines
                                        new-memory-log
                                        same-log)
@@ -85,7 +87,7 @@
         log (new-memory-log)
         app (app-logging-to (ref world)
                             (same-log (ref log))))
-    (fail-remote! (ref world) "fetch-thread")
+    (fail-remote! (ref world) remote-operation/fetch-thread)
     (unwrap-ok (send-draft! (mut app)
                             world-account
                             (ref (->draft :to (addresses (vec
@@ -120,7 +122,7 @@
         app (app-logging-to (ref world)
                             (same-log (ref log))))
     (synced! (mut app))
-    (fail-remote! (ref world) "relabel")
+    (fail-remote! (ref world) remote-operation/relabel)
     (unwrap-ok (open-thread! (mut app)
                              (ref (ada-thread "t-1"))))
     (assert (mentions? (ref (logged-lines (ref log)))

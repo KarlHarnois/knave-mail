@@ -1,3 +1,4 @@
+(use adapters/driven/memory/remote-operation remote-operation)
 (use domain/label-scope label-scope)
 (use domain/mail ->thread-query)
 (use app/client/mail-reader list-threads!)
@@ -19,7 +20,7 @@
   (let (world (remote)
         app (app-over (ref world)))
     (synced! (mut app))
-    (fail-remote! (ref world) "fetch-summaries")
+    (fail-remote! (ref world) remote-operation/fetch-summaries)
     (assert (= (listed-ids! (mut app)
                             (ref (search-for "Subject" 50)))
                (vec (str "t-2") (str "t-1"))))))

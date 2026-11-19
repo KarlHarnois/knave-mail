@@ -1,3 +1,4 @@
+(use adapters/driven/memory/remote-operation remote-operation)
 (use domain/label-scope label-scope)
 (use domain/freshness freshness)
 (use domain/mail ->thread-query)
@@ -36,7 +37,7 @@
   (let (world (remote)
         app (app-over (ref world)))
     (synced! (mut app))
-    (fail-remote! (ref world) "fetch-thread")
+    (fail-remote! (ref world) remote-operation/fetch-thread)
     (assert (ok? (open-thread! (mut app)
                                (ref (ada-thread "t-2")))))))
 
@@ -81,7 +82,7 @@
   (let (world (remote)
         app (app-over (ref world)))
     (synced! (mut app))
-    (fail-remote! (ref world) "relabel")
+    (fail-remote! (ref world) remote-operation/relabel)
     (assert (= (:labels (unwrap-ok (open-thread! (mut app)
                                                  (ref (ada-thread "t-1")))))
                (vec (str "INBOX") (str "UNREAD"))))))
@@ -97,7 +98,7 @@
 (deftest a-failed-search-reports-a-network-error
   (let (world (remote)
         app (app-over (ref world)))
-    (fail-remote! (ref world) "list-thread-ids")
+    (fail-remote! (ref world) remote-operation/list-thread-ids)
     (assert (= (failing-kind
                  (list-threads!
                    (mut app)

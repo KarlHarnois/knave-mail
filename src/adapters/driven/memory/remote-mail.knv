@@ -1,3 +1,6 @@
+(use adapters/driven/memory/remote-operation remote-operation
+                                             remote-operation->name)
+
 (use domain/outgoing reply-link-of)
 (use adapters/driven/memory/remote-change remote-change)
 (use domain/mail ->message message outgoing thread)
@@ -15,7 +18,7 @@
   (throttled int))
 
 (defstruct failure-plan
-  :target string
+  :target remote-operation
   :count failure-count
   :kind failure-kind)
 
@@ -30,7 +33,7 @@
   :changes (vec remote-change))
 
 (type guard!
-  (fn ((mut remote-mail) (ref str))
+  (fn ((mut remote-mail) remote-operation)
     (result unit mail-error)))
 
 (defn guard! (remote operation)
@@ -43,7 +46,7 @@
     (none (ok (do)))))
 
 (type planned-failure
-  (fn ((ref (option failure-plan)) (ref str))
+  (fn ((ref (option failure-plan)) remote-operation)
     (option failure-plan)))
 
 (defn planned-failure (failures operation)
@@ -52,7 +55,7 @@
     (none none)))
 
 (type plan-for-operation
-  (fn ((ref failure-plan) (ref str))
+  (fn ((ref failure-plan) remote-operation)
     (option failure-plan)))
 
 (defn plan-for-operation (plan operation)
@@ -71,18 +74,20 @@
      (some (assoc plan :count (failure-count/times (dec left)))))))
 
 (type simulated-failure
-  (fn ((ref failure-kind) (ref str))
-    mail-error))
+  (fn ((ref failure-kind) remote-operation) mail-error))
 
 (defn simulated-failure (kind operation)
   (match kind
     ((throttled delay)
      (mail-error/throttled (->throttling
-                             :message (str "simulated throttling of " operation)
+                             :message (str "simulated throttling of "
+                                           (remote-operation->name (ref operation)))
                              :retry-after-milliseconds (deref delay))))
-    (network (mail-error/network (str "simulated failure of " operation)))))
+    (network (mail-error/network (str "simulated failure of "
+                                      (remote-operation->name (ref
+                                                                operation)))))))
 
-(type always-failing (fn (string) failure-plan))
+(type always-failing (fn (remote-operation) failure-plan))
 
 (defn always-failing (operation)
   (->failure-plan :target operation
@@ -90,7 +95,7 @@
                   :kind failure-kind/network))
 
 (type fail-when!
-  (fn ((mut remote-mail) (option string))
+  (fn ((mut remote-mail) (option remote-operation))
     unit))
 
 (defn fail-when! (remote operation)
@@ -98,22 +103,20 @@
         (map-some operation always-failing)))
 
 (type fail-times!
-  (fn ((mut remote-mail) (ref str) int)
-    unit))
+  (fn ((mut remote-mail) remote-operation int) unit))
 
 (defn fail-times! (remote operation times)
   (set! (:failures remote)
-        (some (->failure-plan :target (str operation)
+        (some (->failure-plan :target operation
                               :count (failure-count/times times)
                               :kind failure-kind/network))))
 
 (type throttle-times!
-  (fn ((mut remote-mail) (ref str) int int)
-    unit))
+  (fn ((mut remote-mail) remote-operation int int) unit))
 
 (defn throttle-times! (remote operation times delay)
   (set! (:failures remote)
-        (some (->failure-plan :target (str operation)
+        (some (->failure-plan :target operation
                               :count (failure-count/times times)
                               :kind (failure-kind/throttled delay)))))
 
