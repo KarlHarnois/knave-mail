@@ -14,41 +14,81 @@
 (use adapters/driving/cli/text-presenter result-text)
 (use domain/mail-error error-message mail-error)
 (use app/client/account-book list-accounts!)
+(use app/mail-app mail-app)
 
 (export run-cli!)
 
-(defn run-cli! (client parsed)
-  (match (cli-outcome! client parsed)
-    ((ok outcome)
-     (do (print-result parsed (ref outcome)) success-code))
-    ((err failure)
-     (do
-       (print-failure parsed (ref failure))
-       (exit-code (ref failure))))))
+(defenum cli-output
+  text
+  json)
 
-(defn cli-outcome! (client parsed)
+(defstruct cli-options
+  :account (option string)
+  :sending sending
+  :output cli-output)
+
+(defn run-cli! (client parsed)
+  (let (options (arguments->options parsed))
+    (match (cli-outcome! client parsed (ref options))
+      ((ok outcome)
+       (do
+         (print-result (:output options) (ref outcome))
+         success-code))
+      ((err failure)
+       (do
+         (print-failure (:output options) (ref failure))
+         (exit-code (ref failure)))))))
+
+(defn arguments->options (parsed)
+  (->cli-options :account (value-of parsed "--account")
+                 :sending (if (switch? parsed "--dry-run")
+                            sending/preview sending/deliver)
+                 :output (if (switch? parsed "--json")
+                           cli-output/json
+                           cli-output/text)))
+
+(type cli-outcome!
+  (fn ((mut mail-app)
+       (ref parsed-arguments)
+       (ref cli-options))
+    (result cli-result mail-error)))
+
+(defn cli-outcome! (client parsed options)
   (let (command (try (command-from parsed))
-        account (try (chosen-account! client parsed (ref command)))
-        body (body-for (ref command)))
+        account (try (chosen-account! client
+                                      (ref (:account options))
+                                      (ref command)))
+        body (try (body-for (ref command))))
     (run-cli-command! client
                       (ref (->cli-request :command command
                                           :account account
                                           :body body
-                                          :sending (sending-of parsed))))))
+                                          :sending (clone (:sending
+                                                            options)))))))
 
-(defn sending-of (parsed)
-  (if (switch? parsed "--dry-run")
-    sending/preview sending/deliver))
+(type chosen-account!
+  (fn ((mut mail-app)
+       (ref (option string))
+       (ref cli-command))
+    (result string mail-error)))
 
-(defn chosen-account! (client parsed command)
-  (match (value-of parsed "--account")
-    ((some email) (ok email))
+(defn chosen-account! (client account command)
+  (match account
+    ((some email) (ok (clone email)))
     (none (default-account! client command))))
+
+(type default-account!
+  (fn ((mut mail-app) (ref cli-command))
+    (result string mail-error)))
 
 (defn default-account! (client command)
   (if (needs-account? command)
     (first-account! client)
     (ok (str ""))))
+
+(type first-account!
+  (fn ((mut mail-app))
+    (result string mail-error)))
 
 (defn first-account! (client)
   (match (first (try (list-accounts! client)))
@@ -68,22 +108,25 @@
     ((send _ _ _) (standard-input))
     ((reply _ _) (standard-input))
     ((forward _ _) (standard-input))
-    (_ (str ""))))
+    (_ (ok (str "")))))
 
-(defn print-result (parsed outcome)
-  (if (switch? parsed "--json")
-    (println (result-json-text outcome))
-    (print-unless-empty (result-text outcome))))
+(defn print-result (output outcome)
+  (match output
+    (json (println (result-json-text outcome)))
+    (text (print-unless-empty (result-text outcome)))))
 
-(defn print-failure (parsed failure)
-  (if (switch? parsed "--json")
-    (eprintln (error-json-text failure))
-    (eprintln (str "knave-mail: " (error-message failure)))))
+(defn print-failure (output failure)
+  (match output
+    (json (eprintln (error-json-text failure)))
+    (text (eprintln (str "knave-mail: " (error-message failure))))))
 
 (defn print-unless-empty (text)
   (unless (empty? text) (println text)))
 
+(type standard-input
+  (fn () (result string mail-error)))
+
 (defn standard-input ()
-  (match (slurp stdin)
-    ((ok text) text)
-    ((err _) (str ""))))
+  (map-err (slurp stdin)
+    (fn (problem)
+      (mail-error/usage (str "cannot read the message body: " problem)))))
