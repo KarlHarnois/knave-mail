@@ -1,9 +1,9 @@
 (use domain/collections option->vec)
-(use app/activity-log log-gmail-relabel! log-new-thread!)
+(use app/thread-log log-gmail-relabel! log-new-thread!)
 (use app/mail-app mail-app)
 (use domain/cache-news cache-news cached-news)
 (use domain/mail-error mail-error)
-(use domain/mail thread thread-summary)
+(use domain/mail thread thread-ref thread-summary)
 (use domain/summary summarize)
 (use app/operations/calls fetched-thread!)
 
@@ -13,23 +13,25 @@
 (export cache-thread! cached-thread!)
 
 (type cache-thread!
-  (fn ((mut mail-app) (ref str) (ref str))
+  (fn ((mut mail-app) (ref thread-ref))
     (result unit mail-error)))
 
-(defn cache-thread! (app account thread-id)
-  (map-ok (cached-thread! app account thread-id)
+(defn cache-thread! (app thread)
+  (map-ok (cached-thread! app thread)
     (fn (_) (do))))
 
 (type cached-thread!
-  (fn ((mut mail-app) (ref str) (ref str))
+  (fn ((mut mail-app) (ref thread-ref))
     (result thread mail-error)))
 
-(defn cached-thread! (app account thread-id)
-  (let (cached (try (load-summaries-of (ref (:store app))
+(defn cached-thread! (app thread)
+  (let (account (as-str (:account thread))
+        cached (try (load-summaries-of (ref (:store app))
                                        account
-                                       (ref (vec (str thread-id)))))
-        fetched (try (fetched-thread! app account thread-id)))
-    (log-news! app account thread-id
+                                       (ref (vec (clone (:thread-id thread))))))
+        fetched (try (fetched-thread! app account
+                                      (as-str (:thread-id thread)))))
+    (log-news! app thread
                (cached-news (ref cached)
                             (ref (:labels fetched))))
     (try (save-thread! (mut (:store app))
@@ -41,20 +43,17 @@
     (ok fetched)))
 
 (type log-news!
-  (fn ((ref mail-app)
-       (ref str)
-       (ref str)
-       cache-news)
+  (fn ((ref mail-app) (ref thread-ref) cache-news)
     unit))
 
-(defn log-news! (app account thread-id news)
+(defn log-news! (app thread news)
   (match news
     ((new-thread labels)
      (log-new-thread! (ref (:log app))
-                      account thread-id
+                      thread
                       (ref labels)))
     ((relabeled change)
      (log-gmail-relabel! (ref (:log app))
-                         account thread-id
+                         thread
                          (ref change)))
     (unchanged (do))))

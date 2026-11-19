@@ -45,7 +45,4 @@
   (fn ((mut mail-app) (ref thread-ref))
     (result thread mail-error)))
 
-(defn open-thread! (app opened)
-  (read-thread! app
-                (ref (:account opened))
-                (ref (:thread-id opened))))
+(defn open-thread! (app opened) (read-thread! app opened))

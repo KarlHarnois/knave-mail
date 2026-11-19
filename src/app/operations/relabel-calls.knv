@@ -1,11 +1,12 @@
 (use app/mail-app mail-app)
 (use app/operations/calls run-operation! unexpected)
 (use domain/labels label-change)
+(use domain/mail thread-ref)
 (use domain/mail-error mail-error)
 
 (use domain/operation ->relabel-work message-batch
                       operation-kind operation-result
-                      relabel-source)
+                      relabel-source relabel-work)
 
 (use domain/queued-relabel queued-relabel)
 
@@ -23,14 +24,16 @@
 
 (type relabeled!
   (fn ((mut mail-app)
-       (ref str)
-       (ref str)
+       (ref thread-ref)
        (ref label-change))
     (result unit mail-error)))
 
-(defn relabeled! (app account thread-id change)
-  (relabeled-as! app account thread-id change
-                 relabel-source/direct))
+(defn relabeled! (app thread change)
+  (relabeled-as! app
+                 (as-str (:account thread))
+                 (->relabel-work :thread-id (clone (:thread-id thread))
+                                 :change (clone change)
+                                 :source relabel-source/direct)))
 
 (type delivered-queued!
   (fn ((mut mail-app) (ref queued-relabel))
@@ -39,23 +42,15 @@
 (defn delivered-queued! (app queued)
   (relabeled-as! app
                  (as-str (:account queued))
-                 (as-str (:thread-id queued))
-                 (ref (:change queued))
-                 relabel-source/queued))
+                 (->relabel-work :thread-id (clone (:thread-id queued))
+                                 :change (clone (:change queued))
+                                 :source relabel-source/queued)))
 
 (type relabeled-as!
-  (fn ((mut mail-app)
-       (ref str)
-       (ref str)
-       (ref label-change)
-       relabel-source)
+  (fn ((mut mail-app) (ref str) relabel-work)
     (result unit mail-error)))
 
-(defn relabeled-as! (app account thread-id change source)
-  (match (try (run-operation! app account
-                              (operation-kind/relabel
-                                (->relabel-work :thread-id (str thread-id)
-                                                :change (clone change)
-                                                :source source))))
+(defn relabeled-as! (app account work)
+  (match (try (run-operation! app account (operation-kind/relabel work)))
     (relabeled (ok (do)))
     (_ (unexpected "relabel"))))

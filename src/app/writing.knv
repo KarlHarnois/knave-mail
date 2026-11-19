@@ -1,9 +1,12 @@
-(use app/activity-log log-sent-but-uncached!)
+(use app/thread-log log-sent-but-uncached!)
 (use app/operations/batch-log log-batch-queued!)
 (use app/delivering deliver-everything-now!)
 (use app/mail-app delivery mail-app)
 (use domain/labels label-change)
-(use domain/mail ->message-ref draft message)
+
+(use domain/mail ->message-ref ->thread-ref draft message
+                 thread-ref)
+
 (use domain/outgoing draft->outgoing)
 (use domain/reply draft-for draft-kind)
 (use app/caching cache-thread!)
@@ -33,7 +36,9 @@
   (let (original (try (replied-message app account (ref (:reply-to written))))
         outgoing (draft->outgoing written account original)
         thread-id (try (delivered! app account (ref outgoing))))
-    (remember-sent! app account (ref thread-id))
+    (remember-sent! app
+                    (ref (->thread-ref :account (str account)
+                                       :thread-id thread-id)))
     (ok (do))))
 
 (type replied-message
@@ -49,14 +54,14 @@
     (none (ok none))))
 
 (type remember-sent!
-  (fn ((mut mail-app) (ref str) (ref str))
+  (fn ((mut mail-app) (ref thread-ref))
     unit))
 
-(defn remember-sent! (app account thread-id)
-  (match (cache-thread! app account thread-id)
+(defn remember-sent! (app thread)
+  (match (cache-thread! app thread)
     ((err failure)
      (log-sent-but-uncached! (ref (:log app))
-                             account thread-id
+                             thread
                              (ref failure)))
     (_ (do))))
 

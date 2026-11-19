@@ -1,30 +1,16 @@
 (use domain/log-entry log-area)
 (use app/operations/operation-log labels-changed)
-(use domain/mail-error error-kind error-message)
-(use domain/mail thread-summary)
+(use domain/labels label-change)
+(use domain/mail-error error-kind error-message mail-error)
+(use domain/mail thread-ref thread-summary)
 
 (use ports/driven/event-log event-log log-debug log-info
                             log-warn)
 
 (export log-changes! log-first-listed! log-full-sync-done!
-        log-full-sync-started! log-gmail-relabel!
-        log-history-expired! log-incremental-sync-started!
-        log-label-restored! log-new-thread! log-preview!
-        log-sent-but-uncached! log-skipped-prefetch!
-        log-still-unread! log-vanished-thread!)
-
-(defn log-gmail-relabel! (log account thread-id change)
-  (log-info log log-area/sync
-            (str account ": Gmail has " thread-id " "
-                 (labels-changed change)
-                 " compared with the cache")))
-
-(defn log-new-thread! (log account thread-id labels)
-  (log-info log log-area/sync
-            (str account ": cached " thread-id
-                 " for the first time with ["
-                 (join labels ",")
-                 "]")))
+        log-full-sync-started! log-history-expired!
+        log-incremental-sync-started! log-label-restored!
+        log-preview!)
 
 (type log-first-listed!
   (fn ((ref event-log)
@@ -78,35 +64,8 @@
   (log-debug log log-area/sync
              (str account ": threads to download " (join downloads " "))))
 
-(defn log-vanished-thread! (log account thread-id)
-  (log-debug log log-area/sync
-             (str account ": changed thread " thread-id
-                  " no longer exists")))
-
-(defn log-skipped-prefetch! (log account thread-id failure)
-  (log-warn log log-area/sync
-            (str account ": skipped downloading thread "
-                 thread-id ": "
-                 (error-message failure))))
-
 (defn log-preview! (log account summaries)
   (log-info log log-area/sync
             (str account ": preview listed "
                  (len summaries)
                  " inbox threads")))
-
-(defn log-sent-but-uncached! (log account thread-id failure)
-  (log-warn log log-area/send
-            (str account ": sent into thread " thread-id
-                 ", but caching it failed: "
-                 (error-kind failure)
-                 ": "
-                 (error-message failure))))
-
-(defn log-still-unread! (log account thread-id failure)
-  (log-warn log log-area/read
-            (str account ": could not mark thread "
-                 thread-id " read: "
-                 (error-kind failure)
-                 ": "
-                 (error-message failure))))

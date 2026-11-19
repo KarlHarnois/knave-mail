@@ -1,6 +1,6 @@
-(use app/activity-log log-skipped-prefetch!)
+(use app/thread-log log-skipped-prefetch!)
 (use app/mail-app mail-app)
-(use domain/mail thread-summary)
+(use domain/mail ->thread-ref thread-ref thread-summary)
 (use domain/mail-error mail-error)
 (use domain/prefetch threads-to-prefetch)
 (use app/operations/calls fetched-thread!)
@@ -25,18 +25,23 @@
                                     (ref stored)
                                     (:prefetch (:limits app))))
     (for-each (iter wanted)
-      (fn (thread-id) (prefetch-or-warn! app account thread-id)))
+      (fn (thread-id)
+        (prefetch-or-warn! app
+                           (ref (->thread-ref :account (str account)
+                                              :thread-id (clone thread-id))))))
     (ok (do))))
 
 (type prefetch-or-warn!
-  (fn ((mut mail-app) (ref str) (ref string))
+  (fn ((mut mail-app) (ref thread-ref))
     unit))
 
-(defn prefetch-or-warn! (app account thread-id)
-  (match (prefetch-thread! app account thread-id)
+(defn prefetch-or-warn! (app thread)
+  (match (prefetch-thread! app
+                           (as-str (:account thread))
+                           (ref (:thread-id thread)))
     ((err failure)
      (log-skipped-prefetch! (ref (:log app))
-                            account thread-id
+                            thread
                             (ref failure)))
     ((ok _) (do))))
 

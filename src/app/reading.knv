@@ -4,7 +4,7 @@
 (use app/marking-read marked-read!)
 (use domain/labels unread?)
 
-(use domain/mail ->thread-ref thread thread-query
+(use domain/mail thread thread-query thread-ref
                  thread-summary)
 
 (use domain/mail-error mail-error)
@@ -26,22 +26,20 @@
     (listed-threads! app account query)))
 
 (type read-thread!
-  (fn ((mut mail-app) (ref str) (ref str))
+  (fn ((mut mail-app) (ref thread-ref))
     (result thread mail-error)))
 
-(defn read-thread! (app account thread-id)
-  (let (opened (try (stored-or-fetched-thread! app account thread-id)))
+(defn read-thread! (app thread)
+  (let (opened (try (stored-or-fetched-thread! app thread)))
     (if (unread? (ref (:labels opened)))
-      (ok (marked-read! app account opened))
+      (ok (marked-read! app thread opened))
       (ok opened))))
 
 (type stored-or-fetched-thread!
-  (fn ((mut mail-app) (ref str) (ref str))
+  (fn ((mut mail-app) (ref thread-ref))
     (result thread mail-error)))
 
-(defn stored-or-fetched-thread! (app account thread-id)
-  (match (try (load-thread (ref (:store app))
-                           (ref (->thread-ref :account (str account)
-                                              :thread-id (str thread-id)))))
+(defn stored-or-fetched-thread! (app thread)
+  (match (try (load-thread (ref (:store app)) thread))
     ((some stored) (ok stored))
-    (none (cached-thread! app account thread-id))))
+    (none (cached-thread! app thread))))

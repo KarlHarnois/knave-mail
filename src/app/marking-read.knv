@@ -1,7 +1,7 @@
-(use app/activity-log log-still-unread!)
+(use app/thread-log log-still-unread!)
 (use app/mail-app mail-app)
 (use domain/labels apply-label-change read-change)
-(use domain/mail ->thread-ref thread)
+(use domain/mail thread thread-ref)
 (use domain/mail-error mail-error)
 (use app/operations/relabel-calls relabeled!)
 (use ports/driven/store relabel-stored!)
@@ -9,40 +9,28 @@
 (export marked-read!)
 
 (type marked-read!
-  (fn ((mut mail-app) (ref str) thread)
+  (fn ((mut mail-app) (ref thread-ref) thread)
     thread))
 
-(defn marked-read! (app account opened)
-  (match (mark-thread-read! app account (ref (:id opened)))
+(defn marked-read! (app thread opened)
+  (match (mark-thread-read! app thread)
     ((ok _)
      (assoc opened
             :labels (apply-label-change (ref (:labels opened))
                                         (ref (read-change)))))
     ((err failure)
-     (warn-still-unread! app account
-                         (ref (:id opened))
-                         (ref failure))
+     (log-still-unread! (ref (:log app))
+                        thread
+                        (ref failure))
      opened)))
 
-(type warn-still-unread!
-  (fn ((ref mail-app)
-       (ref str)
-       (ref str)
-       (ref mail-error))
-    unit))
-
-(defn warn-still-unread! (app account thread-id failure)
-  (log-still-unread! (ref (:log app))
-                     account thread-id failure))
-
 (type mark-thread-read!
-  (fn ((mut mail-app) (ref str) (ref str))
+  (fn ((mut mail-app) (ref thread-ref))
     (result unit mail-error)))
 
-(defn mark-thread-read! (app account thread-id)
+(defn mark-thread-read! (app thread)
   (let (change (read-change))
-    (try (relabeled! app account thread-id (ref change)))
+    (try (relabeled! app thread (ref change)))
     (relabel-stored! (mut (:store app))
-                     (ref (->thread-ref :account (str account)
-                                        :thread-id (str thread-id)))
+                     thread
                      (ref change))))

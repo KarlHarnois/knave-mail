@@ -1,8 +1,6 @@
-(use domain/mail ->thread-ref)
-
-(use app/activity-log log-changes! log-gmail-relabel!
-                      log-vanished-thread!)
-
+(use domain/mail ->thread-ref thread-ref)
+(use app/activity-log log-changes!)
+(use app/thread-log log-gmail-relabel! log-vanished-thread!)
 (use domain/collections try-for-each)
 (use app/caching cache-thread!)
 (use app/mail-app mail-app)
@@ -82,8 +80,10 @@
     (result unit mail-error)))
 
 (defn download-thread! (app account thread-id)
-  (let (step (download-result->step (cache-thread! app account thread-id)))
-    (try (apply-download-step! app account thread-id step))
+  (let (thread (->thread-ref :account (str account)
+                             :thread-id (str thread-id))
+        step (download-result->step (cache-thread! app (ref thread))))
+    (try (apply-download-step! app (ref thread) step))
     (forget-pending-download! (mut (:store app))
                               account thread-id)))
 
@@ -95,32 +95,29 @@
 
 (defn relabel-from-history! (app account relabel)
   (let-match ((pair thread-id change) relabel)
-    (log-gmail-relabel! (ref (:log app))
-                        account thread-id change)
-    (relabel-stored! (mut (:store app))
-                     (ref (->thread-ref :account (str account)
-                                        :thread-id (clone thread-id)))
-                     change)))
+    (let (thread (->thread-ref :account (str account)
+                               :thread-id (clone thread-id)))
+      (log-gmail-relabel! (ref (:log app))
+                          (ref thread)
+                          change)
+      (relabel-stored! (mut (:store app))
+                       (ref thread)
+                       change))))
 
 (type apply-download-step!
-  (fn ((mut mail-app)
-       (ref str)
-       (ref str)
-       download-step)
+  (fn ((mut mail-app) (ref thread-ref) download-step)
     (result unit mail-error)))
 
-(defn apply-download-step! (app account thread-id step)
+(defn apply-download-step! (app thread step)
   (match step
     (stored (ok (do)))
-    (vanished (forget-vanished-thread! app account thread-id))
+    (vanished (forget-vanished-thread! app thread))
     ((failed failure) (err failure))))
 
 (type forget-vanished-thread!
-  (fn ((mut mail-app) (ref str) (ref str))
+  (fn ((mut mail-app) (ref thread-ref))
     (result unit mail-error)))
 
-(defn forget-vanished-thread! (app account thread-id)
-  (log-vanished-thread! (ref (:log app)) account thread-id)
-  (forget-thread! (mut (:store app))
-                  (ref (->thread-ref :account (str account)
-                                     :thread-id (str thread-id)))))
+(defn forget-vanished-thread! (app thread)
+  (log-vanished-thread! (ref (:log app)) thread)
+  (forget-thread! (mut (:store app)) thread))

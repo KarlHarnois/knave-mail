@@ -1,0 +1,99 @@
+(use domain/log-entry log-area)
+(use app/operations/operation-log labels-changed)
+(use domain/labels label-change)
+(use domain/mail thread-ref)
+(use domain/mail-error error-kind error-message mail-error)
+
+(use ports/driven/event-log event-log log-debug log-info
+                            log-warn)
+
+(export log-gmail-relabel! log-new-thread!
+        log-sent-but-uncached! log-skipped-prefetch!
+        log-still-unread! log-vanished-thread!)
+
+(type log-gmail-relabel!
+  (fn ((ref event-log)
+       (ref thread-ref)
+       (ref label-change))
+    unit))
+
+(defn log-gmail-relabel! (log thread change)
+  (log-info log log-area/sync
+            (str (:account thread)
+                 ": Gmail has "
+                 (:thread-id thread)
+                 " "
+                 (labels-changed change)
+                 " compared with the cache")))
+
+(type log-new-thread!
+  (fn ((ref event-log)
+       (ref thread-ref)
+       (ref (vec string)))
+    unit))
+
+(defn log-new-thread! (log thread labels)
+  (log-info log log-area/sync
+            (str (:account thread)
+                 ": cached "
+                 (:thread-id thread)
+                 " for the first time with ["
+                 (join labels ",")
+                 "]")))
+
+(type log-vanished-thread!
+  (fn ((ref event-log) (ref thread-ref))
+    unit))
+
+(defn log-vanished-thread! (log thread)
+  (log-debug log log-area/sync
+             (str (:account thread)
+                  ": changed thread "
+                  (:thread-id thread)
+                  " no longer exists")))
+
+(type log-skipped-prefetch!
+  (fn ((ref event-log)
+       (ref thread-ref)
+       (ref mail-error))
+    unit))
+
+(defn log-skipped-prefetch! (log thread failure)
+  (log-warn log log-area/sync
+            (str (:account thread)
+                 ": skipped downloading thread "
+                 (:thread-id thread)
+                 ": "
+                 (error-message failure))))
+
+(type log-sent-but-uncached!
+  (fn ((ref event-log)
+       (ref thread-ref)
+       (ref mail-error))
+    unit))
+
+(defn log-sent-but-uncached! (log thread failure)
+  (log-warn log log-area/send
+            (str (:account thread)
+                 ": sent into thread "
+                 (:thread-id thread)
+                 ", but caching it failed: "
+                 (error-kind failure)
+                 ": "
+                 (error-message failure))))
+
+(type log-still-unread!
+  (fn ((ref event-log)
+       (ref thread-ref)
+       (ref mail-error))
+    unit))
+
+(defn log-still-unread! (log thread failure)
+  (log-warn log log-area/read
+            (str (:account thread)
+                 ": could not mark thread "
+                 (:thread-id thread)
+                 " read: "
+                 (error-kind failure)
+                 ": "
+                 (error-message failure))))
