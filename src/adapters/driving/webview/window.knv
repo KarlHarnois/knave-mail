@@ -1,5 +1,9 @@
-(export close-window next-request open-window reply-outbox
-        request-inbox send-reply zoom-window)
+(export next-request open-window reply-outbox request-inbox
+        send-reply send-window-command window-command)
+
+(defenum window-command
+  (exit int)
+  (zoom f64))
 
 (deftype request-inbox
   (rust "std::sync::mpsc::Receiver<String>"))
@@ -25,11 +29,14 @@
          (fn-once (request-inbox reply-outbox) unit))
       unit)))
 
-(defn close-window (outbox code)
-  (send-window-command outbox (str "exit " code)))
-
-(defn zoom-window (outbox level)
-  (send-window-command outbox (str "zoom " level)))
+(type send-window-command
+  (fn ((ref reply-outbox) window-command) unit))
 
 (defn send-window-command (outbox command)
-  (send-reply outbox (str "\u{1}" command)))
+  (send-reply outbox
+              (str "\u{1}" (window-command->text command))))
+
+(defn window-command->text (command)
+  (match command
+    ((exit code) (str "exit " code))
+    ((zoom level) (str "zoom " level))))

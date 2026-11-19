@@ -1,8 +1,8 @@
 (use adapters/driving/json/envelope success-reply)
 
-(use adapters/driving/webview/window close-window
-                                     reply-outbox send-reply
-                                     zoom-window)
+(use adapters/driving/webview/window reply-outbox send-reply
+                                     send-window-command
+                                     window-command)
 
 (use adapters/driving/webview/window-request e2e-outcome)
 (use adapters/json/value empty-object json-value)
@@ -14,7 +14,8 @@
 (def largest-zoom 3.0)
 
 (defn finish-e2e (outcome outbox)
-  (close-window outbox (exit-code-of outcome)))
+  (send-window-command outbox
+                       (window-command/exit (exit-code-of outcome))))
 
 (defn exit-code-of (outcome)
   (match outcome (passed 0) (failed 1)))
@@ -24,7 +25,8 @@
     unit))
 
 (defn zoom-to (id level outbox)
-  (zoom-window outbox
-               (max smallest-zoom (min largest-zoom level)))
+  (send-window-command outbox
+                       (window-command/zoom (max smallest-zoom
+                                                 (min largest-zoom level))))
   (send-reply outbox
               (success-reply id (ref (empty-object)))))
