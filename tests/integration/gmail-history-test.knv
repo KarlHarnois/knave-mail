@@ -64,12 +64,12 @@
     (assert (empty? (:refetch (unwrap-ok (fetch-changes! (mut gmail)
                                                          "3999")))))))
 
-(deftest an-expired-history-is-not-found
+(deftest an-expired-history-is-reported-as-expired
   (let (server (start-fake-gmail (ref (history-routes)))
         gmail (gmail-over (ref server)))
     (assert (= (str (error-kind (ref (unwrap-err (fetch-changes! (mut gmail)
                                                                  "1")))))
-               "not-found"))))
+               "history-expired"))))
 
 (deftest asks-only-for-typed-history-records
   (let (server (start-fake-gmail (ref (history-routes)))

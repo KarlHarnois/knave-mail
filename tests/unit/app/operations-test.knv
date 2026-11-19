@@ -110,7 +110,7 @@
     (expire-remote-history! (ref world))
     (synced! (mut app))
     (assert (mentions? (ref (logged-lines (ref log)))
-                       "fetch history ada@example.com: failed on attempt 1: not-found"))))
+                       "fetch history ada@example.com: failed on attempt 1: history-expired"))))
 
 (type operation-id-of
   (fn ((ref (vec string)) (ref str))

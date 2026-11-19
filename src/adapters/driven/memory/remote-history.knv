@@ -57,7 +57,7 @@
   (match (the (result int parse-int-error) (parse since))
     ((ok start) (changes-from remote since start))
     ((err _)
-     (err (mail-error/not-found (str "no history from " since))))))
+     (err (mail-error/history-expired (str "no history from " since))))))
 
 (type changes-from
   (fn ((ref remote-mail) (ref str) int)
@@ -65,7 +65,7 @@
 
 (defn changes-from (remote since start)
   (if (< start (:history-floor remote))
-    (err (mail-error/not-found (str "history " since " has expired")))
+    (err (mail-error/history-expired (str "history " since " has expired")))
     (ok (->mail-changes :refetch (refetched-after remote start)
                         :relabels (relabels-after remote start)
                         :history-id (str (:history-id remote))))))

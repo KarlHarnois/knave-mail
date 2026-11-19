@@ -1,5 +1,5 @@
-(export ->throttling error-kind error-message mail-error
-        not-found? throttling)
+(export ->throttling error-kind error-message
+        history-expired? mail-error not-found? throttling)
 
 (defstruct throttling
   :message string
@@ -8,6 +8,7 @@
 (defenum mail-error
   (usage string)
   (not-found string)
+  (history-expired string)
   (auth-required string)
   (network string)
   (throttled throttling)
@@ -17,6 +18,7 @@
   (match error
     ((usage _) "usage")
     ((not-found _) "not-found")
+    ((history-expired _) "history-expired")
     ((auth-required _) "auth-required")
     ((network _) "network")
     ((throttled _) "throttled")
@@ -29,6 +31,7 @@
   (match error
     ((usage message) message)
     ((not-found message) message)
+    ((history-expired message) message)
     ((auth-required message) message)
     ((network message) message)
     ((throttled throttle) (:message throttle))
@@ -40,4 +43,12 @@
 (defn not-found? (error)
   (match error
     ((not-found _) true)
+    (_ false)))
+
+(type history-expired?
+  (fn ((ref mail-error)) bool))
+
+(defn history-expired? (error)
+  (match error
+    ((history-expired _) true)
     (_ false)))
