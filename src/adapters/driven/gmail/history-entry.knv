@@ -14,7 +14,8 @@
 (use domain/labels ->label-change)
 (use domain/mail-error mail-error)
 
-(export json->history-entry with-entry)
+(export entries->mail-changes history-entry
+        json->history-entry)
 
 (defstruct history-entry
   :downloads (vec string)
@@ -35,17 +36,30 @@
                                                (try (relabels-in entry
                                                                  label-record/labels-removed))))))
 
-(type with-entry
-  (fn (mail-changes (ref history-entry)) mail-changes))
+(type entries->mail-changes
+  (fn ((ref (vec history-entry)) string)
+    mail-changes))
 
-(defn with-entry (changes entry)
-  (->mail-changes :refetch (reduce (iter (:downloads entry))
-                                   (clone (:refetch changes))
-                                   (fn (found thread-id)
-                                     (appended-once found (clone thread-id))))
-                  :relabels (concatenated (clone (:relabels changes))
-                                          (clone (:relabels entry)))
-                  :history-id (str "")))
+(defn entries->mail-changes (entries history-id)
+  (->mail-changes :refetch (reduce (iter entries) (vec) with-downloads)
+                  :relabels (reduce (iter entries) (vec) with-relabels)
+                  :history-id history-id))
+
+(type with-downloads
+  (fn ((vec string) (ref history-entry))
+    (vec string)))
+
+(defn with-downloads (found entry)
+  (reduce (iter (:downloads entry)) found
+    (fn (threads thread-id)
+      (appended-once threads (clone thread-id)))))
+
+(type with-relabels
+  (fn ((vec message-relabel) (ref history-entry))
+    (vec message-relabel)))
+
+(defn with-relabels (found entry)
+  (concatenated found (clone (:relabels entry))))
 
 (type downloaded-threads
   (fn ((ref json-value))

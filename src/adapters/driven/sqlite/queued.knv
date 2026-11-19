@@ -29,11 +29,14 @@
                                             insert-queued-row)))
 
 (defn read-all-queued (connection)
-  (text-error->internal-error (queued-rows connection select-all-queued "")))
+  (text-error->internal-error (queued-rows connection
+                                           select-all-queued
+                                           (ref (the (option string) none)))))
 
 (defn read-queued-of (connection email)
-  (text-error->internal-error
-    (queued-rows connection select-queued-of-account email)))
+  (text-error->internal-error (queued-rows connection
+                                           select-queued-of-account
+                                           (ref (some (str email))))))
 
 (defn erase-queued (connection id)
   (text-error->internal-error (row-erased connection delete-queued-row id)))
@@ -60,10 +63,10 @@
       (result int string))))
 
 (def queued-rows
-  (rust "{0}.prepare_cached({1}).and_then(|mut {!statement}| {{ let {!read} = |{!row}: &rusqlite::Row| Ok(crate::domain::queued_relabel::QueuedRelabel {{ id: {!row}.get(0)?, account: {!row}.get(1)?, thread_id: {!row}.get(2)?, change: crate::domain::labels::LabelChange {{ added: serde_json::from_str(&{!row}.get::<_, String>(3)?).map_err(|{!bad}| rusqlite::Error::FromSqlConversionFailure(3, rusqlite::types::Type::Text, Box::new({!bad})))?, removed: serde_json::from_str(&{!row}.get::<_, String>(4)?).map_err(|{!bad}| rusqlite::Error::FromSqlConversionFailure(4, rusqlite::types::Type::Text, Box::new({!bad})))? }} }}); let {!rows} = if {2}.is_empty() {{ {!statement}.query_map([], {!read})?.collect::<rusqlite::Result<Vec<_>>>() }} else {{ {!statement}.query_map([{2}], {!read})?.collect::<rusqlite::Result<Vec<_>>>() }}; {!rows} }}).map_err(|{!error}| {!error}.to_string())"
+  (rust "{0}.prepare_cached({1}).and_then(|mut {!statement}| {{ let {!read} = |{!row}: &rusqlite::Row| Ok(crate::domain::queued_relabel::QueuedRelabel {{ id: {!row}.get(0)?, account: {!row}.get(1)?, thread_id: {!row}.get(2)?, change: crate::domain::labels::LabelChange {{ added: serde_json::from_str(&{!row}.get::<_, String>(3)?).map_err(|{!bad}| rusqlite::Error::FromSqlConversionFailure(3, rusqlite::types::Type::Text, Box::new({!bad})))?, removed: serde_json::from_str(&{!row}.get::<_, String>(4)?).map_err(|{!bad}| rusqlite::Error::FromSqlConversionFailure(4, rusqlite::types::Type::Text, Box::new({!bad})))? }} }}); let {!rows} = match {2} {{ Some({!email}) => {!statement}.query_map([{!email}], {!read})?.collect::<rusqlite::Result<Vec<_>>>(), None => {!statement}.query_map([], {!read})?.collect::<rusqlite::Result<Vec<_>>>() }}; {!rows} }}).map_err(|{!error}| {!error}.to_string())"
     (fn ((ref sqlite-connection)
          (ref str)
-         (ref str))
+         (ref (option string)))
       (result (vec queued-relabel) string))))
 
 (def row-erased

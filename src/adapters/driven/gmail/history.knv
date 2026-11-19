@@ -3,14 +3,15 @@
 (use adapters/driven/gmail/fields required-text)
 (use adapters/driven/gmail/requests page-token-part)
 
-(use adapters/driven/gmail/history-entry json->history-entry
-                                         with-entry)
+(use adapters/driven/gmail/history-entry entries->mail-changes
+                                         history-entry
+                                         json->history-entry)
 
 (use adapters/json/value array-field json-value
                          optional-string-field)
 
-(use domain/collections collect-ok)
-(use domain/history ->mail-changes mail-changes)
+(use domain/collections collect-ok concatenated)
+(use domain/history mail-changes)
 (use domain/mail-error mail-error)
 (use ports/driven/event-log log-info)
 
@@ -28,16 +29,13 @@
                                      (ref (str users-me "/profile")))))))
 
 (defn fetched-changes! (session since)
-  (collected-pages! session since none
-                    (->mail-changes :refetch (vec)
-                                    :relabels (vec)
-                                    :history-id (str ""))))
+  (collected-pages! session since none (vec)))
 
 (type collected-pages!
   (fn ((mut gmail-session)
        (ref str)
        (option string)
-       mail-changes)
+       (vec history-entry))
     (result mail-changes mail-error)))
 
 (defn collected-pages! (session since page-token found)
@@ -47,14 +45,14 @@
                          iter
                          (map (fn (entry) (json->history-entry entry)))
                          collect-ok))
-        so-far (reduce (iter entries) found with-entry))
+        so-far (concatenated found entries))
     (log-info (ref (:log session))
               "gmail"
               (str "history since " since ": " (history-shape (ref page))))
     (match (optional-string-field (ref page) "nextPageToken")
       ((some token) (recur session since (some token) so-far))
-      (none (ok (assoc so-far
-                       :history-id (try (history-id-of (ref page)))))))))
+      (none (ok (entries->mail-changes (ref so-far)
+                                       (try (history-id-of (ref page)))))))))
 
 (defn history-path (since page-token)
   (str users-me "/history?startHistoryId=" since
