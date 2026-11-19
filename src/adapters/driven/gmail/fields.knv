@@ -1,0 +1,52 @@
+(use adapters/json/value array-field json-value number-field
+                         optional-string-field string-field
+                         string-list-field)
+
+(use domain/collections collect-ok)
+(use domain/mail-error mail-error)
+
+(export ids-of listed-labels optional-text required-number
+        required-text text-error->internal-error)
+
+(type required-text
+  (fn ((ref json-value) (ref str))
+    (result string mail-error)))
+
+(defn required-text (value key)
+  (text-error->internal-error (string-field value key)))
+
+(type required-number
+  (fn ((ref json-value) (ref str))
+    (result int mail-error)))
+
+(defn required-number (value key)
+  (text-error->internal-error (number-field value key)))
+
+(type optional-text
+  (fn ((ref json-value) (ref str)) string))
+
+(defn optional-text (value key)
+  (unwrap-or (optional-string-field value key) (str "")))
+
+(type listed-labels
+  (fn ((ref json-value)) (vec string)))
+
+(defn listed-labels (value)
+  (match (string-list-field value "labelIds")
+    ((ok labels) labels)
+    ((err _) (vec))))
+
+(type ids-of
+  (fn ((ref json-value) (ref str))
+    (result (vec string) mail-error)))
+
+(defn ids-of (reply list-name)
+  (-> (array-field reply list-name)
+      iter
+      (map (fn (entry) (required-text entry "id")))
+      collect-ok))
+
+(defn text-error->internal-error (outcome)
+  (map-err outcome
+    (fn (problem)
+      (mail-error/internal (str "unexpected Gmail answer: " problem)))))

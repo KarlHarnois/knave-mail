@@ -3,11 +3,11 @@
                                       rate-limited?)
 
 (use adapters/json/value json-value parse-json)
+(use adapters/driven/gmail/fields text-error->internal-error)
 (use adapters/driven/gmail/throttling throttling-of)
 (use domain/mail-error mail-error)
 
-(export checked collect-results sent
-        text-error->internal-error)
+(export checked collect-results sent)
 
 (defn checked (reply)
   (let (status (:status reply)
@@ -32,11 +32,6 @@
   (map-err outcome
     (fn (problem)
       (mail-error/network (str "cannot reach Google: " problem)))))
-
-(defn text-error->internal-error (outcome)
-  (map-err outcome
-    (fn (problem)
-      (mail-error/internal (str "unexpected Gmail answer: " problem)))))
 
 (defn non-empty-json (body)
   (if (empty? (trim (as-str body)))

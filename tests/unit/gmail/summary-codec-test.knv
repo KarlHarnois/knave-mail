@@ -1,0 +1,19 @@
+(use adapters/driven/gmail/summary-codec json->summary)
+(use adapters/json/value parse-json)
+
+(defn summary-of (text)
+  (json->summary (ref (unwrap-ok (parse-json text)))))
+
+(deftest a-thread-decodes-into-a-summary
+  (let (summary (unwrap-ok (summary-of "{\"id\":\"t-1\",\"messages\":[{\"id\":\"m-1\",\"internalDate\":\"42\",\"labelIds\":[\"INBOX\"]}]}")))
+    (assert (= (:id summary) (str "t-1")))
+    (assert (= (:date summary) 42))
+    (assert (= (:labels summary)
+               (vec (str "INBOX"))))))
+
+(deftest a-thread-without-an-id-is-an-unexpected-answer
+  (assert (err? (summary-of "{\"messages\":[]}"))))
+
+(deftest a-message-without-a-date-is-an-unexpected-answer
+  (assert (err? (summary-of
+                  "{\"id\":\"t-1\",\"messages\":[{\"id\":\"m-1\"}]}"))))

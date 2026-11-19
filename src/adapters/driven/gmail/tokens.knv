@@ -1,8 +1,6 @@
 (use adapters/driven/gmail/http http-post-form)
-
-(use adapters/driven/gmail/replies sent
-                                   text-error->internal-error)
-
+(use adapters/driven/gmail/fields text-error->internal-error)
+(use adapters/driven/gmail/replies sent)
 (use adapters/driven/gmail/session-state gmail-session)
 (use adapters/json/value parse-json string-field)
 (use domain/mail-error mail-error)

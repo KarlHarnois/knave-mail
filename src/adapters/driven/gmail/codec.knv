@@ -1,12 +1,12 @@
-(use adapters/json/value array-field json-value number-field
-                         optional-string-field
-                         string-list-field)
+(use adapters/driven/gmail/fields ids-of required-number
+                                  required-text)
 
-(use domain/collections appended)
+(use adapters/json/value json-value)
 (use domain/mail ->label ->message label message)
+(use domain/mail-error mail-error)
 
-(export label-from label-ids message-ids raw->message
-        sent-thread-id text-at thread-ids)
+(export json->label json->message label-ids message-ids
+        sent-thread-id thread-ids)
 
 (defstruct message-parts
   :from string
@@ -19,48 +19,42 @@
   :header-id string
   :references string)
 
-(defn label-from (details)
-  (->label :id (text-at details "id")
-           :name (text-at details "name")
-           :unread (number-at details "threadsUnread")
-           :total (number-at details "threadsTotal")))
+(type json->label
+  (fn ((ref json-value))
+    (result label mail-error)))
 
-(defn raw->message (raw-message thread-id)
+(defn json->label (details)
+  (ok (->label :id (try (required-text details "id"))
+               :name (try (required-text details "name"))
+               :unread (try (required-number details "threadsUnread"))
+               :total (try (required-number details "threadsTotal")))))
+
+(type json->message
+  (fn ((ref json-value) (ref str))
+    (result message mail-error)))
+
+(defn json->message (raw-message thread-id)
   (let (parts (message-parts-of raw-message))
-    (->message :id (text-at raw-message "id")
-               :thread-id (str thread-id)
-               :from (clone (:from parts))
-               :to (clone (:to parts))
-               :cc (clone (:cc parts))
-               :subject (clone (:subject parts))
-               :date (:date parts)
-               :text (clone (:text parts))
-               :html (clone (:html parts))
-               :header-id (clone (:header-id parts))
-               :references (clone (:references parts)))))
+    (ok (->message :id (try (required-text raw-message "id"))
+                   :thread-id (str thread-id)
+                   :from (clone (:from parts))
+                   :to (clone (:to parts))
+                   :cc (clone (:cc parts))
+                   :subject (clone (:subject parts))
+                   :date (:date parts)
+                   :text (clone (:text parts))
+                   :html (clone (:html parts))
+                   :header-id (clone (:header-id parts))
+                   :references (clone (:references parts))))))
 
-(defn label-ids (reply) (ids-in reply "labels"))
+(defn label-ids (reply) (ids-of reply "labels"))
 
-(defn thread-ids (reply) (ids-in reply "threads"))
+(defn thread-ids (reply) (ids-of reply "threads"))
 
-(defn message-ids (thread) (ids-in thread "messages"))
+(defn message-ids (thread) (ids-of thread "messages"))
 
-(defn ids-in (reply list-name)
-  (reduce (array-field reply list-name) (vec)
-    (fn (ids entry)
-      (match (optional-string-field entry "id")
-        ((some id) (appended ids id))
-        (none ids)))))
-
-(defn sent-thread-id (reply) (text-at reply "threadId"))
-
-(defn text-at (details key)
-  (unwrap-or (optional-string-field details key) (str "")))
-
-(defn number-at (details key)
-  (match (number-field details key)
-    ((ok number) number)
-    ((err _) 0)))
+(defn sent-thread-id (reply)
+  (required-text reply "threadId"))
 
 (def message-parts-of
   (rust "{{ let {!parsed} = native::gmail_message::parsed_message({0}); MessageParts {{ from: {!parsed}.from, to: {!parsed}.to, cc: {!parsed}.cc, subject: {!parsed}.subject, date: {!parsed}.date, text: {!parsed}.text, html: {!parsed}.html, header_id: {!parsed}.header_id, references: {!parsed}.references }} }}"

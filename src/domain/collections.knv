@@ -1,6 +1,6 @@
-(export appended appended-once as-count concatenated
-        first-present in-chunks one-of? option->vec
-        owned-items present try-for-each)
+(export appended appended-once as-count collect-ok
+        concatenated first-present in-chunks one-of?
+        option->vec owned-items present try-for-each)
 
 (defn one-of? (word words)
   (any? (iter words)
@@ -59,3 +59,9 @@
   (rust "{0}.into_iter().collect::<Vec<_>>()"
     (where (item)
       (fn ((option item)) (vec item)))))
+
+(def collect-ok
+  (rust "{0}.collect::<Result<Vec<_>, _>>()"
+    (where (item failure)
+      (fn ((iterator (result item failure)))
+        (result (vec item) failure)))))

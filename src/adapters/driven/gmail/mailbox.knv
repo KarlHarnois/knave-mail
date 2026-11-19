@@ -1,11 +1,9 @@
-(use adapters/driven/gmail/summary-codec summary-from
+(use adapters/driven/gmail/summary-codec json->summary
                                          thread-labels)
 
-(use adapters/driven/gmail/codec label-from label-ids
-                                 message-ids raw->message
-                                 sent-thread-id)
-
-(use adapters/driven/gmail/codec thread-ids)
+(use adapters/driven/gmail/codec json->label json->message
+                                 label-ids message-ids
+                                 sent-thread-id thread-ids)
 
 (use adapters/driven/gmail/requests batch-modify-body
                                     batch-modify-path
@@ -32,6 +30,7 @@
                  thread-page thread-query thread-summary)
 
 (use adapters/json/value optional-string-field)
+(use domain/collections collect-ok)
 (use domain/mail-error mail-error)
 (use ports/driven/mailbox mailbox)
 
@@ -44,14 +43,14 @@
   (fetch-labels! (box)
     (let (listed (try (api-get! (mut (:session box))
                                 (ref (labels-path))))
-          paths (-> (iter (label-ids (ref listed)))
+          paths (-> (iter (try (label-ids (ref listed))))
                     (map (fn (id) (label-path id)))
                     collect)
           details (try (api-get-all! (mut (:session box))
                                      (ref paths))))
-      (ok (-> (iter details)
-              (map (fn (detail) (label-from detail)))
-              collect))))
+      (-> (iter details)
+          (map (fn (detail) (json->label detail)))
+          collect-ok)))
 
   (fetch-threads! (box query)
     (let (ids (try (listed-thread-ids! (mut (:session box)) query)))
@@ -82,9 +81,9 @@
     (fetched-changes! (mut (:session box)) since))
 
   (deliver! (box sent)
-    (ok (sent-thread-id (ref (try (api-post! (mut (:session box))
-                                             (ref (send-path))
-                                             (ref (send-body sent))))))))
+    (sent-thread-id (ref (try (api-post! (mut (:session box))
+                                         (ref (send-path))
+                                         (ref (send-body sent)))))))
 
   (relabel! (box thread-id change)
     (do
@@ -101,13 +100,12 @@
       (ok (do)))))
 
 (defn listed-thread-ids! (session query)
-  (ok (thread-ids (ref (try (api-get! session
-                                      (ref (thread-list-path query))))))))
+  (thread-ids (ref (try (api-get! session (ref (thread-list-path query)))))))
 
 (defn listed-thread-page! (session query page-token)
   (let (listed (try (api-get! session
                               (ref (thread-page-path query page-token)))))
-    (ok (->thread-page :ids (thread-ids (ref listed))
+    (ok (->thread-page :ids (try (thread-ids (ref listed)))
                        :next-token (next-page-token (ref listed))))))
 
 (defn next-page-token (listed)
@@ -123,19 +121,19 @@
                   (map (fn (id) (thread-metadata-path id)))
                   collect)
         threads (try (api-get-all! session (ref paths))))
-    (ok (-> (iter threads)
-            (map (fn (found) (summary-from found)))
-            collect))))
+    (-> (iter threads)
+        (map (fn (found) (json->summary found)))
+        collect-ok)))
 
 (defn fetched-thread! (session thread-id)
   (let (minimal (try (api-get! session (ref (thread-path thread-id))))
-        paths (-> (iter (message-ids (ref minimal)))
+        paths (-> (iter (try (message-ids (ref minimal))))
                   (map (fn (id) (message-path id)))
                   collect)
         raws (try (api-get-all! session (ref paths)))
-        messages (-> (iter raws)
-                     (map (fn (raw) (raw->message raw thread-id)))
-                     collect))
+        messages (try (-> (iter raws)
+                          (map (fn (raw) (json->message raw thread-id)))
+                          collect-ok)))
     (ok (->thread :id (str thread-id)
                   :subject (first-subject (ref messages))
                   :labels (thread-labels (ref minimal))

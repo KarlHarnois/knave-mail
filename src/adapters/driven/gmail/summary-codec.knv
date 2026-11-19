@@ -1,29 +1,34 @@
-(use adapters/driven/gmail/codec text-at)
+(use adapters/driven/gmail/fields ids-of listed-labels
+                                  optional-text
+                                  required-text
+                                  text-error->internal-error)
 
 (use adapters/json/value array-field empty-object json-value
-                         object-field string-list-field)
+                         object-field)
 
 (use domain/collections appended-once as-count)
 (use domain/mail ->thread-summary thread-summary)
+(use domain/mail-error mail-error)
 (use domain/results unwrap-ok-or)
 (use domain/text replaced trimmed-of)
 
-(export summary-from thread-labels)
+(export json->summary thread-labels)
 
-(defn summary-from (thread)
+(type json->summary
+  (fn ((ref json-value))
+    (result thread-summary mail-error)))
+
+(defn json->summary (thread)
   (let (messages (array-field thread "messages"))
-    (->thread-summary :id (text-at thread "id")
-                      :subject (subject-of (ref messages))
-                      :participants (join (ref (senders (ref messages)))
-                                          ", ")
-                      :snippet (snippet-of (ref messages))
-                      :date (date-of (ref messages))
-                      :labels (thread-labels thread)
-                      :message-count (as-count (len messages))
-                      :message-ids (-> (iter messages)
-                                       (map (fn (message)
-                                              (text-at message "id")))
-                                       collect))))
+    (ok (->thread-summary :id (try (required-text thread "id"))
+                          :subject (subject-of (ref messages))
+                          :participants (join (ref (senders (ref messages)))
+                                              ", ")
+                          :snippet (snippet-of (ref messages))
+                          :date (try (date-of (ref messages)))
+                          :labels (thread-labels thread)
+                          :message-count (as-count (len messages))
+                          :message-ids (try (ids-of thread "messages"))))))
 
 (defn subject-of (messages)
   (match (first messages)
@@ -32,13 +37,17 @@
 
 (defn snippet-of (messages)
   (match (last messages)
-    ((some latest) (unescaped (text-at latest "snippet")))
+    ((some latest) (unescaped (optional-text latest "snippet")))
     (none (str ""))))
+
+(type date-of
+  (fn ((ref (vec json-value)))
+    (result int mail-error)))
 
 (defn date-of (messages)
   (match (last messages)
     ((some latest) (internal-date latest))
-    (none 0)))
+    (none (ok 0))))
 
 (defn senders (messages)
   (reduce (iter messages) (vec)
@@ -56,9 +65,9 @@
 (defn header-of (message name)
   (match (find (array-field (ref (payload-of message)) "headers")
            (fn (entry)
-             (= (lower-case (as-str (text-at entry "name")))
+             (= (lower-case (as-str (optional-text entry "name")))
                 (lower-case name))))
-    ((some entry) (text-at entry "value"))
+    ((some entry) (optional-text entry "value"))
     (none (str ""))))
 
 (defn payload-of (message)
@@ -72,16 +81,19 @@
                       "&lt;" "<")
             "&gt;" ">"))
 
+(type internal-date
+  (fn ((ref json-value))
+    (result int mail-error)))
+
 (defn internal-date (message)
-  (unwrap-ok-or (parse (as-str (text-at message "internalDate")))
-                0))
+  (let (text (try (required-text message "internalDate")))
+    (text-error->internal-error (map-err (parse (as-str text))
+                                  (fn (problem)
+                                    (str "internalDate: " problem))))))
 
 (defn thread-labels (thread)
   (reduce (array-field thread "messages") (vec)
     (fn (labels message)
-      (reduce (labels-on message) labels
+      (reduce (listed-labels message) labels
         (fn (found label)
           (appended-once found (clone label)))))))
-
-(defn labels-on (message)
-  (unwrap-ok-or (string-list-field message "labelIds") (vec)))
