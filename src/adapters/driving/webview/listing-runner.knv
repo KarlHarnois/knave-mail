@@ -1,29 +1,58 @@
 (use adapters/driving/webview/window reply-outbox
                                      send-reply)
 
-(use adapters/driving/json/envelope request-arguments)
-(use adapters/json/value bool-field json-value string-field)
+(use adapters/driving/json/mail-command mail-call
+                                        worker-listing?)
+
 (use adapters/driven/memory/shared shared with-shared!)
 
-(export deliver-reply! hand-off! listing-queue
-        listing-request? listing-runner reply-sink)
+(export call-inbox deliver-reply! hand-off hand-off!
+        listing-queue listing-runner next-call reply-sink)
 
 (deftype listing-queue
-  (rust "std::sync::mpsc::Sender<String>"))
+  (rust "std::sync::mpsc::Sender<crate::adapters::driving::json::mail_command::MailCall>"))
+
+(deftype call-inbox
+  (rust "std::sync::mpsc::Receiver<crate::adapters::driving::json::mail_command::MailCall>"))
+
+(def next-call
+  (rust "{0}.recv().ok()"
+    (fn ((ref call-inbox))
+      (option mail-call))))
 
 (defenum listing-runner
   inline
   (background listing-queue))
 
-(defn hand-off! (runner request-text)
+(defenum hand-off
+  handed
+  (kept mail-call))
+
+(type hand-off!
+  (fn ((ref listing-runner) mail-call) hand-off))
+
+(defn hand-off! (runner call)
   (match runner
-    (inline false)
-    ((background queue) (enqueue! queue request-text))))
+    (inline (hand-off/kept call))
+    ((background queue) (sent-or-kept queue call))))
+
+(type sent-or-kept
+  (fn ((ref listing-queue) mail-call) hand-off))
+
+(defn sent-or-kept (queue call)
+  (if (worker-listing? (ref (:command call)))
+    (kept-on-failure (enqueue! queue call))
+    (hand-off/kept call)))
+
+(defn kept-on-failure (sent)
+  (match sent
+    ((ok _) hand-off/handed)
+    ((err call) (hand-off/kept call))))
 
 (def enqueue!
-  (rust "{0}.send({1}.to_string()).is_ok()"
-    (fn ((ref listing-queue) (ref str))
-      bool)))
+  (rust "{0}.send({1}).map_err(|{!refused}| {!refused}.0)"
+    (fn ((ref listing-queue) mail-call)
+      (result unit mail-call))))
 
 (defenum reply-sink
   (outbox reply-outbox)
@@ -38,17 +67,3 @@
     ((collected replies)
      (with-shared! replies
        (fn (held) (push! held reply))))))
-
-(defn listing-request? (command request)
-  (or (= command "thread-page")
-      (= command "archive-older")
-      (and (= command "threads")
-           (gmail-listing? (ref (request-arguments request))))))
-
-(defn gmail-listing? (arguments)
-  (or (match (string-field arguments "query")
-        ((ok query) (not (empty? query)))
-        (_ false))
-      (match (bool-field arguments "fresh")
-        ((ok fresh) fresh)
-        (_ false))))

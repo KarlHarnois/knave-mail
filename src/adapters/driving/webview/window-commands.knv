@@ -1,42 +1,30 @@
-(use adapters/driving/json/envelope request-arguments
-                                    request-id
-                                    success-reply)
-
-(use adapters/json/value bool-field empty-object json-value
-                         string-field)
+(use adapters/driving/json/envelope success-reply)
 
 (use adapters/driving/webview/window close-window
                                      reply-outbox send-reply
                                      zoom-window)
 
-(export empty-object finish-e2e report-e2e-line zoom-to)
+(use adapters/driving/webview/window-request e2e-outcome)
+(use adapters/json/value empty-object json-value)
 
-(defn report-e2e-line (request)
-  (match (string-field (ref (request-arguments request)) "line")
-    ((ok line) (println line))
-    ((err problem) (eprintln problem))))
-
-(defn finish-e2e (request outbox)
-  (close-window outbox
-                (match (bool-field (ref (request-arguments request)) "passed")
-                  ((ok true) 0)
-                  (_ 1))))
-
-(defn zoom-to (request outbox)
-  (zoom-window outbox
-               (zoom-level (ref (request-arguments request))))
-  (send-reply outbox
-              (success-reply (ref (request-id request))
-                             (ref (empty-object)))))
+(export finish-e2e zoom-to)
 
 (def smallest-zoom 0.5)
 
 (def largest-zoom 3.0)
 
-(defn zoom-level (arguments)
-  (max smallest-zoom
-       (min largest-zoom (requested-zoom arguments))))
+(defn finish-e2e (outcome outbox)
+  (close-window outbox (exit-code-of outcome)))
 
-(def requested-zoom
-  (rust "{0}.get(\"level\").and_then(serde_json::Value::as_f64).unwrap_or(1.0)"
-    (fn ((ref json-value)) f64)))
+(defn exit-code-of (outcome)
+  (match outcome (passed 0) (failed 1)))
+
+(type zoom-to
+  (fn ((ref json-value) f64 (ref reply-outbox))
+    unit))
+
+(defn zoom-to (id level outbox)
+  (zoom-window outbox
+               (max smallest-zoom (min largest-zoom level)))
+  (send-reply outbox
+              (success-reply id (ref (empty-object)))))

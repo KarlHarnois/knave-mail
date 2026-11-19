@@ -19,7 +19,8 @@
 (use domain/mail-error mail-error)
 (use domain/reply draft-kind)
 
-(export json->mail-command mail-command)
+(export ->mail-call json->mail-command mail-call
+        mail-command worker-listing?)
 
 (defenum mail-command
   list-accounts
@@ -38,6 +39,26 @@
   (relabel :account string
            :thread-ids (vec string)
            :change label-change))
+
+(defstruct mail-call
+  :id json-value
+  :name string
+  :command mail-command)
+
+(defn worker-listing? (command)
+  (match command
+    ((list-page _ _ _) true)
+    ((archive-older _ _) true)
+    ((list-threads _ query freshness)
+     (gmail-listing? query freshness))
+    (_ false)))
+
+(defn gmail-listing? (query freshness)
+  (or (not (empty? (:query query)))
+      (fresh? freshness)))
+
+(defn fresh? (freshness)
+  (match freshness (fresh true) (cached false)))
 
 (type json->mail-command
   (fn ((ref str) (ref json-value))

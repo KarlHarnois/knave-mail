@@ -6,8 +6,12 @@
                                    with-shared!)
 
 (use adapters/json/value parse-json)
+(use adapters/driving/json/commands json->mail-call)
 
-(use adapters/driving/webview/listing-runner listing-request?
+(use adapters/driving/json/mail-command mail-call
+                                        worker-listing?)
+
+(use adapters/driving/webview/listing-runner call-inbox
                                              reply-sink)
 
 (use domain/label-commands label-command?)
@@ -16,7 +20,6 @@
                                              refuse-listings!)
 
 (use domain/mail-error mail-error)
-(use adapters/driving/webview/window request-inbox)
 (use ports/driven/event-log event-log)
 (use support/app-steps synced!)
 (use support/log-lines mentions?)
@@ -27,9 +30,17 @@
 (defn collected-of (held)
   (reply-sink/collected (handle (ref held))))
 
-(def inbox-holding
-  (rust "{{ let ({!sender}, {!inbox}) = std::sync::mpsc::channel::<String>(); for {!request} in {0}.iter() {{ {!sender}.send({!request}.clone()).expect(\"the inbox is open\"); }} {!inbox} }}"
-    (fn ((ref (vec string))) request-inbox)))
+(defn call-of (request-text)
+  (unwrap-ok (json->mail-call (ref (unwrap-ok (parse-json request-text))))))
+
+(defn inbox-holding (request-texts)
+  (calls-inbox (-> (iter request-texts)
+                   (map (fn (text) (call-of (as-str text))))
+                   collect)))
+
+(def calls-inbox
+  (rust "{{ let ({!sender}, {!inbox}) = std::sync::mpsc::channel(); for {!call} in {0} {{ {!sender}.send({!call}).expect(\"the inbox is open\"); }} {!inbox} }}"
+    (fn ((vec mail-call)) call-inbox)))
 
 (def inbox-page
   "{\"id\":7,\"command\":\"thread-page\",\"args\":{\"account\":\"ada@example.com\",\"label\":\"INBOX\",\"query\":\"\",\"limit\":10,\"pageToken\":\"\"}}")
@@ -38,27 +49,38 @@
   (remote-with (vec (sample-thread "t-1" (vec "INBOX") 100))))
 
 (defn to-worker? (command arguments)
-  (listing-request? command
-                    (ref (unwrap-ok (parse-json (ref (str "{\"command\":\""
-                                                          command
-                                                          "\",\"args\":"
-                                                          arguments
-                                                          "}")))))))
+  (worker-listing? (ref (:command (call-of (as-str (ref (str "{\"id\":1,\"command\":\""
+                                                             command
+                                                             "\",\"args\":"
+                                                             arguments
+                                                             "}"))))))))
+
+(def listed-inbox
+  "{\"account\":\"ada@example.com\",\"label\":\"INBOX\",\"limit\":10")
 
 (deftest label-commands-are-queued-on-the-window-loop
-  (assert (not (to-worker? "archive" "{}")))
+  (assert (not (to-worker?
+                 "archive"
+                 "{\"account\":\"ada@example.com\",\"threadIds\":[]}")))
   (assert (label-command? "archive"))
   (assert (label-command? "mark-unread")))
 
 (deftest gmail-listings-go-to-the-worker
-  (assert (to-worker? "thread-page" "{}"))
-  (assert (to-worker? "threads" "{\"query\":\"invoice\"}"))
-  (assert (to-worker? "threads" "{\"query\":\"\",\"fresh\":true}")))
+  (assert (to-worker? "thread-page"
+                      (str listed-inbox ",\"query\":\"\"}")))
+  (assert (to-worker? "threads"
+                      (str listed-inbox ",\"query\":\"invoice\"}")))
+  (assert (to-worker? "threads"
+                      (str listed-inbox ",\"query\":\"\",\"fresh\":true}"))))
 
 (deftest cache-reads-stay-on-the-window-loop
-  (assert (not (to-worker? "threads" "{\"query\":\"\",\"fresh\":false}")))
-  (assert (not (to-worker? "threads" "{\"query\":\"\"}")))
-  (assert (not (to-worker? "thread" "{}")))
+  (assert (not (to-worker? "threads"
+                           (str listed-inbox
+                                ",\"query\":\"\",\"fresh\":false}"))))
+  (assert (not (to-worker? "threads" (str listed-inbox ",\"query\":\"\"}"))))
+  (assert (not (to-worker?
+                 "thread"
+                 "{\"account\":\"ada@example.com\",\"threadId\":\"t-1\"}")))
   (assert (not (to-worker? "accounts" "{}"))))
 
 (deftest the-worker-answers-a-gmail-listing

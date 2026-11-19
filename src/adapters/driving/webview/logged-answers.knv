@@ -1,81 +1,74 @@
-(use app/mail-app mail-app)
-(use adapters/driving/webview/window-client answer-request!)
+(use adapters/driving/json/commands reply-for run-command!)
+(use adapters/driving/json/envelope failure-reply)
+(use adapters/driving/json/mail-command mail-call)
+(use adapters/json/value json-value)
 
-(use adapters/driving/webview/listing-runner deliver-reply!
+(use adapters/driving/webview/listing-runner call-inbox
+                                             deliver-reply!
+                                             next-call
                                              reply-sink)
 
-(use adapters/driving/webview/request-log clock-milliseconds
-                                          reply-error)
-
-(use adapters/driving/webview/window next-request
-                                     request-inbox)
-
-(use adapters/driving/json/envelope failure-reply null-id
-                                    request-id)
-
-(use adapters/json/value parse-json string-field)
-(use domain/mail-error mail-error)
+(use adapters/clock clock-milliseconds)
+(use app/client/account-book list-accounts!)
+(use app/mail-app mail-app)
+(use domain/mail-error error-kind error-message mail-error)
 (use domain/results unwrap-ok-or)
 (use ports/driven/event-log event-log log-debug log-warn)
-(use app/client/account-book list-accounts!)
 
 (export answer-listings! answered-and-logged!
         refuse-listings!)
 
-(def unnamed-request "request")
-
-(defn answer-listings! (client log inbox sink)
+(defn answer-listings! (app log inbox sink)
   (log-debug log "window"
              (str "listing worker ready for "
-                  (len (unwrap-ok-or (list-accounts! client) (vec)))
+                  (len (unwrap-ok-or (list-accounts! app) (vec)))
                   " accounts"))
-  (answer-queued-listings! client log inbox sink))
+  (answer-queued-listings! app log inbox sink))
 
-(defn answer-queued-listings! (client log inbox sink)
-  (match (next-request inbox)
-    ((some request)
+(defn answer-queued-listings! (app log inbox sink)
+  (match (next-call inbox)
+    ((some call)
      (deliver-reply! sink
-                     (answered-and-logged! client log
-                                           (ref request)
-                                           (ref (command-of (as-str request)))))
-     (recur client log inbox sink))
+                     (answered-and-logged! app log (ref call)))
+     (recur app log inbox sink))
     (none (do))))
 
 (defn refuse-listings! (failure inbox sink)
-  (match (next-request inbox)
-    ((some request)
+  (match (next-call inbox)
+    ((some call)
      (deliver-reply! sink
-                     (failure-reply (ref (id-of (as-str request)))
-                                    failure))
+                     (failure-reply (ref (:id call)) failure))
      (recur failure inbox sink))
     (none (do))))
-
-(defn id-of (request-text)
-  (match (parse-json request-text)
-    ((ok request) (request-id (ref request)))
-    ((err _) (null-id))))
-
-(defn command-of (request-text)
-  (match (parse-json request-text)
-    ((ok request)
-     (unwrap-ok-or (string-field (ref request) "command")
-                   (str unnamed-request)))
-    ((err _) (str unnamed-request))))
 
 (type answered-and-logged!
   (fn ((mut mail-app)
        (ref event-log)
-       (ref str)
-       (ref str))
+       (ref mail-call))
     string))
 
-(defn answered-and-logged! (client log request-text command)
+(defn answered-and-logged! (app log call)
   (let (started (clock-milliseconds)
-        reply (answer-request! client request-text)
+        outcome (run-command! app (ref (:command call)))
         elapsed (- (clock-milliseconds) started))
-    (match (reply-error (ref reply))
-      ((some problem)
-       (log-warn log "window"
-                 (str command " failed after " elapsed "ms: " problem)))
-      (none (log-debug log "window" (str command " " elapsed "ms"))))
-    reply))
+    (log-answer log call (ref outcome) elapsed)
+    (reply-for call outcome)))
+
+(type log-answer
+  (fn ((ref event-log)
+       (ref mail-call)
+       (ref (result json-value mail-error))
+       u64)
+    unit))
+
+(defn log-answer (log call outcome elapsed)
+  (match outcome
+    ((ok _)
+     (log-debug log "window" (str (:name call) " " elapsed "ms")))
+    ((err failure)
+     (log-warn log "window"
+               (str (:name call)
+                    " failed after " elapsed "ms: "
+                    (error-kind failure)
+                    ": "
+                    (error-message failure))))))

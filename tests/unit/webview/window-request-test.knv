@@ -1,0 +1,29 @@
+(use adapters/driving/json/envelope failure-reply)
+
+(use adapters/driving/webview/window-request text->window-request
+                                             window-request)
+
+(defn refusal-of (request-text)
+  (match (text->window-request request-text)
+    ((refused id failure)
+     (failure-reply (ref id) (ref failure)))
+    (_ (str "not refused"))))
+
+(def sync-without-account
+  "{\"id\":4,\"command\":\"sync\",\"args\":{}}")
+
+(deftest a-sync-without-an-account-keeps-the-request-id
+  (assert (contains? (ref (refusal-of sync-without-account))
+                     "\"id\":4")))
+
+(deftest a-sync-without-an-account-is-a-usage-error
+  (assert (contains? (ref (refusal-of sync-without-account))
+                     "\"kind\":\"usage\"")))
+
+(deftest an-unknown-command-is-refused-with-its-id
+  (assert (contains? (ref (refusal-of "{\"id\":9,\"command\":\"explode\",\"args\":{\"account\":\"a\",\"threadIds\":[]}}"))
+                     "unknown command `explode`")))
+
+(deftest text-that-is-not-json-is-refused
+  (assert (contains? (ref (refusal-of "not json"))
+                     "\"kind\":\"usage\"")))

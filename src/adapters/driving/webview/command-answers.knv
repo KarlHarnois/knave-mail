@@ -1,15 +1,13 @@
 (use adapters/driving/json/envelope queue-event
-                                    request-arguments
-                                    request-id
                                     success-reply)
+
+(use adapters/driving/json/mail-command mail-call)
 
 (use adapters/driving/webview/change-delivery change-delivery
                                               changes-queued!)
 
 (use adapters/driving/webview/logged-answers answered-and-logged!)
-
-(use adapters/driving/webview/sync-requests missing-account-reply
-                                            sync-event)
+(use adapters/driving/webview/sync-requests sync-event)
 
 (use adapters/driving/webview/sync-runner start-sync!
                                           sync-runner)
@@ -20,8 +18,7 @@
 (use adapters/driving/webview/window-client sync-mail!
                                             waiting-changes-of)
 
-(use adapters/driving/webview/window-commands empty-object)
-(use adapters/json/value json-value string-field)
+(use adapters/json/value empty-object json-value)
 (use app/mail-app mail-app)
 (use ports/driven/event-log event-log)
 
@@ -31,39 +28,28 @@
   (fn ((mut mail-app)
        (ref change-delivery)
        (ref event-log)
+       (ref mail-call)
        (ref str)
-       (ref str)
-       (ref json-value)
        (ref reply-outbox))
     unit))
 
-(defn answer-relabel! (app delivery log request-text command request outbox)
-  (send-reply outbox
-              (answered-and-logged! app log request-text command))
+(defn answer-relabel! (app delivery log call account outbox)
+  (send-reply outbox (answered-and-logged! app log call))
   (changes-queued! delivery)
-  (match (string-field (ref (request-arguments request)) "account")
-    ((ok account)
-     (send-reply outbox
-                 (queue-event (ref account)
-                              (waiting-changes-of app (ref account)))))
-    ((err _) (do))))
+  (send-reply outbox
+              (queue-event account (waiting-changes-of app account))))
 
 (type start-requested-sync!
   (fn ((mut mail-app)
        (ref sync-runner)
        (ref json-value)
+       (ref str)
        (ref reply-outbox))
     unit))
 
-(defn start-requested-sync! (app runner request outbox)
-  (match (string-field (ref (request-arguments request)) "account")
-    ((ok account)
-     (send-reply outbox
-                 (success-reply (ref (request-id request))
-                                (ref (empty-object))))
-     (when (not (start-sync! runner (ref account) outbox))
-       (send-reply outbox
-                   (sync-event (sync-mail! app (ref account))
-                               (ref account)))))
-    ((err _)
-     (send-reply outbox (missing-account-reply request)))))
+(defn start-requested-sync! (app runner id account outbox)
+  (send-reply outbox
+              (success-reply id (ref (empty-object))))
+  (when (not (start-sync! runner account outbox))
+    (send-reply outbox
+                (sync-event (sync-mail! app account) account))))

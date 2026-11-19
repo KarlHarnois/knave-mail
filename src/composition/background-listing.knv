@@ -1,4 +1,5 @@
-(use adapters/driving/webview/listing-runner listing-queue
+(use adapters/driving/webview/listing-runner call-inbox
+                                             listing-queue
                                              listing-runner
                                              reply-sink)
 
@@ -57,7 +58,7 @@
                          (ref (reply-sink/outbox outbox)))))))
 
 (def spawn-worker
-  (rust "{{ let ({!queue}, {!inbox}) = std::sync::mpsc::channel::<String>(); let {!outbox} = {0}.clone(); let {!job} = {1}; std::thread::spawn(move || {!job}({!inbox}, {!outbox})); {!queue} }}"
+  (rust "{{ let ({!queue}, {!inbox}) = std::sync::mpsc::channel::<crate::adapters::driving::json::mail_command::MailCall>(); let {!outbox} = {0}.clone(); let {!job} = {1}; std::thread::spawn(move || {!job}({!inbox}, {!outbox})); {!queue} }}"
     (fn ((ref reply-outbox)
-         (fn-once (request-inbox reply-outbox) unit))
+         (fn-once (call-inbox reply-outbox) unit))
       listing-queue)))

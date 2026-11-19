@@ -4,7 +4,6 @@
                                        same-log)
 
 (use adapters/driving/webview/link-requests open-requested-link!)
-(use adapters/json/value parse-json)
 (use ports/driven/event-log event-log)
 (use adapters/driven/memory/shared shared)
 (use support/log-lines mentions-none? mentions?)
@@ -20,11 +19,9 @@
     unit))
 
 (defn open-through! (browser log url)
-  (let (request-text (str "{\"id\":1,\"command\":\"open-link\",\"args\":{\"url\":\""
-                          url "\"}}"))
-    (open-requested-link! (ref (recording-opener browser))
-                          (ref (event-log/memory (same-log log)))
-                          (ref (unwrap-ok (parse-json (as-str (ref request-text))))))))
+  (open-requested-link! (ref (recording-opener browser))
+                        (ref (event-log/memory (same-log log)))
+                        url))
 
 (deftest an-https-link-opens-in-the-browser
   (let (browser (new-recording-browser)

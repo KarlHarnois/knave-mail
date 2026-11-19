@@ -3,7 +3,9 @@
                                     request-id
                                     success-reply)
 
-(use adapters/driving/json/mail-command json->mail-command
+(use adapters/driving/json/mail-command ->mail-call
+                                        json->mail-command
+                                        mail-call
                                         mail-command)
 
 (use adapters/driving/json/mail-json accounts-json
@@ -29,49 +31,57 @@
 (use app/mail-app mail-app)
 (use domain/mail-error mail-error)
 
-(export answer! answer-command! request->mail-command)
+(export answer! json->mail-call reply-for run-command!)
 
 (type answer!
   (fn ((mut mail-app) (ref str)) string))
 
 (defn answer! (app request-text)
   (match (parse-json request-text)
-    ((ok request)
-     (answer-command! app
-                      (ref (request-id (ref request)))
-                      (request->mail-command (ref request))))
+    ((ok request) (answer-request! app (ref request)))
     ((err problem)
      (failure-reply (ref (null-id))
                     (ref (mail-error/usage problem))))))
 
-(type request->mail-command
-  (fn ((ref json-value))
-    (result mail-command mail-error)))
-
-(defn request->mail-command (request)
-  (match (string-field request "command")
-    ((ok name)
-     (json->mail-command (as-str name)
-                         (ref (request-arguments request))))
-    ((err problem) (err (mail-error/usage problem)))))
-
-(type answer-command!
-  (fn ((mut mail-app)
-       (ref json-value)
-       (result mail-command mail-error))
+(type answer-request!
+  (fn ((mut mail-app) (ref json-value))
     string))
 
-(defn answer-command! (app id parsed)
-  (match (outcome-of! app parsed)
-    ((ok value) (success-reply id (ref value)))
-    ((err failure) (failure-reply id (ref failure)))))
+(defn answer-request! (app request)
+  (match (json->mail-call request)
+    ((ok call)
+     (reply-for (ref call)
+                (run-command! app (ref (:command call)))))
+    ((err failure)
+     (failure-reply (ref (request-id request))
+                    (ref failure)))))
 
-(type outcome-of!
-  (fn ((mut mail-app) (result mail-command mail-error))
-    (result json-value mail-error)))
+(type json->mail-call
+  (fn ((ref json-value))
+    (result mail-call mail-error)))
 
-(defn outcome-of! (app parsed)
-  (run-command! app (ref (try parsed))))
+(defn json->mail-call (request)
+  (let (name (try (text-error->usage-error (string-field request "command"))))
+    (ok (->mail-call :id (request-id request)
+                     :command (try (json->mail-command (as-str (ref name))
+                                                       (ref (request-arguments
+                                                              request))))
+                     :name name))))
+
+(defn text-error->usage-error (outcome)
+  (map-err outcome
+    (fn (problem) (mail-error/usage problem))))
+
+(type reply-for
+  (fn ((ref mail-call) (result json-value mail-error))
+    string))
+
+(defn reply-for (call outcome)
+  (match outcome
+    ((ok value) (success-reply (ref (:id call)) (ref value)))
+    ((err failure)
+     (failure-reply (ref (:id call))
+                    (ref failure)))))
 
 (type run-command!
   (fn ((mut mail-app) (ref mail-command))

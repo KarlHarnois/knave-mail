@@ -1,6 +1,3 @@
-(use adapters/driving/json/envelope request-arguments)
-(use adapters/json/value json-value string-field)
-(use domain/results unwrap-ok-or)
 (use domain/web-link web-link-host)
 (use ports/driven/event-log event-log log-info log-warn)
 (use ports/driven/link-opener link-opener open-link!)
@@ -12,17 +9,14 @@
 (type open-requested-link!
   (fn ((ref link-opener)
        (ref event-log)
-       (ref json-value))
+       (ref str))
     unit))
 
-(defn open-requested-link! (opener log request)
-  (let (url (unwrap-ok-or (string-field (ref (request-arguments request)) "url")
-                          (str "")))
-    (match (web-link-host (ref url))
-      ((some host)
-       (do
-         (open-link! opener (ref url))
-         (log-info log area (str "opened link to " host))))
-      (none (log-warn log area
-                      (str
-                        "refused to open a link that is not http or https"))))))
+(defn open-requested-link! (opener log url)
+  (match (web-link-host url)
+    ((some host)
+     (do
+       (open-link! opener url)
+       (log-info log area (str "opened link to " host))))
+    (none (log-warn log area
+                    (str "refused to open a link that is not http or https")))))

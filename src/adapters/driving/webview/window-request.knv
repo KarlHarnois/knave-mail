@@ -1,0 +1,105 @@
+(use adapters/driving/json/commands json->mail-call)
+
+(use adapters/driving/json/envelope null-id
+                                    request-arguments
+                                    request-id)
+
+(use adapters/driving/json/mail-command mail-call)
+
+(use adapters/json/value bool-field json-value parse-json
+                         string-field)
+
+(use domain/log-entry ->log-entry log-entry log-level)
+(use domain/mail-error mail-error)
+(use domain/results unwrap-ok-or)
+
+(export e2e-outcome text->window-request window-request)
+
+(defenum e2e-outcome
+  passed
+  failed)
+
+(defenum window-request
+  (sync-account :id json-value :account string)
+  (e2e-report string)
+  (e2e-problem string)
+  (e2e-finish e2e-outcome)
+  (zoom :id json-value :level f64)
+  (frontend-log log-entry)
+  (open-link string)
+  (mail mail-call)
+  (refused :id json-value :failure mail-error))
+
+(type text->window-request
+  (fn ((ref str)) window-request))
+
+(defn text->window-request (text)
+  (match (parse-json text)
+    ((ok request) (json->window-request (ref request)))
+    ((err problem)
+     (window-request/refused :id (null-id)
+                             :failure (mail-error/usage problem)))))
+
+(type json->window-request
+  (fn ((ref json-value)) window-request))
+
+(defn json->window-request (request)
+  (let (arguments (request-arguments request))
+    (match (unwrap-ok-or (string-field request "command") (str ""))
+      ("sync" (sync-request request (ref arguments)))
+      ("e2e-report" (e2e-line (ref arguments)))
+      ("e2e-finish"
+       (window-request/e2e-finish (e2e-outcome-of (ref arguments))))
+      ("zoom"
+       (window-request/zoom :id (request-id request)
+                            :level (requested-zoom (ref arguments))))
+      ("log"
+       (window-request/frontend-log (frontend-entry (ref arguments))))
+      ("open-link"
+       (window-request/open-link (unwrap-ok-or (string-field (ref arguments)
+                                                             "url")
+                                               (str ""))))
+      (_ (mail-request request)))))
+
+(defn sync-request (request arguments)
+  (match (string-field arguments "account")
+    ((ok account)
+     (window-request/sync-account :id (request-id request)
+                                  :account account))
+    ((err _)
+     (window-request/refused :id (request-id request)
+                             :failure (mail-error/usage (str "sync needs an account"))))))
+
+(defn e2e-line (arguments)
+  (match (string-field arguments "line")
+    ((ok line) (window-request/e2e-report line))
+    ((err problem) (window-request/e2e-problem problem))))
+
+(defn e2e-outcome-of (arguments)
+  (match (bool-field arguments "passed")
+    ((ok true) e2e-outcome/passed)
+    (_ e2e-outcome/failed)))
+
+(def requested-zoom
+  (rust "{0}.get(\"level\").and_then(serde_json::Value::as_f64).unwrap_or(1.0)"
+    (fn ((ref json-value)) f64)))
+
+(defn frontend-entry (arguments)
+  (->log-entry (level-named (ref (unwrap-ok-or (string-field arguments "level")
+                                               (str "info"))))
+               (str "frontend")
+               (unwrap-ok-or (string-field arguments "message") (str ""))))
+
+(defn level-named (name)
+  (match name
+    ("error" log-level/error)
+    ("warn" log-level/warn)
+    ("debug" log-level/debug)
+    (_ log-level/info)))
+
+(defn mail-request (request)
+  (match (json->mail-call request)
+    ((ok call) (window-request/mail call))
+    ((err failure)
+     (window-request/refused :id (request-id request)
+                             :failure failure))))
