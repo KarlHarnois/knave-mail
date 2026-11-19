@@ -1,0 +1,73 @@
+(export milliseconds->utc-timestamp)
+
+(def milliseconds-per-second 1000)
+
+(def seconds-per-day 86400)
+
+(def days-per-era 146097)
+
+(def unix-epoch-shift 719468)
+
+(defstruct civil-date
+  :year int
+  :month int
+  :day int)
+
+(type milliseconds->utc-timestamp (fn (int) string))
+
+(defn milliseconds->utc-timestamp (milliseconds)
+  (let (seconds (div-euclid milliseconds milliseconds-per-second)
+        date (unix-days->civil-date (div-euclid seconds seconds-per-day))
+        of-day (rem-euclid seconds seconds-per-day))
+    (str (padded (:year date) 4)
+         "-"
+         (padded (:month date) 2)
+         "-"
+         (padded (:day date) 2)
+         "T"
+         (padded (/ of-day 3600) 2)
+         ":"
+         (padded (rem (/ of-day 60) 60) 2)
+         ":"
+         (padded (rem of-day 60) 2)
+         "."
+         (padded (rem-euclid milliseconds milliseconds-per-second) 3)
+         "Z")))
+
+(type unix-days->civil-date (fn (int) civil-date))
+
+(defn unix-days->civil-date (days)
+  (let (shifted (+ days unix-epoch-shift)
+        era (div-euclid shifted days-per-era)
+        day-of-era (- shifted (* era days-per-era))
+        year-of-era (/ (- day-of-era
+                          (/ day-of-era 1460)
+                          (- (/ day-of-era 36524))
+                          (/ day-of-era 146096))
+                       365)
+        day-of-year (- day-of-era
+                       (- (+ (* 365 year-of-era) (/ year-of-era 4))
+                          (/ year-of-era 100)))
+        shifted-month (/ (+ (* 5 day-of-year) 2) 153)
+        month (month-from-shifted shifted-month))
+    (->civil-date :year (+ year-of-era
+                           (* era 400)
+                           (if (<= month 2) 1 0))
+                  :month month
+                  :day (inc (- day-of-year
+                               (/ (+ (* 153 shifted-month) 2) 5))))))
+
+(defn month-from-shifted (shifted-month)
+  (if (< shifted-month 10)
+    (+ shifted-month 3)
+    (- shifted-month 9)))
+
+(def padded
+  (rust "format!(\"{{:0width$}}\", {0}, width = {1})"
+    (fn (int usize) string)))
+
+(def div-euclid
+  (rust "{0}.div_euclid({1})" (fn (int int) int)))
+
+(def rem-euclid
+  (rust "{0}.rem_euclid({1})" (fn (int int) int)))

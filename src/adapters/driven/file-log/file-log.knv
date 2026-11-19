@@ -1,9 +1,12 @@
+(use domain/timestamp milliseconds->utc-timestamp)
+(use ports/driven/clock clock now-milliseconds share-clock)
 (use domain/level-spec allows? level-spec)
 
 (use domain/log-entry log-area->name log-entry log-level
                       log-level->name)
 
-(export file-log open-file-log written-to-file!)
+(export file-log open-file-log share-file-log
+        written-to-file!)
 
 (def rotate-above-bytes 5000000)
 
@@ -11,14 +14,23 @@
 
 (defstruct file-log
   :path string
-  :levels level-spec)
+  :levels level-spec
+  :clock clock)
 
 (type open-file-log
-  (fn ((ref str) level-spec) file-log))
+  (fn ((ref str) level-spec clock) file-log))
 
-(defn open-file-log (path levels)
+(defn open-file-log (path levels chosen)
   (rotate-when-large path rotate-above-bytes kept-old-files)
-  (->file-log :path (str path) :levels levels))
+  (->file-log :path (str path) :levels levels :clock chosen))
+
+(type share-file-log
+  (fn ((ref file-log)) file-log))
+
+(defn share-file-log (log)
+  (->file-log :path (clone (:path log))
+              :levels (clone (:levels log))
+              :clock (share-clock (ref (:clock log)))))
 
 (type written-to-file!
   (fn ((ref file-log) (ref log-entry))
@@ -27,10 +39,11 @@
 (defn written-to-file! (log entry)
   (when (allows? (ref (:levels log)) entry)
     (append-line (ref (:path log))
-                 (ref (log-line entry)))))
+                 (ref (log-line entry
+                                (now-milliseconds (ref (:clock log))))))))
 
-(defn log-line (entry)
-  (str (utc-timestamp)
+(defn log-line (entry now)
+  (str (milliseconds->utc-timestamp now)
        " "
        (padded (level-name (ref (:level entry)))
                5)
@@ -56,9 +69,6 @@
 (def one-line
   (rust "{0}.replace('\\n', \"\\\\n\").replace('\\r', \"\")"
     (fn ((ref str)) string)))
-
-(def utc-timestamp
-  (rust "native::dates::utc_timestamp()" (fn () string)))
 
 (def append-line
   (rust "{{ use std::io::Write; let _ = std::fs::OpenOptions::new().create(true).append(true).open({0}).and_then(|mut {!file}| {!file}.write_all({1}.as_bytes())); }}"

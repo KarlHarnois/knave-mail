@@ -1,9 +1,6 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use crate::calendar::CivilDate;
 
 const MILLISECONDS_PER_DAY: i64 = 86_400_000;
-const SECONDS_PER_DAY: i64 = 86_400;
 const MINUTES_PER_DAY: i64 = 1_440;
 const MILLISECONDS_PER_MINUTE: i64 = 60_000;
 const BEFORE_OPERATOR: &str = "before:";
@@ -59,25 +56,6 @@ pub fn gmail_date(text: &str) -> Option<String> {
 
 fn is_number(text: &str) -> bool {
     !text.is_empty() && text.chars().all(|character| character.is_ascii_digit())
-}
-
-pub fn utc_timestamp() -> String {
-    let elapsed = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default();
-    let seconds = elapsed.as_secs() as i64;
-    let date = CivilDate::from_unix_days(seconds.div_euclid(SECONDS_PER_DAY));
-    let clock = seconds.rem_euclid(SECONDS_PER_DAY);
-    format!(
-        "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:03}Z",
-        date.year,
-        date.month,
-        date.day,
-        clock / 3600,
-        clock % 3600 / 60,
-        clock % 60,
-        elapsed.subsec_millis()
-    )
 }
 
 pub fn date_text(milliseconds: i64) -> String {

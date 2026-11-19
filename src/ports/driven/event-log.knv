@@ -1,4 +1,5 @@
 (use adapters/driven/file-log/file-log file-log
+                                       share-file-log
                                        written-to-file!)
 
 (use adapters/driven/memory/memory-log memory-log same-log
@@ -28,7 +29,7 @@
 
 (defn share-log (log)
   (match log
-    ((file held) (event-log/file (clone held)))
+    ((file held) (event-log/file (share-file-log held)))
     ((memory held) (event-log/memory (same-log held)))))
 
 (type log-error

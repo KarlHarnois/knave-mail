@@ -1,9 +1,11 @@
 (use adapters/driven/file-log/file-log open-file-log)
 (use composition/settings settings)
+(use ports/driven/clock clock)
 (use ports/driven/event-log event-log)
 
 (export chosen-log)
 
 (defn chosen-log (chosen)
   (event-log/file (open-file-log (ref (:log-path chosen))
-                                 (clone (:log-levels chosen)))))
+                                 (clone (:log-levels chosen))
+                                 clock/system)))
