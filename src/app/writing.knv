@@ -4,7 +4,7 @@
 (use app/mail-app delivery mail-app)
 (use domain/labels label-change)
 (use domain/mail ->message-ref draft message)
-(use domain/outgoing new-outgoing reply-outgoing)
+(use domain/outgoing draft->outgoing)
 (use domain/reply draft-for draft-kind)
 (use app/caching cache-thread!)
 (use domain/mail-error mail-error)
@@ -30,15 +30,23 @@
     (result unit mail-error)))
 
 (defn send! (app account written)
-  (let (outgoing (match (ref (:reply-to written))
-                   ((some message-id)
-                    (reply-outgoing
-                      written account
-                      (ref (try (stored-message app account message-id)))))
-                   (none (new-outgoing written account)))
+  (let (original (try (replied-message app account (ref (:reply-to written))))
+        outgoing (draft->outgoing written account original)
         thread-id (try (delivered! app account (ref outgoing))))
     (remember-sent! app account (ref thread-id))
     (ok (do))))
+
+(type replied-message
+  (fn ((ref mail-app)
+       (ref str)
+       (ref (option string)))
+    (result (option message) mail-error)))
+
+(defn replied-message (app account reply-to)
+  (match reply-to
+    ((some message-id)
+     (map-ok (stored-message app account message-id) some))
+    (none (ok none))))
 
 (type remember-sent!
   (fn ((mut mail-app) (ref str) (ref str))

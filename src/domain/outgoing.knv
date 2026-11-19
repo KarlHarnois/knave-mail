@@ -1,6 +1,15 @@
 (use domain/mail ->outgoing draft message outgoing)
 
-(export new-outgoing reply-outgoing)
+(export draft->outgoing)
+
+(type draft->outgoing
+  (fn ((ref draft) (ref str) (option message))
+    outgoing))
+
+(defn draft->outgoing (written from original)
+  (match original
+    ((some replied) (reply-outgoing written from (ref replied)))
+    (none (new-outgoing written from))))
 
 (type new-outgoing
   (fn ((ref draft) (ref str)) outgoing))
