@@ -1,6 +1,6 @@
 (use adapters/driven/memory/remote-operation remote-operation)
 (use domain/label-scope label-scope)
-(use domain/freshness freshness)
+(use domain/freshness ->listing-request freshness)
 (use domain/mail ->thread-query)
 (use app/client/mail-reader list-threads! open-thread!)
 
@@ -73,8 +73,9 @@
                              (ref (ada-thread "t-1"))))
     (assert (= (:labels (at (unwrap-ok (list-threads! (mut app)
                                                       world-account
-                                                      (ref (inbox-query))
-                                                      freshness/cached))
+                                                      (ref (->listing-request
+                                                             :threads (inbox-query)
+                                                             :freshness freshness/cached))))
                             1))
                (vec (str "INBOX"))))))
 
@@ -99,13 +100,15 @@
   (let (world (remote)
         app (app-over (ref world)))
     (fail-remote! (ref world) remote-operation/list-thread-ids)
-    (assert (= (failing-kind
-                 (list-threads!
-                   (mut app)
-                   world-account
-                   (ref (->thread-query label-scope/all-mail (str "t") 50))
-                   freshness/cached))
-               "network"))))
+    (assert
+      (= (failing-kind
+           (list-threads!
+             (mut app)
+             world-account
+             (ref (->listing-request
+                    :threads (->thread-query label-scope/all-mail (str "t") 50)
+                    :freshness freshness/cached))))
+         "network"))))
 
 (deftest a-label-lists-only-its-threads
   (let (world (remote)

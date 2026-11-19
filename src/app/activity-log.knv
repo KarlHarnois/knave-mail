@@ -7,7 +7,8 @@
 (use ports/driven/event-log event-log log-debug log-info
                             log-warn)
 
-(export log-changes! log-first-listed! log-full-sync-done!
+(export ->label-restored label-restored log-changes!
+        log-first-listed! log-full-sync-done!
         log-full-sync-started! log-history-expired!
         log-incremental-sync-started! log-label-restored!
         log-preview!)
@@ -28,13 +29,24 @@
                      collect
                      (join " ")))))
 
-(defn log-label-restored! (log account label thread-ids)
+(defstruct label-restored
+  :label string
+  :thread-ids (vec string))
+
+(type log-label-restored!
+  (fn ((ref event-log)
+       (ref str)
+       (ref label-restored))
+    unit))
+
+(defn log-label-restored! (log account restored)
   (log-info log log-area/sync
             (str account ": a Gmail listing has "
-                 (len thread-ids)
-                 " threads under " label
+                 (len (:thread-ids restored))
+                 " threads under "
+                 (:label restored)
                  " that the cache held without it: "
-                 (join thread-ids " "))))
+                 (join (:thread-ids restored) " "))))
 
 (defn log-incremental-sync-started! (log account since)
   (log-info log log-area/sync

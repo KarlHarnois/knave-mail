@@ -1,5 +1,5 @@
 (use domain/queued-relabel ->relabel-request)
-(use domain/freshness freshness)
+(use domain/freshness ->listing-request freshness)
 (use domain/mail thread-summary)
 (use domain/summary summarize)
 (use app/client/mail-reader list-threads!)
@@ -75,8 +75,9 @@
                                                                           100)))))))))
     (unwrap-ok (list-threads! (mut app)
                               world-account
-                              (ref (inbox-query))
-                              freshness/fresh))
+                              (ref (->listing-request
+                                     :threads (inbox-query)
+                                     :freshness freshness/fresh))))
     (assert (= (-> (iter (unwrap-ok (load-summaries-of (ref (:store app))
                                                        world-account
                                                        (ref (vec (str

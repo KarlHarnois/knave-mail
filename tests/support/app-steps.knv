@@ -1,5 +1,5 @@
 (use domain/label-scope label-scope)
-(use domain/freshness freshness)
+(use domain/freshness ->listing-request freshness)
 
 (use adapters/driven/memory/remote-mail fail-times!
                                         fail-when!
@@ -40,8 +40,10 @@
   (unwrap-ok (sync-account! app world-account)))
 
 (defn listed-ids! (app query)
-  (-> (iter (unwrap-ok
-              (list-threads! app world-account query freshness/cached)))
+  (-> (iter (unwrap-ok (list-threads! app world-account
+                                      (ref (->listing-request
+                                             :threads (clone query)
+                                             :freshness freshness/cached)))))
       (map (fn (summary) (clone (:id summary))))
       collect))
 

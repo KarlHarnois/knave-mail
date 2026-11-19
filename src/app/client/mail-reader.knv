@@ -1,5 +1,5 @@
 (use domain/operation page-request)
-(use domain/freshness freshness)
+(use domain/freshness freshness listing-request)
 (use app/mail-app mail-app)
 (use app/listing listed-page! listed-threads!)
 (use app/reading find-threads! read-thread!)
@@ -23,14 +23,14 @@
 (type list-threads!
   (fn ((mut mail-app)
        (ref str)
-       (ref thread-query)
-       freshness)
+       (ref listing-request))
     (result (vec thread-summary) mail-error)))
 
-(defn list-threads! (app account query from)
-  (match from
-    (cached (find-threads! app account query))
-    (fresh (listed-threads! app account query))))
+(defn list-threads! (app account request)
+  (let (query (ref (:threads request)))
+    (match (:freshness request)
+      (cached (find-threads! app account query))
+      (fresh (listed-threads! app account query)))))
 
 (type list-thread-page!
   (fn ((mut mail-app)

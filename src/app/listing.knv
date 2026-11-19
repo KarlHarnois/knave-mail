@@ -1,11 +1,15 @@
 (use domain/operation page-request)
-(use app/activity-log log-first-listed! log-label-restored!)
+
+(use app/activity-log ->label-restored label-restored
+                      log-first-listed! log-label-restored!)
+
 (use app/mail-app mail-app)
 (use domain/collections concatenated)
 (use domain/label-scope label-scope scope-name)
 
-(use domain/listing current-for-listing first-seen
-                    ids-without-summary in-listed-order
+(use domain/listing ->listed-ids current-for-listing
+                    first-seen ids-without-summary
+                    in-listed-order listed-ids
                     outside-scope)
 
 (use domain/mail ->summary-page summary-page thread-query
@@ -30,8 +34,8 @@
 (defn listed-threads! (app account query)
   (let (ids (try (fetched-thread-ids! app account query)))
     (summaries-for! app account
-                    (ref ids)
-                    (ref (:scope query)))))
+                    (ref (->listed-ids :ids ids
+                                       :under (clone (:scope query)))))))
 
 (type listed-page!
   (fn ((mut mail-app)
@@ -41,28 +45,33 @@
 
 (defn listed-page! (app account request)
   (let (page (try (fetched-thread-page! app account request)))
-    (ok (->summary-page :summaries (try (summaries-for! app
-                                                        account
-                                                        (ref (:ids page))
-                                                        (ref (:scope (:listing request)))))
-                        :next-token (clone (:next-token page))))))
+    (ok (->summary-page
+          :summaries (try (summaries-for!
+                            app account
+                            (ref (->listed-ids :ids (clone (:ids page))
+                                               :under (clone (:scope (:listing request)))))))
+          :next-token (clone (:next-token page))))))
 
 (type summaries-for!
   (fn ((mut mail-app)
        (ref str)
-       (ref (vec string))
-       (ref label-scope))
+       (ref listed-ids))
     (result (vec thread-summary) mail-error)))
 
-(defn summaries-for! (app account ids scope)
-  (let (stored (try (load-summaries-of (ref (:store app)) account ids))
+(defn summaries-for! (app account listed)
+  (let (ids (ref (:ids listed))
+        scope (ref (:under listed))
+        stored (try (load-summaries-of (ref (:store app)) account ids))
         current (current-for-listing (ref stored) scope)
         refreshed (try (refreshed-summaries! app account
                                              (ref (ids-without-summary ids
                                                                        (ref current))))))
     (log-first-seen! app account
                      (ref (first-seen (ref stored) (ref refreshed))))
-    (log-back-under-label! app account (ref stored) scope)
+    (log-back-under-label!
+      app account
+      (ref (->label-restored :label (scope-name scope)
+                             :thread-ids (outside-scope (ref stored) scope))))
     (ok (in-listed-order ids (ref (concatenated current refreshed))))))
 
 (type refreshed-summaries!
@@ -93,14 +102,9 @@
 (type log-back-under-label!
   (fn ((ref mail-app)
        (ref str)
-       (ref (vec thread-summary))
-       (ref label-scope))
+       (ref label-restored))
     unit))
 
-(defn log-back-under-label! (app account stored scope)
-  (let (restored (outside-scope stored scope))
-    (when (not (empty? restored))
-      (log-label-restored! (ref (:log app))
-                           account
-                           (scope-name scope)
-                           (ref restored)))))
+(defn log-back-under-label! (app account restored)
+  (when (not (empty? (:thread-ids restored)))
+    (log-label-restored! (ref (:log app)) account restored)))

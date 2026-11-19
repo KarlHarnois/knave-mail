@@ -1,3 +1,4 @@
+(use domain/freshness ->listing-request)
 (use domain/queued-relabel ->relabel-request)
 (use adapters/driving/json/arguments text-error->usage-error)
 
@@ -81,8 +82,11 @@
     ((list-labels account)
      (ok (labels-json (ref (try (list-labels! app account))))))
     ((list-threads account query freshness)
-     (ok (summaries->json
-           (ref (try (list-threads! app account query (clone freshness)))))))
+     (ok (summaries->json (ref (try (list-threads! app
+                                                   account
+                                                   (ref (->listing-request
+                                                          :threads (clone query)
+                                                          :freshness (clone freshness)))))))))
     ((list-page account request)
      (ok (summary-page->json (ref (try
                                     (list-thread-page! app account request))))))

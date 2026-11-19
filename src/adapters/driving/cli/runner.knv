@@ -1,6 +1,6 @@
 (use domain/queued-relabel ->relabel-request)
 (use app/mail-app mail-app)
-(use domain/freshness freshness)
+(use domain/freshness ->listing-request freshness)
 (use adapters/driving/cli/cli-result cli-result)
 (use adapters/driving/cli/command cli-command reply-scope)
 (use adapters/driving/cli/help usage-text)
@@ -53,10 +53,12 @@
                                                                     account)))))
       ((list-threads scope query limit freshness)
        (ok (cli-result/threads-listed
-             (try (list-threads!
-                    client account
-                    (ref (->thread-query (clone scope) (clone query) limit))
-                    (clone freshness))))))
+             (try (list-threads! client account
+                                 (ref (->listing-request
+                                        :threads (->thread-query (clone scope)
+                                                                 (clone query)
+                                                                 limit)
+                                        :freshness (clone freshness))))))))
       ((show-thread thread-id format)
        (ok (cli-result/thread-shown
              (try (open-thread! client (ref (thread-in account thread-id))))

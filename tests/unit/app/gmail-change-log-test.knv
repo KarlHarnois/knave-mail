@@ -1,6 +1,6 @@
 (use domain/queued-relabel ->relabel-request)
 (use app/client/mail-labeler relabel-threads!)
-(use domain/freshness freshness)
+(use domain/freshness ->listing-request freshness)
 (use domain/labels archive-change)
 
 (use adapters/driven/memory/memory-log logged-lines
@@ -52,8 +52,9 @@
                             (same-log (ref log))))
     (unwrap-ok (list-threads! (mut app)
                               world-account
-                              (ref (inbox-query))
-                              freshness/fresh))
+                              (ref (->listing-request
+                                     :threads (inbox-query)
+                                     :freshness freshness/fresh))))
     (assert (mentions? (ref (logged-lines (ref log)))
                        "ada@example.com: a Gmail listing found 1 threads the cache did not hold: t-1"))))
 

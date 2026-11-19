@@ -1,5 +1,11 @@
-(export freshness)
+(use domain/mail thread-query)
+
+(export ->listing-request freshness listing-request)
 
 (defenum freshness
   cached
   fresh)
+
+(defstruct listing-request
+  :threads thread-query
+  :freshness freshness)

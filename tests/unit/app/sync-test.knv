@@ -1,7 +1,7 @@
 (use adapters/driven/memory/remote-operation remote-operation)
 (use domain/collections as-count)
 (use domain/label-scope label-scope)
-(use domain/freshness freshness)
+(use domain/freshness ->listing-request freshness)
 (use domain/mail ->thread-query)
 (use domain/mail-error error-kind)
 
@@ -26,18 +26,22 @@
 
 (deftest nothing-is-listed-before-the-first-sync
   (let (app (app-over (ref (remote))))
-    (assert (empty? (unwrap-ok (list-threads! (mut app)
-                                              world-account
-                                              (ref (inbox-query))
-                                              freshness/cached))))))
+    (assert (empty? (unwrap-ok (list-threads!
+                                 (mut app)
+                                 world-account
+                                 (ref (->listing-request
+                                        :threads (inbox-query)
+                                        :freshness freshness/cached))))))))
 
 (deftest a-sync-lists-inbox-threads-newest-first
   (let (app (app-over (ref (remote))))
     (unwrap-ok (sync-account! (mut app) world-account))
-    (assert (= (-> (iter (unwrap-ok (list-threads! (mut app)
-                                                   world-account
-                                                   (ref (inbox-query))
-                                                   freshness/cached)))
+    (assert (= (-> (iter (unwrap-ok (list-threads!
+                                      (mut app)
+                                      world-account
+                                      (ref (->listing-request
+                                             :threads (inbox-query)
+                                             :freshness freshness/cached)))))
                    (map (fn (summary) (clone (:id summary))))
                    collect)
                (vec (str "t-2") (str "t-1"))))))
@@ -75,8 +79,10 @@
         app (app-over (ref world)))
     (fail-remote! (ref world) remote-operation/fetch-thread)
     (unwrap-ok (sync-account! (mut app) world-account))
-    (assert (= (len (unwrap-ok (list-threads! (mut app)
-                                              world-account
-                                              (ref (inbox-query))
-                                              freshness/cached)))
+    (assert (= (len (unwrap-ok (list-threads!
+                                 (mut app)
+                                 world-account
+                                 (ref (->listing-request
+                                        :threads (inbox-query)
+                                        :freshness freshness/cached)))))
                2))))

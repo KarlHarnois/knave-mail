@@ -1,6 +1,6 @@
 (use domain/queued-relabel ->relabel-request)
 (use adapters/driven/memory/remote-operation remote-operation)
-(use domain/freshness freshness)
+(use domain/freshness ->listing-request freshness)
 (use app/client/mail-reader list-threads!)
 (use app/client/mail-labeler relabel-threads!)
 (use app/client/mail-syncer sync-account!)
@@ -19,7 +19,10 @@
                             surface-remotely!)
 
 (defn fresh-ids! (app query)
-  (-> (iter (unwrap-ok (list-threads! app world-account query freshness/fresh)))
+  (-> (iter (unwrap-ok (list-threads! app world-account
+                                      (ref (->listing-request
+                                             :threads (clone query)
+                                             :freshness freshness/fresh)))))
       (map (fn (summary) (clone (:id summary))))
       collect))
 

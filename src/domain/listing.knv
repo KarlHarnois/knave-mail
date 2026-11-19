@@ -4,8 +4,13 @@
 (use domain/mail thread-summary)
 (use domain/summary in-scope?)
 
-(export current-for-listing first-seen ids-without-summary
-        in-listed-order missing-from-listing outside-scope)
+(export ->listed-ids current-for-listing first-seen
+        ids-without-summary in-listed-order listed-ids
+        missing-from-listing outside-scope)
+
+(defstruct listed-ids
+  :ids (vec string)
+  :under label-scope)
 
 (defn current-for-listing (summaries scope)
   (-> (iter summaries)
