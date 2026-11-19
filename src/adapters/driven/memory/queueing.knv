@@ -1,5 +1,6 @@
 (use adapters/driven/memory/memory-store memory-store)
-(use adapters/driven/memory/stored-labels relabel-everywhere!)
+(use adapters/driven/memory/cache-relabels relabel-everywhere!)
+(use domain/mail ->thread-ref)
 (use adapters/driven/memory/stored-queue without-queued)
 (use domain/labels label-change reversed-change)
 (use domain/queued-relabel ->queued-relabel queued-relabel)
@@ -17,10 +18,9 @@
   (local added (vec))
   (for-each (iter thread-ids)
     (fn (thread-id)
-      (relabel-everywhere! (mut (:summaries cache))
-                           (mut (:threads cache))
-                           email
-                           (as-str thread-id)
+      (relabel-everywhere! cache
+                           (ref (->thread-ref :account (str email)
+                                              :thread-id (clone thread-id)))
                            change)
       (push! added
              (->queued-relabel :id (:next-queued-id cache)
@@ -40,10 +40,10 @@
     unit))
 
 (defn reverted-queued! (cache queued)
-  (relabel-everywhere! (mut (:summaries cache))
-                       (mut (:threads cache))
-                       (as-str (:account queued))
-                       (as-str (:thread-id queued))
+  (relabel-everywhere! cache
+                       (ref (->thread-ref :account (clone (:account queued))
+                                          :thread-id (clone (:thread-id
+                                                              queued))))
                        (ref (reversed-change (ref (:change queued)))))
   (set! (:queued cache)
         (without-queued (ref (:queued cache))

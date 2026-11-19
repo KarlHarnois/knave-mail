@@ -1,3 +1,4 @@
+(use domain/mail ->thread-ref thread-ref)
 (use adapters/driven/sqlite/connection sqlite-connection)
 
 (use adapters/driven/sqlite/queued begin! commit!
@@ -8,9 +9,8 @@
 (use adapters/driven/sqlite/summaries read-summary-labels
                                       relabel-summary)
 
-(use adapters/driven/sqlite/threads read-thread
-                                    relabel-thread)
-
+(use adapters/driven/sqlite/thread-labels relabel-thread)
+(use adapters/driven/sqlite/threads read-thread)
 (use domain/collections try-for-each)
 
 (use domain/labels apply-label-change label-change
@@ -35,17 +35,15 @@
   (local rows (vec))
   (try (try-for-each (iter thread-ids)
          (fn (thread-id)
-           (try (relabel-everywhere connection email
-                                    (as-str thread-id)
-                                    change))
-           (push! rows
-                  (->queued-relabel :id (try (insert-queued connection
-                                                            email
-                                                            (as-str thread-id)
-                                                            change))
-                                    :account (str email)
-                                    :thread-id (clone thread-id)
-                                    :change (clone change)))
+           (let (thread (->thread-ref :account (str email)
+                                      :thread-id (clone thread-id)))
+             (try (relabel-everywhere connection (ref thread) change))
+             (push! rows
+                    (->queued-relabel
+                      :id (try (insert-queued connection (ref thread) change))
+                      :account (str email)
+                      :thread-id (clone thread-id)
+                      :change (clone change))))
            (ok (do)))))
   (ok rows))
 
@@ -64,26 +62,38 @@
 
 (defn reverted-in-place (connection queued)
   (try (relabel-everywhere connection
-                           (as-str (:account queued))
-                           (as-str (:thread-id queued))
+                           (ref (->thread-ref :account (clone (:account queued))
+                                              :thread-id (clone (:thread-id
+                                                                  queued))))
                            (ref (reversed-change (ref (:change queued))))))
   (erase-queued connection (:id queued)))
 
 (defn reapply-queued (connection email)
   (try-for-each (iter (try (read-queued-of connection email)))
     (fn (row)
-      (relabel-everywhere connection email
-                          (as-str (:thread-id row))
+      (relabel-everywhere connection
+                          (ref (->thread-ref :account (str email)
+                                             :thread-id (clone (:thread-id
+                                                                 row))))
                           (ref (:change row))))))
 
-(defn relabel-everywhere (connection email thread-id change)
-  (match (try (read-thread connection email thread-id))
-    ((some stored)
-     (try (relabel-thread connection email thread-id
-                          (apply-label-change (ref (:labels stored)) change))))
-    (none (do)))
-  (match (try (read-summary-labels connection email thread-id))
-    ((some labels)
-     (relabel-summary connection email thread-id
-                      (apply-label-change (ref labels) change)))
-    (none (ok (do)))))
+(type relabel-everywhere
+  (fn ((ref sqlite-connection)
+       (ref thread-ref)
+       (ref label-change))
+    (result unit mail-error)))
+
+(defn relabel-everywhere (connection thread change)
+  (let (account (as-str (:account thread))
+        thread-id (as-str (:thread-id thread)))
+    (match (try (read-thread connection account thread-id))
+      ((some stored)
+       (try (relabel-thread connection thread
+                            (apply-label-change (ref (:labels stored))
+                                                change))))
+      (none (do)))
+    (match (try (read-summary-labels connection account thread-id))
+      ((some labels)
+       (relabel-summary connection thread
+                        (apply-label-change (ref labels) change)))
+      (none (ok (do))))))

@@ -11,10 +11,11 @@
 
 (use adapters/driven/memory/stored-labels align-thread-labels!
                                           labels-in
-                                          reapply-queued!
-                                          relabel-everywhere!
                                           replace-labels!
                                           stored-labels)
+
+(use adapters/driven/memory/cache-relabels reapply-queued!
+                                           relabel-everywhere!)
 
 (use adapters/driven/memory/stored-accounts account-kept?
                                             accounts-without)
@@ -67,10 +68,7 @@
                         email summaries)
     (align-thread-labels! (mut (:threads cache))
                           email summaries)
-    (ok (reapply-queued! (mut (:summaries cache))
-                         (mut (:threads cache))
-                         (ref (:queued cache))
-                         email)))
+    (ok (reapply-queued! cache email)))
 
   (load-summaries-of (cache email ids)
     (ok (summaries-with-ids (ref (:summaries cache)) email ids)))
@@ -90,10 +88,7 @@
 
   (save-thread! (cache email saved)
     (replace-thread! (mut (:threads cache)) email saved)
-    (ok (reapply-queued! (mut (:summaries cache))
-                         (mut (:threads cache))
-                         (ref (:queued cache))
-                         email)))
+    (ok (reapply-queued! cache email)))
 
   (forget-thread! (cache forgotten)
     (let (email (as-str (:account forgotten))
@@ -124,11 +119,7 @@
                                 email thread-id))))
 
   (relabel-stored! (cache relabeled change)
-    (ok (relabel-everywhere! (mut (:summaries cache))
-                             (mut (:threads cache))
-                             (as-str (:account relabeled))
-                             (as-str (:thread-id relabeled))
-                             change)))
+    (ok (relabel-everywhere! cache relabeled change)))
 
   (queue-relabels! (cache email thread-ids change)
     (ok (queued-each! cache email thread-ids change)))

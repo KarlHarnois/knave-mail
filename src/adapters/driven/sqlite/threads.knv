@@ -1,10 +1,13 @@
 (use adapters/driven/sqlite/connection sqlite-connection)
 (use adapters/driven/sqlite/rows text-error->internal-error)
 (use adapters/driven/sqlite/statements execute-all)
-(use domain/mail ->message ->thread message thread)
+
+(use domain/mail ->message ->thread message thread
+                 thread-ref)
+
 (use domain/mail-error mail-error)
 
-(export erase-thread read-message read-thread relabel-thread
+(export erase-thread read-message read-thread
         set-thread-labels write-thread)
 
 (defstruct thread-row
@@ -74,11 +77,6 @@
       connection account saved insert-thread
       delete-thread-messages insert-message)))
 
-(defn relabel-thread (connection account thread-id labels)
-  (text-error->internal-error (update-thread-labels
-                                connection account thread-id
-                                labels set-thread-labels)))
-
 (defn erase-thread (connection account thread-id)
   (text-error->internal-error (execute-all connection
                                            (ref thread-erasures)
@@ -129,14 +127,5 @@
          (ref thread)
          (ref str)
          (ref str)
-         (ref str))
-      (result unit string))))
-
-(def update-thread-labels
-  (rust "{0}.execute({4}, rusqlite::params![{1}, {2}, serde_json::to_string(&{3}).unwrap_or_default()]).map(|_| ()).map_err(|{!error}| {!error}.to_string())"
-    (fn ((ref sqlite-connection)
-         (ref str)
-         (ref str)
-         (vec string)
          (ref str))
       (result unit string))))

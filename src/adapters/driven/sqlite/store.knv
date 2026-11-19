@@ -112,9 +112,7 @@
 
   (relabel-stored! (cache relabeled change)
     (relabel-everywhere (ref (:connection cache))
-                        (as-str (:account relabeled))
-                        (as-str (:thread-id relabeled))
-                        change))
+                        relabeled change))
 
   (queue-relabels! (cache email thread-ids change)
     (queued-together (ref (:connection cache))

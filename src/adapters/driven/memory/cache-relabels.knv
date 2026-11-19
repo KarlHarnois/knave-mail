@@ -1,0 +1,33 @@
+(use adapters/driven/memory/memory-store memory-store)
+
+(use adapters/driven/memory/stored-labels relabel-summaries!
+                                          relabel-threads!)
+
+(use adapters/driven/memory/stored-queue queued-changes-of)
+(use domain/labels label-change)
+(use domain/mail ->thread-ref thread-ref)
+
+(export reapply-queued! relabel-everywhere!)
+
+(type relabel-everywhere!
+  (fn ((mut memory-store)
+       (ref thread-ref)
+       (ref label-change))
+    unit))
+
+(defn relabel-everywhere! (cache thread change)
+  (relabel-summaries! (mut (:summaries cache)) thread change)
+  (relabel-threads! (mut (:threads cache)) thread change))
+
+(type reapply-queued!
+  (fn ((mut memory-store) (ref str)) unit))
+
+(defn reapply-queued! (cache email)
+  (let (changes (queued-changes-of (ref (:queued cache)) email))
+    (for-each (iter changes)
+      (fn (entry)
+        (let-match ((pair thread-id change) entry)
+          (relabel-everywhere! cache
+                               (ref (->thread-ref :account (str email)
+                                                  :thread-id (clone thread-id)))
+                               change))))))

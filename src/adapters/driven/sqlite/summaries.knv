@@ -4,7 +4,7 @@
 (use adapters/driven/sqlite/threads set-thread-labels)
 (use domain/labels label-change)
 
-(use domain/mail ->thread-summary thread-query
+(use domain/mail ->thread-summary thread-query thread-ref
                  thread-summary)
 
 (use domain/mail-error mail-error)
@@ -86,9 +86,17 @@
                                 connection account summaries
                                 set-thread-labels)))
 
-(defn relabel-summary (connection account thread-id labels)
+(type relabel-summary
+  (fn ((ref sqlite-connection)
+       (ref thread-ref)
+       (vec string))
+    (result unit mail-error)))
+
+(defn relabel-summary (connection thread labels)
   (text-error->internal-error (update-summary-labels
-                                connection account thread-id
+                                connection
+                                (as-str (:account thread))
+                                (as-str (:thread-id thread))
                                 labels set-summary-labels)))
 
 (defn read-summary-labels (connection account thread-id)

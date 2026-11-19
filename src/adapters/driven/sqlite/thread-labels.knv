@@ -1,0 +1,29 @@
+(use adapters/driven/sqlite/connection sqlite-connection)
+(use adapters/driven/sqlite/rows text-error->internal-error)
+(use adapters/driven/sqlite/threads set-thread-labels)
+(use domain/mail thread-ref)
+(use domain/mail-error mail-error)
+
+(export relabel-thread)
+
+(type relabel-thread
+  (fn ((ref sqlite-connection)
+       (ref thread-ref)
+       (vec string))
+    (result unit mail-error)))
+
+(defn relabel-thread (connection thread labels)
+  (text-error->internal-error (update-thread-labels connection
+                                                    (as-str (:account thread))
+                                                    (as-str (:thread-id thread))
+                                                    labels
+                                                    set-thread-labels)))
+
+(def update-thread-labels
+  (rust "{0}.execute({4}, rusqlite::params![{1}, {2}, serde_json::to_string(&{3}).unwrap_or_default()]).map(|_| ()).map_err(|{!error}| {!error}.to_string())"
+    (fn ((ref sqlite-connection)
+         (ref str)
+         (ref str)
+         (vec string)
+         (ref str))
+      (result unit string))))

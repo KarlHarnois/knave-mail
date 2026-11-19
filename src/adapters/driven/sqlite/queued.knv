@@ -1,3 +1,4 @@
+(use domain/mail thread-ref)
 (use adapters/driven/sqlite/connection sqlite-connection)
 (use adapters/driven/sqlite/rows text-error->internal-error)
 (use domain/labels label-change)
@@ -23,9 +24,17 @@
 (def count-queued-rows
   "SELECT COUNT(*) FROM queued_relabels WHERE account = ?1")
 
-(defn insert-queued (connection email thread-id change)
-  (text-error->internal-error (inserted-row connection email
-                                            thread-id change
+(type insert-queued
+  (fn ((ref sqlite-connection)
+       (ref thread-ref)
+       (ref label-change))
+    (result int mail-error)))
+
+(defn insert-queued (connection thread change)
+  (text-error->internal-error (inserted-row connection
+                                            (as-str (:account thread))
+                                            (as-str (:thread-id thread))
+                                            change
                                             insert-queued-row)))
 
 (defn read-all-queued (connection)
