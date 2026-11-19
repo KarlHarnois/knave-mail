@@ -4,7 +4,8 @@
 (use domain/mail-error mail-error)
 
 (use domain/operation ->relabel-work message-batch
-                      operation-kind operation-result)
+                      operation-kind operation-result
+                      relabel-source)
 
 (use domain/queued-relabel queued-relabel)
 
@@ -28,7 +29,8 @@
     (result unit mail-error)))
 
 (defn relabeled! (app account thread-id change)
-  (relabeled-as! app account thread-id change none))
+  (relabeled-as! app account thread-id change
+                 relabel-source/direct))
 
 (type delivered-queued!
   (fn ((mut mail-app) (ref queued-relabel))
@@ -39,21 +41,21 @@
                  (as-str (:account queued))
                  (as-str (:thread-id queued))
                  (ref (:change queued))
-                 (some (:id queued))))
+                 relabel-source/queued))
 
 (type relabeled-as!
   (fn ((mut mail-app)
        (ref str)
        (ref str)
        (ref label-change)
-       (option int))
+       relabel-source)
     (result unit mail-error)))
 
-(defn relabeled-as! (app account thread-id change queued-id)
+(defn relabeled-as! (app account thread-id change source)
   (match (try (run-operation! app account
                               (operation-kind/relabel
                                 (->relabel-work :thread-id (str thread-id)
                                                 :change (clone change)
-                                                :queued-id queued-id))))
+                                                :source source))))
     (relabeled (ok (do)))
     (_ (unexpected "relabel"))))

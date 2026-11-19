@@ -1,8 +1,10 @@
-(use domain/operation operation-kind priority)
+(use domain/operation operation-kind priority
+                      relabel-source)
 
 (export ->operation-policy longest-backoff-milliseconds
-        network-failure operation-policy persistence
-        policy-for policy-of)
+        longest-wait most-attempts network-failure
+        operation-policy persistence policy-for policy-of
+        retry-limits)
 
 (def read-attempts 3)
 
@@ -22,16 +24,36 @@
   retried
   final)
 
+(defstruct retry-limits
+  :most-attempts int
+  :longest-wait int)
+
 (defenum persistence
   durable
-  transient)
+  (transient retry-limits))
 
 (defstruct operation-policy
   :name string
-  :most-attempts (option int)
   :network-failure network-failure
-  :persistence persistence
-  :longest-wait (option int))
+  :persistence persistence)
+
+(type most-attempts
+  (fn ((ref operation-policy))
+    (option int)))
+
+(defn most-attempts (policy)
+  (match (:persistence policy)
+    (durable none)
+    ((transient limits) (some (:most-attempts limits)))))
+
+(type longest-wait
+  (fn ((ref operation-policy))
+    (option int)))
+
+(defn longest-wait (policy)
+  (match (:persistence policy)
+    (durable none)
+    ((transient limits) (some (:longest-wait limits)))))
 
 (defn policy-for (kind rank)
   (paced-for (policy-of kind) rank))
@@ -39,15 +61,19 @@
 (defn paced-for (policy rank)
   (match (:persistence policy)
     (durable policy)
-    (transient (paced-by-rank policy rank))))
+    ((transient limits)
+     (assoc policy
+            :persistence (persistence/transient (paced-by-rank (clone limits)
+                                                               rank))))))
 
-(defn paced-by-rank (policy rank)
+(type paced-by-rank
+  (fn (retry-limits priority) retry-limits))
+
+(defn paced-by-rank (limits rank)
   (match rank
-    (interactive (assoc policy
-                        :longest-wait (some interactive-wait-milliseconds)))
-    (background (assoc policy
-                       :most-attempts (some background-attempts)
-                       :longest-wait (some background-wait-milliseconds)))))
+    (interactive (assoc limits :longest-wait interactive-wait-milliseconds))
+    (background (->retry-limits :most-attempts background-attempts
+                                :longest-wait background-wait-milliseconds))))
 
 (defn policy-of (kind)
   (match kind
@@ -61,39 +87,34 @@
     (fetch-history-id (read-policy "fetch history id"))
     ((fetch-history _) (read-policy "fetch history"))
     ((send _)
-     (->operation-policy :name (str "send")
-                         :most-attempts (some send-attempts)
-                         :network-failure network-failure/final
-                         :persistence persistence/transient
-                         :longest-wait (some longest-backoff-milliseconds)))
-    ((relabel work) (relabel-policy (:queued-id work)))
-    ((relabel-messages _) (queued-batch-policy))))
+     (transient-policy "send" send-attempts
+                       network-failure/final))
+    ((relabel work) (relabel-policy (ref (:source work))))
+    ((relabel-messages _) (durable-policy "relabel batch"))))
 
-(defn queued-batch-policy ()
-  (->operation-policy :name (str "relabel batch")
-                      :most-attempts none
+(defn durable-policy (name)
+  (->operation-policy :name (str name)
                       :network-failure network-failure/retried
-                      :persistence persistence/durable
-                      :longest-wait none))
+                      :persistence persistence/durable))
+
+(defn transient-policy (name attempts network)
+  (->operation-policy
+    :name (str name)
+    :network-failure network
+    :persistence (persistence/transient
+                   (->retry-limits
+                     :most-attempts attempts
+                     :longest-wait longest-backoff-milliseconds))))
 
 (defn read-policy (name)
-  (->operation-policy :name (str name)
-                      :most-attempts (some read-attempts)
-                      :network-failure network-failure/retried
-                      :persistence persistence/transient
-                      :longest-wait (some longest-backoff-milliseconds)))
+  (transient-policy name read-attempts
+                    network-failure/retried))
 
-(defn relabel-policy (queued-id)
-  (match queued-id
-    ((some _)
-     (->operation-policy :name (str "relabel")
-                         :most-attempts none
-                         :network-failure network-failure/retried
-                         :persistence persistence/durable
-                         :longest-wait none))
-    (none (->operation-policy :name (str "relabel")
-                              :most-attempts (some relabel-attempts)
-                              :network-failure network-failure/retried
-                              :persistence persistence/transient
-                              :longest-wait (some
-                                              longest-backoff-milliseconds)))))
+(type relabel-policy
+  (fn ((ref relabel-source)) operation-policy))
+
+(defn relabel-policy (source)
+  (match source
+    (queued (durable-policy "relabel"))
+    (direct (transient-policy "relabel" relabel-attempts
+                              network-failure/retried))))

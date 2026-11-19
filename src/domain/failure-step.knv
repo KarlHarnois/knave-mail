@@ -1,6 +1,7 @@
 (use domain/mail-error mail-error)
 
 (use domain/operation-policy longest-backoff-milliseconds
+                             longest-wait most-attempts
                              network-failure persistence)
 
 (export backoff-after next-step retryable?
@@ -15,13 +16,13 @@
 (defn step-after-failure (attempt policy failure)
   (let (delay (delay-after attempt failure))
     (if (and (retryable? policy failure)
-             (attempts-left? (:most-attempts policy) attempt)
+             (attempts-left? (most-attempts policy) attempt)
              (worth-the-wait? policy delay))
       (next-step/retry-after delay)
       next-step/stop)))
 
 (defn worth-the-wait? (policy delay)
-  (match (:longest-wait policy)
+  (match (longest-wait policy)
     ((some longest) (<= delay longest))
     (none true)))
 
@@ -45,7 +46,7 @@
 (defn durable? (policy)
   (match (:persistence policy)
     (durable true)
-    (transient false)))
+    ((transient _) false)))
 
 (defn delay-after (attempt failure)
   (match failure

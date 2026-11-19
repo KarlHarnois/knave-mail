@@ -7,7 +7,7 @@
 (export ->message-batch ->operation ->page-request
         ->relabel-work message-batch operation
         operation-kind operation-result page-request
-        priority relabel-work)
+        priority relabel-source relabel-work)
 
 (defstruct page-request
   :listing thread-query
@@ -18,10 +18,14 @@
   :thread-ids (vec string)
   :change label-change)
 
+(defenum relabel-source
+  queued
+  direct)
+
 (defstruct relabel-work
   :thread-id string
   :change label-change
-  :queued-id (option int))
+  :source relabel-source)
 
 (defenum operation-kind
   fetch-labels

@@ -1,12 +1,14 @@
 (use domain/labels archive-change)
 (use domain/mail ->outgoing outgoing-thread)
 (use domain/mail-error ->throttling mail-error)
-(use domain/operation ->relabel-work operation-kind)
+
+(use domain/operation ->relabel-work operation-kind
+                      relabel-source)
 
 (use domain/failure-step backoff-after next-step
                          step-after-failure)
 
-(use domain/operation-policy policy-of)
+(use domain/operation-policy most-attempts policy-of)
 
 (defn network-failure ()
   (mail-error/network (str "connection reset")))
@@ -14,19 +16,19 @@
 (defn relabel-kind ()
   (operation-kind/relabel (->relabel-work :thread-id (str "t")
                                           :change (archive-change)
-                                          :queued-id none)))
+                                          :source relabel-source/direct)))
 
 (defn queued-relabel-kind ()
   (operation-kind/relabel (->relabel-work :thread-id (str "t")
                                           :change (archive-change)
-                                          :queued-id (some 7))))
+                                          :source relabel-source/queued)))
 
 (deftest a-read-is-tried-three-times
-  (assert (= (:most-attempts (policy-of (ref operation-kind/fetch-labels)))
+  (assert (= (most-attempts (ref (policy-of (ref operation-kind/fetch-labels))))
              (some 3))))
 
 (deftest a-relabel-is-tried-six-times
-  (assert (= (:most-attempts (policy-of (ref (relabel-kind))))
+  (assert (= (most-attempts (ref (policy-of (ref (relabel-kind)))))
              (some 6))))
 
 (deftest an-operation-is-named-by-its-kind
