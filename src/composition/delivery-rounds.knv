@@ -1,10 +1,8 @@
 (use domain/log-entry log-area)
 (use adapters/driving/webview/window reply-outbox)
 (use app/mail-app mail-app)
-
-(use composition/delivery-events count-waiting!
-                                 report-refusal!)
-
+(use adapters/driving/webview/window-client send-waiting-changes!)
+(use composition/delivery-events report-refusal!)
 (use domain/collections appended-once)
 (use domain/delivery-tally counted-delivery delivery-count)
 (use domain/mail-error error-message)
@@ -72,7 +70,7 @@
         (_ (do)))))
   (for-each (iter (accounts-of steps))
     (fn (account)
-      (count-waiting! app outbox (as-str account))))
+      (send-waiting-changes! app outbox (as-str account))))
   (reduce (iter steps) counts
     (fn (tally step)
       (match step

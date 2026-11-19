@@ -17,8 +17,8 @@
 (use adapters/driving/webview/window reply-outbox
                                      send-reply)
 
-(use adapters/driving/webview/window-client sync-mail!
-                                            waiting-changes-of)
+(use adapters/driving/webview/window-client send-waiting-changes!
+                                            sync-mail!)
 
 (use adapters/json/value empty-object json-value)
 (use app/mail-app mail-app)
@@ -38,11 +38,7 @@
 (defn answer-relabel! (app delivery log call account outbox)
   (send-reply outbox (answered-and-logged! app log call))
   (changes-queued! delivery)
-  (send-reply outbox
-              (core-event->json-text
-                (ref (core-event/queue
-                       :account (str account)
-                       :waiting (waiting-changes-of app account))))))
+  (send-waiting-changes! app outbox account))
 
 (type start-requested-sync!
   (fn ((mut mail-app)

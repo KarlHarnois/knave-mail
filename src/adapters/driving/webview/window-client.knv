@@ -2,10 +2,18 @@
 (use app/client/mail-labeler waiting-changes)
 (use app/client/mail-syncer sync-account!)
 (use app/mail-app mail-app)
-(use domain/mail-error mail-error)
-(use domain/results unwrap-ok-or)
+(use domain/mail-error error-message mail-error)
 
-(export answer-request! sync-mail! waiting-changes-of)
+(use adapters/driving/json/core-event core-event
+                                      core-event->json-text)
+
+(use adapters/driving/webview/window reply-outbox
+                                     send-reply)
+
+(use domain/log-entry log-area)
+(use ports/driven/event-log log-warn)
+
+(export answer-request! send-waiting-changes! sync-mail!)
 
 (type answer-request!
   (fn ((mut mail-app) (ref str)) string))
@@ -19,8 +27,22 @@
 
 (defn sync-mail! (app account) (sync-account! app account))
 
-(type waiting-changes-of
-  (fn ((ref mail-app) (ref str)) int))
+(type send-waiting-changes!
+  (fn ((ref mail-app)
+       (ref reply-outbox)
+       (ref str))
+    unit))
 
-(defn waiting-changes-of (app account)
-  (unwrap-ok-or (waiting-changes app account) 0))
+(defn send-waiting-changes! (app outbox account)
+  (match (waiting-changes app account)
+    ((ok waiting)
+     (send-reply outbox
+                 (core-event->json-text (ref (core-event/queue
+                                               :account (str account)
+                                               :waiting waiting)))))
+    ((err failure)
+     (log-warn (ref (:log app))
+               log-area/delivery
+               (str account
+                    ": cannot count the waiting changes: "
+                    (error-message (ref failure)))))))

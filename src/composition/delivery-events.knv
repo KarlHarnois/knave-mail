@@ -4,26 +4,10 @@
 (use adapters/driving/webview/window reply-outbox
                                      send-reply)
 
-(use app/mail-app mail-app)
 (use domain/mail-error error-kind error-message)
 (use domain/queued-relabel refusal)
-(use app/client/mail-labeler waiting-changes)
 
-(export count-waiting! report-refusal!)
-
-(type count-waiting!
-  (fn ((ref mail-app)
-       (ref reply-outbox)
-       (ref str))
-    unit))
-
-(defn count-waiting! (app outbox account)
-  (send-reply outbox
-              (core-event->json-text (ref (core-event/queue
-                                            :account (str account)
-                                            :waiting (unwrap-ok-or-zero (waiting-changes
-                                                                          app
-                                                                          account)))))))
+(export report-refusal!)
 
 (type report-refusal!
   (fn ((ref reply-outbox) (ref refusal))
@@ -36,8 +20,3 @@
                        :account (clone (:account (:queued refused)))
                        :thread-id (clone (:thread-id (:queued refused)))
                        :failure (clone (:failure refused)))))))
-
-(defn unwrap-ok-or-zero (counted)
-  (match counted
-    ((ok count) count)
-    ((err _) 0)))
